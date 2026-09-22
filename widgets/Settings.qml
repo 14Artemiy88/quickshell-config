@@ -42,9 +42,103 @@ QtObject {
     function applyObject(o) {
         if (!o) return
         if (o.weatherToken !== undefined) weatherToken = String(o.weatherToken)
+        if (o.font !== undefined) Config.font = String(o.font)
+        if (o.ledFont !== undefined) Config.ledFont = String(o.ledFont)
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
         if (o.playerSilenceText !== undefined) Config.playerSilenceText = String(o.playerSilenceText)
+
+        // General behaviour / update intervals
+        if (o.animationsEnabled !== undefined) Config.animationsEnabled = !!o.animationsEnabled
+        if (o.animationSpeed !== undefined) {
+            var as = Number(o.animationSpeed)
+            if (isFinite(as)) Config.animationSpeed = Math.max(0.25, Math.min(4.0, as))
+        }
+        if (o.systemMonitorInterval !== undefined) {
+            var smi = Number(o.systemMonitorInterval)
+            if (isFinite(smi)) Config.systemMonitorInterval = Math.max(200, Math.min(10000, Math.round(smi)))
+        }
+        if (o.cpuUpdateInterval !== undefined) {
+            var cui = Number(o.cpuUpdateInterval)
+            if (isFinite(cui)) Config.cpuUpdateInterval = Math.max(200, Math.min(10000, Math.round(cui)))
+        }
+        if (o.playerUpdateInterval !== undefined) {
+            var pui = Number(o.playerUpdateInterval)
+            if (isFinite(pui)) Config.playerUpdateInterval = Math.max(200, Math.min(10000, Math.round(pui)))
+        }
+        if (o.weatherNowIntervalMinutes !== undefined) {
+            var wni = Number(o.weatherNowIntervalMinutes)
+            if (isFinite(wni)) Config.weatherNowIntervalMinutes = Math.max(1, Math.min(1440, Math.round(wni)))
+        }
+        if (o.weatherHourlyIntervalMinutes !== undefined) {
+            var whi = Number(o.weatherHourlyIntervalMinutes)
+            if (isFinite(whi)) Config.weatherHourlyIntervalMinutes = Math.max(1, Math.min(1440, Math.round(whi)))
+        }
+        if (o.weatherDailyIntervalMinutes !== undefined) {
+            var wdi = Number(o.weatherDailyIntervalMinutes)
+            if (isFinite(wdi)) Config.weatherDailyIntervalMinutes = Math.max(1, Math.min(1440, Math.round(wdi)))
+        }
+
+        if (o.timerMinHeight !== undefined) {
+            var tmh = Number(o.timerMinHeight)
+            if (isFinite(tmh)) Config.timerMinHeight = Math.max(30, Math.min(1000, Math.round(tmh)))
+        }
+        if (o.volumeMinHeight !== undefined) {
+            var vmh = Number(o.volumeMinHeight)
+            if (isFinite(vmh)) Config.volumeMinHeight = Math.max(30, Math.min(1000, Math.round(vmh)))
+        }
+        if (o.volumeMaxHeight !== undefined) {
+            var vxh = Number(o.volumeMaxHeight)
+            if (isFinite(vxh)) Config.volumeMaxHeight = Math.max(100, Math.min(2000, Math.round(vxh)))
+        }
+
+        // Timer tuning
+        var timerNumberFields = [
+            ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
+            ["timerCommentMaxLength", 1, 30], ["timerCommentGap", 0, 40],
+            ["timerRowTopMargin", 0, 50], ["timerRowRightMargin", 0, 50],
+            ["timerButtonFadeDuration", 0, 5000], ["timerButtonSlideDuration", 0, 5000],
+            ["timerButtonIconFadeDuration", 0, 5000]
+        ]
+        for (var tf = 0; tf < timerNumberFields.length; ++tf) {
+            var tname = timerNumberFields[tf][0]
+            if (o[tname] !== undefined) {
+                var tv = Number(o[tname])
+                if (isFinite(tv)) Config[tname] = Math.max(timerNumberFields[tf][1], Math.min(timerNumberFields[tf][2], Math.round(tv)))
+            }
+        }
+
+        // Player tuning
+        var playerNumberFields = [
+            ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
+            ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],
+            ["playerMetaLineSpacing", 0, 100], ["playerControlIconSize", 8, 64]
+        ]
+        for (var pf = 0; pf < playerNumberFields.length; ++pf) {
+            var pname = playerNumberFields[pf][0]
+            if (o[pname] !== undefined) {
+                var pv = Number(o[pname])
+                if (isFinite(pv)) Config[pname] = Math.max(playerNumberFields[pf][1], Math.min(playerNumberFields[pf][2], Math.round(pv)))
+            }
+        }
+        if (o.playerBoldArtist !== undefined) Config.playerBoldArtist = !!o.playerBoldArtist
+        if (o.playerShowProgress !== undefined) Config.playerShowProgress = !!o.playerShowProgress
+
+        // Weather tuning
+        var weatherNumberFields = [
+            ["weatherIconSize", 16, 128], ["weatherArrowSize", 8, 64],
+            ["weatherArrowYOffset", -40, 40], ["weatherWindArrowGap", -20, 40],
+            ["weatherHourlyCount", 1, 12], ["weatherDailyCount", 1, 10],
+            ["weatherListTopPadding", 0, 40]
+        ]
+        for (var wf = 0; wf < weatherNumberFields.length; ++wf) {
+            var wname = weatherNumberFields[wf][0]
+            if (o[wname] !== undefined) {
+                var wv = Number(o[wname])
+                if (isFinite(wv)) Config[wname] = Math.max(weatherNumberFields[wf][1], Math.min(weatherNumberFields[wf][2], Math.round(wv)))
+            }
+        }
+
         if (o.cavaBars !== undefined) Config.cavaBars = Math.max(8, Number(o.cavaBars) || Config.cavaBars)
         if (o.cavaFramerate !== undefined) Config.cavaFramerate = Math.max(1, Math.min(120, Math.round(Number(o.cavaFramerate) || Config.cavaFramerate)))
         if (o.frameBorderWidth !== undefined) {
@@ -209,7 +303,25 @@ QtObject {
         for (var i=0; i<moduleNames.length; ++i) modules[moduleNames[i]] = root[moduleNames[i]]
         var colors = {}
         for (var j=0; j<colorNames.length; ++j) colors[colorNames[j]] = Config[colorNames[j]]
-        var payload = JSON.stringify({weatherToken: weatherToken, playerFont: Config.playerFont, playerMetaFont: Config.playerMetaFont, playerSilenceText: Config.playerSilenceText, cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius, timerPresets: timerPresetDefaults, timerPresetDefaults: timerPresetDefaults, modules: modules, geometry: geometry, settingsGeometry: settingsGeometry, colors: colors})
+        var payload = JSON.stringify({
+            weatherToken: weatherToken,
+            font: Config.font, ledFont: Config.ledFont,
+            playerFont: Config.playerFont, playerMetaFont: Config.playerMetaFont, playerSilenceText: Config.playerSilenceText,
+            animationsEnabled: Config.animationsEnabled, animationSpeed: Config.animationSpeed,
+            systemMonitorInterval: Config.systemMonitorInterval, cpuUpdateInterval: Config.cpuUpdateInterval, playerUpdateInterval: Config.playerUpdateInterval,
+            weatherNowIntervalMinutes: Config.weatherNowIntervalMinutes, weatherHourlyIntervalMinutes: Config.weatherHourlyIntervalMinutes, weatherDailyIntervalMinutes: Config.weatherDailyIntervalMinutes,
+            timerMinHeight: Config.timerMinHeight, volumeMinHeight: Config.volumeMinHeight, volumeMaxHeight: Config.volumeMaxHeight,
+            timerWheelStep: Config.timerWheelStep, timerCommentWidth: Config.timerCommentWidth, timerCommentMaxLength: Config.timerCommentMaxLength, timerCommentGap: Config.timerCommentGap,
+            timerRowTopMargin: Config.timerRowTopMargin, timerRowRightMargin: Config.timerRowRightMargin,
+            timerButtonFadeDuration: Config.timerButtonFadeDuration, timerButtonSlideDuration: Config.timerButtonSlideDuration, timerButtonIconFadeDuration: Config.timerButtonIconFadeDuration,
+            playerSilenceFontSize: Config.playerSilenceFontSize, playerSilenceLongFontSize: Config.playerSilenceLongFontSize, playerMetaFontSize: Config.playerMetaFontSize,
+            playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
+            playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize,
+            weatherIconSize: Config.weatherIconSize, weatherArrowSize: Config.weatherArrowSize, weatherArrowYOffset: Config.weatherArrowYOffset, weatherWindArrowGap: Config.weatherWindArrowGap,
+            weatherHourlyCount: Config.weatherHourlyCount, weatherDailyCount: Config.weatherDailyCount, weatherListTopPadding: Config.weatherListTopPadding,
+            cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
+            timerPresets: timerPresetDefaults, timerPresetDefaults: timerPresetDefaults, modules: modules, geometry: geometry, settingsGeometry: settingsGeometry, colors: colors
+        })
         if (!writer) writer = writerComponent.createObject(root)
         writer.payload = payload
         writer.running = false

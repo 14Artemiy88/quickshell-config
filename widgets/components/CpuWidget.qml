@@ -43,7 +43,7 @@ Frame {
     }
 
     Timer {
-        interval: 1000
+        interval: Config.cpuUpdateInterval
         running: Settings.loaded && Settings.cpu
         repeat: true
         triggeredOnStart: true

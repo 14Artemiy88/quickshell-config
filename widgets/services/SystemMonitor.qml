@@ -28,7 +28,7 @@ Item {
     }
 
     Timer {
-        interval: 1000
+        interval: Config.systemMonitorInterval
         running: root.enabled
         triggeredOnStart: true
         repeat: true

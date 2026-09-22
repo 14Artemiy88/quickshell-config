@@ -55,8 +55,8 @@ Frame {
     Image {
         anchors.horizontalCenter: parent.horizontalCenter
         y: 13
-        width: 55
-        height: 53
+        width: Config.weatherIconSize
+        height: Config.weatherIconSize
         fillMode: Image.PreserveAspectFit
         source: root.weather.icon
                 ? (Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.weather.icon + ".png")
@@ -80,14 +80,14 @@ Frame {
                 id: windArrow
                 // Keep the speed position unchanged; place the arrow directly against
                 // the speed field, keeping the speed position unchanged.
-                x: 40
-                y: -6
+                x: windSpeed.x - width + Config.weatherWindArrowGap
+                y: Config.weatherArrowYOffset
                 width: 17
                 height: 35
                 text: root.weather.wind?.direction?.scale_8 > 0 ? "\uF124" : ""
                 color: Config.text
                 font.family: Config.font
-                font.pixelSize: 22
+                font.pixelSize: Config.weatherArrowSize
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 transformOrigin: Item.Center
@@ -95,6 +95,7 @@ Frame {
             }
 
             Text {
+                id: windSpeed
                 x: 36
                 y: 4
                 width: 47

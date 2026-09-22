@@ -8,8 +8,8 @@ Frame {
     property bool hourly: true
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     property var displayEntries: []
-    property int itemCount: hourly ? 5 : 4
-    property int topPadding: 8
+    property int itemCount: hourly ? Config.weatherHourlyCount : Config.weatherDailyCount
+    property int topPadding: Config.weatherListTopPadding
 
     function rebuild() {
         const now = Date.now() / 1000

@@ -111,7 +111,7 @@ Frame {
             color: Config.text
             font.pixelSize: 27
             opacity: root.showButtons ? 0 : 1
-            Behavior on opacity { NumberAnimation { duration: 550; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration); easing.type: Easing.InOutCubic } }
         }
 
         Flickable {
@@ -127,9 +127,9 @@ Frame {
             transform: Translate {
                 id: buttonSlide
                 x: root.showButtons ? 0 : -18
-                Behavior on x { NumberAnimation { duration: 700; easing.type: Easing.InOutCubic } }
+                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration); easing.type: Easing.InOutCubic } }
             }
-            Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration); easing.type: Easing.InOutCubic } }
 
             Row {
                 spacing: 7
@@ -155,7 +155,7 @@ Frame {
                                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add", String(modelData)])
                             }
                             onWheel: wheel => {
-                                Settings.adjustTimerPreset(index, wheel.angleDelta.y > 0 ? 1 : -1)
+                                Settings.adjustTimerPreset(index, wheel.angleDelta.y > 0 ? Config.timerWheelStep : -Config.timerWheelStep)
                                 wheel.accepted = true
                             }
                         }
@@ -176,8 +176,8 @@ Frame {
         Column {
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: 10
-            anchors.rightMargin: 10
+            anchors.topMargin: Config.timerRowTopMargin
+            anchors.rightMargin: Config.timerRowRightMargin
             width: parent.width - anchors.leftMargin - anchors.rightMargin
             spacing: 0
 
@@ -191,16 +191,16 @@ Frame {
                         anchors.right: parent.right
                         anchors.rightMargin: 0
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 14
+                        spacing: Config.timerCommentGap
                         height: parent.height
 
                         Text {
                             // Keep the original timer value/comment directly next
                             // to the live countdown. Limit it to 10 characters so
                             // long timers can never collide with the countdown.
-                            width: 90
+                            width: Config.timerCommentWidth
                             height: parent.height
-                            text: String(model.comment || "").slice(0, 10)
+                            text: String(model.comment || "").slice(0, Config.timerCommentMaxLength)
                             color: model.color || Config.text
                             font.family: "Pixel LCD7"
                             font.pixelSize: 15

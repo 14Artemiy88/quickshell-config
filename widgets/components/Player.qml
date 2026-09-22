@@ -20,7 +20,7 @@ Frame {
             }
         }
     }
-    Timer { interval: 1000; running: Settings.loaded && Settings.player; repeat: true; triggeredOnStart: true; onTriggered: if (Settings.player && !proc.running) proc.running = true }
+    Timer { interval: Config.playerUpdateInterval; running: Settings.loaded && Settings.player; repeat: true; triggeredOnStart: true; onTriggered: if (Settings.player && !proc.running) proc.running = true }
 
     Connections {
         target: Settings
@@ -59,7 +59,7 @@ Frame {
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
         font.family: Config.playerFont
-        font.pixelSize: root.player.text?.length > 24 ? 25 : 40
+        font.pixelSize: root.player.text?.length > 24 ? Config.playerSilenceLongFontSize : Config.playerSilenceFontSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.Wrap
@@ -72,24 +72,24 @@ Frame {
         text: root.player.first_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
-        font.pixelSize: 14
-        font.bold: root.player.player === "deadbeef"
+        font.pixelSize: Config.playerMetaFontSize
+        font.bold: Config.playerBoldArtist && root.player.player === "deadbeef"
         elide: Text.ElideRight
     }
     Text {
-        x: 0; y: 140; width: parent.width
+        x: 0; y: 120 + Config.playerMetaLineSpacing; width: parent.width
         text: root.player.second_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
-        font.pixelSize: 13
+        font.pixelSize: Config.playerMetaSecondaryFontSize
         elide: Text.ElideRight
     }
     Text {
-        x: 0; y: 160; width: parent.width
+        x: 0; y: 120 + Config.playerMetaLineSpacing * 2; width: parent.width
         text: root.player.third_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
-        font.pixelSize: 13
+        font.pixelSize: Config.playerMetaSecondaryFontSize
         elide: Text.ElideRight
     }
     Text {
@@ -97,7 +97,7 @@ Frame {
         x: 5; y: 5; width: 24; height: 24
         text: root.player.status || ""
         color: Config.text
-        font.pixelSize: 18
+        font.pixelSize: Config.playerControlIconSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
@@ -108,13 +108,14 @@ Frame {
         x: 37; y: 5; width: 24; height: 24
         text: "󰒭"
         color: Config.text
-        font.pixelSize: 22
+        font.pixelSize: Config.playerControlIconSize
         visible: !!root.player.player
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""]) }
     }
     Slider {
+        visible: Config.playerShowProgress
         id: progress
         x: 0; y: 180; width: parent.width; height: 5
         from: 0; to: 100

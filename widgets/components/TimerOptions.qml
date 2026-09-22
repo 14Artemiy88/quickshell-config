@@ -20,12 +20,12 @@ Frame {
 
     // Use the same small zoom + fade in both directions. Keeping the overlay
     // alive until the animation finishes prevents the popup from jumping.
-    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.InOutCubic } }
-    Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.InOutCubic } }
+    Behavior on opacity { NumberAnimation { duration: Config.animationDuration(280); easing.type: Easing.InOutCubic } }
+    Behavior on scale { NumberAnimation { duration: Config.animationDuration(280); easing.type: Easing.InOutCubic } }
 
     Timer {
         id: closeTimer
-        interval: 280
+        interval: Config.animationDuration(280)
         repeat: false
         onTriggered: {
             root.closeFinished()

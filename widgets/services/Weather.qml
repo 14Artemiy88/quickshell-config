@@ -100,7 +100,7 @@ Item {
 
     Timer {
         id: nowTimer
-        interval: 1200000 // 20 минут
+        interval: Config.weatherNowIntervalMinutes * 60000
         running: Settings.loaded && Settings.weatherNow
         repeat: true
         onTriggered: root.refreshNow(false)
@@ -133,7 +133,7 @@ Item {
 
     Timer {
         id: dayTimer
-        interval: 3600000 // 1 час
+        interval: Config.weatherHourlyIntervalMinutes * 60000
         running: Settings.loaded && Settings.weatherHourly
         repeat: true
         onTriggered: root.refreshHourly(false)
@@ -166,7 +166,7 @@ Item {
 
     Timer {
         id: weekTimer
-        interval: 3600000 // 1 час
+        interval: Config.weatherDailyIntervalMinutes * 60000
         running: Settings.loaded && Settings.weatherDaily
         repeat: true
         onTriggered: root.refreshDaily(false)
