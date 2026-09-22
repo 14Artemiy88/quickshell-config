@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+
+mode="${1:-}"
+value="${2:-}"
+
+if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value < 0 || value > 100 )); then
+    exit 2
+fi
+
+case "$mode" in
+    main)
+        if command -v wpctl >/dev/null 2>&1; then
+            wpctl set-volume @DEFAULT_AUDIO_SINK@ "${value}%"
+        elif command -v pactl >/dev/null 2>&1; then
+            pactl set-sink-volume @DEFAULT_SINK@ "${value}%"
+        elif command -v amixer >/dev/null 2>&1; then
+            amixer -D pulse sset Master "${value}%" >/dev/null
+        else
+            exit 127
+        fi
+        ;;
+    stream)
+        id="${3:-}"
+        [[ "$id" =~ ^[0-9]+$ ]] || exit 2
+        if command -v pactl >/dev/null 2>&1; then
+            pactl set-sink-input-volume "$id" "${value}%"
+        else
+            exit 127
+        fi
+        ;;
+    *)
+        exit 2
+        ;;
+esac

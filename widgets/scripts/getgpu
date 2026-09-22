@@ -1,0 +1,4 @@
+#!/bin/bash
+
+gpu=$(exec nvidia-smi | grep % | cut -c 37-40)
+echo $(( $gpu * 100 / 2400  ))

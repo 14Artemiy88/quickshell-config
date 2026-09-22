@@ -1,0 +1,110 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+declare -r MPV_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mpvsocket"
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r IMG_SUFFIX=".png"
+declare -A PLAYER_COMMANDS=(
+    ["mpv"]='echo "{ \"command\": [\"cycle\", \"pause\"] }" | socat - "$MPV_SOCKET"'
+    ["org.telegram.desktop"]="playerctl -p \"%s\" play-pause"
+    ["plasma-browser-integration"]="playerctl -p %s play-pause"
+    ["spotify"]="playerctl -p %s play-pause"
+    ["mopidy"]="mopidy playpauseexit 0"
+    ['deadbeef']="deadbeef --toggle-pause"
+)
+
+# Функция для получения свойств MPV за один вызов
+get_mpv_properties() {
+    local properties=("${@}")
+    local commands=()
+    for prop in "${properties[@]}"; do
+        commands+=('{ "command": ["get_property", "'"$prop"'"] }')
+    done
+    printf "%s\n" "${commands[@]}" | socat - "$MPV_SOCKET" | jq -r '.data'
+}
+
+# Функция для создания изображения
+create_image() {
+    local title="$1"
+    local path="$2"
+    local position="$3"
+    local image_path="$IMG_PATH/$title$IMG_SUFFIX"
+
+    rm -f "$image_path" 2>/dev/null
+    ffmpeg -ss "$position" -i "$path" -vframes 1 -y "$image_path" 2>/dev/null
+}
+
+# Основная функция паузы
+pause() {
+    case "$1" in
+        mpv)
+            # Получаем все необходимые свойства за один вызов
+            mapfile -t props < <(get_mpv_properties "media-title" "path" "time-pos")
+            [[ ${#props[@]} -lt 3 ]] && exit 0
+
+            title="${props[0]//\"/}"
+            path="${props[1]//\"/}"
+            position="${props[2]%%.*}"
+
+            create_image "$title" "$path" "$position"
+            eval "${PLAYER_COMMANDS[mpv]}"
+            ;;
+        *)
+            eval "$(printf "${PLAYER_COMMANDS[$1]}" "$1")"
+            ;;
+    esac
+    exit 0
+}
+
+# Основная функция следующего трека
+next() {
+    playerctl -p "$1" next
+    exit 0
+}
+
+# Основная функция следующего трека
+prev() {
+    playerctl -p "$1" prev
+    exit 0
+}
+
+
+# Функция установки позиции
+position() {
+    local pos_percent="$1"
+
+    # Обработка MPV
+    if [[ -S "$MPV_SOCKET" ]]; then
+        mapfile -t props < <(get_mpv_properties "duration" "media-title" "path")
+        [[ ${#props[@]} -lt 3 ]] && exit 0
+
+        duration="${props[0]//\"/}"
+        title="${props[1]//\"/}"
+        path="${props[2]//\"/}"
+
+        # Вычисляем позицию
+        pos_seconds=$(awk -v p="$pos_percent" -v d="$duration" 'BEGIN {print d * p / 100}')
+        create_image "$title" "$path" "$pos_seconds"
+
+        # Устанавливаем позицию
+        echo "{ \"command\": [\"set_property\", \"time-pos\", $pos_seconds] }" | \
+            socat - "$MPV_SOCKET" >/dev/null
+        exit 0
+    fi
+
+    # Обработка других плееров
+    length=$(playerctl --player plasma-browser-integration metadata -f '{{ mpris:length }}' 2>/dev/null)
+    if [[ -n "$length" ]]; then
+        position=$((pos_percent * length / 100000000))
+        playerctl position "$position"
+    fi
+    exit 0
+}
+
+# Главная логика
+case "$1" in
+    pause) pause "$2" ;;
+    position) position "$2" ;;
+    next) next "$2" ;;
+    prev) prev "$2" ;;
+esac

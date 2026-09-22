@@ -1,0 +1,64 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_cpu_graph"
+LINES=51
+
+prev_user=0 prev_nice=0 prev_system=0 prev_idle=0
+has_prev=0
+hist=""
+
+if [[ -f "$STATE" ]]; then
+    read -r line1 < "$STATE"
+    line2=$(tail -1 "$STATE" 2>/dev/null)
+    read -r prev_user prev_nice prev_system prev_idle <<< "$line1"
+    hist="$line2"
+    has_prev=1
+fi
+
+while true; do
+    user=0 nice=0 idle=0
+    while IFS= read -r line; do
+        case "$line" in
+            cpu\ *)
+                read -r _ user nice system idle _ <<< "$line"
+                user="${user:-0}"; nice="${nice:-0}"; system="${system:-0}"; idle="${idle:-0}"
+                break
+                ;;
+        esac
+    done < /proc/stat
+
+    u=$((user + nice + system))
+    t=$((u + idle))
+
+    pct=0
+    if (( has_prev )); then
+        u1=$((prev_user + prev_nice + prev_system))
+        t1=$((u1 + prev_idle))
+        dt=$((t - t1))
+        if (( dt > 0 )); then
+            du=$((u - u1))
+            (( du < 0 )) && du=0
+            pct=$((du * 100 / dt))
+        fi
+    fi
+
+    if [[ -z "$hist" ]]; then
+        hist="0"
+        for ((i=2; i<=LINES; i++)); do hist="$hist,0"; done
+    fi
+    hist="${hist#*,},$pct"
+
+    printf '%s %s %s %s\n' "$user" "$nice" "$system" "$idle" > "$STATE"
+    printf '%s\n' "$hist" >> "$STATE"
+
+    printf '[%s]\n' "$hist"
+
+    prev_user=$user
+    prev_nice=$nice
+    prev_system=$system
+    prev_idle=$idle
+    has_prev=1
+
+    sleep 1
+done

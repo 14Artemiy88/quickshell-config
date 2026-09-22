@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+
+if command -v wpctl >/dev/null 2>&1; then
+    wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+elif command -v pactl >/dev/null 2>&1; then
+    pactl set-sink-mute @DEFAULT_SINK@ toggle
+elif command -v amixer >/dev/null 2>&1; then
+    amixer -D pulse sset Master toggle >/dev/null
+else
+    exit 127
+fi

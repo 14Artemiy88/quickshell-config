@@ -1,0 +1,14 @@
+#!/bin/bash
+set -u
+awk '
+/^MemTotal:/ { total=$2 }
+/^MemAvailable:/ { avail=$2 }
+END {
+  if (total > 0) {
+    used=total-avail
+    pct=used*100/total
+    printf "%.0f\n", pct
+  } else {
+    print "0"
+  }
+}' /proc/meminfo

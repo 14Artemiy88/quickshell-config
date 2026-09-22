@@ -1,0 +1,243 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+TIMER_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/timer"
+MESSAGE="динь-динь"
+
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r TIMER_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/timer"
+
+
+
+# Кэш данных таймеров (только для daemon mode)
+declare -A t_mtime
+# Храним все поля одним массивом: total_time:end_time:ding:color:paused_at:comment
+declare -A t_data
+
+declare -a timer_files=()
+
+# --- daemon mode: бесконечный цикл с кэшированием ---
+run_daemon() {
+    local now timers json file mtime data total_time end_time ding color paused_at comment
+    local seconds_left display_now sign timer_str time_passed
+
+    while true; do
+        now=$(date '+%s')
+        timers=()
+
+        # Обновляем список файлов и кэш
+        timer_files=()
+        for file in "$TIMER_DIR"/*; do
+            [[ -f "$file" ]] || continue
+            timer_files+=("$file")
+
+            mtime=$(stat -c %Y "$file" 2>/dev/null)
+            if [[ "${t_mtime[$file]}" != "$mtime" ]]; then
+                read_timer_file "$file"
+                t_mtime["$file"]="$mtime"
+                t_data["$file"]="$total_time:$end_time:$ding:$color:$paused_at:$comment"
+            else
+                # Используем кэш
+                data="${t_data[$file]}"
+                total_time="${data%%:*}"; data="${data#*:}"
+                end_time="${data%%:*}";   data="${data#*:}"
+                ding="${data%%:*}";       data="${data#*:}"
+                color="${data%%:*}";      data="${data#*:}"
+                paused_at="${data%%:*}";  comment="${data#*:}"
+            fi
+
+            # Пересчёт оставшегося времени
+            display_now=$now
+            if (( paused_at > 0 )); then
+                display_now=$paused_at
+            fi
+
+            local seconds_left=$((end_time - display_now))
+            local sign=""
+            (( total_time > 0  && seconds_left < 0 )) && sign=" + "
+            if (( total_time > 0  && seconds_left <= 0 && ding == 0 )); then
+                ding=1
+                t_data["$file"]="$total_time:$end_time:$ding:$color:$paused_at:$comment"
+                write_timer_file "$file"
+                say "$MESSAGE" &
+                kdialog --imgbox ~/Images/D/100-1/50.jpg --title "$total_time мин $comment" &>/dev/null &
+            fi
+
+            [[ -z "$comment" ]] && comment="$total_time"
+
+            local timer_str="PAUSED"
+            if (( paused_at == 0 )); then
+                timer_str=$(format_time ${seconds_left#-})
+            fi
+
+            time_passed=$(format_time $((total_time * 60 - seconds_left)))
+
+            timers+=(
+              "{\"file\":\"$file\", \"comment\":\"$comment\", \"timer\":\"$timer_str\", \"color\":\"#$color\", \"sign\":\"$sign\", \"time_passed\":\"$time_passed\"}"
+            )
+        done
+
+        # Удаляем из кэша файлы, которых больше нет
+        for key in "${!t_mtime[@]}"; do
+            [[ -f "$key" ]] || { unset 't_mtime[$key]'; unset 't_data[$key]'; }
+        done
+
+        if (( ${#timers[@]} > 0 )); then
+            printf '%s\n' "${timers[@]}" | jq -s -c .
+        else
+            echo '[]'
+        fi
+
+        sleep 1
+    done
+}
+
+# --- one-shot actions ---
+timer_up() {
+    local file="$1"
+    read_timer_file "$file" || return
+    end_time=$((end_time + 60))
+    local now=$(date '+%s')
+    ding=$((end_time - now <= 0))
+    total_time=$((total_time + 1))
+    write_timer_file "$file"
+}
+
+timer_down() {
+    local file="$1"
+    read_timer_file "$file" || return
+    end_time=$((end_time - 60))
+    total_time=$((total_time - 1))
+    local now=$(date '+%s')
+    (( end_time > now )) && write_timer_file "$file"
+}
+
+timer_delete() {
+    rm -f "$1"
+}
+
+timer_add() {
+	# Создание всех необходимых директорий при старте eww
+	[[ ! -d "$IMG_PATH" ]] && mkdir -p "$IMG_PATH"
+	[[ ! -d "$TIMER_DIR" ]] && mkdir -p "$TIMER_DIR"
+
+
+    local file now
+    now=$(date '+%s')
+    file="$TIMER_DIR/${now}_$RANDOM"
+    echo "$1 $(date -d "+$1 min" +%s ) 0 $(get_color) 0 $2" > "$file"
+}
+
+say() {
+    [[ -n "$1" ]] && echo "$1" | festival --tts --language russian &>/dev/null
+}
+
+get_color() {
+    local hash r g b sum minSum=300
+
+    hash=$(printf '%s' "$(date '+%s')$RANDOM" | md5sum | cut -c1-6)
+    r=$((0x${hash:0:2}))
+    g=$((0x${hash:2:2}))
+    b=$((0x${hash:4:2}))
+
+    sum=$((r + g + b))
+
+    if (( sum < minSum )); then
+        local diff=$(( (minSum - sum) / 3 + 1 ))
+        r=$(( r + diff ))
+        g=$(( g + diff ))
+        b=$(( b + diff ))
+    fi
+
+    (( r > 255 )) && r=255
+    (( g > 255 )) && g=255
+    (( b > 255 )) && b=255
+
+    printf '%02x%02x%02x\n' "$r" "$g" "$b"
+}
+
+format_time() {
+    local total_seconds=$1 hours minutes seconds time_str
+    hours=$((total_seconds / 3600))
+    minutes=$(((total_seconds % 3600) / 60))
+    seconds=$((total_seconds % 60))
+    printf -v time_str "%02d:%02d:%02d" $hours $minutes $seconds
+    time_str=${time_str##00:}
+    printf '%s\n' "$time_str"
+}
+
+update_color() {
+    local file="$1"
+    read_timer_file "$file" || return
+    color=$(get_color)
+    write_timer_file "$file"
+}
+
+comment() {
+    local file="$1" new_comment
+    read_timer_file "$file" || return
+    new_comment=$(kdialog --inputbox "Комментарий" "$comment")
+    if [[ $? -eq 0 ]]; then
+        comment="$new_comment"
+        write_timer_file "$file"
+    else
+        rm -f "$file"
+    fi
+}
+
+refresh() {
+    local file="$1"
+    read_timer_file "$file" || return
+    ding=0
+    end_time=$(date -d "+$total_time min" +%s)
+    write_timer_file "$file"
+}
+
+refresh_add() {
+    local file="$1"
+    read_timer_file "$file" || return
+    ding=0
+    comment="$total_time"
+    end_time=$(date -d "+$total_time min" +%s)
+    write_timer_file "$file"
+}
+
+toggle_pause() {
+    local file="$1"
+    read_timer_file "$file" || return
+    local now
+    now=$(date '+%s')
+    if (( paused_at == 0 )); then
+        paused_at=$now
+    else
+        local paused_duration=$((now - paused_at))
+        end_time=$((end_time + paused_duration))
+        paused_at=0
+    fi
+    write_timer_file "$file"
+}
+
+read_timer_file() {
+    local file="$1"
+    [[ -f "$file" ]] || return 1
+    read -r total_time end_time ding color paused_at comment < "$file"
+}
+
+write_timer_file() {
+    local file="$1"
+    echo "$total_time $end_time $ding $color $paused_at $comment" > "$file" || rm -f "$file"
+}
+
+# Главная логика
+case "$1" in
+    add)          timer_add "$2" "$3";;
+    up)           timer_up "$2";;
+    down)         timer_down "$2";;
+    delete)       timer_delete "$2";;
+    update_color) update_color "$2";;
+    comment)      comment "$2";;
+    refresh)      refresh "$2";;
+    refresh_add)  refresh_add "$2";;
+    toggle_pause) toggle_pause "$2";;
+    *)            run_daemon ;;
+esac

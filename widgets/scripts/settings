@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+source "$(dirname "$0")/env"
+CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-eww-port"
+CFG="$CFG_DIR/settings.json"
+mkdir -p "$CFG_DIR"
+DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
+[[ -f "$CFG" ]] || printf '%s\n' "$DEFAULT" > "$CFG"
+case "${1:-get}" in
+  get) cat "$CFG" ;;
+  set-json)
+    json="${2:-$DEFAULT}"
+    printf '%s\n' "$json" | jq -e . >/dev/null
+    printf '%s\n' "$json" > "$CFG"
+    ;;
+  token)
+    token="${2:-}"
+    tmp=$(mktemp)
+    jq --arg t "$token" '.weatherToken=$t' "$CFG" > "$tmp"
+    mv "$tmp" "$CFG"
+    ;;
+  *) echo "Usage: $0 {get|set-json|token}" >&2; exit 1 ;;
+esac

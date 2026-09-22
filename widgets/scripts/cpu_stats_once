@@ -1,0 +1,30 @@
+#!/bin/bash
+set -u
+read_stats() {
+  while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
+    [[ "$cpu" =~ ^cpu[0-9]+$ ]] || continue
+    total=$((user+nice+system+idle+iowait+irq+softirq+steal+guest+guest_nice))
+    busy=$((user+nice+system))
+    printf '%s %s\n' "$busy" "$total"
+  done < /proc/stat
+}
+mapfile -t before < <(read_stats)
+sleep 0.25
+mapfile -t after < <(read_stats)
+
+out="["
+for i in "${!after[@]}"; do
+  read -r b t <<< "${before[i]:-0 0}"
+  read -r ab at <<< "${after[i]}"
+  dt=$((at-t)); db=$((ab-b))
+  ((dt <= 0)) && dt=1
+  ((db < 0)) && db=0
+  pct=$((db*100/dt))
+  ((pct < 0)) && pct=0
+  ((pct > 100)) && pct=100
+  ((i > 0)) && out+=","
+  out+="$pct"
+done
+out+="]"
+ram=$(free | awk '/^Mem:/ { if ($2 > 0) printf "%.0f", $3/$2*100; else print 0 }')
+printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"

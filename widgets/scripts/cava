@@ -1,0 +1,23 @@
+#!/bin/bash
+
+bars="${1:-75}"
+framerate="${2:-30}"
+if ! [[ "$bars" =~ ^[0-9]+$ ]] || (( bars < 8 )); then
+    bars=75
+fi
+if ! [[ "$framerate" =~ ^[0-9]+$ ]] || (( framerate < 1 || framerate > 120 )); then
+    framerate=30
+fi
+
+exec cava -p /dev/stdin <<CAVA | sed -u 's/;$//; s/;/,/g' | awk '{print "[" $0 "]"; fflush()}'
+[general]
+framerate=$framerate
+bars=$bars
+[output]
+method=raw
+raw_target=/dev/stdout
+data_format=ascii
+ascii_max_range=100
+channels=mono
+noise_reduction=0.5
+CAVA

@@ -1,0 +1,11 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r TIMER_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/timer"
+
+# Создание всех необходимых директорий при старте eww
+[[ ! -d "$IMG_PATH" ]] && mkdir -p "$IMG_PATH"
+[[ ! -d "$TIMER_DIR" ]] && mkdir -p "$TIMER_DIR"
+
+echo "ok"

@@ -1,0 +1,26 @@
+#!/bin/bash
+prev=()
+while :; do
+  declare -a cur
+  while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
+    [[ "$cpu" =~ ^cpu[0-9]+$ ]] || continue
+    total=$((user+nice+system+idle+iowait+irq+softirq+steal+guest+guest_nice))
+    busy=$((user+nice+system))
+    cur+=("$busy $total")
+  done < /proc/stat
+  if ((${#prev[@]})); then
+    out="["
+    for i in "${!cur[@]}"; do
+      read -r b t <<<"${cur[i]}"
+      read -r pb pt <<<"${prev[i]:-0 0}"
+      dt=$((t-pt)); db=$((b-pb)); ((dt<=0)) && dt=1; ((db<0)) && db=0
+      pct=$((db*100/dt))
+      ((i>0)) && out+=","; out+="$pct"
+    done
+    out+="]"
+    ram=$(free | awk '/^Mem:/ {printf "%.0f", $3/$2*100}')
+    printf '{"cpu":%s,"ram":%s}\n' "$out" "$ram"
+  fi
+  prev=("${cur[@]}")
+  sleep 1
+done

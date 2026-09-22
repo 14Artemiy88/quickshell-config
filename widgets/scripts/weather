@@ -1,0 +1,44 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+declare -r CACHE_DIR="/tmp/weather_cache"
+declare -r CACHE_TTL=600  # 10 минут
+SETTINGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-eww-port/settings.json"
+GISMETEO_TOKEN="$(jq -r ".weatherToken // \"\"" "$SETTINGS_FILE" 2>/dev/null || true)"
+if [[ -z "$GISMETEO_TOKEN" ]]; then
+  echo "Ошибка: токен Gismeteo не задан" >&2
+  exit 1
+fi
+
+
+# Создаем директорию кэша
+mkdir -p "$CACHE_DIR"
+
+function get_weather() {
+    local cache=$1
+    local type=$2
+    local params=$3
+    local force=${4:-false}
+    local cache_file="$CACHE_DIR/${cache}_${params//[^a-z0-9]/_}.json"
+
+    # Проверяем актуальность кэша, если запрос не принудительный.
+    if [[ "$force" != "true" && -f "$cache_file" && $(($(date +%s) - $(stat -c %Y "$cache_file"))) -lt $CACHE_TTL ]]; then
+        cat "$cache_file"
+        return
+    fi
+
+    # Выполняем запрос и кэшируем результат
+    curl -sfS -H "X-Gismeteo-Token: $GISMETEO_TOKEN" \
+         "https://api.gismeteo.net/v2/weather/$type/4517/$params" |
+    jq -c '.response' > "$cache_file"
+
+    cat "$cache_file"
+}
+
+# Остальная часть скрипта без изменений
+case $1 in
+    now)  get_weather "now" "current" "" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)" ;;
+    day)  get_weather "day" "forecast" "?days=2" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)" ;;
+    week) get_weather "week" "forecast/aggregate" "?days=5" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)" ;;
+    *)    echo "Usage: $0 {now|day|week}" >&2; exit 1 ;;
+esac

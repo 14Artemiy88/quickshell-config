@@ -1,0 +1,402 @@
+#!/bin/bash
+source "$(dirname "$0")/env"
+
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r IMG_SUFFIX=".png"
+declare -r DEFAULT_IMG="$QS_CONFIG_DIR/assets/1px.png"
+declare -r DEFAULT_TEXT="no image"
+declare -r DEFAULT_TITLE_CLASS="default"
+
+declare -A icons=(
+    ["Playing"]="" ["playing"]=""
+    ["Paused"]=""  ["paused"]=""
+)
+
+# Кэш путей к обложкам (в пределах одного вызова скрипта)
+declare -A cover_cache
+
+find_cover() {
+    local album_dir="$1" parent_dir="${1%/*}" art found
+    local -a names=(cover folder artwork front albumart album image logo)
+    local -a exts=(jpg jpeg png bmp)
+
+    # Проверка в текущем и родительском каталоге
+    for dir in "$album_dir" "$parent_dir"; do
+        for name in "${names[@]}"; do
+            for ext in "${exts[@]}"; do
+                art="$dir/$name.$ext"
+                [[ -f "$art" ]] && { printf '%s\n' "$art"; return 0; }
+            done
+        done
+    done
+
+    # Fallback: find один раз для обоих каталогов
+    found=$(find "$album_dir" "$parent_dir" -maxdepth 2 -type f \( \
+        -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.bmp" \) \
+        -print -quit 2>/dev/null)
+
+    [[ -n "$found" ]] && { printf '%s\n' "$found"; return 0; }
+    return 1
+}
+
+escape_path() {
+    local p="$1"
+    p="${p//\\/\\}"
+    p="${p//\'/\\\'}"
+    printf '%s\n' "${p//\"/\\\"}"
+}
+
+# Основная функция
+get_album_img() {
+    local file="$1"
+    local album_dir="${file%/*}"
+
+    # Используем кэшированное значение если доступно
+    if [[ -v cover_cache["$album_dir"] ]]; then
+        echo "${cover_cache["$album_dir"]}"
+        return
+    fi
+
+    # Для нелокальных треков - дефолтная обложка
+    if [[ ! -f "$file" ]]; then
+        local default_escaped
+        default_escaped=$(escape_path "$DEFAULT_IMG")
+        cover_cache["$album_dir"]="$default_escaped"
+        echo "$default_escaped"
+        return
+    fi
+
+    # Ищем обложку
+    local art
+    art=$(find_cover "$album_dir")
+
+    # Кэшируем результат
+    if [[ -f "$art" ]]; then
+        local art_escaped
+        art_escaped=$(escape_path "$art")
+        cover_cache["$album_dir"]="$art_escaped"
+        echo "$art_escaped"
+    else
+        local default_escaped
+        default_escaped=$(escape_path "$DEFAULT_IMG")
+        cover_cache["$album_dir"]="$default_escaped"
+        echo "$default_escaped"
+    fi
+}
+
+is_youtube_video() {
+    local meta url title
+    meta=$(playerctl -p plasma-browser-integration metadata -f '{{xesam:url}}␞{{xesam:title}}' 2>/dev/null)
+    [[ -z "$meta" ]] && meta=$(playerctl -p spotify metadata -f '{{xesam:url}}␞{{xesam:title}}' 2>/dev/null)
+    [[ -z "$meta" ]] && return 1
+    url="${meta%%␞*}"
+
+    case "$url" in
+        *"youtube.com/"*|*"youtu.be/"*|*"googlevideo.com/"*|*"soundcloud.com/"*|*"spotify.com/"*) return 0 ;;
+    esac
+
+    return 1
+}
+
+get_image() {
+    local img_url="$1" image_path
+
+    # Возвращаем дефолтное изображение, если URL пустой
+    if [[ -z "$img_url" ]]; then
+        img_url=$(playerctl metadata -f '{{ mpris:artUrl }}' 2>/dev/null)
+        [[ -z "$img_url" ]] && { printf '%s\n' "$DEFAULT_IMG"; return; }
+        printf '%s\n' "${img_url#file://}"
+        return
+    fi
+
+    # Извлекаем имя файла из URL
+    image_path="$IMG_PATH/${img_url##*/}"
+    image_path="${image_path%.*}$IMG_SUFFIX"
+
+    # Загружаем только если файл не существует
+    if [[ ! -f "$image_path" ]]; then
+        curl -s -o "$image_path" "$img_url" 2>/dev/null
+        mogrify -format png "$image_path" 2>/dev/null
+    fi
+
+    printf '%s\n' "$image_path"
+}
+
+# Форматирование времени
+timeFormat() {
+    local milliseconds=$1
+    local seconds=$((milliseconds / 1000))
+    printf "%02d:%02d:%02d\n" $((seconds / 3600)) $(((seconds % 3600) / 60)) $((seconds % 60))
+}
+
+# Получение метаданных Mopidy
+get_mopidy_player_metadata() {
+    if ! pgrep -x mopidy >/dev/null; then
+        return
+    fi
+
+    local status_json rpc_data current trackTime current_album current_album_date current_artist current_length current_title
+    local format_album time_left cls
+
+    # Проверяем статус воспроизведения
+    status_json=$(curl -s -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0", "id": 1, "method": "core.playback.get_state"}' http://localhost:6680/mopidy/rpc)
+    [[ "$status_json" != *'"result":"playing"'* ]] && return
+
+    # Получаем данные за один запрос
+    rpc_data=$(curl -s -H 'Content-Type: application/json' -d '[
+        {"jsonrpc": "2.0", "id": 1, "method": "core.playback.get_current_tl_track"},
+        {"jsonrpc": "2.0", "id": 2, "method": "core.playback.get_time_position"}
+    ]' http://localhost:6680/mopidy/rpc)
+
+    current=$(jq -r '.[0].result' <<< "$rpc_data")
+    trackTime=$(jq -r '.[1].result' <<< "$rpc_data")
+
+    # Извлекаем метаданные
+    current_album=$(jq -r '.track.album.name' <<< "$current")
+    current_album_date=$(jq -r '.track.album.date' <<< "$current")
+    current_artist=$(jq -r '.track.artists[0].name' <<< "$current")
+    current_length=$(jq -r '.track.length' <<< "$current")
+    current_title=$(jq -r '.track.name' <<< "$current")
+
+    # Форматируем информацию об альбоме
+    format_album="$current_album_date"
+    [[ -n "$current_album" ]] && format_album+=" - $current_album"
+    [[ "$current_album_date" == "null" && "$current_album" == "null" ]] && format_album=""
+    [[ "$current_artist" == "null" ]] && current_artist="music"
+
+    # Рассчитываем оставшееся время
+    time_left=$(timeFormat $((current_length - trackTime)))
+    time_left=${time_left##00:}
+
+    # Определяем класс для заголовка
+    cls=$DEFAULT_TITLE_CLASS
+    [[ ${#current_title} -gt 10 ]] && cls="more_ten"
+
+    # Формируем JSON
+    get_json \
+        --first_line "$current_title" \
+        --second_line "$format_album" \
+        --timeleft "$time_left" \
+        --pos_ms "$trackTime" \
+        --dur_ms "$current_length" \
+        --status "${icons[playing]}" \
+        --image "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/album_cover.png" \
+        --artist "$current_artist" \
+        --player "mopidy" \
+        --title_class "$cls"
+}
+
+# Получение метаданных MPV
+get_mpv_player_metadata() {
+    if ! pgrep -x mpv >/dev/null; then
+        return
+    fi
+
+    local mpvsocket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mpvsocket"
+    [[ ! -S "$mpvsocket" ]] && return
+
+    local mpv_data title position duration path remaining timeleft
+    
+    mpv_data=$(socat - "$mpvsocket" <<< $'{"command": ["get_property_string", "media-title"], "request_id": 1}\n{"command": ["get_property", "time-pos"], "request_id": 2}\n{"command": ["get_property", "duration"], "request_id": 3}\n{"command": ["get_property", "path"], "request_id": 4}')
+
+    title=$(jq -r 'select(.request_id == 1) | .data' <<< "$mpv_data")
+    position=$(jq -r 'select(.request_id == 2) | .data' <<< "$mpv_data")
+    duration=$(jq -r 'select(.request_id == 3) | .data' <<< "$mpv_data")
+    path=$(jq -r 'select(.request_id == 4) | .data' <<< "$mpv_data")
+
+    [[ -z "$position" || "$position" == "null" ]] && return
+
+    # Рассчитываем оставшееся время
+    remaining=$(awk -v d="$duration" -v p="$position" 'BEGIN {printf "%.0f", d - p}')
+    timeleft=$(date -u -d @"$remaining" +'%H:%M:%S')
+    timeleft=${timeleft##00:}
+
+    title="${title//\"/}"
+
+    # Генерируем путь к изображению
+    local image_path="$IMG_PATH/${title}${IMG_SUFFIX}" ts
+
+    # Создаем превью если файла нет или старше 60 секунд
+    if [[ ! -f "$image_path" ]] || { read -r ts < <(stat -c %Y "$image_path" 2>/dev/null) && (( $(date +%s) - ts > 60 )); }; then
+        ffmpeg -ss "$position" -i "$path" -vframes 1 -y "$image_path" 2>/dev/null
+    fi
+    [[ -f "$image_path" ]] || image_path="$DEFAULT_IMG"
+
+
+    get_json \
+        --first_line "$title" \
+        --timeleft "$timeleft" \
+        --pos_ms "${position%%.*}" \
+        --dur_ms "${duration%%.*}" \
+        --image "$image_path" \
+        --artist "$DEFAULT_TEXT" \
+        --player "mpv"
+}
+
+# Получение метаданных через playerctl
+get_player_metadata() {
+    local image="$DEFAULT_IMG"
+    local service="$DEFAULT_TEXT"
+    local s="␞"
+    local params='{{status}}'"${s}"'{{title}}'"${s}"'{{artist}}'"${s}"'{{position}}'"${s}"'{{mpris:length}}'"${s}"'-{{duration(mpris:length - position)}}'"${s}"'{{mpris:artUrl}}'
+    local players=("org.telegram.desktop" "spotify" "plasma-browser-integration")
+    local metadata status title artist position len timeleft img
+
+    for player in "${players[@]}"; do
+        metadata=$(playerctl -p "$player" metadata -f "$params" 2>/dev/null)
+        [[ -z "$metadata" ]] && continue
+
+        status="${metadata%%␞*}"
+        metadata="${metadata#*␞}"
+
+        [[ "$player" == "org.telegram.desktop" && "$status" != "Playing" ]] && continue
+        break
+    done
+    [[ -z "$metadata" ]] && return
+
+    IFS="$s" read -r title artist position len timeleft img <<< "$metadata"
+
+    case "$title" in
+        *"Кинопоиск"*) service="kinopoisk"; title=${title/" — смотреть онлайн в хорошем качестве — Кинопоиск"/} ;;
+        *"Twitch"*)    service="twitch";    title=${title/" - Twitch"/}; service=$title; ;;
+        *"VK"*)        service="vk";        title=${title/"VK Видео — смотрѣть безплатно"/} ;;
+        *"Телемост"*)
+            get_json \
+                --image "$DEFAULT_IMG" \
+                --artist "telemost" \
+                --player "$player"
+            return ;;
+    esac
+
+    if is_youtube_video; then
+        service="${artist:-youtube}"
+    else
+        image=$(get_image "$img")
+    fi
+
+    # Экранирование спецсимволов
+    title=${title//\\/|}
+    title=${title//\"/\\\"}
+
+    # Формируем JSON
+    if [[ -n "$position" ]]; then
+        get_json \
+            --first_line "$title" \
+            --second_line "$artist" \
+            --timeleft "$timeleft" \
+            --pos_ms "$position" \
+            --dur_ms "$len" \
+            --status "${icons[$status]}" \
+            --image "$image" \
+            --artist "$service" \
+            --player "$player"
+    else
+        get_json \
+            --first_line "$title" \
+            --timeleft "$timeleft" \
+            --image "$image" \
+            --artist "$service" \
+            --player "$player"
+    fi
+}
+
+# Получение метаданных DeadBeeF
+get_deadbeef_player_metadata() {
+    if ! pgrep -x deadbeef-main >/dev/null; then
+        return
+    fi
+
+    local title status artist year album duration position timeleft file_path image_path meta
+    title=$(deadbeef --nowplaying "%t" 2>/dev/null)
+    [[ "$title" == "nothing" ]] && return
+
+    # Один вызов для всех остальных данных (tail -1 фильтрует "starting deadbeef...")
+    meta=$(deadbeef --nowplaying-tf '%ispaused%|%artist%|%year%|%album%|%length_seconds%|%playback_time_seconds%|-%playback_time_remaining%|%path%' 2>/dev/null | tail -1)
+    IFS='|' read -r status artist year album duration position timeleft file_path <<< "$meta"
+
+    [[ "$status" == "1" ]] && status="Paused" || status="Playing"
+
+    # Формируем строку альбома: "год - альбом" или просто альбом
+    [[ -n "$year" && "$year" != "0" ]] && album="$year - $album"
+
+    if [[ -f "$file_path" ]]; then
+        image_path=$(get_album_img "$file_path")
+    fi
+
+    get_json \
+        --first_line "$artist" \
+        --second_line "$album" \
+        --third_line "$title" \
+        --timeleft "$timeleft" \
+        --pos_ms "${position%%.*}000" \
+        --dur_ms "${duration%%.*}000" \
+        --status "${icons[$status]}" \
+        --image "$image_path" \
+        --artist "$artist" \
+        --player "deadbeef"
+}
+
+# Формирование JSON
+get_json() {
+    # Параметры по умолчанию
+    local first_line second_line third_line timeleft pos_ms dur_ms status image artist player title_class
+
+    title_class="$DEFAULT_TITLE_CLASS"
+    # Парсинг аргументов
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --first_line) first_line="$2"; shift 2 ;;
+            --second_line) second_line="$2"; shift 2 ;;
+            --third_line) third_line="$2"; shift 2 ;;
+            --timeleft) timeleft="$2"; shift 2 ;;
+            --pos_ms) pos_ms="$2"; shift 2 ;;
+            --dur_ms) dur_ms="$2"; shift 2 ;;
+            --status) status="$2"; shift 2 ;;
+            --image) image="$2"; shift 2 ;;
+            --artist) artist="$2"; shift 2 ;;
+            --player) player="$2"; shift 2 ;;
+            --title_class) title_class="$2"; shift 2 ;;
+            *) shift ;; # игнорируем неизвестные параметры
+        esac
+    done
+
+    # Рассчет позиции в процентах
+    local position_percent=0
+    if [[ $dur_ms -gt 0 ]]; then
+        position_percent=$(( (pos_ms * 100) / dur_ms ))
+    fi
+
+    # Безопасная генерация JSON с помощью jq
+    jq -n \
+        --arg first_line "$first_line" \
+        --arg second_line "$second_line" \
+        --arg third_line "$third_line" \
+        --arg timeleft "$timeleft" \
+        --arg position "$position_percent" \
+        --arg status "$status" \
+        --arg image "$image" \
+        --arg text "$artist" \
+        --arg player "$player" \
+        --arg title_class "$title_class" \
+        '{
+            first_line: $first_line,
+            second_line: $second_line,
+            third_line: $third_line,
+            timeleft: $timeleft,
+            position: $position,
+            status: $status,
+            image: $image,
+            text: $text,
+            player: $player,
+            title_class: $title_class
+        }'
+
+    exit 0
+}
+
+get_deadbeef_player_metadata
+get_mpv_player_metadata
+get_player_metadata
+
+# Если ничего не играет
+get_json --image "$DEFAULT_IMG" --artist "silence"
