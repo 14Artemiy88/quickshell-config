@@ -76,7 +76,7 @@ Frame {
                             anchors.centerIn: parent
                             text: parent.day >= 1 && parent.day <= root.daysInMonth() ? parent.day : ""
                             color: parent.day === new Date().getDate() && root.month === new Date().getMonth() && root.year === new Date().getFullYear() ? Config.accent : Config.text
-                            font.pixelSize: 14
+                            font.pixelSize: Config.uiFontSize(14)
                         }
                     }
                 }

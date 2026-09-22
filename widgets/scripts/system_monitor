@@ -127,16 +127,21 @@ get_volumes() {
 
 get_current_volume() {
     if command -v wpctl >/dev/null 2>&1; then
-        wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '''{v=$2*100; if (/MUTED/) v=0; printf "%d\n", v+0.5; exit}'''
+        wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{v=$2*100; muted=(/MUTED/)?1:0; printf "%d %d\n", v+0.5, muted; exit}'
         return
     fi
     if command -v pactl >/dev/null 2>&1; then
-        pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk '''NR==1 { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+%$/) { gsub(/%/, "", $i); print $i; exit } }'''
+        local v mute
+        v=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk 'NR==1 { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+%$/) { gsub(/%/, "", $i); print $i; exit } }')
+        mute=$(pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | awk '{print ($NF=="yes") ? 1 : 0; exit}')
+        printf "%s %s\n" "${v:-0}" "${mute:-0}"
         return
     fi
     if command -v amixer >/dev/null 2>&1; then
-        amixer -D pulse sget Master 2>/dev/null | awk -F"[][]" '''/Left:/ { if (/on\]/) { gsub(/%/, "", $2); print $2; exit } if (/off\]/) { print 0; exit } }'''
+        amixer -D pulse sget Master 2>/dev/null | awk -F"[][]" '/Left:/ { if (/off\]/) { print $2+0, 1; exit } if (/on\]/) { gsub(/%/, "", $2); print $2+0, 0; exit } }'
+        return
     fi
+    printf '0 0\n'
 }
 
 get_network() {
@@ -185,13 +190,15 @@ jq -n \
     --argjson top_apps "$(cat "$TMPD/top")" \
     --argjson net_stat "$(cat "$TMPD/net")" \
     --argjson volumes "$(cat "$TMPD/vol")" \
-    --argjson current_volume "$(cat "$TMPD/cur" || echo 0)" \
+    --argjson current_volume "$(awk '{print $1+0}' "$TMPD/cur" 2>/dev/null || echo 0)" \
+    --argjson current_muted "$(awk '{if (($2+0) != 0) print "true"; else print "false"}' "$TMPD/cur" 2>/dev/null || echo false)" \
     --argjson network "$(cat "$TMPD/netw")" \
     '{
         top_apps: $top_apps,
         net_stat: $net_stat,
         volumes: $volumes,
         current_volume: $current_volume,
+        current_muted: $current_muted,
         network: $network
     }'
 

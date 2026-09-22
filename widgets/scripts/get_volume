@@ -2,18 +2,20 @@
 set -euo pipefail
 
 if command -v wpctl >/dev/null 2>&1; then
-    wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{v=$2*100; if (/MUTED/) v=0; printf "%d\n", v+0.5; exit}'
+    wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{v=$2*100; muted=(/MUTED/)?1:0; printf "%d %d\n", v+0.5, muted; exit}'
     exit 0
 fi
 
 if command -v pactl >/dev/null 2>&1; then
-    pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk 'NR==1 { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+%$/) { gsub(/%/, "", $i); print $i; exit } }'
+    vol=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk 'NR==1 { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+%$/) { gsub(/%/, "", $i); print $i; exit } }')
+    mute=$(pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | awk '{print ($NF=="yes") ? 1 : 0; exit}')
+    printf "%s %s\n" "${vol:-0}" "${mute:-0}"
     exit 0
 fi
 
 if command -v amixer >/dev/null 2>&1; then
-    amixer -D pulse sget Master 2>/dev/null | awk -F"[][]" '/Left:/ { if (/on\]/) { gsub(/%/, "", $2); print $2; exit } if (/off\]/) { print 0; exit } }'
+    amixer -D pulse sget Master 2>/dev/null | awk -F"[][]" '/Left:/ { if (/off\]/) { print $2+0, 1; exit } if (/on\]/) { gsub(/%/, "", $2); print $2+0, 0; exit } }'
     exit 0
 fi
 
-printf '0\n'
+printf '0 0\n'

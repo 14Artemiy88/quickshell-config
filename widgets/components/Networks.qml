@@ -24,8 +24,8 @@ Frame {
                     Row {
                         anchors.fill: parent
                         anchors.margins: 5
-                        Text { width: 35; text: modelData.type; color: modelData.status === "on" ? Config.accent : Config.textDisabled; font.pixelSize: 21; verticalAlignment: Text.AlignVCenter; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -3 }
-                        Text { width: 220; text: modelData.name; color: modelData.status === "on" ? Config.textMuted : Config.textDisabled; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; font.pixelSize: 14 }
+                        Text { width: 35; text: modelData.type; color: modelData.status === "on" ? Config.accent : Config.textDisabled; font.pixelSize: Config.uiFontSize(21); verticalAlignment: Text.AlignVCenter; anchors.verticalCenter: parent.verticalCenter; anchors.verticalCenterOffset: -3 }
+                        Text { width: 220; text: modelData.name; color: modelData.status === "on" ? Config.textMuted : Config.textDisabled; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; font.pixelSize: Config.uiFontSize(14) }
                     }
                     MouseArea {
                         id: mouse; anchors.fill: parent; hoverEnabled: true

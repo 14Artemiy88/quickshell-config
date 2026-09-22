@@ -16,7 +16,7 @@ Item {
         text: root.label
         color: Config.text
         font.family: Config.font
-        font.pixelSize: 12
+        font.pixelSize: Config.uiFontSize(12)
     }
 
     Rectangle {

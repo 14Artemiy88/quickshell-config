@@ -1,3 +1,3 @@
-# eww-to-quickshell v80
+# eww-to-quickshell v85
 
-Settings UI refactor: “Прочие настройки” now uses secondary tabs for “Общие”, “Таймеры”, “Плеер”, “Погода” and “CAVA” so the page no longer becomes a single long sheet. Existing settings and persistence remain unchanged.
+Player background blur now uses Quickshell Wayland `BackgroundEffect` to blur the content behind the player surface rather than the album cover. The existing player blur toggle is preserved; the numeric setting controls the rounded blur-region radius. Blur strength itself is controlled by the compositor (Niri).

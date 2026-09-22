@@ -164,7 +164,7 @@ Frame {
             color: Config.text
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignTop
-            font.pixelSize: 12
+            font.pixelSize: Config.uiFontSize(12)
             elide: Text.ElideRight
         }
     }

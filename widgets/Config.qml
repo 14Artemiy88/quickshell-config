@@ -61,6 +61,8 @@ QtObject {
     property bool playerBoldArtist: true
     property bool playerShowProgress: true
     property int playerControlIconSize: 22
+    property bool playerBlurEnabled: false
+    property int playerBlurRadius: 10
 
     // Weather tuning
     property int weatherIconSize: 55
@@ -97,6 +99,12 @@ QtObject {
     property color tempFreezing: "#3c82e2"
 
     property string font: "JetBrainsMono Nerd Font"
+    // Base size for ordinary interface text; specialized widgets keep their own sizes.
+    property int fontSize: 12
+    property string settingsFont: "JetBrainsMono Nerd Font"
+    property int settingsFontSize: 12
+    property int settingsPadding: 10
+    property int settingsSpacing: 8
     property string ledFont: "LED"
     property string playerFont: "HARDBOR"
     property string playerMetaFont: "Ubuntu Mono Nerd Font"
@@ -107,6 +115,22 @@ QtObject {
 
     // Legacy/general corner radius used by small controls
     property int radius: 7
+
+    function uiFontSize(baseSize) {
+        var base = Number(baseSize)
+        if (!isFinite(base) || base <= 0) base = 12
+        var size = Number(fontSize)
+        if (!isFinite(size) || size <= 0) size = 12
+        return Math.max(6, Math.round(base * size / 12))
+    }
+
+    function settingsUiSize(baseSize) {
+        var base = Number(baseSize)
+        if (!isFinite(base) || base <= 0) base = 12
+        var size = Number(settingsFontSize)
+        if (!isFinite(size) || size <= 0) size = 12
+        return Math.max(6, Math.round(base * size / 12))
+    }
 
     function animationDuration(baseMs) {
         if (!animationsEnabled) return 0

@@ -9,6 +9,8 @@ Frame {
     height: 210
     property var monitor
     property real mainBackendValue: 0
+    property bool mainMuted: Boolean(root.monitor?.data?.current_muted ?? false)
+    property bool mainBackendMuted: mainMuted
     property real mainDisplayedValue: Number(root.monitor?.data?.current_volume ?? 0)
     property real mainDragValue: mainDisplayedValue
     property bool mainDragging: false
@@ -23,9 +25,11 @@ Frame {
         56 + streamCount * 42
     )
 
-    function acceptBackendVolume(v) {
+    function acceptBackendVolume(v, muted) {
         if (!isFinite(v)) return
         mainBackendValue = clampVolume(v)
+        if (muted !== undefined && isFinite(Number(muted)))
+            mainBackendMuted = Number(muted) !== 0
         if (mainDragging) return
         if (mainHasPending) {
             if (Math.abs(mainBackendValue - mainPendingValue) <= 0.5 || Date.now() >= mainPendingUntil)
@@ -34,6 +38,7 @@ Frame {
                 return
         }
         mainDisplayedValue = mainBackendValue
+        mainMuted = mainBackendMuted
     }
 
     function clampVolume(v) { return Math.max(0, Math.min(100, Number(v) || 0)) }
@@ -62,7 +67,8 @@ Frame {
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                root.acceptBackendVolume(Number(this.text.trim()))
+                const parts = this.text.trim().split(/\s+/)
+                root.acceptBackendVolume(Number(parts[0]), parts.length > 1 ? Number(parts[1]) : undefined)
                 volumePoll.running = false
             }
         }
@@ -90,7 +96,10 @@ Frame {
     Connections {
         target: root.monitor
         function onDataChanged() {
-            root.acceptBackendVolume(Number(root.monitor?.data?.current_volume ?? NaN))
+            root.acceptBackendVolume(
+                Number(root.monitor?.data?.current_volume ?? NaN),
+                root.monitor?.data?.current_muted ?? undefined
+            )
         }
     }
 
@@ -106,15 +115,21 @@ Frame {
             Text {
                 id: mainVolumeIcon
                 width: 25
-                text: root.mainDragging ? (root.mainDragValue > 0 ? "󰕾" : "󰖁") : (root.mainDisplayedValue > 0 ? "󰕾" : "󰖁")
+                text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? "󰖁" : "󰕾") : ((root.mainMuted || root.mainDisplayedValue <= 0) ? "󰖁" : "󰕾")
                 color: Config.text
-                font.pixelSize: 16
+                font.pixelSize: Config.uiFontSize(16)
                 verticalAlignment: Text.AlignVCenter
 
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/toggle_mute"])
+                    onClicked: {
+                        Quickshell.execDetached([Quickshell.shellDir + "/scripts/toggle_mute"])
+                        root.mainMuted = !root.mainMuted
+                        root.mainBackendMuted = root.mainMuted
+                        volumePoll.running = false
+                        volumePoll.running = true
+                    }
                 }
             }
 
@@ -181,7 +196,7 @@ Frame {
                 Text {
                     text: modelData.name
                     color: Config.text
-                    font.pixelSize: 12
+                    font.pixelSize: Config.uiFontSize(12)
                     elide: Text.ElideRight
                     width: parent.width
                 }

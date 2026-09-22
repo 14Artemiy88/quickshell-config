@@ -34,6 +34,7 @@ Frame {
     }
 
     Image {
+        id: coverImage
         anchors.fill: parent
         cache: true
         asynchronous: true

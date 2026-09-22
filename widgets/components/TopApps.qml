@@ -43,7 +43,7 @@ Item {
                                     width: Math.max(0, parent.width - 60)
                                     text: modelData.name
                                     color: Config.text
-                                    font.pixelSize: 12
+                                    font.pixelSize: Config.uiFontSize(12)
                                     elide: Text.ElideRight
                                 }
                                 Text {
@@ -51,7 +51,7 @@ Item {
                                     text: modelData.value
                                     horizontalAlignment: Text.AlignRight
                                     color: Config.text
-                                    font.pixelSize: 12
+                                    font.pixelSize: Config.uiFontSize(12)
                                 }
                             }
                         }

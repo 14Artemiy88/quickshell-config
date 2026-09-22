@@ -61,7 +61,7 @@ Frame {
                         height: 16
                         text: root.dayText(modelData)
                         color: Config.tempZero
-                        font.pixelSize: 12
+                        font.pixelSize: Config.uiFontSize(12)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -82,7 +82,7 @@ Frame {
                         height: 18
                         text: root.highText(modelData)
                         color: root.tempColor(root.highNumber(modelData))
-                        font.pixelSize: root.hourly ? 12 : 11
+                        font.pixelSize: root.hourly ? Config.uiFontSize(12) : Config.uiFontSize(11)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -95,7 +95,7 @@ Frame {
                         height: 18
                         text: root.lowText(modelData)
                         color: root.tempColor(root.lowNumber(modelData))
-                        font.pixelSize: 11
+                        font.pixelSize: Config.uiFontSize(11)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }

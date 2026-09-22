@@ -43,6 +43,23 @@ QtObject {
         if (!o) return
         if (o.weatherToken !== undefined) weatherToken = String(o.weatherToken)
         if (o.font !== undefined) Config.font = String(o.font)
+        if (o.fontSize !== undefined) {
+            var fs = Number(o.fontSize)
+            if (isFinite(fs)) Config.fontSize = Math.max(6, Math.min(32, Math.round(fs)))
+        }
+        if (o.settingsFont !== undefined) Config.settingsFont = String(o.settingsFont)
+        if (o.settingsFontSize !== undefined) {
+            var sfs = Number(o.settingsFontSize)
+            if (isFinite(sfs)) Config.settingsFontSize = Math.max(6, Math.min(32, Math.round(sfs)))
+        }
+        if (o.settingsPadding !== undefined) {
+            var sp = Number(o.settingsPadding)
+            if (isFinite(sp)) Config.settingsPadding = Math.max(0, Math.min(40, Math.round(sp)))
+        }
+        if (o.settingsSpacing !== undefined) {
+            var ss = Number(o.settingsSpacing)
+            if (isFinite(ss)) Config.settingsSpacing = Math.max(0, Math.min(40, Math.round(ss)))
+        }
         if (o.ledFont !== undefined) Config.ledFont = String(o.ledFont)
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
@@ -123,6 +140,11 @@ QtObject {
         }
         if (o.playerBoldArtist !== undefined) Config.playerBoldArtist = !!o.playerBoldArtist
         if (o.playerShowProgress !== undefined) Config.playerShowProgress = !!o.playerShowProgress
+        if (o.playerBlurEnabled !== undefined) Config.playerBlurEnabled = !!o.playerBlurEnabled
+        if (o.playerBlurRadius !== undefined) {
+            var pbr = Number(o.playerBlurRadius)
+            if (isFinite(pbr)) Config.playerBlurRadius = Math.max(0, Math.min(40, Math.round(pbr)))
+        }
 
         // Weather tuning
         var weatherNumberFields = [
@@ -305,7 +327,10 @@ QtObject {
         for (var j=0; j<colorNames.length; ++j) colors[colorNames[j]] = Config[colorNames[j]]
         var payload = JSON.stringify({
             weatherToken: weatherToken,
-            font: Config.font, ledFont: Config.ledFont,
+            font: Config.font, fontSize: Config.fontSize,
+            settingsFont: Config.settingsFont, settingsFontSize: Config.settingsFontSize,
+            settingsPadding: Config.settingsPadding, settingsSpacing: Config.settingsSpacing,
+            ledFont: Config.ledFont,
             playerFont: Config.playerFont, playerMetaFont: Config.playerMetaFont, playerSilenceText: Config.playerSilenceText,
             animationsEnabled: Config.animationsEnabled, animationSpeed: Config.animationSpeed,
             systemMonitorInterval: Config.systemMonitorInterval, cpuUpdateInterval: Config.cpuUpdateInterval, playerUpdateInterval: Config.playerUpdateInterval,
@@ -317,6 +342,7 @@ QtObject {
             playerSilenceFontSize: Config.playerSilenceFontSize, playerSilenceLongFontSize: Config.playerSilenceLongFontSize, playerMetaFontSize: Config.playerMetaFontSize,
             playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
             playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize,
+            playerBlurEnabled: Config.playerBlurEnabled, playerBlurRadius: Config.playerBlurRadius,
             weatherIconSize: Config.weatherIconSize, weatherArrowSize: Config.weatherArrowSize, weatherArrowYOffset: Config.weatherArrowYOffset, weatherWindArrowGap: Config.weatherWindArrowGap,
             weatherHourlyCount: Config.weatherHourlyCount, weatherDailyCount: Config.weatherDailyCount, weatherListTopPadding: Config.weatherListTopPadding,
             cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
