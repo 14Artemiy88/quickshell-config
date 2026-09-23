@@ -89,7 +89,7 @@ Frame {
 
     Item {
         id: setButtons
-        // Presets stay at the left like the original EWW layout. The active
+        // Presets stay at the left; the active
         // timer values remain anchored to the right side independently.
         x: 0
         y: 0
@@ -155,7 +155,9 @@ Frame {
                                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add", String(modelData)])
                             }
                             onWheel: wheel => {
-                                Settings.adjustTimerPreset(index, wheel.angleDelta.y > 0 ? Config.timerWheelStep : -Config.timerWheelStep)
+                                const direction = wheel.angleDelta.y > 0 ? 1 : -1
+                                const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                                Settings.adjustTimerPreset(index, direction * Config.timerWheelStep * multiplier)
                                 wheel.accepted = true
                             }
                         }

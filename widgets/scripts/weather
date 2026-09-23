@@ -1,9 +1,12 @@
 #!/bin/bash
+set -o pipefail
 source "$(dirname "$0")/env"
 
 declare -r CACHE_DIR="/tmp/weather_cache"
 declare -r CACHE_TTL=600  # 10 минут
-SETTINGS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-eww-port/settings.json"
+declare -r CURL_CONNECT_TIMEOUT=5
+declare -r CURL_MAX_TIME=10
+SETTINGS_FILE="$QS_CONFIG_DIR/settings.json"
 GISMETEO_TOKEN="$(jq -r ".weatherToken // \"\"" "$SETTINGS_FILE" 2>/dev/null || true)"
 if [[ -z "$GISMETEO_TOKEN" ]]; then
   echo "Ошибка: токен Gismeteo не задан" >&2
@@ -27,11 +30,23 @@ function get_weather() {
         return
     fi
 
-    # Выполняем запрос и кэшируем результат
-    curl -sfS -H "X-Gismeteo-Token: $GISMETEO_TOKEN" \
+    # Выполняем запрос с жёстким таймаутом и кэшируем только валидный ответ.
+    local tmp_file
+    tmp_file=$(mktemp "${cache_file}.XXXXXX") || return 1
+    if ! curl -sfS --connect-timeout "$CURL_CONNECT_TIMEOUT" --max-time "$CURL_MAX_TIME" \
+         -H "X-Gismeteo-Token: $GISMETEO_TOKEN" \
          "https://api.gismeteo.net/v2/weather/$type/4517/$params" |
-    jq -c '.response' > "$cache_file"
+         jq -c '.response | select(. != null)' > "$tmp_file"; then
+        rm -f "$tmp_file"
+        return 1
+    fi
 
+    if [[ ! -s "$tmp_file" ]] || ! jq -e '((type == "object") or (type == "array"))' "$tmp_file" >/dev/null 2>&1; then
+        rm -f "$tmp_file"
+        return 1
+    fi
+
+    mv -f "$tmp_file" "$cache_file"
     cat "$cache_file"
 }
 

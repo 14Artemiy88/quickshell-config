@@ -8,6 +8,8 @@ Frame {
     height: 80
     property var weather: ({})
     property var weatherService: null
+    property bool hasData: weather && Object.keys(weather).length > 0
+    property string statusMessage: weatherService ? weatherService.nowStatusMessage : "Погода недоступна"
 
     function windAngle(scale) {
         const n = Number(scale || 0)
@@ -17,44 +19,43 @@ Frame {
     Item {
         x: 0
         y: 0
-        width: 100
+        width: Config.weatherTempColumnWidth
         height: parent.height
 
         Text {
-            x: 10
+            x: Config.weatherTempX
             y: 0
-            width: 90
+            width: Config.weatherTempWidth
             height: 55
             text: root.weather.temperature?.air?.C ?? ""
             color: Config.currentWeather
             font.family: Config.ledFont
-            font.pixelSize: 55
+            font.pixelSize: Config.weatherTempFontSize
             lineHeight: 55
             lineHeightMode: Text.FixedHeight
             verticalAlignment: Text.AlignTop
         }
 
         Text {
-            x: 10
-            y: 39
-            width: 90
-            height: 35
+            x: Config.weatherTempX
+            y: Config.weatherComfortY
+            width: Config.weatherTempWidth
+            height: Config.weatherComfortHeight
             text: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
                   ? (root.weather.temperature?.comfort?.C ?? "") : ""
             color: Config.textMuted
             font.family: Config.ledFont
-            font.pixelSize: 35
-            lineHeight: 35
+            font.pixelSize: Config.weatherComfortFontSize
+            lineHeight: Config.weatherComfortHeight
             lineHeightMode: Text.FixedHeight
             verticalAlignment: Text.AlignTop
         }
     }
 
-    // The icon is centered against the full weather block, not the remaining
-    // space between the temperature and wind/pressure columns.
     Image {
+        visible: root.hasData
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 13
+        y: Config.weatherIconY
         width: Config.weatherIconSize
         height: Config.weatherIconSize
         fillMode: Image.PreserveAspectFit
@@ -64,26 +65,24 @@ Frame {
     }
 
     Item {
-        x: 180
+        x: Config.weatherWindColumnX
         y: 0
-        width: 120
+        width: Config.weatherWindColumnWidth
         height: parent.height
+        visible: root.hasData
 
         Item {
             x: 0
             y: 0
-            width: 120
+            width: Config.weatherWindColumnWidth
             height: 40
 
-            // Arrow, speed, unit: < 0 м/с
             Text {
                 id: windArrow
-                // Keep the speed position unchanged; place the arrow directly against
-                // the speed field, keeping the speed position unchanged.
                 x: windSpeed.x - width + Config.weatherWindArrowGap
                 y: Config.weatherArrowYOffset
-                width: 17
-                height: 35
+                width: Config.weatherWindArrowWidth
+                height: Config.weatherWindArrowHeight
                 text: root.weather.wind?.direction?.scale_8 > 0 ? "\uF124" : ""
                 color: Config.text
                 font.family: Config.font
@@ -96,27 +95,27 @@ Frame {
 
             Text {
                 id: windSpeed
-                x: 36
-                y: 4
-                width: 47
+                x: Config.weatherWindSpeedX
+                y: Config.weatherWindSpeedY
+                width: Config.weatherWindSpeedWidth
                 height: 25
                 text: root.weather.wind?.speed?.m_s ?? ""
                 color: Config.text
                 font.family: Config.ledFont
-                font.pixelSize: 25
+                font.pixelSize: Config.weatherWindSpeedFontSize
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignTop
             }
 
             Text {
-                x: 86
-                y: 9
-                width: 34
+                x: Config.weatherWindUnitX
+                y: Config.weatherWindUnitY
+                width: Config.weatherWindUnitWidth
                 height: 18
                 text: "м/с"
                 color: Config.text
                 font.family: Config.ledFont
-                font.pixelSize: 15
+                font.pixelSize: Config.weatherWindUnitFontSize
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignTop
             }
@@ -124,32 +123,32 @@ Frame {
 
         Item {
             x: 0
-            y: 33
-            width: 120
+            y: Config.weatherPressureY
+            width: Config.weatherWindColumnWidth
             height: 25
 
             Text {
                 x: 0
                 y: 0
-                width: 74
+                width: Config.weatherPressureValueWidth
                 height: 20
                 text: root.weather.pressure?.mm_hg_atm ?? ""
                 color: Config.text
                 font.family: Config.ledFont
-                font.pixelSize: 20
+                font.pixelSize: Config.weatherPressureFontSize
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignTop
             }
 
             Text {
-                x: 74
-                y: 9
-                width: 46
+                x: Config.weatherPressureUnitX
+                y: Config.weatherPressureUnitY
+                width: Math.max(1, Config.weatherWindColumnWidth - Config.weatherPressureUnitX)
                 height: 12
                 text: "MM.PT.CT"
                 color: Config.text
                 font.family: Config.ledFont
-                font.pixelSize: 10
+                font.pixelSize: Config.weatherPressureUnitFontSize
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignTop
             }
@@ -157,17 +156,24 @@ Frame {
 
         Text {
             x: 0
-            y: 58
-            width: 120
-            height: 16
+            y: Config.weatherDescriptionY
+            width: Config.weatherWindColumnWidth
+            height: Config.weatherDescriptionHeight
             text: root.weather.description?.full ?? ""
             color: Config.text
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignTop
-            font.pixelSize: Config.uiFontSize(12)
+            font.pixelSize: Config.uiFontSize(Config.weatherDescriptionFontSize)
             elide: Text.ElideRight
         }
     }
+
+    WeatherPlaceholder {
+        visible: !root.hasData
+        message: root.statusMessage
+        weatherService: root.weatherService
+    }
+
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
@@ -176,5 +182,4 @@ Frame {
                 root.weatherService.manualRefresh()
         }
     }
-
 }

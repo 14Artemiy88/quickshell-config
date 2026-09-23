@@ -6,10 +6,16 @@ Frame {
     id: root
     property var entries: []
     property bool hourly: true
+    property var weatherService: null
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     property var displayEntries: []
     property int itemCount: hourly ? Config.weatherHourlyCount : Config.weatherDailyCount
     property int topPadding: Config.weatherListTopPadding
+    property bool hasData: displayEntries.length > 0
+    property string statusMessage: {
+        if (!weatherService) return "Погода недоступна"
+        return hourly ? weatherService.hourlyStatusMessage : weatherService.dailyStatusMessage
+    }
 
     function rebuild() {
         const now = Date.now() / 1000
@@ -21,8 +27,6 @@ Frame {
     onItemCountChanged: rebuild()
     Component.onCompleted: rebuild()
 
-    // Give the weather list its own visible surface. The positive z-order
-    // avoids the background ending up behind the root item's stacking layer.
     Rectangle {
         anchors.fill: parent
         color: Config.background
@@ -58,31 +62,31 @@ Frame {
                         x: 0
                         y: 0
                         width: parent.width
-                        height: 16
+                        height: Config.weatherListDayHeight
                         text: root.dayText(modelData)
                         color: Config.tempZero
-                        font.pixelSize: Config.uiFontSize(12)
+                        font.pixelSize: Config.uiFontSize(Config.weatherListDayFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
 
                     Image {
-                        x: (parent.width - 35) / 2
-                        y: 20
-                        width: 35
-                        height: 45
+                        x: (parent.width - Config.weatherListIconWidth) / 2
+                        y: Config.weatherListIconY
+                        width: Config.weatherListIconWidth
+                        height: Config.weatherListIconHeight
                         fillMode: Image.PreserveAspectFit
                         source: Quickshell.shellDir + "/assets/gismeteo/new_png/" + (modelData.icon || "") + ".png"
                     }
 
                     Text {
                         x: 0
-                        y: root.hourly ? 65 : 66
+                        y: root.hourly ? Config.weatherListHourlyTempY : Config.weatherListDailyTempY
                         width: parent.width
-                        height: 18
+                        height: Config.weatherListTempHeight
                         text: root.highText(modelData)
                         color: root.tempColor(root.highNumber(modelData))
-                        font.pixelSize: root.hourly ? Config.uiFontSize(12) : Config.uiFontSize(11)
+                        font.pixelSize: root.hourly ? Config.uiFontSize(Config.weatherListHourlyTempFontSize) : Config.uiFontSize(Config.weatherListDailyTempFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -90,18 +94,25 @@ Frame {
                     Text {
                         visible: !root.hourly
                         x: 0
-                        y: 85
+                        y: Config.weatherListLowTempY
                         width: parent.width
-                        height: 18
+                        height: Config.weatherListTempHeight
                         text: root.lowText(modelData)
                         color: root.tempColor(root.lowNumber(modelData))
-                        font.pixelSize: Config.uiFontSize(11)
+                        font.pixelSize: Config.uiFontSize(Config.weatherListLowTempFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
             }
         }
+    }
+
+    WeatherPlaceholder {
+        visible: !root.hasData
+        z: 1.5
+        message: root.statusMessage
+        weatherService: root.weatherService
     }
 
     Rectangle {

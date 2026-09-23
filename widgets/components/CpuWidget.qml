@@ -58,7 +58,7 @@ Frame {
     Column {
         anchors.fill: parent
         anchors.margins: 5
-        spacing: 0
+        spacing: Config.cpuRowSpacing
 
         Repeater {
             model: 8
@@ -76,6 +76,7 @@ Frame {
         }
 
         MetricBar {
+            visible: Config.cpuShowRam
             label: " "
             value: root.ramValue
             fillColor: Config.ram

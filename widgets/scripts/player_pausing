@@ -2,7 +2,7 @@
 source "$(dirname "$0")/env"
 
 declare -r MPV_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mpvsocket"
-declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-player"
 declare -r IMG_SUFFIX=".png"
 declare -A PLAYER_COMMANDS=(
     ["mpv"]='echo "{ \"command\": [\"cycle\", \"pause\"] }" | socat - "$MPV_SOCKET"'

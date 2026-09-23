@@ -18,11 +18,16 @@ Frame {
     property real mainPendingValue: mainDisplayedValue
     property double mainPendingUntil: 0
     readonly property int streamCount: streamRepeater.count
-    // Exact vertical footprint of the content: 12px top + 12px bottom,
-    // 32px main row, 7px gaps, and 35px per additional stream row.
-    readonly property int adaptiveHeight: Math.max(
-        Config.volumeMinHeight,
-        56 + streamCount * 42
+    readonly property int effectiveStreamCount: Config.volumeShowStreams ? streamCount : 0
+    readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
+    // Exact vertical footprint of the content: configurable top/bottom padding,
+    // configurable main row, and one label + one track row per extra stream.
+    readonly property int adaptiveHeight: Math.min(
+        Config.volumeMaxHeight,
+        Math.max(
+            Config.volumeMinHeight,
+            2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight + effectiveStreamCount * (20 + effectiveStreamRowHeight + Config.volumeStreamSpacing)
+        )
     )
 
     function acceptBackendVolume(v, muted) {
@@ -75,7 +80,7 @@ Frame {
     }
 
     Timer {
-        interval: 200
+        interval: Config.volumeUpdateInterval
         running: Settings.loaded && Settings.volumes
         repeat: true
         triggeredOnStart: true
@@ -105,16 +110,19 @@ Frame {
 
     Column {
         anchors.fill: parent
-        anchors.margins: 12
+        anchors.leftMargin: Config.volumeHorizontalPadding
+        anchors.rightMargin: Config.volumeHorizontalPadding
+        anchors.topMargin: Config.volumeVerticalPadding
+        anchors.bottomMargin: Config.volumeVerticalPadding
         spacing: 7
 
         Row {
             width: parent.width
-            height: 32
+            height: Config.volumeMainRowHeight
 
             Text {
                 id: mainVolumeIcon
-                width: 25
+                width: Config.volumeMainIconWidth
                 text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? "󰖁" : "󰕾") : ((root.mainMuted || root.mainDisplayedValue <= 0) ? "󰖁" : "󰕾")
                 color: Config.text
                 font.pixelSize: Config.uiFontSize(16)
@@ -135,23 +143,23 @@ Frame {
 
             Item {
                 id: mainTrack
-                width: 220
+                width: Config.volumeMainTrackWidth
                 height: 32
                 property real shownValue: root.mainDragging ? root.mainDragValue : root.mainDisplayedValue
 
                 Rectangle {
                     id: mainBackground
                     x: 0
-                    y: (parent.height - 8) / 2 - 3
+                    y: (parent.height - Config.volumeMainTrackHeight) / 2 + Config.volumeMainTrackOffsetY
                     width: parent.width
-                    height: 8
-                    radius: 4
+                    height: Config.volumeMainTrackHeight
+                    radius: Config.volumeTrackRadius
                     color: Config.volumeTrack
 
                     Rectangle {
                         width: parent.width * root.clampVolume(parent.parent.shownValue) / 100
                         height: parent.height
-                        radius: 4
+                        radius: Config.volumeTrackRadius
                         color: Config.volumeFill
                     }
                 }
@@ -183,12 +191,13 @@ Frame {
 
         Repeater {
             id: streamRepeater
+            visible: Config.volumeShowStreams
             model: root.monitor?.data?.volumes ?? []
 
             delegate: Column {
                 id: streamColumn
                 width: parent.width
-                spacing: 1
+                spacing: Config.volumeStreamSpacing
                 property real backendValue: Number(modelData.value ?? 0)
                 property real dragValue: backendValue
                 property bool dragging: false
@@ -196,7 +205,7 @@ Frame {
                 Text {
                     text: modelData.name
                     color: Config.text
-                    font.pixelSize: Config.uiFontSize(12)
+                    font.pixelSize: Config.uiFontSize(Config.volumeStreamLabelFontSize)
                     elide: Text.ElideRight
                     width: parent.width
                 }
@@ -204,20 +213,20 @@ Frame {
                 Item {
                     id: streamTrack
                     width: parent.width
-                    height: 20
+                    height: root.effectiveStreamRowHeight
 
                     Rectangle {
                         x: 0
-                        y: (parent.height - 8) / 2
+                        y: Math.max(0, (parent.height - Config.volumeStreamTrackHeight) / 2 + Config.volumeStreamTrackOffsetY)
                         width: parent.width
-                        height: 8
-                        radius: 4
+                        height: Config.volumeStreamTrackHeight
+                        radius: Config.volumeTrackRadius
                         color: Config.volumeTrack
 
                         Rectangle {
                             width: parent.width * root.clampVolume(streamColumn.dragging ? streamColumn.dragValue : streamColumn.backendValue) / 100
                             height: parent.height
-                            radius: 4
+                            radius: Config.volumeTrackRadius
                             color: Config.volumeFill
                         }
                     }

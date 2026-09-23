@@ -13,7 +13,7 @@ Frame {
     property var names: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"]
     clip: true
     opacity: root.open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Config.animationDuration(350); easing.type: Easing.OutCubic } }
+    Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.animationCalendarSlideDuration); easing.type: Easing.OutCubic } }
 
     // У календаря снова отдельный, настраиваемый фон.
     Rectangle {
@@ -33,9 +33,9 @@ Frame {
         scale: root.open ? 1 : 0.985
         transformOrigin: Item.Bottom
 
-        Behavior on y { NumberAnimation { duration: Config.animationDuration(350); easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: Config.animationDuration(250); easing.type: Easing.OutCubic } }
-        Behavior on scale { NumberAnimation { duration: Config.animationDuration(350); easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: Config.animationDuration(Config.animationCalendarSlideDuration); easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.animationCalendarFadeDuration); easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: Config.animationDuration(Config.animationCalendarSlideDuration); easing.type: Easing.OutCubic } }
 
         Column {
             anchors.fill: parent

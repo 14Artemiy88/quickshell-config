@@ -30,15 +30,15 @@ Frame {
                 anchors.fill: parent
                 spacing: 0
                 Repeater {
-                    model: root.values
+                    model: 51
                     delegate: Item {
-                        width: 6
+                        width: Config.cpuGraphSegmentSlotWidth
                         height: parent.height
                         Rectangle {
-                            width: 2
+                            width: Config.cpuGraphBarWidth
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom
-                            height: Math.max(1, Math.min(parent.height, Number(modelData) * 0.35))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * Config.cpuGraphScale))
                             color: Config.baseColor
                             border.color: Config.baseColor
                             border.width: 1
@@ -53,15 +53,15 @@ Frame {
                 anchors.fill: parent
                 spacing: 0
                 Repeater {
-                    model: root.values
+                    model: 51
                     delegate: Item {
-                        width: 6
+                        width: Config.cpuGraphSegmentSlotWidth
                         height: parent.height
                         Rectangle {
-                            width: 2
+                            width: Config.cpuGraphBarWidth
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.top: parent.top
-                            height: Math.max(1, Math.min(parent.height, Number(modelData) * 0.35))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * Config.cpuGraphScale))
                             color: Config.baseColor
                             border.color: Config.baseColor
                             border.width: 1

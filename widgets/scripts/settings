@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 source "$(dirname "$0")/env"
-CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-eww-port"
+CFG_DIR="$QS_CONFIG_DIR"
 CFG="$CFG_DIR/settings.json"
 mkdir -p "$CFG_DIR"
 DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'

@@ -7,11 +7,11 @@ Item {
     property real value: 0
     property color fillColor: Config.accent
     property color trackColor: Config.metricTrack
-    height: 17
+    height: Config.cpuRowHeight
     width: 303
 
     Text {
-        x: 10
+        x: Config.cpuLabelLeftPadding
         anchors.verticalCenter: parent.verticalCenter
         text: root.label
         color: Config.text
@@ -20,16 +20,16 @@ Item {
     }
 
     Rectangle {
-        x: 35
-        y: 4
-        width: 267
-        height: 8
-        radius: 8
+        x: Config.cpuBarLeftOffset
+        y: (parent.height - Config.cpuBarThickness) / 2
+        width: Config.cpuBarWidth
+        height: Config.cpuBarThickness
+        radius: Config.cpuBarRadius
         color: root.trackColor
         Rectangle {
             width: parent.width * Math.max(0, Math.min(100, root.value)) / 100
             height: parent.height
-            radius: 8
+            radius: Config.cpuBarRadius
             color: root.fillColor
         }
     }

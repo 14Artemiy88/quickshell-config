@@ -1,9 +1,9 @@
 #!/bin/bash
 source "$(dirname "$0")/env"
 
-STATE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_net"
-CACHE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_net_cache"
-CACHE_NET_TIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_net_cache_time"
+STATE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net"
+CACHE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache"
+CACHE_NET_TIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache_time"
 TMPD=$(mktemp -d)
 
 # --- NET state ---

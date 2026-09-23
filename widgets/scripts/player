@@ -1,7 +1,7 @@
 #!/bin/bash
 source "$(dirname "$0")/env"
 
-declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-player"
 declare -r IMG_SUFFIX=".png"
 declare -r DEFAULT_IMG="$QS_CONFIG_DIR/assets/1px.png"
 declare -r DEFAULT_TEXT="no image"

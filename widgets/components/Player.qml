@@ -40,13 +40,13 @@ Frame {
         asynchronous: true
         source: root.imagePath !== "" && root.imagePath !== Quickshell.shellDir + "/assets/1px.png" ? "file://" + root.imagePath : ""
         fillMode: Image.PreserveAspectFit
-        opacity: 0.9
+        opacity: Config.playerCoverOpacity
     }
 
     Rectangle {
         anchors.fill: parent
         color: Config.playerOverlay
-        opacity: 0.9
+        opacity: Config.playerCoverOpacity
     }
 
     // With no cover/track information, keep "silence" exactly in the
@@ -55,7 +55,7 @@ Frame {
         id: silenceText
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        width: 275
+        width: Config.playerSilenceWidth
         text: (!root.player.image || root.player.image.endsWith("/assets/1px.png") || root.player.image.endsWith("/album_cover.png"))
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
@@ -69,7 +69,7 @@ Frame {
     // DeadBeeF data is ordered artist / album / title. The artist is the
     // prominent first line; other players keep their existing first line.
     Text {
-        x: 0; y: 120; width: parent.width
+        x: Config.playerMetadataXPadding; y: Config.playerMetadataY; width: parent.width - Config.playerMetadataXPadding * 2
         text: root.player.first_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
@@ -78,7 +78,7 @@ Frame {
         elide: Text.ElideRight
     }
     Text {
-        x: 0; y: 120 + Config.playerMetaLineSpacing; width: parent.width
+        x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing; width: parent.width - Config.playerMetadataXPadding * 2
         text: root.player.second_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
@@ -86,7 +86,7 @@ Frame {
         elide: Text.ElideRight
     }
     Text {
-        x: 0; y: 120 + Config.playerMetaLineSpacing * 2; width: parent.width
+        x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing * 2; width: parent.width - Config.playerMetadataXPadding * 2
         text: root.player.third_line || ""
         color: Config.text
         font.family: Config.playerMetaFont
@@ -95,18 +95,18 @@ Frame {
     }
     Text {
         id: pauseButton
-        x: 5; y: 5; width: 24; height: 24
+        x: Config.playerControlTopMargin; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
         text: root.player.status || ""
         color: Config.text
         font.pixelSize: Config.playerControlIconSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
-    Text { x: parent.width - 60; y: 5; width: 60; horizontalAlignment: Text.AlignRight; text: root.player.timeleft || ""; color: Config.text; font.pixelSize: 11 }
+    Text { x: 0; y: Config.playerControlTopMargin; width: parent.width - Config.playerTimeRightPadding; horizontalAlignment: Text.AlignRight; text: root.player.timeleft || ""; color: Config.text; font.pixelSize: Config.playerTimeFontSize }
 
     MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", root.player.player || ""]) }
     Text {
-        x: 37; y: 5; width: 24; height: 24
+        x: Config.playerControlTopMargin + Config.playerControlIconSize + Config.playerControlGap; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
         text: "󰒭"
         color: Config.text
         font.pixelSize: Config.playerControlIconSize
@@ -118,19 +118,19 @@ Frame {
     Slider {
         visible: Config.playerShowProgress
         id: progress
-        x: 0; y: 180; width: parent.width; height: 5
+        x: 0; y: Config.playerProgressY; width: parent.width; height: Config.playerProgressHeight
         from: 0; to: 100
         value: Number(root.player.position || 0)
         background: Rectangle {
             x: 0
-            y: 1
+            y: Config.playerProgressTrackOffsetY
             width: parent.width
-            height: 3
+            height: Config.playerProgressTrackHeight
             color: Config.playerProgressTrack
             Rectangle {
                 width: parent.width * Math.max(0, Math.min(100, progress.value)) / 100
                 height: parent.height
-                color: Config.accent
+                color: Config.playerProgressFill
             }
         }
         handle: Item { implicitWidth: 0; implicitHeight: 0 }

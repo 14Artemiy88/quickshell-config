@@ -49,20 +49,20 @@ Frame {
 
         Item {
             width: parent.width
-            height: 39
+            height: Config.cavaRowHeight
             Row {
                 anchors.fill: parent
-                spacing: 1
+                spacing: Config.cavaRowSpacing
                 Repeater {
-                    model: root.values
+                    model: Config.cavaBars
                     delegate: Item {
                         width: root.values.length > 0 ? (parent.width - (root.values.length - 1)) / root.values.length : 0
                         height: parent.height
                         Rectangle {
-                            width: Math.max(1, Math.round(parent.width * 0.45))
+                            width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom
-                            height: Math.max(1, Math.min(parent.height, Number(modelData) * 0.39))
+                            height: Math.max(Config.cavaBarMinHeight, Math.min(parent.height, Number(root.values[index] || 0) * Config.cavaBarHeightScale))
                             color: Config.baseColor
                         }
                     }
@@ -72,20 +72,20 @@ Frame {
 
         Item {
             width: parent.width
-            height: 39
+            height: Config.cavaRowHeight
             Row {
                 anchors.fill: parent
-                spacing: 1
+                spacing: Config.cavaRowSpacing
                 Repeater {
-                    model: root.values
+                    model: Config.cavaBars
                     delegate: Item {
                         width: root.values.length > 0 ? (parent.width - (root.values.length - 1)) / root.values.length : 0
                         height: parent.height
                         Rectangle {
-                            width: Math.max(1, Math.round(parent.width * 0.45))
+                            width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.top: parent.top
-                            height: Math.max(1, Math.min(parent.height, Number(modelData) * 0.39))
+                            height: Math.max(Config.cavaBarMinHeight, Math.min(parent.height, Number(root.values[index] || 0) * Config.cavaBarHeightScale))
                             color: Config.baseColor
                         }
                     }

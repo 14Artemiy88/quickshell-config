@@ -17,6 +17,7 @@ QtObject {
     // Surfaces / overlays
     property color playerOverlay: "#18000000"
     property color playerProgressTrack: "#33ffffff"
+    property color playerProgressFill: "#00cccc"
     property color activeNetworkBackground: "#1a323232"
     property color calendarBackground: "#cc000000"
     property color volumeTrack: "#99006666"
@@ -30,16 +31,27 @@ QtObject {
     property int volumeMaxHeight: 1200
     property int cavaBars: 75
     property int cavaFramerate: 30
+    property int cavaRowHeight: 39
+    property int cavaRowSpacing: 1
+    property real cavaBarWidthRatio: 0.45
+    property real cavaBarHeightScale: 0.39
+    property int cavaBarMinHeight: 1
 
     // General behaviour / update intervals
     property bool animationsEnabled: true
     property real animationSpeed: 1.0
+    property int animationTimerOptionsDuration: 280
+    property int animationCalendarSlideDuration: 350
+    property int animationCalendarFadeDuration: 250
     property int systemMonitorInterval: 1000
     property int cpuUpdateInterval: 1000
     property int playerUpdateInterval: 1000
     property int weatherNowIntervalMinutes: 20
     property int weatherHourlyIntervalMinutes: 60
     property int weatherDailyIntervalMinutes: 60
+    property int weatherRetryDelayMinutes: 10
+    property int weatherRequestTimeoutSeconds: 10
+    property int weatherManualRefreshCooldownSeconds: 30
 
     // Timer tuning
     property int timerWheelStep: 1
@@ -52,6 +64,48 @@ QtObject {
     property int timerButtonSlideDuration: 700
     property int timerButtonIconFadeDuration: 550
 
+    // CPU / RAM tuning
+    property int cpuBarThickness: 8
+    property int cpuBarWidth: 267
+    property int cpuRowHeight: 17
+    property int cpuRowSpacing: 0
+    property int cpuLabelLeftPadding: 10
+    property int cpuBarLeftOffset: 35
+    property int cpuBarRadius: 8
+    property int cpuGraphSegmentSlotWidth: 6
+    property int cpuGraphBarWidth: 2
+    property real cpuGraphScale: 0.35
+    property bool cpuShowRam: true
+
+    // Network display tuning
+    property bool networkShowUpload: true
+    property bool networkShowDownload: true
+    property int networkRowHeight: 22
+    property int networkRowSpacing: 0
+    property int networkIconSize: 16
+    property int networkValueFontSize: 13
+    property int networkRightPadding: 5
+    property int networkHorizontalPadding: 5
+    property int networkIconLeftPadding: 10
+    property int networkIconColumnWidth: 28
+
+    // Volume tuning
+    property int volumeUpdateInterval: 200
+    property int volumeMainRowHeight: 32
+    property int volumeStreamRowHeight: 20
+    property int volumeStreamSpacing: 1
+    property bool volumeShowStreams: true
+    property int volumeHorizontalPadding: 12
+    property int volumeVerticalPadding: 12
+    property int volumeMainTrackWidth: 220
+    property int volumeMainTrackHeight: 8
+    property int volumeStreamTrackHeight: 8
+    property int volumeMainTrackOffsetY: -3
+    property int volumeStreamTrackOffsetY: 0
+    property int volumeMainIconWidth: 25
+    property int volumeStreamLabelFontSize: 12
+    property int volumeTrackRadius: 4
+
     // Player tuning
     property int playerSilenceFontSize: 40
     property int playerSilenceLongFontSize: 25
@@ -63,6 +117,18 @@ QtObject {
     property int playerControlIconSize: 22
     property bool playerBlurEnabled: false
     property int playerBlurRadius: 10
+    property int playerMetadataXPadding: 0
+    property int playerMetadataY: 120
+    property int playerProgressY: 180
+    property int playerProgressHeight: 5
+    property int playerProgressTrackHeight: 3
+    property int playerControlTopMargin: 5
+    property int playerControlGap: 8
+    property int playerTimeFontSize: 11
+    property int playerTimeRightPadding: 0
+    property real playerCoverOpacity: 0.9
+    property int playerSilenceWidth: 275
+    property int playerProgressTrackOffsetY: 1
 
     // Weather tuning
     property int weatherIconSize: 55
@@ -72,6 +138,49 @@ QtObject {
     property int weatherHourlyCount: 5
     property int weatherDailyCount: 4
     property int weatherListTopPadding: 8
+    property int weatherIconY: 13
+    property int weatherWindColumnX: 180
+    property int weatherWindSpeedFontSize: 25
+    property int weatherWindUnitFontSize: 15
+    property int weatherPressureY: 33
+    property int weatherDescriptionY: 58
+    property int weatherDescriptionFontSize: 12
+    property int weatherTempFontSize: 55
+    property int weatherComfortFontSize: 35
+    property int weatherTempColumnWidth: 100
+    property int weatherTempX: 10
+    property int weatherTempWidth: 90
+    property int weatherComfortY: 39
+    property int weatherComfortHeight: 35
+    property int weatherWindColumnWidth: 120
+    property int weatherWindArrowWidth: 17
+    property int weatherWindArrowHeight: 35
+    property int weatherWindSpeedX: 36
+    property int weatherWindSpeedY: 4
+    property int weatherWindSpeedWidth: 47
+    property int weatherWindUnitX: 86
+    property int weatherWindUnitY: 9
+    property int weatherWindUnitWidth: 34
+    property int weatherPressureValueWidth: 74
+    property int weatherPressureFontSize: 20
+    property int weatherPressureUnitX: 74
+    property int weatherPressureUnitY: 9
+    property int weatherPressureUnitFontSize: 10
+    property int weatherDescriptionHeight: 16
+
+    // Weather list geometry / typography
+    property int weatherListDayHeight: 16
+    property int weatherListIconWidth: 35
+    property int weatherListIconHeight: 45
+    property int weatherListIconY: 20
+    property int weatherListHourlyTempY: 65
+    property int weatherListDailyTempY: 66
+    property int weatherListLowTempY: 85
+    property int weatherListTempHeight: 18
+    property int weatherListDayFontSize: 12
+    property int weatherListHourlyTempFontSize: 12
+    property int weatherListDailyTempFontSize: 11
+    property int weatherListLowTempFontSize: 11
 
     // CPU / system metrics
     property color cpu1: "#ffb4bb"

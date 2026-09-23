@@ -4,7 +4,7 @@ source "$(dirname "$0")/env"
 TIMER_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/timer"
 MESSAGE="динь-динь"
 
-declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_player"
+declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-player"
 declare -r TIMER_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/timer"
 
 
@@ -117,7 +117,7 @@ timer_delete() {
 }
 
 timer_add() {
-	# Создание всех необходимых директорий при старте eww
+	# Создание всех необходимых директорий при старте оболочки
 	[[ ! -d "$IMG_PATH" ]] && mkdir -p "$IMG_PATH"
 	[[ ! -d "$TIMER_DIR" ]] && mkdir -p "$TIMER_DIR"
 

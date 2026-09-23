@@ -1,7 +1,7 @@
 #!/bin/bash
 source "$(dirname "$0")/env"
 
-STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/eww_cpu_graph"
+STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-cpu-graph"
 LINES=51
 
 prev_user=0 prev_nice=0 prev_system=0 prev_idle=0
