@@ -3,7 +3,10 @@ import QtQuick.Layouts
 import Quickshell
 import qs.modules.common
 
+import "../../launcher/theme"
+
 Rectangle {
+    Theme { id: theme }
     anchors.left: parent.left
 
     anchors.top: parent.top
@@ -36,7 +39,7 @@ Rectangle {
                             verticalCenter: parent.verticalCenter
                         }
                         text: model.isActive ? "" : ""
-                        color: model.isActive ? Config.accentColor : Config.nonAccentColor
+                        color: model.isActive ? theme.accent : theme.nonAccent
                         font.pixelSize: 16
                         font.family: "JetBrainsMonoNF"
                         Component.onCompleted: {

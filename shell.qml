@@ -5,7 +5,9 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 
+import "./launcher/"
 import "./modules/common/"
 import "./modules/horizontal/"
 import "./modules/vertical/"
@@ -20,6 +22,28 @@ ShellRoot {
         onConnected: console.info("Connected to niri")
         onErrorOccurred: function (error) {
             console.error("Niri error:", error);
+        }
+    }
+
+    Launcher {
+        id: launcher
+        visible: false
+        niriBackend: niri
+    }
+
+    IpcHandler {
+        target: "launcher"
+
+        function toggle(): void {
+            launcher.toggleLauncher()
+        }
+
+        function show(): void {
+            launcher.showLauncher()
+        }
+
+        function hide(): void {
+            launcher.hideLauncher()
         }
     }
 

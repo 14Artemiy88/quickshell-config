@@ -8,7 +8,7 @@ import "../../launcher/theme"
 
 Item {
     Theme { id: theme }
-    id: root
+    id: vpn
 
     anchors.top: parent.top
     anchors.topMargin: -2
@@ -28,7 +28,7 @@ Item {
 
             Text {
                 anchors.centerIn: parent
-                text: "  " + Network.activeNetwork
+                text: "  " + Network.vpnIsActive
                 // color: theme.nonAccent
                 font.pointSize: 10
                 font.family: theme.fontFamily

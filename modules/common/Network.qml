@@ -11,7 +11,7 @@ Singleton {
 
     Process {
         id: networkProc
-        command: ["sh", "-c", "nmcli -g NAME c show -a | ag 14"]
+        command: ["sh", "-c", "nmcli -g NAME c show -a | rg 14"]
         stdout: SplitParser {
             onRead: data => {
                 if (data)
@@ -34,12 +34,12 @@ Singleton {
     ////////////////////
 
     property bool expanded: false
+    property bool scanning: false
     property var networks: []
-
     Process {
         id: scanProc
         // command: ["nmcli", "-t", "-f", "IN-USE,SSID,BARS", "dev", "wifi", "list"]
-        command: ["sh", "-c", "nmcli -t -f IN-USE,SSID,BARS dev wifi list | ag 14"]
+        command: ["sh", "-c", "nmcli -t -f IN-USE,SSID,SECURITY,BARS dev wifi list | rg 14"]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -51,7 +51,7 @@ Singleton {
 
                     // Делим строку по двоеточию
                     let parts = line.split(':');
-                    if (parts.length >= 3) {
+                    if (parts.length >= 4) {
                         let ssidName = parts[1].trim();
                         // Пропускаем скрытые сети без названия
                         if (ssidName === "")
@@ -63,16 +63,19 @@ Singleton {
                         list.push({
                             inUse: inUse,
                             ssid: ssidName,
-                            bars: parts[2]
+                            security: parts[2].trim(),
+                            bars: parts[3].trim()
                         });
                         // }
                     }
                 }
                 nwroot.networks = list;
+                nwroot.scanning = false;
             }
         }
     }
     function refresh() {
+        nwroot.scanning = true;
         scanProc.running = false;
         scanProc.running = true;
     }
@@ -81,20 +84,23 @@ Singleton {
         if (expanded)
             refresh();
     }
+
     ////////////////////
+
     property string targetSsid: ""
 
     Process {
         id: connectProc
         property string targetSsid: ""
-        command: ["nmcli", "dev", "wifi", "connect", nwroot.targetSsid]
-        running: false // по умолчанию выключен
+        command: ["nmcli", "dev", "wifi", "connect", targetSsid]
+        running: false
     }
 
     function connectTo(ssid) {
         nwroot.targetSsid = ssid;
+        connectProc.targetSsid = nwroot.targetSsid;
         connectProc.running = false;
         connectProc.running = true;
-        console.log("Connet+d to " + ssid);
+        console.log("Connecting to " + ssid);
     }
 }

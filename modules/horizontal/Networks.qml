@@ -4,13 +4,15 @@ import Quickshell
 
 import qs.modules.common
 
+import "../../launcher/theme"
+
 PanelWindow {
+    Theme { id: theme }
     id: networks
 
     readonly property var networkHeight: 24
 
     visible: Network.expanded
-    // visible: true
 
     anchors {
         top: true
@@ -33,8 +35,8 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     implicitHeight: Network.networks.length * networkHeight + 10
     implicitWidth: 120
-    color: "transparent"
-    // color: "#00cccc"
+    color: theme.transparent
+    // color: theme.accent
 
     Rectangle {
         anchors {
@@ -47,9 +49,7 @@ PanelWindow {
             rightMargin: 0
         }
 
-        // color: "#cc181818"
-
-        color: "transparent"
+        color: theme.transparent
         radius: 5
 
         RowLayout {
@@ -73,7 +73,7 @@ PanelWindow {
                         implicitHeight: networkHeight
 
                         border.width: 1
-                        border.color: "#666666"
+                        border.color: theme.borderStrong
                         radius: 5
 
                         // Плавная анимация цвета
@@ -85,7 +85,7 @@ PanelWindow {
 
                         // Определяем цвет фона в зависимости от состояния
                         color: {
-                            return mouseHandler.containsMouse ? "#313244" : "#cc181818"; // Подсветка или обычный фон
+                            return mouseHandler.containsMouse ? theme.hover : theme.barBackground; // Подсветка или обычный фон
                         }
 
                         Row {
@@ -95,15 +95,15 @@ PanelWindow {
 
                             Text {
                                 text: modelData.bars
-                                color: modelData.inUse ? Config.accentColor : "#88ff88"
+                                color: modelData.inUse ? theme.accent : theme.networkSignal
                                 font.pointSize: 8
                             }
 
                             Text {
                                 text: modelData.ssid
-                                color: Config.nonAccentColor
+                                color: theme.nonAccent
                                 font.pointSize: 10
-                                font.family: Config.font
+                                font.family: theme.fontFamily
                                 width: 80
                                 elide: Text.ElideRight
                                 anchors.verticalCenter: parent.verticalCenter
@@ -127,9 +127,9 @@ PanelWindow {
                 Text {
                     visible: Network.networks.length === 0
                     text: "  Scanning..."
-                    color: Config.nonAccentColor
+                    color: theme.nonAccent
                     font.pointSize: 8
-                    font.family: Config.font
+                    font.family: theme.fontFamily
                     height: 22
                 }
             }

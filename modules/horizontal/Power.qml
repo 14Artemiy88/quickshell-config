@@ -5,12 +5,15 @@ import Quickshell.Services.UPower
 
 import qs.modules.common
 
+import "../../launcher/theme"
+
 Rectangle {
-    readonly property var borderRadius: 5
-    readonly property var batteryBarWidth: 36
-    readonly property var batteryLow: 40
-    readonly property var batteryCrit: 20
-    readonly property var batterySuspend: 5
+    Theme { id: theme }
+    readonly property int borderRadius: 5
+    readonly property int batteryBarWidth: 36
+    readonly property int batteryLow: 40
+    readonly property int batteryCrit: 20
+    readonly property int batterySuspend: 5
 
     property var chargeState: UPower.displayDevice.state
     property bool isCharging: chargeState == UPowerDeviceState.Charging
@@ -35,13 +38,11 @@ Rectangle {
 
     onIsLowAndNotChargingChanged: {
         if (available && isLowAndNotCharging)
-            // Quickshell.execDetached(["notify-send", "Low battery", "Consider plugging in your device", "-u", "critical", "-a", "Shell"]);
             Quickshell.execDetached(["sh", "-c", `dunstify "Батарея: ` + chsrgePercent + `"  -h int:value:` + chsrgePercent]);
     }
 
     onIsCriticalAndNotChargingChanged: {
         if (available && isCriticalAndNotCharging)
-            // Quickshell.execDetached(["notify-send", "Critically low battery", "Please charge!\nAutomatic suspend triggers at %1".arg(Config.data.power.battery.suspend), "-u", "critical", "-a", "Shell"]);
             Quickshell.execDetached(["sh", "-c", `dunstify -u critical "Батарея: ` + chsrgePercent + `"  -h int:value:` + chsrgePercent]);
     }
 
@@ -62,9 +63,7 @@ Rectangle {
             leftMargin: 0
             topMargin: 10
         }
-        color: "#ff0000"
-        // border.color: "#999999"
-        // border.width: 1
+        color: theme.batteryEmpty
         width: batteryBarWidth
         height: 3
         radius: borderRadius
@@ -76,7 +75,7 @@ Rectangle {
             leftMargin: 0
             topMargin: 10
         }
-        color: isCharging ? "#006600" : "#006666"
+        color: isCharging ? theme.batteryCharging : theme.batteryDischarging
         width: batteryBarWidth * UPower.displayDevice.percentage
         height: 3
         radius: borderRadius
@@ -91,8 +90,8 @@ Rectangle {
             topMargin: -2
         }
         text: chsrgePercent
-        color: Config.nonAccentColor
-        font.family: Config.font
+        color: theme.nonAccent
+        font.family: theme.fontFamily
         font.pixelSize: 14
         Component.onCompleted: {
             parent.width = powerDisplay.contentWidth;
@@ -108,7 +107,7 @@ Rectangle {
             topMargin: -4
         }
         text: isCharging ? "󰉁" : ""
-        color: Config.nonAccentColor
+        color: theme.nonAccent
         font.pixelSize: 12
         Component.onCompleted: {
             parent.width = powerDisplay.contentWidth;

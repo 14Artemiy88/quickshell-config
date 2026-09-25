@@ -2,7 +2,10 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
+import "../../launcher/theme"
+
 Rectangle {
+    Theme { id: theme }
     property string currentLang: "--"
 
     anchors.top: parent.top
@@ -36,7 +39,7 @@ Rectangle {
     Text {
         id: langBlock
         text: currentLang
-        color: "#cccccc"
+        color: theme.nonAccent
         font.family: "LED"
         font.pixelSize: 16
         Component.onCompleted: {

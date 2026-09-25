@@ -4,7 +4,10 @@ import Quickshell
 
 import qs.modules.common
 
+import "../../launcher/theme"
+
 PanelWindow {
+    Theme { id: theme }
     id: bar
 
     anchors {
@@ -17,7 +20,7 @@ PanelWindow {
     }
     implicitHeight: 22
     implicitWidth: 230
-    color: "transparent"
+    color: theme.transparent
 
     exclusionMode: ExclusionMode.Normal
 
@@ -32,7 +35,7 @@ PanelWindow {
             rightMargin: 3
         }
 
-        color: "#cc181818"
+        color: theme.barBackground
         radius: 12
 
         // right
@@ -48,6 +51,11 @@ PanelWindow {
                 active: true
                 sourceComponent: Lang {}
             }
+            // Loader {
+            //     id: vpnLoader
+            //     active: true
+            //     sourceComponent: VPN {}
+            // }
             Loader {
                 id: nwLoader
                 active: true

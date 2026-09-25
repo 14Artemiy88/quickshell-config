@@ -2,7 +2,10 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 
+import "../../launcher/theme"
+
 PanelWindow {
+    Theme { id: theme }
     anchors {
         left: true
         top: true
@@ -10,7 +13,9 @@ PanelWindow {
     }
 
     implicitWidth: 5
-    color: "#00f81818"
+    color: theme.verticalBarBackground
+
+    exclusionMode: ExclusionMode.Normal
 
     RowLayout {
         anchors {
