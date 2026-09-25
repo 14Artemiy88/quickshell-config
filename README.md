@@ -1,4 +1,4 @@
-# Quickshell Launcher — Nix Packages v7
+# Quickshell Launcher
 
 Packages search uses the official search.nixos.org Elasticsearch backend directly instead of `nix search`, with the current public frontend credentials and official-style query structure.
 
