@@ -40,6 +40,11 @@ QtObject {
     // General behaviour / update intervals
     property bool animationsEnabled: true
     property real animationSpeed: 1.0
+    property string animationEasing: "OutCubic"
+    property bool animationAppearanceEnabled: true
+    property bool animationMovementEnabled: true
+    property bool animationSizeEnabled: true
+    property bool animationExpansionEnabled: true
     property int animationTimerOptionsDuration: 280
     property int animationCalendarSlideDuration: 350
     property int animationCalendarFadeDuration: 250
@@ -90,7 +95,7 @@ QtObject {
     property int networkIconColumnWidth: 28
 
     // Volume tuning
-    property int volumeUpdateInterval: 200
+    property int volumeUpdateInterval: 500
     property int volumeMainRowHeight: 32
     property int volumeStreamRowHeight: 20
     property int volumeStreamSpacing: 1
@@ -241,11 +246,32 @@ QtObject {
         return Math.max(6, Math.round(base * size / 12))
     }
 
-    function animationDuration(baseMs) {
+    function animationDuration(baseMs, category) {
         if (!animationsEnabled) return 0
+        category = category || "appearance"
+        if (category === "appearance" && !animationAppearanceEnabled) return 0
+        if (category === "movement" && !animationMovementEnabled) return 0
+        if (category === "size" && !animationSizeEnabled) return 0
+        if (category === "expansion" && !animationExpansionEnabled) return 0
         var speed = Number(animationSpeed)
         if (!isFinite(speed) || speed <= 0) speed = 1
-        return Math.max(0, Math.round(Number(baseMs) / speed))
+        var ms = Number(baseMs)
+        if (!isFinite(ms) || ms < 0) ms = 0
+        return Math.max(0, Math.round(ms / speed))
+    }
+
+    function easingType() {
+        switch (animationEasing) {
+        case "Linear": return Easing.Linear
+        case "InOutQuad": return Easing.InOutQuad
+        case "OutQuad": return Easing.OutQuad
+        case "InOutCubic": return Easing.InOutCubic
+        case "InCubic": return Easing.InCubic
+        case "OutCubic": return Easing.OutCubic
+        case "OutBack": return Easing.OutBack
+        case "InOutBack": return Easing.InOutBack
+        default: return Easing.OutCubic
+        }
     }
 
     property string monitorName: "LCD195VXM+"

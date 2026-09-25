@@ -182,7 +182,6 @@ get_network() {
 get_net > "$TMPD/net" &
 get_top_apps > "$TMPD/top" &
 get_volumes > "$TMPD/vol" &
-get_current_volume > "$TMPD/cur" &
 get_network > "$TMPD/netw" &
 wait
 
@@ -190,15 +189,11 @@ jq -n \
     --argjson top_apps "$(cat "$TMPD/top")" \
     --argjson net_stat "$(cat "$TMPD/net")" \
     --argjson volumes "$(cat "$TMPD/vol")" \
-    --argjson current_volume "$(awk '{print $1+0}' "$TMPD/cur" 2>/dev/null || echo 0)" \
-    --argjson current_muted "$(awk '{if (($2+0) != 0) print "true"; else print "false"}' "$TMPD/cur" 2>/dev/null || echo false)" \
     --argjson network "$(cat "$TMPD/netw")" \
     '{
         top_apps: $top_apps,
         net_stat: $net_stat,
         volumes: $volumes,
-        current_volume: $current_volume,
-        current_muted: $current_muted,
         network: $network
     }'
 

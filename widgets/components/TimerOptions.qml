@@ -2,7 +2,7 @@ import QtQuick
 import ".."
 import Quickshell
 
-Frame {
+Item {
     id: root
     width: 90
     height: 95
@@ -13,19 +13,87 @@ Frame {
     signal closeRequested()
     signal closeFinished()
     enabled: selectedFile !== "" && !closing
-    opacity: closing || selectedFile === "" ? 0 : 1
-    scale: closing || selectedFile === "" ? 0.97 : 1
+    opacity: 0
+    scale: 0.97
     transformOrigin: Item.Center
     clip: true
 
-    // Use the same small zoom + fade in both directions. Keeping the overlay
-    // alive until the animation finishes prevents the popup from jumping.
-    Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.animationTimerOptionsDuration); easing.type: Easing.InOutCubic } }
-    Behavior on scale { NumberAnimation { duration: Config.animationDuration(Config.animationTimerOptionsDuration); easing.type: Easing.InOutCubic } }
+    // The popup surface itself is transparent. Paint the widget background here
+    // so it follows the current theme/settings without making the whole popup
+    // surface opaque.
+    Rectangle {
+        anchors.fill: parent
+        color: Config.background
+        radius: Config.frameRadius
+        antialiasing: true
+        z: -2
+    }
+
+    // Frame border is drawn separately so the popup keeps the same appearance
+    // as the other configured widgets.
+    Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0)
+        border.color: Config.baseColor
+        border.width: Config.frameBorderWidth
+        radius: Config.frameRadius
+        antialiasing: true
+        z: -1
+    }
+
+    // Do not use Behavior here: a Behavior with a runtime duration of 0 can
+    // still produce a visual transition when the popup is created/destroyed.
+    // The popup is animated only by these explicit animations.
+    NumberAnimation {
+        id: showOpacityAnimation
+        target: root
+        property: "opacity"
+        easing.type: Config.easingType()
+    }
+    NumberAnimation {
+        id: showScaleAnimation
+        target: root
+        property: "scale"
+        easing.type: Config.easingType()
+    }
+
+    function animationsActive() {
+        return Config.animationsEnabled && Config.animationExpansionEnabled
+    }
+
+    function syncVisualState() {
+        var targetOpacity = (closing || selectedFile === "") ? 0 : 1
+        var targetScale = (closing || selectedFile === "") ? 0.97 : 1
+
+        showOpacityAnimation.stop()
+        showScaleAnimation.stop()
+
+        if (!animationsActive()) {
+            opacity = targetOpacity
+            scale = targetScale
+            return
+        }
+
+        var duration = Config.animationDuration(Config.animationTimerOptionsDuration, "expansion")
+        showOpacityAnimation.from = opacity
+        showOpacityAnimation.to = targetOpacity
+        showOpacityAnimation.duration = duration
+        showScaleAnimation.from = scale
+        showScaleAnimation.to = targetScale
+        showScaleAnimation.duration = duration
+        showOpacityAnimation.start()
+        showScaleAnimation.start()
+    }
+
+    Connections {
+        target: Config
+        function onAnimationsEnabledChanged() { root.syncVisualState() }
+        function onAnimationExpansionEnabledChanged() { root.syncVisualState() }
+    }
 
     Timer {
         id: closeTimer
-        interval: Config.animationDuration(Config.animationTimerOptionsDuration)
+        interval: Config.animationDuration(Config.animationTimerOptionsDuration, "expansion")
         repeat: false
         onTriggered: {
             root.closeFinished()
@@ -90,6 +158,11 @@ Frame {
     function startClose() {
         if (closing) return
         closing = true
+        syncVisualState()
+        if (!animationsActive()) {
+            closeFinished()
+            return
+        }
         closeTimer.restart()
     }
 
@@ -102,6 +175,11 @@ Frame {
             }
         }
     }
-    onSelectedFileChanged: updateSelected()
+    onSelectedFileChanged: {
+        updateSelected()
+        if (!closing) syncVisualState()
+    }
     onTimersChanged: updateSelected()
+
+    Component.onCompleted: syncVisualState()
 }

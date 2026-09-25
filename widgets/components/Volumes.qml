@@ -98,16 +98,6 @@ Frame {
         }
     }
 
-    Connections {
-        target: root.monitor
-        function onDataChanged() {
-            root.acceptBackendVolume(
-                Number(root.monitor?.data?.current_volume ?? NaN),
-                root.monitor?.data?.current_muted ?? undefined
-            )
-        }
-    }
-
     Column {
         anchors.fill: parent
         anchors.leftMargin: Config.volumeHorizontalPadding

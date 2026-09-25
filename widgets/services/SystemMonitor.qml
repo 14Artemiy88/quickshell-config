@@ -11,8 +11,6 @@ Item {
         top_apps: { cpu: [], mem: [] },
         net_stat: { down: "0 B", up: "0 B", speed_down: "0 B", speed_up: "0 B" },
         volumes: [],
-        current_volume: 0,
-        current_muted: false,
         network: []
     })
 

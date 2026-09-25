@@ -111,7 +111,7 @@ Frame {
             color: Config.text
             font.pixelSize: 27
             opacity: root.showButtons ? 0 : 1
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration); easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
         }
 
         Flickable {
@@ -127,9 +127,9 @@ Frame {
             transform: Translate {
                 id: buttonSlide
                 x: root.showButtons ? 0 : -18
-                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration); easing.type: Easing.InOutCubic } }
+                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration, "movement"); easing.type: Config.easingType() } }
             }
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration); easing.type: Easing.InOutCubic } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration, "appearance"); easing.type: Config.easingType() } }
 
             Row {
                 spacing: 7

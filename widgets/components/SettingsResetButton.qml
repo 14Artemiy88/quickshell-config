@@ -9,7 +9,7 @@ Item {
     signal clicked()
 
     width: 30
-    height: 28
+    height: 30
 
     Rectangle {
         anchors.fill: parent

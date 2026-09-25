@@ -65,6 +65,11 @@ QtObject {
         playerSilenceText: "silence",
         animationsEnabled: true,
         animationSpeed: 1,
+        animationEasing: "OutCubic",
+        animationAppearanceEnabled: true,
+        animationMovementEnabled: true,
+        animationSizeEnabled: true,
+        animationExpansionEnabled: true,
         animationTimerOptionsDuration: 280,
         animationCalendarSlideDuration: 350,
         animationCalendarFadeDuration: 250,
@@ -188,7 +193,7 @@ QtObject {
         networkHorizontalPadding: 5,
         networkIconLeftPadding: 10,
         networkIconColumnWidth: 28,
-        volumeUpdateInterval: 200,
+        volumeUpdateInterval: 500,
         volumeMainRowHeight: 20,
         volumeStreamRowHeight: 18,
         volumeStreamSpacing: 1,
@@ -242,7 +247,7 @@ QtObject {
         tempVeryCold: "#ff0ad1f3",
         tempFreezing: "#ff3c82e2"
     })
-    readonly property string defaultWeatherToken: "61f2622cb1aab8.95463029"
+    readonly property string defaultWeatherToken: ""
     readonly property var defaultTimerPresetDefaults: [5, 7, 15]
     readonly property var defaultGeometry: {"time":[3,6,315,58],"cpu":[5,70,315,170],"cpuGraph":[5,245,315,78],"topApps":[5,329,315,198],"networkStat":[5,527,313,55],"weatherNow":[3,587,315,80],"weatherHourly":[5,672,314,106],"weatherDaily":[5,784,314,117],"timer":[3,907,316,50],"timerOptions":[325,888,90,95],"calendar":[5,65,316,286],"volumes":[331,72,275,152],"player":[330,380,300,200],"cava":[330,588,300,80],"networks":[330,675,300,171]}
     readonly property var defaultSettingsGeometry: [615,71,656,850]
@@ -282,6 +287,11 @@ QtObject {
             var as = Number(o.animationSpeed)
             if (isFinite(as)) Config.animationSpeed = Math.max(0.25, Math.min(4.0, as))
         }
+        if (o.animationEasing !== undefined) Config.animationEasing = String(o.animationEasing)
+        if (o.animationAppearanceEnabled !== undefined) Config.animationAppearanceEnabled = !!o.animationAppearanceEnabled
+        if (o.animationMovementEnabled !== undefined) Config.animationMovementEnabled = !!o.animationMovementEnabled
+        if (o.animationSizeEnabled !== undefined) Config.animationSizeEnabled = !!o.animationSizeEnabled
+        if (o.animationExpansionEnabled !== undefined) Config.animationExpansionEnabled = !!o.animationExpansionEnabled
         var animationNumberFields = [
             ["animationTimerOptionsDuration", 0, 5000],
             ["animationCalendarSlideDuration", 0, 5000],
@@ -802,7 +812,8 @@ QtObject {
 
     function resetAnimationSettings() {
         resetConfigKeys([
-            "animationsEnabled", "animationSpeed",
+            "animationsEnabled", "animationSpeed", "animationEasing",
+            "animationAppearanceEnabled", "animationMovementEnabled", "animationSizeEnabled", "animationExpansionEnabled",
             "animationTimerOptionsDuration", "animationCalendarSlideDuration",
             "animationCalendarFadeDuration"
         ])
@@ -840,6 +851,11 @@ QtObject {
             ledFont: Config.ledFont,
             playerFont: Config.playerFont, playerMetaFont: Config.playerMetaFont, playerSilenceText: Config.playerSilenceText,
             animationsEnabled: Config.animationsEnabled, animationSpeed: Config.animationSpeed,
+            animationEasing: Config.animationEasing,
+            animationAppearanceEnabled: Config.animationAppearanceEnabled,
+            animationMovementEnabled: Config.animationMovementEnabled,
+            animationSizeEnabled: Config.animationSizeEnabled,
+            animationExpansionEnabled: Config.animationExpansionEnabled,
             animationTimerOptionsDuration: Config.animationTimerOptionsDuration, animationCalendarSlideDuration: Config.animationCalendarSlideDuration, animationCalendarFadeDuration: Config.animationCalendarFadeDuration,
             systemMonitorInterval: Config.systemMonitorInterval, cpuUpdateInterval: Config.cpuUpdateInterval, playerUpdateInterval: Config.playerUpdateInterval,
             weatherNowIntervalMinutes: Config.weatherNowIntervalMinutes, weatherHourlyIntervalMinutes: Config.weatherHourlyIntervalMinutes, weatherDailyIntervalMinutes: Config.weatherDailyIntervalMinutes, weatherRetryDelayMinutes: Config.weatherRetryDelayMinutes, weatherManualRefreshCooldownSeconds: Config.weatherManualRefreshCooldownSeconds,

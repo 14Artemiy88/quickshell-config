@@ -92,53 +92,57 @@ ShellRoot {
         }
 }
     WidgetWindow {
+        id: timerWindow
         visible: Settings.timer
         offsetX: Settings.geometryForLayout("timer")[0]
         offsetY: Settings.geometryForLayout("timer")[1]
         contentWidth: Settings.geometry.timer[2]
         contentHeight: timerWidget.adaptiveHeight
         TimerWidget { id: timerWidget; anchors.fill: parent }
-}
-    WidgetWindow {
-        id: timerOptionsOverlay
-        visible: Settings.timer && shell.timerOptionsVisible
-        offsetX: 0
-        offsetY: 0
-        contentWidth: timerOverlayScreen ? timerOverlayScreen.width : 1
-        contentHeight: timerOverlayScreen ? timerOverlayScreen.height : 1
-        bottomLayer: false
-        screen: timerOverlayScreen
 
-        property var timerOverlayScreen: Quickshell.screens.find(s =>
-            s.name === Config.monitorName ||
-            s.model === Config.monitorName ||
-            s.toString() === Config.monitorName
-        ) || Quickshell.screens[0]
+        // Use a Wayland xdg-popup instead of a second layer-shell surface.
+        // Niri's window-open/window-close animations apply to windows, while
+        // PopupWindow is an xdg-popup attached to the existing timer surface.
+        // This prevents the compositor from animating the mini-window itself.
+        PopupWindow {
+            id: timerOptionsOverlay
+            // Keep the popup surface alive for the lifetime of the timer widget.
+            // This prevents the compositor from treating every open/close as a
+            // newly created surface and applying its own appearance animation.
+            visible: Settings.timer
+            color: "transparent"
+            surfaceFormat.opaque: false
+            anchor.window: timerWindow
+            anchor.rect.x: Settings.geometry.timerOptions[0] - Settings.geometryForLayout("timer")[0]
+            anchor.rect.y: Settings.geometry.timerOptions[1] - Settings.geometryForLayout("timer")[1]
+            implicitWidth: Settings.geometry.timerOptions[2]
+            implicitHeight: Settings.geometry.timerOptions[3]
+            // The popup stays alive, so grabFocus must not be used here: it
+            // would make the invisible popup consume input while closed.
+            grabFocus: false
+            mask: Region { item: popupInputRegion }
 
-        MouseArea {
-            anchors.fill: parent
-            z: 0
-            onClicked: timerOptionsPopup.startClose()
-        }
-
-        TimerOptions {
-            id: timerOptionsPopup
-            // Keep the action mini-window at its original configurable
-            // position. The full-screen transparent parent still lets a click
-            // anywhere outside the mini-window close it.
-            x: Settings.geometry.timerOptions[0]
-            y: Settings.geometry.timerOptions[1]
-            width: Settings.geometry.timerOptions[2]
-            height: Settings.geometry.timerOptions[3]
-            z: 1
-            timers: timerWidget.timers
-            selectedFile: timerWidget.selectedFile
-            onCloseRequested: timerOptionsPopup.startClose()
-            onCloseFinished: {
-                timerWidget.selectedFile = ""
-                shell.timerOptionsVisible = false
-                timerOptionsPopup.closing = false
+            Item {
+                id: popupInputRegion
+                width: shell.timerOptionsVisible ? parent.width : 0
+                height: shell.timerOptionsVisible ? parent.height : 0
             }
+
+            TimerOptions {
+                id: timerOptionsPopup
+                anchors.fill: parent
+                timers: timerWidget.timers
+                selectedFile: timerWidget.selectedFile
+                onCloseRequested: timerOptionsPopup.startClose()
+                onCloseFinished: {
+                    timerWidget.selectedFile = ""
+                    shell.timerOptionsVisible = false
+                    timerOptionsPopup.closing = false
+                }
+            }
+
+            // The popup surface remains alive. Closing is driven by the timer
+            // selection state instead of destroying the popup surface.
         }
     }
 
