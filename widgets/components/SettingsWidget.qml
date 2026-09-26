@@ -252,7 +252,7 @@ Item {
                     color: root.currentTab === index ? Config.accent : Config.background
                     property bool hovered: false
                     HoverHandler { onHoveredChanged: parent.hovered = hovered }
-                    border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor
+                    border.color: hovered ? Config.accent : Config.baseColor
                     border.width: 1
 
                     Text {
@@ -300,7 +300,7 @@ Item {
                             color: root.currentOtherTab === index ? Config.accent : Config.background
                             property bool hovered: false
                             HoverHandler { onHoveredChanged: parent.hovered = hovered }
-                            border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor
+                            border.color: hovered ? Config.accent : Config.baseColor
                             border.width: 1
 
                             Text {
@@ -330,12 +330,12 @@ Item {
             width: parent.width - otherTabs.width - 8
             height: parent.height
             contentWidth: Math.max(width, otherColumn.width)
-            contentHeight: Math.max(height, otherColumn.height)
+            contentHeight: otherColumn.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
-            ScrollBar.vertical: StyledScrollBar { }
+            ScrollBar.vertical: StyledScrollBar { visible: otherFlick.contentHeight > otherFlick.height + 1 }
 
             Column {
                 id: otherColumn
@@ -2618,7 +2618,7 @@ Item {
                     spacing: 8
 
                     Text {
-                        width: 210
+                        width: 120
                         height: 30
                         text: "Имя профиля"
                         color: Config.text
@@ -2694,7 +2694,7 @@ Item {
                     spacing: 8
 
                     Text {
-                        width: 210
+                        width: 120
                         height: 30
                         text: "Активный профиль"
                         color: Config.text
@@ -2705,7 +2705,7 @@ Item {
 
                     HoverComboBox {
                         id: profileCombo
-                        width: 230
+                        width: 150
                         height: 30
                         model: profileModel
                         textRole: "name"
@@ -2729,14 +2729,14 @@ Item {
                         currentIndex: {
                             var names = settings.profileNames()
                             var idx = names.indexOf(settings.activeProfile)
-                            return idx >= 0 ? idx : (count > 0 ? 0 : -1)
+                            return idx >= 0 ? idx : -1
                         }
                         font.family: Config.settingsFont
                         font.pixelSize: Config.settingsUiSize(11)
                     }
 
                     Button {
-                        width: 95
+                        width: 85
                         height: 30
                         text: "Загрузить"
                         enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
@@ -2754,11 +2754,14 @@ Item {
                             border.width: 1
                             radius: Config.radius
                         }
-                        onClicked: settings.loadProfile(profileCombo.currentText)
+                        onClicked: {
+                            if (settings.loadProfile(profileCombo.currentText))
+                                profileActionFeedback.showMessage("✓ профиль загружен")
+                        }
                     }
 
                     Button {
-                        width: 95
+                        width: 85
                         height: 30
                         text: "Удалить"
                         enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
@@ -2776,7 +2779,40 @@ Item {
                             border.width: 1
                             radius: Config.radius
                         }
-                        onClicked: settings.deleteProfile(profileCombo.currentText)
+                        onClicked: {
+                            if (settings.deleteProfile(profileCombo.currentText))
+                                profileActionFeedback.showMessage("✓ профиль удалён")
+                        }
+                    }
+                }
+
+                Item {
+                    id: profileActionFeedback
+                    visible: root.currentOtherTab === 8
+                    width: parent.width
+                    height: 22
+
+                    property string message: ""
+
+                    function showMessage(value) {
+                        message = value
+                        feedbackAnimation.restart()
+                    }
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: parent.message
+                        color: Config.accent
+                        opacity: parent.message.length > 0 ? 1 : 0
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(9)
+                    }
+
+                    SequentialAnimation {
+                        id: feedbackAnimation
+                        PauseAnimation { duration: 900 }
+                        PropertyAction { target: profileActionFeedback; property: "message"; value: "" }
                     }
                 }
 
@@ -2819,12 +2855,12 @@ Item {
             width: parent.width
             height: parent.height - y
             contentWidth: Math.max(width, modulesColumn.width)
-            contentHeight: Math.max(height, modulesColumn.height)
+            contentHeight: modulesColumn.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
-            ScrollBar.vertical: StyledScrollBar { }
+            ScrollBar.vertical: StyledScrollBar { visible: modulesFlick.contentHeight > modulesFlick.height + 1 }
 
             Column {
                 id: modulesColumn
@@ -3024,12 +3060,12 @@ Item {
             width: parent.width
             height: parent.height - y
             contentWidth: Math.max(width, colorsColumn.width)
-            contentHeight: Math.max(height, colorsColumn.height)
+            contentHeight: colorsColumn.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
-            ScrollBar.vertical: StyledScrollBar { }
+            ScrollBar.vertical: StyledScrollBar { visible: colorsFlick.contentHeight > colorsFlick.height + 1 }
 
             Column {
                 id: colorsColumn

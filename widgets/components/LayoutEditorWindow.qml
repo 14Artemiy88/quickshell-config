@@ -57,6 +57,7 @@ PanelWindow {
             property string moduleLabel: settings.moduleLabels[moduleName] || moduleName
             property var currentGeometry: settings.geometryForLayout(moduleName) || [0, 0, 100, 100]
             property bool moduleEnabled: !!settings[moduleName]
+            property bool pointerHovered: false
 
             visible: moduleEnabled
             x: currentGeometry[0]
@@ -70,12 +71,13 @@ PanelWindow {
             }
 
             Rectangle {
+                id: editFrame
                 anchors.fill: parent
-                color: "#1800cccc"
+                color: editorItem.pointerHovered || dragHandler.active ? "#3000cccc" : "#1800cccc"
                 border.color: Config.accent
-                border.width: Math.max(1, Config.frameBorderWidth)
+                border.width: dragHandler.active ? Math.max(2, Config.frameBorderWidth + 1) : Math.max(1, Config.frameBorderWidth)
                 radius: Config.frameRadius
-                opacity: 0.55
+                opacity: dragHandler.active ? 0.82 : (editorItem.pointerHovered ? 0.68 : 0.55)
             }
 
             Rectangle {
@@ -86,15 +88,15 @@ PanelWindow {
                 width: label.implicitWidth + 14
                 height: label.implicitHeight + 8
                 radius: 4
-                color: Config.settingsBackground
+                color: dragHandler.active || editorItem.pointerHovered ? Config.accent : Config.settingsBackground
                 border.color: Config.accent
                 border.width: 1
 
                 Text {
                     id: label
                     anchors.centerIn: parent
-                    text: editorItem.moduleLabel
-                    color: Config.accent
+                    text: dragHandler.active ? "↕ " + editorItem.moduleLabel : editorItem.moduleLabel
+                    color: dragHandler.active || editorItem.pointerHovered ? Config.black : Config.accent
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(11)
                     font.bold: true
@@ -145,6 +147,11 @@ PanelWindow {
                         startY + activeTranslation.y
                     )
                 }
+            }
+
+            HoverHandler {
+                id: hoverHandler
+                onHoveredChanged: editorItem.pointerHovered = hovered
             }
 
             MouseArea {
