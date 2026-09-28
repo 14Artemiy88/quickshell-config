@@ -160,6 +160,7 @@ Item {
 
     property int currentTab: 0
     property int currentOtherTab: 0
+    property int currentWeatherTab: 0
     signal layoutEditRequested()
     clip: true
 
@@ -171,6 +172,7 @@ Item {
 
     onCurrentOtherTabChanged: {
         if (otherFlick) otherFlick.contentY = 0
+        if (currentOtherTab !== 3) currentWeatherTab = 0
     }
 
     ListModel {
@@ -231,7 +233,7 @@ Item {
         SequentialAnimation {
             id: savePulse
             PropertyAnimation { target: saveIndicator; property: "opacity"; to: 0.9; duration: Config.animationDuration(100, "appearance"); easing.type: Config.easingType() }
-            PauseAnimation { duration: 500 }
+            PauseAnimation { duration: Config.animationDuration(500, "appearance") }
             PropertyAnimation { target: saveIndicator; property: "opacity"; to: 0; duration: Config.animationDuration(350, "appearance"); easing.type: Config.easingType() }
         }
         Connections { target: settings; function onSaved() { savePulse.restart() } }
@@ -2117,9 +2119,45 @@ Item {
                     wrapMode: Text.WordWrap
                     width: parent.width
                 }
+                Row {
+                    visible: root.currentOtherTab === 3
+                    width: parent.width
+                    height: 30
+                    spacing: 6
+
+                    Repeater {
+                        model: ["Погода сейчас", "Погода по часам", "Погода по дням"]
+
+                        delegate: Rectangle {
+                            width: (parent.width - 12) / 3
+                            height: 30
+                            radius: 4
+                            color: root.currentWeatherTab === index ? Config.accent : Config.background
+                            border.color: root.currentWeatherTab === index ? Config.accent : Config.baseColor
+                            border.width: 1
+
+                            Text {
+                                anchors.fill: parent
+                                text: modelData
+                                color: root.currentWeatherTab === index ? Config.black : Config.text
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(10)
+                                font.bold: root.currentWeatherTab === index
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root.currentWeatherTab = index
+                            }
+                        }
+                    }
+                }
 
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     Text { width: 210; text: "Размер иконки текущей погоды"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherIconSizeField; width: 100; height: 30; text: String(Config.weatherIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2128,7 +2166,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     Text { width: 210; text: "Размер стрелки ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherArrowSizeField; width: 100; height: 30; text: String(Config.weatherArrowSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2137,7 +2175,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     Text { width: 210; text: "Смещение стрелки ветра по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherArrowYField; width: 100; height: 30; text: String(Config.weatherArrowYOffset); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2146,7 +2184,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     Text { width: 210; text: "Зазор стрелки до скорости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherWindGapField; width: 100; height: 30; text: String(Config.weatherWindArrowGap); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2154,56 +2192,29 @@ Item {
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ weatherWindGapField.applyValue(Config.weatherWindArrowGap+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
                     }
                 }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
-                    Text { width: 210; text: "Количество часов"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    HoverTextField { id: weatherHourlyCountField; width: 100; height: 30; text: String(Config.weatherHourlyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.weatherHourlyCount; n=Math.max(1,Math.min(12,Math.round(n / 1) * 1)); Config.weatherHourlyCount=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ weatherHourlyCountField.applyValue(Config.weatherHourlyCount+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
-                    Text { width: 210; text: "Количество дней"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    HoverTextField { id: weatherDailyCountField; width: 100; height: 30; text: String(Config.weatherDailyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.weatherDailyCount; n=Math.max(1,Math.min(10,Math.round(n / 1) * 1)); Config.weatherDailyCount=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ weatherDailyCountField.applyValue(Config.weatherDailyCount+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
-                    Text { width: 210; text: "Верхний отступ погодных списков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    HoverTextField { id: weatherPaddingField; width: 100; height: 30; text: String(Config.weatherListTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.weatherListTopPadding; n=Math.max(0,Math.min(40,Math.round(n / 1) * 1)); Config.weatherListTopPadding=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ weatherPaddingField.applyValue(Config.weatherListTopPadding+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
                 Text {
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     text: "Дополнительная геометрия текущей погоды"
                     color: Config.textMuted
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Y картинки текущей погоды"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherIconYField; width: 100; height: 30; text: String(Config.weatherIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherIconYField.activeFocus || weatherIconYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherIconY;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherIconY=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherIconYField.applyValue(Config.weatherIconY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherIconYChanged(){weatherIconYField.text=String(Config.weatherIconY)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "X колонки ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindXField; width: 100; height: 30; text: String(Config.weatherWindColumnX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindXField.activeFocus || weatherWindXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindColumnX;n=Math.max(0,Math.min(500,Math.round(n)));Config.weatherWindColumnX=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindXField.applyValue(Config.weatherWindColumnX+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindColumnXChanged(){weatherWindXField.text=String(Config.weatherWindColumnX)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер текста описания"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherDescSizeField; width: 100; height: 30; text: String(Config.weatherDescriptionFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherDescSizeField.activeFocus || weatherDescSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDescriptionFontSize;n=Math.max(6,Math.min(48,Math.round(n)));Config.weatherDescriptionFontSize=n;text=String(n);settings.save()}
@@ -2211,15 +2222,15 @@ Item {
                     }
                 }
 
-                Text { visible: root.currentOtherTab === 3; text: "Дополнительная геометрия и типографика"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; text: "Дополнительная геометрия и типографика"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура: ширина колонки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempColumnWidthField; width: 100; height: 30; text: String(Config.weatherTempColumnWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherTempColumnWidthField.activeFocus || weatherTempColumnWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherTempColumnWidth;n=Math.max(40,Math.min(200,Math.round(n)));Config.weatherTempColumnWidth=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherTempColumnWidthField.applyValue(Config.weatherTempColumnWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherTempColumnWidthChanged(){weatherTempColumnWidthField.text=String(Config.weatherTempColumnWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура: X / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempXField; width: 70; height: 30; text: String(Config.weatherTempX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherTempXField.activeFocus || weatherTempXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherTempX;n=Math.max(0,Math.min(200,Math.round(n)));Config.weatherTempX=n;text=String(n);settings.save()}
@@ -2230,7 +2241,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherTempWidthField.applyValue(Config.weatherTempWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherTempWidthChanged(){weatherTempWidthField.text=String(Config.weatherTempWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Комфорт: Y / высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherComfortYField; width: 70; height: 30; text: String(Config.weatherComfortY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherComfortYField.activeFocus || weatherComfortYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherComfortY;n=Math.max(-20,Math.min(100,Math.round(n)));Config.weatherComfortY=n;text=String(n);settings.save()}
@@ -2241,7 +2252,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherComfortHeightField.applyValue(Config.weatherComfortHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherComfortHeightChanged(){weatherComfortHeightField.text=String(Config.weatherComfortHeight)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ветер: X / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindColumnXExtraField; width: 70; height: 30; text: String(Config.weatherWindColumnX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindColumnXExtraField.activeFocus || weatherWindColumnXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindColumnX;n=Math.max(0,Math.min(500,Math.round(n)));Config.weatherWindColumnX=n;text=String(n);settings.save()}
@@ -2252,7 +2263,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindColumnWidthExtraField.applyValue(Config.weatherWindColumnWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindColumnWidthChanged(){weatherWindColumnWidthExtraField.text=String(Config.weatherWindColumnWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Стрелка: ширина / высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindArrowWidthField; width: 70; height: 30; text: String(Config.weatherWindArrowWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindArrowWidthField.activeFocus || weatherWindArrowWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindArrowWidth;n=Math.max(8,Math.min(50,Math.round(n)));Config.weatherWindArrowWidth=n;text=String(n);settings.save()}
@@ -2263,7 +2274,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindArrowHeightField.applyValue(Config.weatherWindArrowHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindArrowHeightChanged(){weatherWindArrowHeightField.text=String(Config.weatherWindArrowHeight)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Скорость ветра: X / Y / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindSpeedXExtraField; width: 62; height: 30; text: String(Config.weatherWindSpeedX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindSpeedXExtraField.activeFocus || weatherWindSpeedXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindSpeedX;n=Math.max(0,Math.min(250,Math.round(n)));Config.weatherWindSpeedX=n;text=String(n);settings.save()}
@@ -2278,7 +2289,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindSpeedWidthExtraField.applyValue(Config.weatherWindSpeedWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindSpeedWidthChanged(){weatherWindSpeedWidthExtraField.text=String(Config.weatherWindSpeedWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ед. ветра: X / Y / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindUnitXExtraField; width: 62; height: 30; text: String(Config.weatherWindUnitX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindUnitXExtraField.activeFocus || weatherWindUnitXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindUnitX;n=Math.max(0,Math.min(300,Math.round(n)));Config.weatherWindUnitX=n;text=String(n);settings.save()}
@@ -2293,7 +2304,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindUnitWidthExtraField.applyValue(Config.weatherWindUnitWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindUnitWidthChanged(){weatherWindUnitWidthExtraField.text=String(Config.weatherWindUnitWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Давление: ширина / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherPressureWidthExtraField; width: 70; height: 30; text: String(Config.weatherPressureValueWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherPressureWidthExtraField.activeFocus || weatherPressureWidthExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherPressureValueWidth;n=Math.max(20,Math.min(180,Math.round(n)));Config.weatherPressureValueWidth=n;text=String(n);settings.save()}
@@ -2304,7 +2315,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherPressureFontExtraField.applyValue(Config.weatherPressureFontSize+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherPressureFontSizeChanged(){weatherPressureFontExtraField.text=String(Config.weatherPressureFontSize)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ед. давления: X / Y / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherPressureUnitXExtraField; width: 60; height: 30; text: String(Config.weatherPressureUnitX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherPressureUnitXExtraField.activeFocus || weatherPressureUnitXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherPressureUnitX;n=Math.max(0,Math.min(300,Math.round(n)));Config.weatherPressureUnitX=n;text=String(n);settings.save()}
@@ -2326,58 +2337,58 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherDescriptionHeightExtraField.applyValue(Config.weatherDescriptionHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherDescriptionHeightChanged(){weatherDescriptionHeightExtraField.text=String(Config.weatherDescriptionHeight)}}
                     }
                 }
-                Text { visible: root.currentOtherTab === 3; text: "Почасовая / дневная типографика"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; text: "Почасовой блок"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Количество часов / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whCount; width: 58; height: 30; text: String(Config.weatherHourlyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whCount.activeFocus || whCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyCount;n=Math.max(1,Math.min(12,Math.round(n)));Config.weatherHourlyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whPad; width: 58; height: 30; text: String(Config.weatherHourlyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whPad.activeFocus || whPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherHourlyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "День: высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: weatherDayHeightExtraField; width: 70; height: 30; text: String(Config.weatherListDayHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherDayHeightExtraField.activeFocus || weatherDayHeightExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListDayHeight;n=Math.max(10,Math.min(40,Math.round(n)));Config.weatherListDayHeight=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherDayHeightExtraField.applyValue(Config.weatherListDayHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListDayHeightChanged(){weatherDayHeightExtraField.text=String(Config.weatherListDayHeight)}}
-                    }
-                    HoverTextField { id: weatherDayFontExtraField; width: 70; height: 30; text: String(Config.weatherListDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherDayFontExtraField.activeFocus || weatherDayFontExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherListDayFontSize=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherDayFontExtraField.applyValue(Config.weatherListDayFontSize+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListDayFontSizeChanged(){weatherDayFontExtraField.text=String(Config.weatherListDayFontSize)}}
-                    }
+                    HoverTextField { id: whDayH; width: 58; height: 30; text: String(Config.weatherHourlyDayHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDayH.activeFocus || whDayH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayHeight;n=Math.max(10,Math.min(40,Math.round(n)));Config.weatherHourlyDayHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whDayF; width: 58; height: 30; text: String(Config.weatherHourlyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDayF.activeFocus || whDayF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Иконка списка: ширина / высота / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: weatherListIconWidthExtraField; width: 58; height: 30; text: String(Config.weatherListIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListIconWidthExtraField.activeFocus || weatherListIconWidthExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherListIconWidth=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListIconWidthExtraField.applyValue(Config.weatherListIconWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListIconWidthChanged(){weatherListIconWidthExtraField.text=String(Config.weatherListIconWidth)}}
-                    }
-                    HoverTextField { id: weatherListIconHeightExtraField; width: 58; height: 30; text: String(Config.weatherListIconHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListIconHeightExtraField.activeFocus || weatherListIconHeightExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListIconHeight;n=Math.max(16,Math.min(100,Math.round(n)));Config.weatherListIconHeight=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListIconHeightExtraField.applyValue(Config.weatherListIconHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListIconHeightChanged(){weatherListIconHeightExtraField.text=String(Config.weatherListIconHeight)}}
-                    }
-                    HoverTextField { id: weatherListIconYExtraField; width: 58; height: 30; text: String(Config.weatherListIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherListIconYExtraField.activeFocus || weatherListIconYExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherListIconY=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListIconYExtraField.applyValue(Config.weatherListIconY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListIconYChanged(){weatherListIconYExtraField.text=String(Config.weatherListIconY)}}
-                    }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Иконка: ширина / высота / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whIW; width: 58; height: 30; text: String(Config.weatherHourlyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIW.activeFocus || whIW.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherHourlyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whIH; width: 58; height: 30; text: String(Config.weatherHourlyIconHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIH.activeFocus || whIH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconHeight;n=Math.max(16,Math.min(100,Math.round(n)));Config.weatherHourlyIconHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whIY; width: 58; height: 30; text: String(Config.weatherHourlyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIY.activeFocus || whIY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherHourlyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Температура списка: Y час / Y день / высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: weatherListHourlyYExtraField; width: 58; height: 30; text: String(Config.weatherListHourlyTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListHourlyYExtraField.activeFocus || weatherListHourlyYExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListHourlyTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherListHourlyTempY=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListHourlyYExtraField.applyValue(Config.weatherListHourlyTempY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListHourlyTempYChanged(){weatherListHourlyYExtraField.text=String(Config.weatherListHourlyTempY)}}
-                    }
-                    HoverTextField { id: weatherListDailyYExtraField; width: 58; height: 30; text: String(Config.weatherListDailyTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListDailyYExtraField.activeFocus || weatherListDailyYExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListDailyTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherListDailyTempY=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListDailyYExtraField.applyValue(Config.weatherListDailyTempY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListDailyTempYChanged(){weatherListDailyYExtraField.text=String(Config.weatherListDailyTempY)}}
-                    }
-                    HoverTextField { id: weatherListTempHeight2Field; width: 58; height: 30; text: String(Config.weatherListTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListTempHeight2Field.activeFocus || weatherListTempHeight2Field.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherListTempHeight=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListTempHeight2Field.applyValue(Config.weatherListTempHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListTempHeightChanged(){weatherListTempHeight2Field.text=String(Config.weatherListTempHeight)}}
-                    }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whTY; width: 58; height: 30; text: String(Config.weatherHourlyTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTY.activeFocus || whTY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherHourlyTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whTH; width: 58; height: 30; text: String(Config.weatherHourlyTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTH.activeFocus || whTH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherHourlyTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: whTF; width: 58; height: 30; text: String(Config.weatherHourlyTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTF.activeFocus || whTF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Нижняя температура: Y / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: weatherListLowYExtraField; width: 70; height: 30; text: String(Config.weatherListLowTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListLowYExtraField.activeFocus || weatherListLowYExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListLowTempY;n=Math.max(0,Math.min(180,Math.round(n)));Config.weatherListLowTempY=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListLowYExtraField.applyValue(Config.weatherListLowTempY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListLowTempYChanged(){weatherListLowYExtraField.text=String(Config.weatherListLowTempY)}}
-                    }
-                    HoverTextField { id: weatherListLowFontExtraField; width: 70; height: 30; text: String(Config.weatherListLowTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherListLowFontExtraField.activeFocus || weatherListLowFontExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherListLowTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherListLowTempFontSize=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherListLowFontExtraField.applyValue(Config.weatherListLowTempFontSize+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherListLowTempFontSizeChanged(){weatherListLowFontExtraField.text=String(Config.weatherListLowTempFontSize)}}
-                    }
+
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; text: "Дневной блок — максимум 4 колонки"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Количество дней / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdCount; width: 58; height: 30; text: String(Config.weatherDailyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdCount.activeFocus || wdCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyCount;n=Math.max(1,Math.min(4,Math.round(n)));Config.weatherDailyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdPad; width: 58; height: 30; text: String(Config.weatherDailyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdPad.activeFocus || wdPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherDailyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "День: высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdDayH; width: 58; height: 30; text: String(Config.weatherDailyDayHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDayH.activeFocus || wdDayH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayHeight;n=Math.max(10,Math.min(40,Math.round(n)));Config.weatherDailyDayHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdDayF; width: 58; height: 30; text: String(Config.weatherDailyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDayF.activeFocus || wdDayF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Иконка: ширина / высота / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdIW; width: 58; height: 30; text: String(Config.weatherDailyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIW.activeFocus || wdIW.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherDailyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdIH; width: 58; height: 30; text: String(Config.weatherDailyIconHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIH.activeFocus || wdIH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconHeight;n=Math.max(16,Math.min(100,Math.round(n)));Config.weatherDailyIconHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdIY; width: 58; height: 30; text: String(Config.weatherDailyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIY.activeFocus || wdIY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherDailyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Дневная температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdHY; width: 58; height: 30; text: String(Config.weatherDailyHighTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHY.activeFocus || wdHY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherDailyHighTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdHH; width: 58; height: 30; text: String(Config.weatherDailyHighTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHH.activeFocus || wdHH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherDailyHighTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdHF; width: 58; height: 30; text: String(Config.weatherDailyHighTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHF.activeFocus || wdHF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyHighTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Ночная температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdLY; width: 58; height: 30; text: String(Config.weatherDailyLowTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLY.activeFocus || wdLY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempY;n=Math.max(0,Math.min(180,Math.round(n)));Config.weatherDailyLowTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdLH; width: 58; height: 30; text: String(Config.weatherDailyLowTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLH.activeFocus || wdLH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherDailyLowTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                    HoverTextField { id: wdLF; width: 58; height: 30; text: String(Config.weatherDailyLowTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLF.activeFocus || wdLF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyLowTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
                 }
 
                 Text {
@@ -2657,7 +2668,7 @@ Item {
                                 duration: Config.animationDuration(90, "appearance")
                                 easing.type: Config.easingType()
                             }
-                            PauseAnimation { duration: 550 }
+                            PauseAnimation { duration: Config.animationDuration(550, "appearance") }
                             PropertyAnimation {
                                 target: profileSavedMark
                                 property: "opacity"

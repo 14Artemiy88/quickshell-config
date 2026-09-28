@@ -142,7 +142,6 @@ QtObject {
     property int weatherWindArrowGap: 2
     property int weatherHourlyCount: 5
     property int weatherDailyCount: 4
-    property int weatherListTopPadding: 8
     property int weatherIconY: 13
     property int weatherWindColumnX: 180
     property int weatherWindSpeedFontSize: 25
@@ -174,18 +173,30 @@ QtObject {
     property int weatherDescriptionHeight: 16
 
     // Weather list geometry / typography
-    property int weatherListDayHeight: 16
-    property int weatherListIconWidth: 35
-    property int weatherListIconHeight: 45
-    property int weatherListIconY: 20
-    property int weatherListHourlyTempY: 65
-    property int weatherListDailyTempY: 66
-    property int weatherListLowTempY: 85
-    property int weatherListTempHeight: 18
-    property int weatherListDayFontSize: 12
-    property int weatherListHourlyTempFontSize: 12
-    property int weatherListDailyTempFontSize: 11
-    property int weatherListLowTempFontSize: 11
+    // Weather hourly list
+    property int weatherHourlyTopPadding: 8
+    property int weatherHourlyDayHeight: 16
+    property int weatherHourlyDayFontSize: 12
+    property int weatherHourlyIconWidth: 35
+    property int weatherHourlyIconHeight: 45
+    property int weatherHourlyIconY: 20
+    property int weatherHourlyTempY: 65
+    property int weatherHourlyTempHeight: 18
+    property int weatherHourlyTempFontSize: 12
+
+    // Weather daily list (maximum 4 columns)
+    property int weatherDailyTopPadding: 8
+    property int weatherDailyDayHeight: 16
+    property int weatherDailyDayFontSize: 12
+    property int weatherDailyIconWidth: 35
+    property int weatherDailyIconHeight: 45
+    property int weatherDailyIconY: 20
+    property int weatherDailyHighTempY: 66
+    property int weatherDailyHighTempHeight: 18
+    property int weatherDailyHighTempFontSize: 11
+    property int weatherDailyLowTempY: 85
+    property int weatherDailyLowTempHeight: 18
+    property int weatherDailyLowTempFontSize: 11
 
     // CPU / system metrics
     property color cpu1: "#ffb4bb"

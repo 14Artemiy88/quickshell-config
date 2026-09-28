@@ -109,7 +109,7 @@ ShellRoot {
             // Keep the popup surface alive for the lifetime of the timer widget.
             // This prevents the compositor from treating every open/close as a
             // newly created surface and applying its own appearance animation.
-            visible: Settings.timer
+            visible: false
             color: "transparent"
             surfaceFormat.opaque: false
             anchor.window: timerWindow
@@ -117,9 +117,8 @@ ShellRoot {
             anchor.rect.y: Settings.geometry.timerOptions[1] - Settings.geometryForLayout("timer")[1]
             implicitWidth: Settings.geometry.timerOptions[2]
             implicitHeight: Settings.geometry.timerOptions[3]
-            // The popup stays alive, so grabFocus must not be used here: it
-            // would make the invisible popup consume input while closed.
-            grabFocus: false
+            // grabFocus lets the popup detect a click outside itself and close.
+            grabFocus: true
             mask: Region { item: popupInputRegion }
 
             Item {
@@ -138,6 +137,15 @@ ShellRoot {
                     timerWidget.selectedFile = ""
                     shell.timerOptionsVisible = false
                     timerOptionsPopup.closing = false
+                    timerOptionsOverlay.visible = false
+                }
+            }
+
+            onVisibleChanged: {
+                if (!visible && shell.timerOptionsVisible) {
+                    timerWidget.selectedFile = ""
+                    shell.timerOptionsVisible = false
+                    timerOptionsPopup.closing = false
                 }
             }
 
@@ -151,9 +159,25 @@ ShellRoot {
         function onSelectedFileChanged() {
             if (timerWidget.selectedFile !== "") {
                 shell.timerOptionsVisible = true
+                timerOptionsOverlay.visible = true
                 timerOptionsPopup.closing = false
             } else if (shell.timerOptionsVisible && !timerOptionsPopup.closing) {
-                timerOptionsPopup.startClose()
+                // Close the popup through the same window-level path used by
+                // an outside click. This keeps both close interactions visually
+                // identical instead of mixing popup-surface and content animations.
+                timerOptionsOverlay.visible = false
+            }
+        }
+    }
+
+    Connections {
+        target: Settings
+        function onTimerChanged() {
+            if (!Settings.timer && timerOptionsOverlay.visible) {
+                timerOptionsOverlay.visible = false
+                timerWidget.selectedFile = ""
+                shell.timerOptionsVisible = false
+                timerOptionsPopup.closing = false
             }
         }
     }

@@ -10,7 +10,7 @@ Frame {
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     property var displayEntries: []
     property int itemCount: hourly ? Config.weatherHourlyCount : Config.weatherDailyCount
-    property int topPadding: Config.weatherListTopPadding
+    property int topPadding: root.hourly ? Config.weatherHourlyTopPadding : Config.weatherDailyTopPadding
     property bool hasData: displayEntries.length > 0
     property string statusMessage: {
         if (!weatherService) return "Погода недоступна"
@@ -62,31 +62,31 @@ Frame {
                         x: 0
                         y: 0
                         width: parent.width
-                        height: Config.weatherListDayHeight
+                        height: root.hourly ? Config.weatherHourlyDayHeight : Config.weatherDailyDayHeight
                         text: root.dayText(modelData)
                         color: Config.tempZero
-                        font.pixelSize: Config.uiFontSize(Config.weatherListDayFontSize)
+                        font.pixelSize: Config.uiFontSize(root.hourly ? Config.weatherHourlyDayFontSize : Config.weatherDailyDayFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
 
                     Image {
-                        x: (parent.width - Config.weatherListIconWidth) / 2
-                        y: Config.weatherListIconY
-                        width: Config.weatherListIconWidth
-                        height: Config.weatherListIconHeight
+                        x: (parent.width - (root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth)) / 2
+                        y: root.hourly ? Config.weatherHourlyIconY : Config.weatherDailyIconY
+                        width: root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth
+                        height: root.hourly ? Config.weatherHourlyIconHeight : Config.weatherDailyIconHeight
                         fillMode: Image.PreserveAspectFit
                         source: Quickshell.shellDir + "/assets/gismeteo/new_png/" + (modelData.icon || "") + ".png"
                     }
 
                     Text {
                         x: 0
-                        y: root.hourly ? Config.weatherListHourlyTempY : Config.weatherListDailyTempY
+                        y: root.hourly ? Config.weatherHourlyTempY : Config.weatherDailyHighTempY
                         width: parent.width
-                        height: Config.weatherListTempHeight
+                        height: root.hourly ? Config.weatherHourlyTempHeight : Config.weatherDailyHighTempHeight
                         text: root.highText(modelData)
                         color: root.tempColor(root.highNumber(modelData))
-                        font.pixelSize: root.hourly ? Config.uiFontSize(Config.weatherListHourlyTempFontSize) : Config.uiFontSize(Config.weatherListDailyTempFontSize)
+                        font.pixelSize: root.hourly ? Config.uiFontSize(Config.weatherHourlyTempFontSize) : Config.uiFontSize(Config.weatherDailyHighTempFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -94,12 +94,12 @@ Frame {
                     Text {
                         visible: !root.hourly
                         x: 0
-                        y: Config.weatherListLowTempY
+                        y: Config.weatherDailyLowTempY
                         width: parent.width
-                        height: Config.weatherListTempHeight
+                        height: Config.weatherDailyLowTempHeight
                         text: root.lowText(modelData)
                         color: root.tempColor(root.lowNumber(modelData))
-                        font.pixelSize: Config.uiFontSize(Config.weatherListLowTempFontSize)
+                        font.pixelSize: Config.uiFontSize(Config.weatherDailyLowTempFontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
