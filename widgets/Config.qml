@@ -31,11 +31,8 @@ QtObject {
     property int volumeMaxHeight: 1200
     property int cavaBars: 75
     property int cavaFramerate: 30
-    property int cavaRowHeight: 39
     property int cavaRowSpacing: 1
     property real cavaBarWidthRatio: 0.45
-    property real cavaBarHeightScale: 0.39
-    property int cavaBarMinHeight: 1
 
     // General behaviour / update intervals
     property bool animationsEnabled: true
@@ -79,7 +76,6 @@ QtObject {
     property int cpuBarRadius: 8
     property int cpuGraphSegmentSlotWidth: 6
     property int cpuGraphBarWidth: 2
-    property real cpuGraphScale: 0.35
     property bool cpuShowRam: true
 
     // Network display tuning

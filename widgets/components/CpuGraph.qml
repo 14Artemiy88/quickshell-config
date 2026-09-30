@@ -27,7 +27,7 @@ Widgets.Frame {
         anchors.margins: 3
         spacing: 0
         Item {
-            width: parent.width; height: 35
+            width: parent.width; height: parent.height / 2
             Row {
                 anchors.fill: parent
                 spacing: 0
@@ -40,7 +40,7 @@ Widgets.Frame {
                             width: Config.cpuGraphBarWidth
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom
-                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * Config.cpuGraphScale))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
                             color: Config.baseColor
                             border.color: Config.baseColor
                             border.width: 1
@@ -50,7 +50,7 @@ Widgets.Frame {
             }
         }
         Item {
-            width: parent.width; height: 35
+            width: parent.width; height: parent.height / 2
             Row {
                 anchors.fill: parent
                 spacing: 0
@@ -63,7 +63,7 @@ Widgets.Frame {
                             width: Config.cpuGraphBarWidth
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.top: parent.top
-                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * Config.cpuGraphScale))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
                             color: Config.baseColor
                             border.color: Config.baseColor
                             border.width: 1

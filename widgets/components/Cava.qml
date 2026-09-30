@@ -44,7 +44,7 @@ Widgets.Frame {
 
         Item {
             width: parent.width
-            height: Config.cavaRowHeight
+            height: parent.height / 2
             Row {
                 anchors.fill: parent
                 spacing: Config.cavaRowSpacing
@@ -57,7 +57,7 @@ Widgets.Frame {
                             width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.bottom: parent.bottom
-                            height: Math.max(Config.cavaBarMinHeight, Math.min(parent.height, Number(root.values[index] || 0) * Config.cavaBarHeightScale))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
                             color: Config.baseColor
                         }
                     }
@@ -67,7 +67,7 @@ Widgets.Frame {
 
         Item {
             width: parent.width
-            height: Config.cavaRowHeight
+            height: parent.height / 2
             Row {
                 anchors.fill: parent
                 spacing: Config.cavaRowSpacing
@@ -80,7 +80,7 @@ Widgets.Frame {
                             width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.top: parent.top
-                            height: Math.max(Config.cavaBarMinHeight, Math.min(parent.height, Number(root.values[index] || 0) * Config.cavaBarHeightScale))
+                            height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
                             color: Config.baseColor
                         }
                     }

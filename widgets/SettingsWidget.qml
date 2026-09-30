@@ -1766,7 +1766,13 @@ Item {
                     }
                 }
 
-
+                Row { visible: root.currentOtherTab === 5; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Масштаб высоты графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: cpuGraphScaleField; width: 100; height: 30; text: Number(Config.cpuGraphScale).toFixed(2); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (cpuGraphScaleField.activeFocus || cpuGraphScaleField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.cpuGraphScale; n=Math.max(0.05,Math.min(2.0,n)); Config.cpuGraphScale=n; text=Number(n).toFixed(2); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ cpuGraphScaleField.applyValue(Number(Config.cpuGraphScale)+root.wheelDelta(wheel, 0.05)); wheel.accepted=true } } Connections { target: Config; function onCpuGraphScaleChanged(){ cpuGraphScaleField.text=Number(Config.cpuGraphScale).toFixed(2) } }
+                    }
+                }
 
                 Row {
                     visible: root.currentOtherTab === 5

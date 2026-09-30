@@ -167,11 +167,8 @@ QtObject {
         weatherDailyLowTempY: 85, weatherDailyLowTempHeight: 18, weatherDailyLowTempFontSize: 11,
         cavaBars: 50,
         cavaFramerate: 30,
-        cavaRowHeight: 39,
         cavaRowSpacing: 1,
         cavaBarWidthRatio: 0.45,
-        cavaBarHeightScale: 0.39,
-        cavaBarMinHeight: 1,
         frameBorderWidth: 1,
         frameRadius: 5,
         cpuBarThickness: 8,
@@ -183,7 +180,6 @@ QtObject {
         cpuBarRadius: 8,
         cpuGraphSegmentSlotWidth: 6,
         cpuGraphBarWidth: 2,
-        cpuGraphScale: 0.35,
         cpuShowRam: true,
         networkShowUpload: true,
         networkShowDownload: true,
@@ -377,10 +373,6 @@ QtObject {
                 if (isFinite(cv)) Config[cname] = Math.max(cpuNumberFields[cf][1], Math.min(cpuNumberFields[cf][2], Math.round(cv)))
             }
         }
-        if (o.cpuGraphScale !== undefined) {
-            var cgs = Number(o.cpuGraphScale)
-            if (isFinite(cgs)) Config.cpuGraphScale = Math.max(0.05, Math.min(2.0, cgs))
-        }
         if (o.cpuShowRam !== undefined) Config.cpuShowRam = !!o.cpuShowRam
 
         // Network display tuning
@@ -529,11 +521,8 @@ QtObject {
 
         if (o.cavaBars !== undefined) Config.cavaBars = Math.max(8, Number(o.cavaBars) || Config.cavaBars)
         if (o.cavaFramerate !== undefined) Config.cavaFramerate = Math.max(1, Math.min(120, Math.round(Number(o.cavaFramerate) || Config.cavaFramerate)))
-        if (o.cavaRowHeight !== undefined) Config.cavaRowHeight = Math.max(10, Math.min(200, Math.round(Number(o.cavaRowHeight) || Config.cavaRowHeight)))
         if (o.cavaRowSpacing !== undefined) Config.cavaRowSpacing = Math.max(0, Math.min(20, Math.round(Number(o.cavaRowSpacing) || Config.cavaRowSpacing)))
         if (o.cavaBarWidthRatio !== undefined) { var cbwr=Number(o.cavaBarWidthRatio); if (isFinite(cbwr)) Config.cavaBarWidthRatio=Math.max(0.05,Math.min(1,cbwr)) }
-        if (o.cavaBarHeightScale !== undefined) { var cbhs=Number(o.cavaBarHeightScale); if (isFinite(cbhs)) Config.cavaBarHeightScale=Math.max(0.01,Math.min(2,cbhs)) }
-        if (o.cavaBarMinHeight !== undefined) Config.cavaBarMinHeight=Math.max(1,Math.min(20,Math.round(Number(o.cavaBarMinHeight) || Config.cavaBarMinHeight)))
         if (o.frameBorderWidth !== undefined) {
             var bw = Number(o.frameBorderWidth)
             if (isFinite(bw)) Config.frameBorderWidth = Math.max(0, Math.min(20, Math.round(bw)))
@@ -846,10 +835,10 @@ QtObject {
             applyConfigKeysFromProfile(profile, [
                 "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
                 "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth",
-                "cpuGraphBarWidth", "cpuGraphScale", "cpuShowRam"
+                "cpuGraphBarWidth", "cpuShowRam"
             ])
         } else if (moduleName === "cpuGraph") {
-            applyConfigKeysFromProfile(profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphScale"])
+            applyConfigKeysFromProfile(profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth"])
         } else if (moduleName === "networkStat" || moduleName === "networks") {
             applyConfigKeysFromProfile(profile, [
                 "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
@@ -912,8 +901,7 @@ QtObject {
             ])
         } else if (moduleName === "cava") {
             applyConfigKeysFromProfile(profile, [
-                "cavaBars", "cavaFramerate", "cavaRowHeight", "cavaRowSpacing", "cavaBarWidthRatio",
-                "cavaBarHeightScale", "cavaBarMinHeight"
+                "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio"
             ])
         }
 
@@ -940,7 +928,7 @@ QtObject {
 
     function resetCpuSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphScale", "cpuShowRam"]); save()
+        applyConfigKeysFromProfile(profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuShowRam"]); save()
     }
 
     function resetNetworkSettings() {
@@ -976,7 +964,7 @@ QtObject {
 
     function resetCavaSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["cavaBars", "cavaFramerate", "cavaRowHeight", "cavaRowSpacing", "cavaBarWidthRatio", "cavaBarHeightScale", "cavaBarMinHeight"]); save()
+        applyConfigKeysFromProfile(profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio"]); save()
     }
 
     function resetGeneralSettings() {
@@ -1052,8 +1040,8 @@ QtObject {
             weatherDailyIconWidth: Config.weatherDailyIconWidth, weatherDailyIconHeight: Config.weatherDailyIconHeight, weatherDailyIconY: Config.weatherDailyIconY,
             weatherDailyHighTempY: Config.weatherDailyHighTempY, weatherDailyHighTempHeight: Config.weatherDailyHighTempHeight, weatherDailyHighTempFontSize: Config.weatherDailyHighTempFontSize,
             weatherDailyLowTempY: Config.weatherDailyLowTempY, weatherDailyLowTempHeight: Config.weatherDailyLowTempHeight, weatherDailyLowTempFontSize: Config.weatherDailyLowTempFontSize,
-            cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, cavaRowHeight: Config.cavaRowHeight, cavaRowSpacing: Config.cavaRowSpacing, cavaBarWidthRatio: Config.cavaBarWidthRatio, cavaBarHeightScale: Config.cavaBarHeightScale, cavaBarMinHeight: Config.cavaBarMinHeight, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
-            cpuBarThickness: Config.cpuBarThickness, cpuBarWidth: Config.cpuBarWidth, cpuRowHeight: Config.cpuRowHeight, cpuRowSpacing: Config.cpuRowSpacing, cpuLabelLeftPadding: Config.cpuLabelLeftPadding, cpuBarLeftOffset: Config.cpuBarLeftOffset, cpuBarRadius: Config.cpuBarRadius, cpuGraphSegmentSlotWidth: Config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: Config.cpuGraphBarWidth, cpuGraphScale: Config.cpuGraphScale, cpuShowRam: Config.cpuShowRam,
+            cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, cavaRowSpacing: Config.cavaRowSpacing, cavaBarWidthRatio: Config.cavaBarWidthRatio, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
+            cpuBarThickness: Config.cpuBarThickness, cpuBarWidth: Config.cpuBarWidth, cpuRowHeight: Config.cpuRowHeight, cpuRowSpacing: Config.cpuRowSpacing, cpuLabelLeftPadding: Config.cpuLabelLeftPadding, cpuBarLeftOffset: Config.cpuBarLeftOffset, cpuBarRadius: Config.cpuBarRadius, cpuGraphSegmentSlotWidth: Config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: Config.cpuGraphBarWidth, cpuShowRam: Config.cpuShowRam,
             networkShowUpload: Config.networkShowUpload, networkShowDownload: Config.networkShowDownload, networkRowHeight: Config.networkRowHeight, networkRowSpacing: Config.networkRowSpacing, networkIconSize: Config.networkIconSize, networkValueFontSize: Config.networkValueFontSize, networkRightPadding: Config.networkRightPadding, networkHorizontalPadding: Config.networkHorizontalPadding, networkIconLeftPadding: Config.networkIconLeftPadding, networkIconColumnWidth: Config.networkIconColumnWidth,
             volumeUpdateInterval: Config.volumeUpdateInterval, volumeIcon: Config.volumeIcon, volumeMutedIcon: Config.volumeMutedIcon, volumeMainRowHeight: Config.volumeMainRowHeight, volumeStreamRowHeight: Config.volumeStreamRowHeight, volumeStreamSpacing: Config.volumeStreamSpacing, volumeShowStreams: Config.volumeShowStreams, volumeHorizontalPadding: Config.volumeHorizontalPadding, volumeVerticalPadding: Config.volumeVerticalPadding, volumeMainTrackWidth: Config.volumeMainTrackWidth, volumeMainTrackHeight: Config.volumeMainTrackHeight, volumeStreamTrackHeight: Config.volumeStreamTrackHeight, volumeMainTrackOffsetY: Config.volumeMainTrackOffsetY, volumeStreamTrackOffsetY: Config.volumeStreamTrackOffsetY, volumeMainIconWidth: Config.volumeMainIconWidth, volumeStreamLabelFontSize: Config.volumeStreamLabelFontSize, volumeTrackRadius: Config.volumeTrackRadius,
             timerPresets: timerPresetDefaults, timerPresetDefaults: timerPresetDefaults, modules: modules, moduleFrames: moduleFrames, moduleBackgrounds: moduleBackgrounds, geometry: geometry, settingsGeometry: settingsGeometry, colors: colors
