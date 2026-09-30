@@ -22,6 +22,8 @@ Item {
             acceptedButtons: Qt.NoButton
         }
 
+        onAccepted: root.clearSettingsFocus()
+
         background: Rectangle {
             color: Config.background
             border.color: (hoverTextField.activeFocus || hoverTextField.pointerHovered) ? Config.accent : Config.baseColor
@@ -116,6 +118,7 @@ Item {
     component StyledCheckBox: CheckBox {
         id: styledCheckBox
         property bool pointerHovered: checkHoverArea.containsMouse
+        property bool indicatorOnly: false
 
         MouseArea {
             id: checkHoverArea
@@ -130,6 +133,7 @@ Item {
             width: 18
             height: 18
             anchors.verticalCenter: parent.verticalCenter
+            x: styledCheckBox.indicatorOnly ? Math.round((styledCheckBox.width - width) / 2) : 0
             radius: 4
             color: styledCheckBox.checked ? Config.accent : Config.background
             border.width: 1
@@ -148,6 +152,7 @@ Item {
         }
 
         contentItem: Text {
+            visible: !styledCheckBox.indicatorOnly
             text: styledCheckBox.text
             color: styledCheckBox.enabled ? Config.text : Config.textMuted
             font.family: Config.settingsFont
@@ -163,6 +168,19 @@ Item {
     property int currentWeatherTab: 0
     signal layoutEditRequested()
     clip: true
+
+    function clearSettingsFocus() {
+        root.forceActiveFocus()
+    }
+
+    // Background click catcher. It stays behind the settings content,
+    // so controls and tabs keep receiving their own mouse events.
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        acceptedButtons: Qt.LeftButton
+        onClicked: root.clearSettingsFocus()
+    }
 
     onCurrentTabChanged: {
         if (modulesFlick) modulesFlick.contentY = 0
@@ -211,11 +229,22 @@ Item {
             width: parent.width
             height: 28
             Text {
-                width: parent.width - 120
+                width: parent.width - 260
                 text: "НАСТРОЙКИ"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(20)
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                id: resetIndicator
+                width: 140
+                text: "Сначала сохраните профиль"
+                color: Config.accent
+                opacity: 0
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
             }
             Text {
@@ -237,6 +266,13 @@ Item {
             PropertyAnimation { target: saveIndicator; property: "opacity"; to: 0; duration: Config.animationDuration(350, "appearance"); easing.type: Config.easingType() }
         }
         Connections { target: settings; function onSaved() { savePulse.restart() } }
+        SequentialAnimation {
+            id: resetPulse
+            PropertyAnimation { target: resetIndicator; property: "opacity"; to: 1; duration: Config.animationDuration(100, "appearance"); easing.type: Config.easingType() }
+            PauseAnimation { duration: Config.animationDuration(1300, "appearance") }
+            PropertyAnimation { target: resetIndicator; property: "opacity"; to: 0; duration: Config.animationDuration(250, "appearance"); easing.type: Config.easingType() }
+        }
+        Connections { target: settings; function onResetUnavailable(message) { resetIndicator.text = message; resetPulse.restart() } }
 
         Row {
             id: tabs
@@ -270,7 +306,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: root.currentTab = index
+                        onClicked: { root.clearSettingsFocus(); root.currentTab = index }
                     }
                 }
             }
@@ -321,7 +357,7 @@ Item {
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: root.currentOtherTab = index
+                                onClicked: { root.clearSettingsFocus(); root.currentOtherTab = index }
                             }
                         }
                     }
@@ -337,6 +373,12 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                acceptedButtons: Qt.LeftButton
+                onClicked: root.clearSettingsFocus()
+            }
             ScrollBar.vertical: StyledScrollBar { visible: otherFlick.contentHeight > otherFlick.height + 1 }
 
             Column {
@@ -1123,6 +1165,20 @@ Item {
                 }
 
 
+                Text { visible: root.currentOtherTab === 2; text: "Иконки плеера"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Воспроизведение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerPlayingIconField; width: 100; height: 30; text: Config.playerPlayingIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPlayingIconField.activeFocus || playerPlayingIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPlayingIcon=text; settings.save() } Connections { target: Config; function onPlayerPlayingIconChanged(){playerPlayingIconField.text=Config.playerPlayingIcon} } }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Пауза"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerPausedIconField; width: 100; height: 30; text: Config.playerPausedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPausedIconField.activeFocus || playerPausedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPausedIcon=text; settings.save() } Connections { target: Config; function onPlayerPausedIconChanged(){playerPausedIconField.text=Config.playerPausedIcon} } }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Следующий трек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerNextIconField; width: 100; height: 30; text: Config.playerNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerNextIconField.activeFocus || playerNextIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerNextIcon=text; settings.save() } Connections { target: Config; function onPlayerNextIconChanged(){playerNextIconField.text=Config.playerNextIcon} } }
+                }
+
                 Text {
                     visible: root.currentOtherTab === 2
                     text: "Размеры и поведение плеера"
@@ -1184,6 +1240,111 @@ Item {
                     visible: root.currentOtherTab === 2
                     StyledCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
+                Text {
+                    visible: root.currentOtherTab === 2
+                    text: "Оставшееся время"
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                }
+
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Размер оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: playerTimeFontSizeField
+                        width: 100
+                        height: 30
+                        text: String(Config.playerTimeFontSize)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (playerTimeFontSizeField.activeFocus || playerTimeFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeFontSize; n=Math.max(8,Math.min(48,Math.round(n))); Config.playerTimeFontSize=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeFontSizeField.applyValue(Config.playerTimeFontSize + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onPlayerTimeFontSizeChanged() { playerTimeFontSizeField.text=String(Config.playerTimeFontSize) } }
+                    }
+                }
+
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: playerTimeRightPaddingField
+                        width: 100
+                        height: 30
+                        text: String(Config.playerTimeRightPadding)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (playerTimeRightPaddingField.activeFocus || playerTimeRightPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeRightPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerTimeRightPadding=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeRightPaddingField.applyValue(Config.playerTimeRightPadding + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onPlayerTimeRightPaddingChanged() { playerTimeRightPaddingField.text=String(Config.playerTimeRightPadding) } }
+                    }
+                }
+                Row {
+                    visible: root.currentOtherTab === 2
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    StyledCheckBox {
+                        id: playerTextOutlineBox
+                        width: 210
+                        height: 30
+                        text: "Обводка текста"
+                        checked: Config.playerTextOutlineEnabled
+                        onToggled: { Config.playerTextOutlineEnabled = checked; settings.save() }
+                        contentItem: Text {
+                            text: parent.text
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            leftPadding: parent.indicator.width + 5
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 2 && Config.playerTextOutlineEnabled
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text {
+                        width: 210
+                        text: "Цвет обводки"
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    HoverTextField {
+                        id: playerTextOutlineColorField
+                        width: 100
+                        height: 30
+                        text: Config.playerTextOutlineColor
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        background: Rectangle { color: Config.background; border.color: (playerTextOutlineColorField.activeFocus || playerTextOutlineColorField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: {
+                            var value = text.trim()
+                            if (/^#[0-9A-Fa-f]{6}$/.test(value)) { Config.playerTextOutlineColor = value; text = value; settings.save() }
+                            else text = Config.playerTextOutlineColor
+                        }
+                        Connections { target: Config; function onPlayerTextOutlineColorChanged() { playerTextOutlineColorField.text = Config.playerTextOutlineColor } }
+                    }
+                }
+
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     Text { width: 210; text: "Размер иконок управления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
@@ -1739,6 +1900,16 @@ Item {
                 }
 
                 // -------------------- Volume --------------------
+                Text { visible: root.currentOtherTab === 7; text: "Иконки громкости"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
+                }
+                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Без звука"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: volumeMutedIconField; width: 100; height: 30; text: Config.volumeMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (volumeMutedIconField.activeFocus || volumeMutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeMutedIcon=text; settings.save() } Connections { target: Config; function onVolumeMutedIconChanged(){volumeMutedIconField.text=Config.volumeMutedIcon} } }
+                }
+
                 Text {
                     visible: root.currentOtherTab === 7
                     text: "Громкость"
@@ -2153,6 +2324,14 @@ Item {
                                 onClicked: root.currentWeatherTab = index
                             }
                         }
+                    }
+                }
+
+                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Иконка ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: weatherWindIconField; width: 160; height: 30; text: Config.weatherWindIcon; color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (weatherWindIconField.activeFocus || weatherWindIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: { Config.weatherWindIcon = text; text = Config.weatherWindIcon; settings.save() }
+                        Connections { target: Config; function onWeatherWindIconChanged() { weatherWindIconField.text = Config.weatherWindIcon } }
                     }
                 }
 
@@ -2681,6 +2860,7 @@ Item {
                         onAccepted: {
                             if (settings.saveProfile(text))
                                 profileNameSavedFeedback.restart()
+                            root.clearSettingsFocus()
                         }
                     }
 
@@ -2871,6 +3051,12 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                acceptedButtons: Qt.LeftButton
+                onClicked: root.clearSettingsFocus()
+            }
             ScrollBar.vertical: StyledScrollBar { visible: modulesFlick.contentHeight > modulesFlick.height + 1 }
 
             Column {
@@ -2900,12 +3086,12 @@ Item {
                     height: 18
                     spacing: 6
 
-                    Item { width: 130; height: 18 }
+                    Item { width: 110; height: 18 }
 
                     Repeater {
                         model: ["X", "Y", "Width", "Height"]
                         delegate: Text {
-                            width: 70
+                            width: 60
                             height: 18
                             text: modelData
                             color: Config.textMuted
@@ -2915,6 +3101,9 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                         }
                     }
+
+                    Text { width: 42; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 42; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
 
                 Repeater {
@@ -2929,7 +3118,7 @@ Item {
 
                         StyledCheckBox {
                             id: enabledBox
-                            width: 130
+                            width: 110
                             height: 30
                             text: settings.moduleLabels[moduleRow.moduleName]
                             checked: settings[moduleRow.moduleName]
@@ -2948,12 +3137,16 @@ Item {
                             }
                         }
 
+
+
+
+
                         Repeater {
                             model: ["X", "Y", "Width", "Height"]
 
                             delegate: HoverTextField {
                                 id: geometryField
-                                width: 70
+                                width: 60
                                 height: 30
                                 text: String(settings.geometry[moduleRow.moduleName][index])
                                 color: Config.text
@@ -3009,6 +3202,36 @@ Item {
                                 ToolTip.visible: hovered
                                 ToolTip.text: ["X", "Y", "Width", "Height"][index]
                                 ToolTip.delay: 500
+                            }
+                        }
+
+                        StyledCheckBox {
+                            id: frameBox
+                            width: 42
+                            height: 30
+                            text: ""
+                            indicatorOnly: true
+                            checked: settings.moduleFrames[moduleRow.moduleName] !== false
+                            onToggled: {
+                                var values = Object.assign({}, settings.moduleFrames)
+                                values[moduleRow.moduleName] = checked
+                                settings.moduleFrames = values
+                                settings.save()
+                            }
+                        }
+
+                        StyledCheckBox {
+                            id: backgroundBox
+                            width: 42
+                            height: 30
+                            text: ""
+                            indicatorOnly: true
+                            checked: settings.moduleBackgrounds[moduleRow.moduleName] !== false
+                            onToggled: {
+                                var values = Object.assign({}, settings.moduleBackgrounds)
+                                values[moduleRow.moduleName] = checked
+                                settings.moduleBackgrounds = values
+                                settings.save()
                             }
                         }
                     }
@@ -3076,6 +3299,12 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             flickableDirection: Flickable.VerticalFlick
             interactive: contentHeight > height
+            MouseArea {
+                anchors.fill: parent
+                z: -1
+                acceptedButtons: Qt.LeftButton
+                onClicked: root.clearSettingsFocus()
+            }
             ScrollBar.vertical: StyledScrollBar { visible: colorsFlick.contentHeight > colorsFlick.height + 1 }
 
             Column {

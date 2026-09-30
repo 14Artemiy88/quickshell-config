@@ -1,9 +1,11 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import Quickshell
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "weatherNow"
     width: 315
     height: 80
     property var weather: ({})
@@ -83,7 +85,7 @@ Frame {
                 y: Config.weatherArrowYOffset
                 width: Config.weatherWindArrowWidth
                 height: Config.weatherWindArrowHeight
-                text: root.weather.wind?.direction?.scale_8 > 0 ? "\uF124" : ""
+                text: root.weather.wind?.direction?.scale_8 > 0 ? Config.weatherWindIcon : ""
                 color: Config.text
                 font.family: Config.font
                 font.pixelSize: Config.weatherArrowSize

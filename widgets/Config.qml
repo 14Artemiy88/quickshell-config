@@ -108,11 +108,15 @@ QtObject {
     property int volumeMainTrackOffsetY: -3
     property int volumeStreamTrackOffsetY: 0
     property int volumeMainIconWidth: 25
+    property string volumeIcon: "󰕾"
+    property string volumeMutedIcon: "󰖁"
     property int volumeStreamLabelFontSize: 12
     property int volumeTrackRadius: 4
 
     // Player tuning
     property int playerSilenceFontSize: 40
+    property bool playerTextOutlineEnabled: false
+    property string playerTextOutlineColor: "#000000"
     property int playerSilenceLongFontSize: 25
     property int playerMetaFontSize: 14
     property int playerMetaSecondaryFontSize: 13
@@ -120,6 +124,9 @@ QtObject {
     property bool playerBoldArtist: true
     property bool playerShowProgress: true
     property int playerControlIconSize: 22
+    property string playerPlayingIcon: "\uF04C"
+    property string playerPausedIcon: "\uF04B"
+    property string playerNextIcon: "󰒭"
     property bool playerBlurEnabled: false
     property int playerBlurRadius: 10
     property int playerMetadataXPadding: 0
@@ -158,6 +165,7 @@ QtObject {
     property int weatherComfortHeight: 35
     property int weatherWindColumnWidth: 120
     property int weatherWindArrowWidth: 17
+    property string weatherWindIcon: "\uF124"
     property int weatherWindArrowHeight: 35
     property int weatherWindSpeedX: 36
     property int weatherWindSpeedY: 4

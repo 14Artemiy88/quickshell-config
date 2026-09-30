@@ -1,8 +1,10 @@
 import QtQuick
+import "." as Widgets
 import ".."
 
-Rectangle {
+Widgets.Frame {
     id: root
+    moduleName: "time"
     width: 315
     height: 55
     property var clock
@@ -55,13 +57,6 @@ Rectangle {
         }
     }
 
-    // TimeWidget uses its own outer Rectangle so the global frame settings
-    // are applied to this window unambiguously.
-    color: Config.background
-    border.color: Config.baseColor
-    border.width: Config.frameBorderWidth
-    radius: Config.frameRadius
-    antialiasing: true
     signal calendarRequested()
     signal settingsRequested()
 }

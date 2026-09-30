@@ -24,6 +24,8 @@ QtObject {
     property bool cava: true
     property bool networks: true
     property bool calendar: true
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
@@ -94,6 +96,8 @@ QtObject {
         timerButtonSlideDuration: 700,
         timerButtonIconFadeDuration: 550,
         playerSilenceFontSize: 57,
+        playerTextOutlineEnabled: false,
+        playerTextOutlineColor: "#000000",
         playerSilenceLongFontSize: 25,
         playerMetaFontSize: 12,
         playerMetaSecondaryFontSize: 11,
@@ -101,6 +105,9 @@ QtObject {
         playerBoldArtist: true,
         playerShowProgress: true,
         playerControlIconSize: 16,
+        playerPlayingIcon: "\uF04C",
+        playerPausedIcon: "\uF04B",
+        playerNextIcon: "󰒭",
         playerBlurEnabled: true,
         playerBlurRadius: 10,
         playerMetadataXPadding: 0,
@@ -137,6 +144,7 @@ QtObject {
         weatherComfortHeight: 35,
         weatherWindColumnWidth: 120,
         weatherWindArrowWidth: 17,
+        weatherWindIcon: "\uF124",
         weatherWindArrowHeight: 35,
         weatherWindSpeedX: 36,
         weatherWindSpeedY: 4,
@@ -200,6 +208,8 @@ QtObject {
         volumeMainTrackOffsetY: -4,
         volumeStreamTrackOffsetY: 1,
         volumeMainIconWidth: 25,
+        volumeIcon: "󰕾",
+        volumeMutedIcon: "󰖁",
         volumeStreamLabelFontSize: 11,
         volumeTrackRadius: 6,
         baseColor: "#ff006666",
@@ -246,8 +256,11 @@ QtObject {
     readonly property var defaultGeometry: {"time":[3,6,315,58],"cpu":[5,70,315,170],"cpuGraph":[5,245,315,78],"topApps":[5,329,315,198],"networkStat":[5,527,313,55],"weatherNow":[3,587,315,80],"weatherHourly":[5,672,314,106],"weatherDaily":[5,784,314,117],"timer":[3,907,316,50],"timerOptions":[325,888,90,95],"calendar":[5,65,316,286],"volumes":[331,72,275,152],"player":[330,380,300,200],"cava":[330,588,300,80],"networks":[330,675,300,171]}
     readonly property var defaultSettingsGeometry: [615,71,656,850]
     readonly property var defaultModules: {"time":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true}
+    readonly property var defaultModuleFrames: {"time":true,"calendar":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true}
+    readonly property var defaultModuleBackgrounds: {"time":true,"calendar":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true}
     signal changed()
     signal saved()
+    signal resetUnavailable(string message)
 
     function applyObject(o) {
         if (!o) return
@@ -274,6 +287,11 @@ QtObject {
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
         if (o.playerSilenceText !== undefined) Config.playerSilenceText = String(o.playerSilenceText)
+        if (o.playerTextOutlineEnabled !== undefined) Config.playerTextOutlineEnabled = !!o.playerTextOutlineEnabled
+        if (o.playerTextOutlineColor !== undefined) Config.playerTextOutlineColor = String(o.playerTextOutlineColor)
+        if (o.playerPlayingIcon !== undefined) Config.playerPlayingIcon = String(o.playerPlayingIcon)
+        if (o.playerPausedIcon !== undefined) Config.playerPausedIcon = String(o.playerPausedIcon)
+        if (o.playerNextIcon !== undefined) Config.playerNextIcon = String(o.playerNextIcon)
 
         // General behaviour / update intervals
         if (o.animationsEnabled !== undefined) Config.animationsEnabled = !!o.animationsEnabled
@@ -400,6 +418,8 @@ QtObject {
             }
         }
         if (o.volumeShowStreams !== undefined) Config.volumeShowStreams = !!o.volumeShowStreams
+        if (o.volumeIcon !== undefined) Config.volumeIcon = String(o.volumeIcon)
+        if (o.volumeMutedIcon !== undefined) Config.volumeMutedIcon = String(o.volumeMutedIcon)
 
         // Timer tuning
         var timerNumberFields = [
@@ -503,6 +523,8 @@ QtObject {
                 if (isFinite(mv)) Config[target] = Math.round(mv)
             }
         }
+        if (o.weatherWindIcon !== undefined) Config.weatherWindIcon = String(o.weatherWindIcon)
+
         Config.weatherDailyCount = Math.max(1, Math.min(4, Config.weatherDailyCount))
 
         if (o.cavaBars !== undefined) Config.cavaBars = Math.max(8, Number(o.cavaBars) || Config.cavaBars)
@@ -532,6 +554,14 @@ QtObject {
         }
         var modules = o.modules || {}
         for (var i=0; i<moduleNames.length; ++i) if (modules[moduleNames[i]] !== undefined) root[moduleNames[i]] = !!modules[moduleNames[i]]
+        var frames = Object.assign({}, defaultModuleFrames)
+        var savedFrames = o.moduleFrames || {}
+        for (var fi=0; fi<moduleNames.length; ++fi) if (savedFrames[moduleNames[fi]] !== undefined) frames[moduleNames[fi]] = !!savedFrames[moduleNames[fi]]
+        moduleFrames = frames
+        var backgrounds = Object.assign({}, defaultModuleBackgrounds)
+        var savedBackgrounds = o.moduleBackgrounds || {}
+        for (var bi=0; bi<moduleNames.length; ++bi) if (savedBackgrounds[moduleNames[bi]] !== undefined) backgrounds[moduleNames[bi]] = !!savedBackgrounds[moduleNames[bi]]
+        moduleBackgrounds = backgrounds
         if (o.geometry) {
             var g = Object.assign({}, root.geometry)
             for (var k in o.geometry) if (o.geometry[k] && o.geometry[k].length === 4) g[k] = o.geometry[k].map(Number)
@@ -745,115 +775,230 @@ QtObject {
         }
     }
 
+    function activeProfileData() {
+        if (activeProfile && profiles && profiles[activeProfile])
+            return profiles[activeProfile]
+        resetUnavailable("Сначала сохраните профиль")
+        return null
+    }
+
+    function applyConfigKeysFromProfile(profile, names) {
+        if (!profile || !(names instanceof Array)) return
+        for (var i = 0; i < names.length; ++i) {
+            var name = names[i]
+            if (profile[name] !== undefined) Config[name] = profile[name]
+        }
+    }
+
+    function resetColorsFromProfile(names) {
+        var profile = activeProfileData()
+        if (!profile) return
+        var colors = profile.colors || {}
+        if (!(names instanceof Array)) return
+        for (var i = 0; i < names.length; ++i) {
+            var name = names[i]
+            if (colors[name] !== undefined) Config[name] = colors[name]
+        }
+        save()
+    }
+
+    function resetSettingsWindowFromProfile() {
+        var profile = activeProfileData()
+        if (!profile) return
+        if (profile.settingsGeometry && profile.settingsGeometry.length === 4)
+            settingsGeometry = profile.settingsGeometry.slice()
+        applyConfigKeysFromProfile(profile, ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"])
+        save()
+    }
+
+    function resetModule(moduleName) {
+        if (!moduleName) return
+
+        var profile = activeProfileData()
+        if (!profile) return
+
+        var modules = profile.modules || {}
+        var frames = profile.moduleFrames || {}
+        var backgrounds = profile.moduleBackgrounds || {}
+        var profileGeometry = profile.geometry || {}
+
+        if (modules[moduleName] !== undefined)
+            root[moduleName] = !!modules[moduleName]
+
+        var g = JSON.parse(JSON.stringify(geometry || {}))
+        if (profileGeometry[moduleName] !== undefined)
+            g[moduleName] = (profileGeometry[moduleName] || []).slice()
+        geometry = g
+
+        var f = Object.assign({}, moduleFrames || {})
+        if (frames[moduleName] !== undefined)
+            f[moduleName] = !!frames[moduleName]
+        moduleFrames = f
+
+        var b = Object.assign({}, moduleBackgrounds || {})
+        if (backgrounds[moduleName] !== undefined)
+            b[moduleName] = !!backgrounds[moduleName]
+        moduleBackgrounds = b
+
+        if (moduleName === "calendar") {
+            applyConfigKeysFromProfile(profile, ["animationCalendarSlideDuration", "animationCalendarFadeDuration"])
+        } else if (moduleName === "cpu") {
+            applyConfigKeysFromProfile(profile, [
+                "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
+                "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth",
+                "cpuGraphBarWidth", "cpuGraphScale", "cpuShowRam"
+            ])
+        } else if (moduleName === "cpuGraph") {
+            applyConfigKeysFromProfile(profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphScale"])
+        } else if (moduleName === "networkStat" || moduleName === "networks") {
+            applyConfigKeysFromProfile(profile, [
+                "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
+                "networkRowSpacing", "networkIconSize", "networkValueFontSize", "networkRightPadding",
+                "networkHorizontalPadding", "networkIconLeftPadding", "networkIconColumnWidth"
+            ])
+        } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
+            applyConfigKeysFromProfile(profile, [
+                "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes",
+                "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize",
+                "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount",
+                "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize",
+                "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize",
+                "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX",
+                "weatherTempWidth", "weatherComfortY", "weatherComfortHeight", "weatherWindColumnWidth",
+                "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX",
+                "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY",
+                "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize",
+                "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight",
+                "weatherHourlyTopPadding", "weatherHourlyDayHeight", "weatherHourlyDayFontSize", "weatherHourlyIconWidth",
+                "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight",
+                "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayHeight", "weatherDailyDayFontSize",
+                "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempY",
+                "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempY",
+                "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"
+            ])
+            if (profile.weatherToken !== undefined)
+                weatherToken = String(profile.weatherToken)
+        } else if (moduleName === "timer") {
+            applyConfigKeysFromProfile(profile, [
+                "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap",
+                "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration",
+                "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"
+            ])
+            if (profile.timerPresetDefaults !== undefined) {
+                timerPresetDefaults = (profile.timerPresetDefaults || []).slice()
+                timerPresets = timerPresetDefaults.slice()
+            } else if (profile.timerPresets !== undefined) {
+                timerPresetDefaults = (profile.timerPresets || []).slice()
+                timerPresets = timerPresetDefaults.slice()
+            }
+        } else if (moduleName === "volumes") {
+            applyConfigKeysFromProfile(profile, [
+                "volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing",
+                "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth",
+                "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY",
+                "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize",
+                "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight"
+            ])
+        } else if (moduleName === "player") {
+            applyConfigKeysFromProfile(profile, [
+                "playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled",
+                "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize",
+                "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize",
+                "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius",
+                "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressHeight",
+                "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize",
+                "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY",
+                "playerUpdateInterval"
+            ])
+        } else if (moduleName === "cava") {
+            applyConfigKeysFromProfile(profile, [
+                "cavaBars", "cavaFramerate", "cavaRowHeight", "cavaRowSpacing", "cavaBarWidthRatio",
+                "cavaBarHeightScale", "cavaBarMinHeight"
+            ])
+        }
+
+        save()
+    }
+
     function resetModules() {
-        for (var i = 0; i < moduleNames.length; ++i) root[moduleNames[i]] = !!defaultModules[moduleNames[i]]
-        geometry = JSON.parse(JSON.stringify(defaultGeometry))
+        var profile = activeProfileData()
+        if (!profile) return
+        var modules = profile.modules || {}
+        for (var i = 0; i < moduleNames.length; ++i) {
+            var name = moduleNames[i]
+            if (modules[name] !== undefined) root[name] = !!modules[name]
+        }
+        moduleFrames = Object.assign({}, profile.moduleFrames || moduleFrames)
+        moduleBackgrounds = Object.assign({}, profile.moduleBackgrounds || moduleBackgrounds)
+        if (profile.geometry) geometry = JSON.parse(JSON.stringify(profile.geometry))
         save()
     }
 
     function resetColors(names) {
-        resetConfigKeys(names)
-        save()
+        resetColorsFromProfile(names)
     }
 
     function resetCpuSettings() {
-        resetConfigKeys(["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphScale", "cpuShowRam"])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphScale", "cpuShowRam"]); save()
     }
 
     function resetNetworkSettings() {
-        resetConfigKeys(["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight", "networkRowSpacing", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkHorizontalPadding", "networkIconLeftPadding", "networkIconColumnWidth"])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight", "networkRowSpacing", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkHorizontalPadding", "networkIconLeftPadding", "networkIconColumnWidth"]); save()
     }
 
     function resetVolumeSettings() {
-        resetConfigKeys(["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight"])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight"]); save()
     }
 
     function resetTimerSettings() {
-        resetConfigKeys([
-            "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap",
-            "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration",
-            "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"
-        ])
-        timerPresetDefaults = defaultTimerPresetDefaults.slice()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+        if (profile.timerPresetDefaults !== undefined) timerPresetDefaults = (profile.timerPresetDefaults || []).slice()
+        else if (profile.timerPresets !== undefined) timerPresetDefaults = (profile.timerPresets || []).slice()
         timerPresets = timerPresetDefaults.slice()
         save()
     }
 
     function resetPlayerSettings() {
-        resetConfigKeys([
-            "playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize",
-            "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize",
-            "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize",
-            "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY",
-            "playerProgressY", "playerProgressHeight", "playerProgressTrackHeight", "playerControlTopMargin",
-            "playerControlGap", "playerTimeFontSize", "playerTimeRightPadding", "playerCoverOpacity",
-            "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"
-        ])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressHeight", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"]); save()
     }
 
     function resetWeatherSettings() {
-        resetConfigKeys([
-            "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes",
-            "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds",
-            "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap",
-            "weatherHourlyCount", "weatherDailyCount", "weatherIconY",
-            "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY",
-            "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize",
-            "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherComfortY", "weatherComfortHeight",
-            "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY",
-            "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth",
-            "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY",
-            "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayHeight", "weatherHourlyDayFontSize",
-            "weatherHourlyIconWidth", "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize",
-            "weatherDailyTopPadding", "weatherDailyDayHeight", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY",
-            "weatherDailyHighTempY", "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempY", "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"
-        ])
-        weatherToken = defaultWeatherToken
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherComfortY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayHeight", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayHeight", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempY", "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempY", "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"]);
+        if (profile.weatherToken !== undefined) weatherToken = String(profile.weatherToken)
         save()
     }
 
     function resetCavaSettings() {
-        resetConfigKeys(["cavaBars", "cavaFramerate", "cavaRowHeight", "cavaRowSpacing", "cavaBarWidthRatio", "cavaBarHeightScale", "cavaBarMinHeight"])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["cavaBars", "cavaFramerate", "cavaRowHeight", "cavaRowSpacing", "cavaBarWidthRatio", "cavaBarHeightScale", "cavaBarMinHeight"]); save()
     }
 
     function resetGeneralSettings() {
-        resetConfigKeys([
-            "font", "fontSize", "ledFont",
-            "frameBorderWidth", "frameRadius"
-        ])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius"]); save()
     }
 
     function resetAnimationSettings() {
-        resetConfigKeys([
-            "animationsEnabled", "animationSpeed", "animationEasing",
-            "animationAppearanceEnabled", "animationMovementEnabled", "animationSizeEnabled", "animationExpansionEnabled",
-            "animationTimerOptionsDuration", "animationCalendarSlideDuration",
-            "animationCalendarFadeDuration"
-        ])
-        save()
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["animationsEnabled", "animationSpeed", "animationEasing", "animationAppearanceEnabled", "animationMovementEnabled", "animationSizeEnabled", "animationExpansionEnabled", "animationTimerOptionsDuration", "animationCalendarSlideDuration", "animationCalendarFadeDuration"]); save()
     }
 
     function resetSettingsWindow() {
-        resetConfigKeys(["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"])
-        settingsGeometry = defaultSettingsGeometry.slice()
-        save()
+        resetSettingsWindowFromProfile()
     }
 
     function resetAllSettings() {
-        resetConfigKeys(Object.keys(defaultConfig))
-        for (var i = 0; i < moduleNames.length; ++i) root[moduleNames[i]] = !!defaultModules[moduleNames[i]]
-        geometry = JSON.parse(JSON.stringify(defaultGeometry))
-        settingsGeometry = defaultSettingsGeometry.slice()
-        timerPresetDefaults = defaultTimerPresetDefaults.slice()
-        timerPresets = timerPresetDefaults.slice()
-        weatherToken = defaultWeatherToken
-        activeTheme = "14 Theme"
+        var profile = activeProfileData()
+        if (!profile) return
+        var currentProfile = activeProfile
+        applyObject(JSON.parse(JSON.stringify(profile)))
+        activeProfile = currentProfile
         save()
     }
 
@@ -883,8 +1028,9 @@ QtObject {
             timerRowTopMargin: Config.timerRowTopMargin, timerRowRightMargin: Config.timerRowRightMargin,
             timerButtonFadeDuration: Config.timerButtonFadeDuration, timerButtonSlideDuration: Config.timerButtonSlideDuration, timerButtonIconFadeDuration: Config.timerButtonIconFadeDuration,
             playerSilenceFontSize: Config.playerSilenceFontSize, playerSilenceLongFontSize: Config.playerSilenceLongFontSize, playerMetaFontSize: Config.playerMetaFontSize,
+            playerTextOutlineEnabled: Config.playerTextOutlineEnabled, playerTextOutlineColor: Config.playerTextOutlineColor,
             playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
-            playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize,
+            playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize, playerPlayingIcon: Config.playerPlayingIcon, playerPausedIcon: Config.playerPausedIcon, playerNextIcon: Config.playerNextIcon,
             playerBlurEnabled: Config.playerBlurEnabled, playerBlurRadius: Config.playerBlurRadius,
             playerMetadataXPadding: Config.playerMetadataXPadding, playerMetadataY: Config.playerMetadataY,
             playerProgressY: Config.playerProgressY, playerProgressHeight: Config.playerProgressHeight, playerProgressTrackHeight: Config.playerProgressTrackHeight,
@@ -896,7 +1042,7 @@ QtObject {
             weatherIconY: Config.weatherIconY, weatherWindColumnX: Config.weatherWindColumnX, weatherWindSpeedFontSize: Config.weatherWindSpeedFontSize, weatherWindUnitFontSize: Config.weatherWindUnitFontSize,
             weatherPressureY: Config.weatherPressureY, weatherDescriptionY: Config.weatherDescriptionY, weatherDescriptionFontSize: Config.weatherDescriptionFontSize, weatherTempFontSize: Config.weatherTempFontSize, weatherComfortFontSize: Config.weatherComfortFontSize,
             weatherTempColumnWidth: Config.weatherTempColumnWidth, weatherTempX: Config.weatherTempX, weatherTempWidth: Config.weatherTempWidth, weatherComfortY: Config.weatherComfortY, weatherComfortHeight: Config.weatherComfortHeight,
-            weatherWindColumnWidth: Config.weatherWindColumnWidth, weatherWindArrowWidth: Config.weatherWindArrowWidth, weatherWindArrowHeight: Config.weatherWindArrowHeight, weatherWindSpeedX: Config.weatherWindSpeedX, weatherWindSpeedY: Config.weatherWindSpeedY, weatherWindSpeedWidth: Config.weatherWindSpeedWidth,
+            weatherWindColumnWidth: Config.weatherWindColumnWidth, weatherWindArrowWidth: Config.weatherWindArrowWidth, weatherWindIcon: Config.weatherWindIcon, weatherWindArrowHeight: Config.weatherWindArrowHeight, weatherWindSpeedX: Config.weatherWindSpeedX, weatherWindSpeedY: Config.weatherWindSpeedY, weatherWindSpeedWidth: Config.weatherWindSpeedWidth,
             weatherWindUnitX: Config.weatherWindUnitX, weatherWindUnitY: Config.weatherWindUnitY, weatherWindUnitWidth: Config.weatherWindUnitWidth, weatherPressureValueWidth: Config.weatherPressureValueWidth, weatherPressureFontSize: Config.weatherPressureFontSize,
             weatherPressureUnitX: Config.weatherPressureUnitX, weatherPressureUnitY: Config.weatherPressureUnitY, weatherPressureUnitFontSize: Config.weatherPressureUnitFontSize, weatherDescriptionHeight: Config.weatherDescriptionHeight,
             weatherHourlyTopPadding: Config.weatherHourlyTopPadding, weatherHourlyDayHeight: Config.weatherHourlyDayHeight, weatherHourlyDayFontSize: Config.weatherHourlyDayFontSize,
@@ -909,8 +1055,8 @@ QtObject {
             cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, cavaRowHeight: Config.cavaRowHeight, cavaRowSpacing: Config.cavaRowSpacing, cavaBarWidthRatio: Config.cavaBarWidthRatio, cavaBarHeightScale: Config.cavaBarHeightScale, cavaBarMinHeight: Config.cavaBarMinHeight, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
             cpuBarThickness: Config.cpuBarThickness, cpuBarWidth: Config.cpuBarWidth, cpuRowHeight: Config.cpuRowHeight, cpuRowSpacing: Config.cpuRowSpacing, cpuLabelLeftPadding: Config.cpuLabelLeftPadding, cpuBarLeftOffset: Config.cpuBarLeftOffset, cpuBarRadius: Config.cpuBarRadius, cpuGraphSegmentSlotWidth: Config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: Config.cpuGraphBarWidth, cpuGraphScale: Config.cpuGraphScale, cpuShowRam: Config.cpuShowRam,
             networkShowUpload: Config.networkShowUpload, networkShowDownload: Config.networkShowDownload, networkRowHeight: Config.networkRowHeight, networkRowSpacing: Config.networkRowSpacing, networkIconSize: Config.networkIconSize, networkValueFontSize: Config.networkValueFontSize, networkRightPadding: Config.networkRightPadding, networkHorizontalPadding: Config.networkHorizontalPadding, networkIconLeftPadding: Config.networkIconLeftPadding, networkIconColumnWidth: Config.networkIconColumnWidth,
-            volumeUpdateInterval: Config.volumeUpdateInterval, volumeMainRowHeight: Config.volumeMainRowHeight, volumeStreamRowHeight: Config.volumeStreamRowHeight, volumeStreamSpacing: Config.volumeStreamSpacing, volumeShowStreams: Config.volumeShowStreams, volumeHorizontalPadding: Config.volumeHorizontalPadding, volumeVerticalPadding: Config.volumeVerticalPadding, volumeMainTrackWidth: Config.volumeMainTrackWidth, volumeMainTrackHeight: Config.volumeMainTrackHeight, volumeStreamTrackHeight: Config.volumeStreamTrackHeight, volumeMainTrackOffsetY: Config.volumeMainTrackOffsetY, volumeStreamTrackOffsetY: Config.volumeStreamTrackOffsetY, volumeMainIconWidth: Config.volumeMainIconWidth, volumeStreamLabelFontSize: Config.volumeStreamLabelFontSize, volumeTrackRadius: Config.volumeTrackRadius,
-            timerPresets: timerPresetDefaults, timerPresetDefaults: timerPresetDefaults, modules: modules, geometry: geometry, settingsGeometry: settingsGeometry, colors: colors
+            volumeUpdateInterval: Config.volumeUpdateInterval, volumeIcon: Config.volumeIcon, volumeMutedIcon: Config.volumeMutedIcon, volumeMainRowHeight: Config.volumeMainRowHeight, volumeStreamRowHeight: Config.volumeStreamRowHeight, volumeStreamSpacing: Config.volumeStreamSpacing, volumeShowStreams: Config.volumeShowStreams, volumeHorizontalPadding: Config.volumeHorizontalPadding, volumeVerticalPadding: Config.volumeVerticalPadding, volumeMainTrackWidth: Config.volumeMainTrackWidth, volumeMainTrackHeight: Config.volumeMainTrackHeight, volumeStreamTrackHeight: Config.volumeStreamTrackHeight, volumeMainTrackOffsetY: Config.volumeMainTrackOffsetY, volumeStreamTrackOffsetY: Config.volumeStreamTrackOffsetY, volumeMainIconWidth: Config.volumeMainIconWidth, volumeStreamLabelFontSize: Config.volumeStreamLabelFontSize, volumeTrackRadius: Config.volumeTrackRadius,
+            timerPresets: timerPresetDefaults, timerPresetDefaults: timerPresetDefaults, modules: modules, moduleFrames: moduleFrames, moduleBackgrounds: moduleBackgrounds, geometry: geometry, settingsGeometry: settingsGeometry, colors: colors
         }
     }
 

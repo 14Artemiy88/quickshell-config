@@ -1,10 +1,12 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import Quickshell
 import Quickshell.Io
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "cava"
     width: 300
     height: 80
     property var values: []
@@ -33,13 +35,6 @@ Frame {
         target: Config
         function onCavaBarsChanged() { root.restartCava() }
         function onCavaFramerateChanged() { root.restartCava() }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: Config.background
-        radius: Config.frameRadius
-        z: 0
     }
 
     Column {
@@ -94,12 +89,4 @@ Frame {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: Config.transparent
-        border.color: Config.baseColor
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
-        z: 100
-    }
 }

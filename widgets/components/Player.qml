@@ -1,11 +1,13 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "player"
     property var player: ({})
     property string imagePath: root.player.image || ""
 
@@ -64,6 +66,8 @@ Frame {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.Wrap
+        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+        styleColor: Config.playerTextOutlineColor
     }
 
     // DeadBeeF data is ordered artist / album / title. The artist is the
@@ -76,6 +80,8 @@ Frame {
         font.pixelSize: Config.playerMetaFontSize
         font.bold: Config.playerBoldArtist && root.player.player === "deadbeef"
         elide: Text.ElideRight
+        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+        styleColor: Config.playerTextOutlineColor
     }
     Text {
         x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing; width: parent.width - Config.playerMetadataXPadding * 2
@@ -84,6 +90,8 @@ Frame {
         font.family: Config.playerMetaFont
         font.pixelSize: Config.playerMetaSecondaryFontSize
         elide: Text.ElideRight
+        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+        styleColor: Config.playerTextOutlineColor
     }
     Text {
         x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing * 2; width: parent.width - Config.playerMetadataXPadding * 2
@@ -92,22 +100,24 @@ Frame {
         font.family: Config.playerMetaFont
         font.pixelSize: Config.playerMetaSecondaryFontSize
         elide: Text.ElideRight
+        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+        styleColor: Config.playerTextOutlineColor
     }
     Text {
         id: pauseButton
         x: Config.playerControlTopMargin; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
-        text: root.player.status || ""
+        text: root.player.status === "\uF04C" ? Config.playerPlayingIcon : (root.player.status === "\uF04B" ? Config.playerPausedIcon : (root.player.status || ""))
         color: Config.text
         font.pixelSize: Config.playerControlIconSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
-    Text { x: 0; y: Config.playerControlTopMargin; width: parent.width - Config.playerTimeRightPadding; horizontalAlignment: Text.AlignRight; text: root.player.timeleft || ""; color: Config.text; font.pixelSize: Config.playerTimeFontSize }
+    Text { x: 0; y: Config.playerControlTopMargin; width: parent.width - Config.playerTimeRightPadding; horizontalAlignment: Text.AlignRight; text: root.player.timeleft || ""; color: Config.text; font.pixelSize: Config.playerTimeFontSize; style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal; styleColor: Config.playerTextOutlineColor }
 
     MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", root.player.player || ""]) }
     Text {
         x: Config.playerControlTopMargin + Config.playerControlIconSize + Config.playerControlGap; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
-        text: "󰒭"
+        text: Config.playerNextIcon
         color: Config.text
         font.pixelSize: Config.playerControlIconSize
         visible: !!root.player.player

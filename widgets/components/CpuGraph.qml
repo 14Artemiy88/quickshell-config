@@ -1,10 +1,12 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import Quickshell
 import Quickshell.Io
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "cpuGraph"
     width: 315
     height: 82
     property var values: []

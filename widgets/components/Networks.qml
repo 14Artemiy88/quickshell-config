@@ -1,11 +1,13 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "networks"
     width: 300
     height: 180
     property var monitor

@@ -1,10 +1,12 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import Quickshell
 import Quickshell.Io
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "volumes"
     width: 275
     height: 210
     property var monitor
@@ -113,7 +115,7 @@ Frame {
             Text {
                 id: mainVolumeIcon
                 width: Config.volumeMainIconWidth
-                text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? "󰖁" : "󰕾") : ((root.mainMuted || root.mainDisplayedValue <= 0) ? "󰖁" : "󰕾")
+                text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon) : ((root.mainMuted || root.mainDisplayedValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon)
                 color: Config.text
                 font.pixelSize: Config.uiFontSize(16)
                 verticalAlignment: Text.AlignVCenter

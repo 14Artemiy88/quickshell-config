@@ -1,5 +1,5 @@
 {
-    "weatherToken": "1111111111111111111111",
+    "weatherToken": "1111111111111111111111\n",
     "font": "JetBrainsMono Nerd Font",
     "fontSize": 12,
     "settingsFont": "JetBrainsMono Nerd Font",
@@ -43,11 +43,16 @@
     "playerSilenceFontSize": 57,
     "playerSilenceLongFontSize": 25,
     "playerMetaFontSize": 12,
+    "playerTextOutlineEnabled": false,
+    "playerTextOutlineColor": "#000000",
     "playerMetaSecondaryFontSize": 11,
     "playerMetaLineSpacing": 18,
     "playerBoldArtist": true,
     "playerShowProgress": true,
     "playerControlIconSize": 16,
+    "playerPlayingIcon": "",
+    "playerPausedIcon": "",
+    "playerNextIcon": "󰒭",
     "playerBlurEnabled": true,
     "playerBlurRadius": 10,
     "playerMetadataXPadding": 0,
@@ -84,6 +89,7 @@
     "weatherComfortHeight": 35,
     "weatherWindColumnWidth": 120,
     "weatherWindArrowWidth": 17,
+    "weatherWindIcon": "",
     "weatherWindArrowHeight": 35,
     "weatherWindSpeedX": 36,
     "weatherWindSpeedY": 4,
@@ -148,7 +154,9 @@
     "networkHorizontalPadding": 5,
     "networkIconLeftPadding": 10,
     "networkIconColumnWidth": 28,
-    "volumeUpdateInterval": 200,
+    "volumeUpdateInterval": 1000,
+    "volumeIcon": "󰕾",
+    "volumeMutedIcon": "󰖁",
     "volumeMainRowHeight": 20,
     "volumeStreamRowHeight": 18,
     "volumeStreamSpacing": 1,
@@ -175,6 +183,7 @@
     ],
     "modules": {
         "time": true,
+        "calendar": true,
         "cpu": true,
         "cpuGraph": true,
         "topApps": true,
@@ -186,12 +195,43 @@
         "volumes": true,
         "player": true,
         "cava": true,
-        "networks": true,
-        "calendar": true
+        "networks": true
+    },
+    "moduleFrames": {
+        "time": true,
+        "calendar": true,
+        "cpu": true,
+        "cpuGraph": true,
+        "topApps": true,
+        "networkStat": true,
+        "weatherNow": true,
+        "weatherHourly": true,
+        "weatherDaily": true,
+        "timer": true,
+        "volumes": true,
+        "player": false,
+        "cava": false,
+        "networks": false
+    },
+    "moduleBackgrounds": {
+        "time": true,
+        "calendar": true,
+        "cpu": true,
+        "cpuGraph": true,
+        "topApps": true,
+        "networkStat": true,
+        "weatherNow": true,
+        "weatherHourly": true,
+        "weatherDaily": true,
+        "timer": true,
+        "volumes": true,
+        "player": false,
+        "cava": false,
+        "networks": false
     },
     "geometry": {
         "time": [
-            5,
+            3,
             6,
             315,
             58
@@ -206,7 +246,7 @@
             5,
             245,
             315,
-            77
+            78
         ],
         "topApps": [
             5,
@@ -254,7 +294,7 @@
             5,
             65,
             316,
-            286
+            225
         ],
         "volumes": [
             331,
@@ -266,7 +306,7 @@
             330,
             380,
             300,
-            200
+            186
         ],
         "cava": [
             330,
@@ -331,7 +371,7 @@
             "r": 0,
             "g": 0,
             "b": 0,
-            "a": 0.3333333432674408,
+            "a": 0.20000000298023224,
             "hsvHue": -1,
             "hsvSaturation": 0,
             "hsvValue": 0,
@@ -785,7 +825,7 @@
     },
     "profiles": {
         "14PK": {
-            "weatherToken": "1111111111111111111111",
+            "weatherToken": "1111111111111111111111\n",
             "font": "JetBrainsMono Nerd Font",
             "fontSize": 12,
             "settingsFont": "JetBrainsMono Nerd Font",
@@ -829,11 +869,16 @@
             "playerSilenceFontSize": 57,
             "playerSilenceLongFontSize": 25,
             "playerMetaFontSize": 12,
+            "playerTextOutlineEnabled": false,
+            "playerTextOutlineColor": "#000000",
             "playerMetaSecondaryFontSize": 11,
             "playerMetaLineSpacing": 18,
             "playerBoldArtist": true,
             "playerShowProgress": true,
             "playerControlIconSize": 16,
+            "playerPlayingIcon": "",
+            "playerPausedIcon": "",
+            "playerNextIcon": "󰒭",
             "playerBlurEnabled": true,
             "playerBlurRadius": 10,
             "playerMetadataXPadding": 0,
@@ -870,6 +915,7 @@
             "weatherComfortHeight": 35,
             "weatherWindColumnWidth": 120,
             "weatherWindArrowWidth": 17,
+            "weatherWindIcon": "",
             "weatherWindArrowHeight": 35,
             "weatherWindSpeedX": 36,
             "weatherWindSpeedY": 4,
@@ -934,7 +980,9 @@
             "networkHorizontalPadding": 5,
             "networkIconLeftPadding": 10,
             "networkIconColumnWidth": 28,
-            "volumeUpdateInterval": 200,
+            "volumeUpdateInterval": 1000,
+            "volumeIcon": "󰕾",
+            "volumeMutedIcon": "󰖁",
             "volumeMainRowHeight": 20,
             "volumeStreamRowHeight": 18,
             "volumeStreamSpacing": 1,
@@ -961,6 +1009,7 @@
             ],
             "modules": {
                 "time": true,
+                "calendar": true,
                 "cpu": true,
                 "cpuGraph": true,
                 "topApps": true,
@@ -972,12 +1021,43 @@
                 "volumes": true,
                 "player": true,
                 "cava": true,
-                "networks": true,
-                "calendar": true
+                "networks": true
+            },
+            "moduleFrames": {
+                "time": true,
+                "calendar": true,
+                "cpu": true,
+                "cpuGraph": true,
+                "topApps": true,
+                "networkStat": true,
+                "weatherNow": true,
+                "weatherHourly": true,
+                "weatherDaily": true,
+                "timer": true,
+                "volumes": true,
+                "player": false,
+                "cava": false,
+                "networks": false
+            },
+            "moduleBackgrounds": {
+                "time": true,
+                "calendar": true,
+                "cpu": true,
+                "cpuGraph": true,
+                "topApps": true,
+                "networkStat": true,
+                "weatherNow": true,
+                "weatherHourly": true,
+                "weatherDaily": true,
+                "timer": true,
+                "volumes": true,
+                "player": false,
+                "cava": false,
+                "networks": false
             },
             "geometry": {
                 "time": [
-                    5,
+                    3,
                     6,
                     315,
                     58
@@ -992,7 +1072,7 @@
                     5,
                     245,
                     315,
-                    77
+                    78
                 ],
                 "topApps": [
                     5,
@@ -1040,7 +1120,7 @@
                     5,
                     65,
                     316,
-                    286
+                    225
                 ],
                 "volumes": [
                     331,
@@ -1052,7 +1132,7 @@
                     330,
                     380,
                     300,
-                    200
+                    186
                 ],
                 "cava": [
                     330,
@@ -1117,7 +1197,7 @@
                     "r": 0,
                     "g": 0,
                     "b": 0,
-                    "a": 0.3333333432674408,
+                    "a": 0.20000000298023224,
                     "hsvHue": -1,
                     "hsvSaturation": 0,
                     "hsvValue": 0,
@@ -1577,7 +1657,7 @@
             "baseColor": "#006666",
             "accent": "#00aaaa",
             "currentWeather": "#00cccc",
-            "background": "#55000000",
+            "background": "#33000000",
             "text": "#ffffff",
             "textMuted": "#dddddd",
             "textDim": "#cccccc",

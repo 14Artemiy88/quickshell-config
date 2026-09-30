@@ -16,6 +16,7 @@ Item {
         Repeater {
             model: [root.monitor.data.top_apps?.cpu ?? [], root.monitor.data.top_apps?.mem ?? []]
             delegate: Frame {
+                moduleName: "topApps"
                 width: parent.width
                 height: 94
 

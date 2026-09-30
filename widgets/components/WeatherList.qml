@@ -1,9 +1,11 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import Quickshell
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: hourly ? "weatherHourly" : "weatherDaily"
     property var entries: []
     property bool hourly: true
     property var weatherService: null
@@ -29,7 +31,7 @@ Frame {
 
     Rectangle {
         anchors.fill: parent
-        color: Config.background
+        color: root.moduleBackgroundVisible ? Config.background : Config.transparent
         radius: Config.frameRadius
         antialiasing: true
         z: 0

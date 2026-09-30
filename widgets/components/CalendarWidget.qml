@@ -1,9 +1,12 @@
 import QtQuick
+import "." as Widgets
 import ".."
 import QtQuick.Controls
 
-Frame {
+Widgets.Frame {
     id: root
+    moduleName: "calendar"
+    moduleBackgroundColor: Config.calendarBackground
     width: 315
     height: 285
     property date date: new Date()
@@ -14,15 +17,6 @@ Frame {
     clip: true
     opacity: root.open ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.animationCalendarSlideDuration, "appearance"); easing.type: Config.easingType() } }
-
-    // У календаря снова отдельный, настраиваемый фон.
-    Rectangle {
-        anchors.fill: parent
-        color: Config.calendarBackground
-        radius: Config.frameRadius
-        antialiasing: true
-        z: -1
-    }
 
     Item {
         id: reveal

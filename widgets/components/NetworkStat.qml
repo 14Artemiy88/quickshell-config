@@ -1,7 +1,8 @@
 import QtQuick
+import "." as Widgets
 import ".."
 
-Frame {
+Widgets.Frame {
     width: 313
     height: 55
     property var monitor
