@@ -190,6 +190,7 @@ Widgets.Frame {
                 delegate: Item {
                     width: parent.width
                     height: root.timerRowHeight
+                    property var timerData: model
 
                     Row {
                         anchors.right: parent.right
@@ -204,25 +205,49 @@ Widgets.Frame {
                             // long timers can never collide with the countdown.
                             width: Config.timerCommentWidth
                             height: parent.height
-                            text: String(model.comment || "").slice(0, Config.timerCommentMaxLength)
-                            color: model.color || Config.text
+                            text: String(timerData.comment || "").slice(0, Config.timerCommentMaxLength)
+                            color: timerData.color || Config.text
                             font.family: "Pixel LCD7"
                             font.pixelSize: 15
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
                         }
 
-                        Text {
+                        Item {
+                            id: timerDisplay
                             width: 100
                             height: parent.height
-                            text: (model.sign || "") + (model.timer || "")
-                            color: (model.sign || "") !== "" ? Config.black : (model.color || Config.text)
-                            style: (model.sign || "") !== "" ? Text.Outline : Text.Normal
-                            styleColor: model.color || Config.text
-                            font.family: Config.ledFont
-                            font.pixelSize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
+                            property string displayText: (timerData.sign || "") + (timerData.timer || "")
+                            property color outlineColor: timerData.color || Config.text
+                            property int displaySize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
+                            property var outlineOffsets: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
+                            property bool hasSign: String(timerData.sign || "") !== ""
+
+                            Repeater {
+                                model: timerDisplay.hasSign ? timerDisplay.outlineOffsets.length : 0
+                                delegate: Text {
+                                    x: timerDisplay.outlineOffsets[index][0]
+                                    y: timerDisplay.outlineOffsets[index][1]
+                                    width: timerDisplay.width
+                                    height: timerDisplay.height
+                                    text: timerDisplay.displayText
+                                    color: timerDisplay.outlineColor
+                                    font.family: Config.ledFont
+                                    font.pixelSize: timerDisplay.displaySize
+                                    horizontalAlignment: Text.AlignRight
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            Text {
+                                anchors.fill: parent
+                                text: timerDisplay.displayText
+                                color: timerDisplay.hasSign ? Config.black : timerDisplay.outlineColor
+                                font.family: Config.ledFont
+                                font.pixelSize: timerDisplay.displaySize
+                                horizontalAlignment: Text.AlignRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
                     }
 
@@ -232,17 +257,17 @@ Widgets.Frame {
                         hoverEnabled: false
                         onClicked: mouse => {
                             if (mouse.button === Qt.LeftButton) {
-                                root.selectedFile = root.selectedFile === model.file ? "" : model.file
+                                root.selectedFile = root.selectedFile === timerData.file ? "" : timerData.file
                             } else if (mouse.button === Qt.MiddleButton) {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "delete", model.file])
-                                if (root.selectedFile === model.file) root.selectedFile = ""
+                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "delete", timerData.file])
+                                if (root.selectedFile === timerData.file) root.selectedFile = ""
                             } else if (mouse.button === Qt.RightButton) {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", model.file])
+                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file])
                             }
                         }
                         onWheel: wheel => Quickshell.execDetached([
                             Quickshell.shellDir + "/scripts/timer",
-                            wheel.angleDelta.y > 0 ? "up" : "down", model.file
+                            wheel.angleDelta.y > 0 ? "up" : "down", timerData.file
                         ])
                     }
                 }

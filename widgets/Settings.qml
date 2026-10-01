@@ -51,7 +51,7 @@ QtObject {
     property int themeDraftRevision: 0
     readonly property var moduleNames: ["time","calendar","cpu","cpuGraph","topApps","networkStat","weatherNow","weatherHourly","weatherDaily","timer","volumes","player","cava","networks"]
     readonly property var moduleLabels: ({time:"Часы",cpu:"CPU",cpuGraph:"График CPU",topApps:"Top Apps",networkStat:"Сеть",weatherNow:"Погода сейчас",weatherHourly:"Погода по часам",weatherDaily:"Погода по дням",timer:"Таймеры",volumes:"Громкость",player:"Плеер",cava:"CAVA",networks:"Networks",calendar:"Календарь"})
-    readonly property var colorNames: ["baseColor","accent","currentWeather","background","text","textMuted","textDim","textDisabled","calendarBackground","settingsBackground","settingsBorder","playerOverlay","playerProgressTrack","playerProgressFill","activeNetworkBackground","volumeTrack","volumeFill","cpu1","cpu2","cpu3","cpu4","cpu5","cpu6","cpu7","cpu8","ram","metricTrack","ramTrack","networkUpload","networkDownload","tempHot","tempWarm","tempMild","tempCool","tempZero","tempCold","tempVeryCold","tempFreezing"]
+    readonly property var colorNames: ["baseColor","accent","currentWeather","background","text","textMuted","textDim","textDisabled","calendarBackground","settingsBackground","settingsBorder","settingsSubheading","playerOverlay","playerProgressTrack","playerProgressFill","activeNetworkBackground","volumeTrack","volumeFill","cpu1","cpu2","cpu3","cpu4","cpu5","cpu6","cpu7","cpu8","ram","metricTrack","ramTrack","networkUpload","networkDownload","tempHot","tempWarm","tempMild","tempCool","tempZero","tempCold","tempVeryCold","tempFreezing"]
     // Built-in defaults used by the reset controls in the settings UI.
     // These values are intentionally taken from the current settings.json baseline.
     readonly property var defaultConfig: ({
@@ -111,13 +111,13 @@ QtObject {
         playerBlurEnabled: true,
         playerBlurRadius: 10,
         playerMetadataXPadding: 0,
-        playerMetadataY: 120,
-        playerProgressY: 180,
-        playerProgressHeight: 5,
+        playerMetadataY: 0,
+        playerProgressY: 0,
         playerProgressTrackHeight: 3,
         playerControlTopMargin: 5,
         playerControlGap: 8,
         playerTimeFontSize: 11,
+        playerTimeFont: "Ubuntu Mono Nerd Font",
         playerTimeRightPadding: 0,
         playerCoverOpacity: 0.9,
         playerSilenceWidth: 275,
@@ -434,8 +434,7 @@ QtObject {
             ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
             ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],
             ["playerMetaLineSpacing", 0, 100], ["playerControlIconSize", 8, 64],
-            ["playerMetadataXPadding", 0, 100], ["playerMetadataY", 0, 1000],
-            ["playerProgressY", 0, 1000], ["playerProgressHeight", 1, 30],
+            ["playerMetadataXPadding", 0, 100], ["playerMetadataY", 0, 100], ["playerProgressY", 0, 100],
             ["playerProgressTrackHeight", 1, 20], ["playerControlTopMargin", 0, 100],
             ["playerControlGap", 0, 100], ["playerTimeFontSize", 8, 48],
             ["playerTimeRightPadding", 0, 100], ["playerSilenceWidth", 100, 600],
@@ -894,7 +893,7 @@ QtObject {
                 "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize",
                 "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize",
                 "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius",
-                "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressHeight",
+                "playerMetadataXPadding", "playerMetadataY", "playerProgressY",
                 "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize",
                 "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY",
                 "playerUpdateInterval"
@@ -952,7 +951,7 @@ QtObject {
 
     function resetPlayerSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressHeight", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"]); save()
+        applyConfigKeysFromProfile(profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"]); save()
     }
 
     function resetWeatherSettings() {
@@ -1020,10 +1019,11 @@ QtObject {
             playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
             playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize, playerPlayingIcon: Config.playerPlayingIcon, playerPausedIcon: Config.playerPausedIcon, playerNextIcon: Config.playerNextIcon,
             playerBlurEnabled: Config.playerBlurEnabled, playerBlurRadius: Config.playerBlurRadius,
-            playerMetadataXPadding: Config.playerMetadataXPadding, playerMetadataY: Config.playerMetadataY,
-            playerProgressY: Config.playerProgressY, playerProgressHeight: Config.playerProgressHeight, playerProgressTrackHeight: Config.playerProgressTrackHeight,
+            playerMetadataXPadding: Config.playerMetadataXPadding,
+            playerMetadataY: Config.playerMetadataY, playerProgressY: Config.playerProgressY,
+            playerProgressTrackHeight: Config.playerProgressTrackHeight,
             playerControlTopMargin: Config.playerControlTopMargin, playerControlGap: Config.playerControlGap,
-            playerTimeFontSize: Config.playerTimeFontSize, playerTimeRightPadding: Config.playerTimeRightPadding, playerCoverOpacity: Config.playerCoverOpacity,
+            playerTimeFontSize: Config.playerTimeFontSize, playerTimeFont: Config.playerTimeFont, playerTimeRightPadding: Config.playerTimeRightPadding, playerCoverOpacity: Config.playerCoverOpacity,
             playerSilenceWidth: Config.playerSilenceWidth, playerProgressTrackOffsetY: Config.playerProgressTrackOffsetY,
             weatherIconSize: Config.weatherIconSize, weatherArrowSize: Config.weatherArrowSize, weatherArrowYOffset: Config.weatherArrowYOffset, weatherWindArrowGap: Config.weatherWindArrowGap,
             weatherHourlyCount: Config.weatherHourlyCount, weatherDailyCount: Config.weatherDailyCount,

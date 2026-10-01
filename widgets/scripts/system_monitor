@@ -125,25 +125,6 @@ get_volumes() {
     fi
 }
 
-get_current_volume() {
-    if command -v wpctl >/dev/null 2>&1; then
-        wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | awk '{v=$2*100; muted=(/MUTED/)?1:0; printf "%d %d\n", v+0.5, muted; exit}'
-        return
-    fi
-    if command -v pactl >/dev/null 2>&1; then
-        local v mute
-        v=$(pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null | awk 'NR==1 { for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+%$/) { gsub(/%/, "", $i); print $i; exit } }')
-        mute=$(pactl get-sink-mute @DEFAULT_SINK@ 2>/dev/null | awk '{print ($NF=="yes") ? 1 : 0; exit}')
-        printf "%s %s\n" "${v:-0}" "${mute:-0}"
-        return
-    fi
-    if command -v amixer >/dev/null 2>&1; then
-        amixer -D pulse sget Master 2>/dev/null | awk -F"[][]" '/Left:/ { if (/off\]/) { print $2+0, 1; exit } if (/on\]/) { gsub(/%/, "", $2); print $2+0, 0; exit } }'
-        return
-    fi
-    printf '0 0\n'
-}
-
 get_network() {
     local now
     now=$(date +%s)

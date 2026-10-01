@@ -84,20 +84,6 @@ get_album_img() {
     fi
 }
 
-is_youtube_video() {
-    local meta url title
-    meta=$(playerctl -p plasma-browser-integration metadata -f '{{xesam:url}}␞{{xesam:title}}' 2>/dev/null)
-    [[ -z "$meta" ]] && meta=$(playerctl -p spotify metadata -f '{{xesam:url}}␞{{xesam:title}}' 2>/dev/null)
-    [[ -z "$meta" ]] && return 1
-    url="${meta%%␞*}"
-
-    case "$url" in
-        *"youtube.com/"*|*"youtu.be/"*|*"googlevideo.com/"*|*"soundcloud.com/"*|*"spotify.com/"*) return 0 ;;
-    esac
-
-    return 1
-}
-
 get_image() {
     local img_url="$1" image_path
 
@@ -238,11 +224,13 @@ get_player_metadata() {
     local image="$DEFAULT_IMG"
     local service="$DEFAULT_TEXT"
     local s="␞"
-    local params='{{status}}'"${s}"'{{title}}'"${s}"'{{artist}}'"${s}"'{{position}}'"${s}"'{{mpris:length}}'"${s}"'-{{duration(mpris:length - position)}}'"${s}"'{{mpris:artUrl}}'
+    local params='{{status}}'"${s}"'{{title}}'"${s}"'{{artist}}'"${s}"'{{position}}'"${s}"'{{mpris:length}}'"${s}"'-{{duration(mpris:length - position)}}'"${s}"'{{mpris:artUrl}}'"${s}"'{{xesam:url}}'
     local players=("org.telegram.desktop" "spotify" "plasma-browser-integration")
-    local metadata status title artist position len timeleft img
+    local metadata status title artist position len timeleft img url active_players
 
+    active_players=$(playerctl -l 2>/dev/null || true)
     for player in "${players[@]}"; do
+        grep -Fxq "$player" <<< "$active_players" || continue
         metadata=$(playerctl -p "$player" metadata -f "$params" 2>/dev/null)
         [[ -z "$metadata" ]] && continue
 
@@ -254,7 +242,7 @@ get_player_metadata() {
     done
     [[ -z "$metadata" ]] && return
 
-    IFS="$s" read -r title artist position len timeleft img <<< "$metadata"
+    IFS="$s" read -r title artist position len timeleft img url <<< "$metadata"
 
     case "$title" in
         *"Кинопоиск"*) service="kinopoisk"; title=${title/" — смотреть онлайн в хорошем качестве — Кинопоиск"/} ;;
@@ -268,11 +256,14 @@ get_player_metadata() {
             return ;;
     esac
 
-    if is_youtube_video; then
-        service="${artist:-youtube}"
-    else
-        image=$(get_image "$img")
-    fi
+    case "$url" in
+        *"youtube.com/"*|*"youtu.be/"*|*"googlevideo.com/"*|*"soundcloud.com/"*|*"spotify.com/"*)
+            service="${artist:-youtube}"
+            ;;
+        *)
+            image=$(get_image "$img")
+            ;;
+    esac
 
     # Экранирование спецсимволов
     title=${title//\\/|}

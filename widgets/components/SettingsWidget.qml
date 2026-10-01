@@ -1019,15 +1019,6 @@ Item {
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(14)
                 }
-
-                Text {
-                    visible: root.currentOtherTab === 2
-                    text: "Тексты и шрифты плеера"
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                }
-
                 Row {
                     visible: root.currentOtherTab === 2
                     width: parent.width
@@ -1046,7 +1037,7 @@ Item {
 
                     HoverTextField {
                         id: playerSilenceField
-                        width: 160
+                        width: 140
                         height: 30
                         text: Config.playerSilenceText
                         color: Config.text
@@ -1073,7 +1064,6 @@ Item {
                         }
                     }
                 }
-
                 Row {
                     visible: root.currentOtherTab === 2
                     width: parent.width
@@ -1091,7 +1081,7 @@ Item {
 
                     HoverTextField {
                         id: playerFontField
-                        width: 160
+                        width: 140
                         height: 30
                         text: Config.playerFont
                         color: Config.text
@@ -1118,7 +1108,92 @@ Item {
                         }
                     }
                 }
-
+                Row { width: parent.width; height: 30; spacing: 8
+                    visible: root.currentOtherTab === 2
+                    Text { width: 210; text: "Размер текста Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: silenceSizeField; width: 72; height: 30; text: String(Config.playerSilenceFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceFontSize; n=Math.max(8,Math.min(100,Math.round(n))); Config.playerSilenceFontSize=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ silenceSizeField.applyValue(Config.playerSilenceFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                    }
+                }
+                Row { width: parent.width; height: 30; spacing: 8
+                    visible: root.currentOtherTab === 2
+                    Text { width: 210; text: "Размер длинного Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: silenceLongSizeField; width: 72; height: 30; text: String(Config.playerSilenceLongFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceLongFontSize; n=Math.max(8,Math.min(100,Math.round(n))); Config.playerSilenceLongFontSize=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ silenceLongSizeField.applyValue(Config.playerSilenceLongFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                    }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Ширина области Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerSilenceWidthField; width: 72; height: 30; text: String(Config.playerSilenceWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerSilenceWidthField.activeFocus || playerSilenceWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceWidth; n=Math.max(100,Math.min(600,Math.round(n))); Config.playerSilenceWidth=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ playerSilenceWidthField.applyValue(Config.playerSilenceWidth+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onPlayerSilenceWidthChanged(){ playerSilenceWidthField.text=String(Config.playerSilenceWidth) } }
+                    }
+                }
+                Text {
+                    visible: root.currentOtherTab === 2
+                    text: "Оставшееся время"
+                    color: Config.settingsSubheading
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Размер оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: playerTimeFontSizeField
+                        width: 72
+                        height: 30
+                        text: String(Config.playerTimeFontSize)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (playerTimeFontSizeField.activeFocus || playerTimeFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeFontSize; n=Math.max(8,Math.min(48,Math.round(n))); Config.playerTimeFontSize=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeFontSizeField.applyValue(Config.playerTimeFontSize + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onPlayerTimeFontSizeChanged() { playerTimeFontSizeField.text=String(Config.playerTimeFontSize) } }
+                    }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Шрифт оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerTimeFontField; width: 140; height: 30; text: Config.playerTimeFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerTimeFontField.activeFocus || playerTimeFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: { var v=text.trim(); if (v.length > 0) Config.playerTimeFont=v; text=Config.playerTimeFont; settings.save() }
+                        Connections { target: Config; function onPlayerTimeFontChanged() { playerTimeFontField.text=Config.playerTimeFont } }
+                    }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: playerTimeRightPaddingField
+                        width: 72
+                        height: 30
+                        text: String(Config.playerTimeRightPadding)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (playerTimeRightPaddingField.activeFocus || playerTimeRightPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeRightPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerTimeRightPadding=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeRightPaddingField.applyValue(Config.playerTimeRightPadding + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onPlayerTimeRightPaddingChanged() { playerTimeRightPaddingField.text=String(Config.playerTimeRightPadding) } }
+                    }
+                }
+                Text {
+                    visible: root.currentOtherTab === 2
+                    text: "Метаданные"
+                    color: Config.settingsSubheading
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                }
                 Row {
                     visible: root.currentOtherTab === 2
                     width: parent.width
@@ -1136,7 +1211,7 @@ Item {
 
                     HoverTextField {
                         id: playerMetaFontField
-                        width: 160
+                        width: 140
                         height: 30
                         text: Config.playerMetaFont
                         color: Config.text
@@ -1163,52 +1238,10 @@ Item {
                         }
                     }
                 }
-
-
-                Text { visible: root.currentOtherTab === 2; text: "Иконки плеера"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Воспроизведение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerPlayingIconField; width: 100; height: 30; text: Config.playerPlayingIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPlayingIconField.activeFocus || playerPlayingIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPlayingIcon=text; settings.save() } Connections { target: Config; function onPlayerPlayingIconChanged(){playerPlayingIconField.text=Config.playerPlayingIcon} } }
-                }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Пауза"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerPausedIconField; width: 100; height: 30; text: Config.playerPausedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPausedIconField.activeFocus || playerPausedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPausedIcon=text; settings.save() } Connections { target: Config; function onPlayerPausedIconChanged(){playerPausedIconField.text=Config.playerPausedIcon} } }
-                }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Следующий трек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerNextIconField; width: 100; height: 30; text: Config.playerNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerNextIconField.activeFocus || playerNextIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerNextIcon=text; settings.save() } Connections { target: Config; function onPlayerNextIconChanged(){playerNextIconField.text=Config.playerNextIcon} } }
-                }
-
-                Text {
-                    visible: root.currentOtherTab === 2
-                    text: "Размеры и поведение плеера"
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                }
-
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
-                    Text { width: 210; text: "Размер текста Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: silenceSizeField; width: 100; height: 30; text: String(Config.playerSilenceFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceFontSize; n=Math.max(8,Math.min(100,Math.round(n))); Config.playerSilenceFontSize=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ silenceSizeField.applyValue(Config.playerSilenceFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
-                    Text { width: 210; text: "Размер длинного Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: silenceLongSizeField; width: 100; height: 30; text: String(Config.playerSilenceLongFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceLongFontSize; n=Math.max(8,Math.min(100,Math.round(n))); Config.playerSilenceLongFontSize=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ silenceLongSizeField.applyValue(Config.playerSilenceLongFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     Text { width: 210; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    HoverTextField { id: metaSizeField; width: 100; height: 30; text: String(Config.playerMetaFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                    HoverTextField { id: metaSizeField; width: 72; height: 30; text: String(Config.playerMetaFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerMetaFontSize; n=Math.max(8,Math.min(48,Math.round(n))); Config.playerMetaFontSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ metaSizeField.applyValue(Config.playerMetaFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
@@ -1217,7 +1250,7 @@ Item {
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     Text { width: 210; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: metaSecondarySizeField; width: 100; height: 30; text: String(Config.playerMetaSecondaryFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                    HoverTextField { id: metaSecondarySizeField; width: 72; height: 30; text: String(Config.playerMetaSecondaryFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerMetaSecondaryFontSize; n=Math.max(8,Math.min(48,Math.round(n))); Config.playerMetaSecondaryFontSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ metaSecondarySizeField.applyValue(Config.playerMetaSecondaryFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
@@ -1226,68 +1259,29 @@ Item {
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: metaSpacingField; width: 100; height: 30; text: String(Config.playerMetaLineSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                    HoverTextField { id: metaSpacingField; width: 72; height: 30; text: String(Config.playerMetaLineSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerMetaLineSpacing; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetaLineSpacing=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ metaSpacingField.applyValue(Config.playerMetaLineSpacing+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
                     }
                 }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerMetaXPadField; width: 72; height: 30; text: String(Config.playerMetadataXPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaXPadField.activeFocus || playerMetaXPadField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataXPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetadataXPadding=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerMetaXPadField.applyValue(Config.playerMetadataXPadding+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerMetadataXPaddingChanged(){playerMetaXPadField.text=String(Config.playerMetadataXPadding)}}
+                    }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerMetaYField; width: 72; height: 30; text: String(Config.playerMetadataY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaYField.activeFocus || playerMetaYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataY; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetadataY=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerMetaYField.applyValue(Config.playerMetadataY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerMetadataYChanged(){playerMetaYField.text=String(Config.playerMetadataY)}}
+                    }
+                }
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     StyledCheckBox { id: boldArtistBox; width: 210; height: 30; text: "Жирный исполнитель"; checked: Config.playerBoldArtist; onToggled: { Config.playerBoldArtist=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
-                    StyledCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
-                }
-                Text {
-                    visible: root.currentOtherTab === 2
-                    text: "Оставшееся время"
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                }
-
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Размер оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField {
-                        id: playerTimeFontSizeField
-                        width: 100
-                        height: 30
-                        text: String(Config.playerTimeFontSize)
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        activeFocusOnTab: true
-                        inputMethodHints: Qt.ImhDigitsOnly
-                        background: Rectangle { color: Config.background; border.color: (playerTimeFontSizeField.activeFocus || playerTimeFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeFontSize; n=Math.max(8,Math.min(48,Math.round(n))); Config.playerTimeFontSize=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text)
-                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeFontSizeField.applyValue(Config.playerTimeFontSize + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                        Connections { target: Config; function onPlayerTimeFontSizeChanged() { playerTimeFontSizeField.text=String(Config.playerTimeFontSize) } }
-                    }
-                }
-
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField {
-                        id: playerTimeRightPaddingField
-                        width: 100
-                        height: 30
-                        text: String(Config.playerTimeRightPadding)
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        activeFocusOnTab: true
-                        inputMethodHints: Qt.ImhDigitsOnly
-                        background: Rectangle { color: Config.background; border.color: (playerTimeRightPaddingField.activeFocus || playerTimeRightPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerTimeRightPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerTimeRightPadding=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text)
-                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerTimeRightPaddingField.applyValue(Config.playerTimeRightPadding + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                        Connections { target: Config; function onPlayerTimeRightPaddingChanged() { playerTimeRightPaddingField.text=String(Config.playerTimeRightPadding) } }
-                    }
                 }
                 Row {
                     visible: root.currentOtherTab === 2
@@ -1311,7 +1305,6 @@ Item {
                         }
                     }
                 }
-
                 Row {
                     visible: root.currentOtherTab === 2 && Config.playerTextOutlineEnabled
                     width: parent.width
@@ -1327,7 +1320,7 @@ Item {
                     }
                     HoverTextField {
                         id: playerTextOutlineColorField
-                        width: 100
+                        width: 90
                         height: 30
                         text: Config.playerTextOutlineColor
                         color: Config.text
@@ -1344,69 +1337,74 @@ Item {
                         Connections { target: Config; function onPlayerTextOutlineColorChanged() { playerTextOutlineColorField.text = Config.playerTextOutlineColor } }
                     }
                 }
-
+                Text { visible: root.currentOtherTab === 2; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Воспроизведение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerPlayingIconField; width: 58; height: 30; text: Config.playerPlayingIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPlayingIconField.activeFocus || playerPlayingIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPlayingIcon=text; settings.save() } Connections { target: Config; function onPlayerPlayingIconChanged(){playerPlayingIconField.text=Config.playerPlayingIcon} } }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Пауза"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerPausedIconField; width: 58; height: 30; text: Config.playerPausedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerPausedIconField.activeFocus || playerPausedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPausedIcon=text; settings.save() } Connections { target: Config; function onPlayerPausedIconChanged(){playerPausedIconField.text=Config.playerPausedIcon} } }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Следующий трек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerNextIconField; width: 58; height: 30; text: Config.playerNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerNextIconField.activeFocus || playerNextIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerNextIcon=text; settings.save() } Connections { target: Config; function onPlayerNextIconChanged(){playerNextIconField.text=Config.playerNextIcon} } }
+                }
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 2
                     Text { width: 210; text: "Размер иконок управления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: controlIconSizeField; width: 100; height: 30; text: String(Config.playerControlIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
+                    HoverTextField { id: controlIconSizeField; width: 72; height: 30; text: String(Config.playerControlIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.playerControlIconSize; n=Math.max(8,Math.min(64,Math.round(n))); Config.playerControlIconSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ controlIconSizeField.applyValue(Config.playerControlIconSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
                     }
                 }
-
                 Text {
                     visible: root.currentOtherTab === 2
-                    text: "Геометрия и отображение"
-                    color: Config.textMuted
+                    text: "Полоска прогресса"
+                    color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
-
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerMetaXPadField; width: 100; height: 30; text: String(Config.playerMetadataXPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaXPadField.activeFocus || playerMetaXPadField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataXPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetadataXPadding=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerMetaXPadField.applyValue(Config.playerMetadataXPadding+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerMetadataXPaddingChanged(){playerMetaXPadField.text=String(Config.playerMetadataXPadding)}}
-                    }
-                }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerMetaYField; width: 100; height: 30; text: String(Config.playerMetadataY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaYField.activeFocus || playerMetaYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataY; n=Math.max(0,Math.min(1000,Math.round(n))); Config.playerMetadataY=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerMetaYField.applyValue(Config.playerMetadataY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerMetadataYChanged(){playerMetaYField.text=String(Config.playerMetadataY)}}
-                    }
+                Row { width: parent.width; height: 30; spacing: 8
+                    visible: root.currentOtherTab === 2
+                    StyledCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
                 Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Положение прогресса по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerProgressYField; width: 100; height: 30; text: String(Config.playerProgressY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressYField.activeFocus || playerProgressYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressY; n=Math.max(0,Math.min(1000,Math.round(n))); Config.playerProgressY=n; text=String(n); settings.save() }
+                    HoverTextField { id: playerProgressYField; width: 72; height: 30; text: String(Config.playerProgressY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressYField.activeFocus || playerProgressYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressY; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerProgressY=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerProgressYField.applyValue(Config.playerProgressY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerProgressYChanged(){playerProgressYField.text=String(Config.playerProgressY)}}
                     }
                 }
                 Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота полосы прогресса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerProgressHeightField; width: 100; height: 30; text: String(Config.playerProgressHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressHeightField.activeFocus || playerProgressHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressHeight; n=Math.max(1,Math.min(30,Math.round(n))); Config.playerProgressHeight=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerProgressHeightField.applyValue(Config.playerProgressHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerProgressHeightChanged(){playerProgressHeightField.text=String(Config.playerProgressHeight)}}
+                    HoverTextField { id: playerProgressTrackHeightField; width: 72; height: 30; text: String(Config.playerProgressTrackHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressTrackHeightField.activeFocus || playerProgressTrackHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressTrackHeight; n=Math.max(1,Math.min(20,Math.round(n))); Config.playerProgressTrackHeight=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerProgressTrackHeightField.applyValue(Config.playerProgressTrackHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerProgressTrackHeightChanged(){playerProgressTrackHeightField.text=String(Config.playerProgressTrackHeight)}}
+                    }
+                }
+                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Смещение дорожки прогресса по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: playerProgressTrackOffsetYField; width: 72; height: 30; text: String(Config.playerProgressTrackOffsetY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerProgressTrackOffsetYField.activeFocus || playerProgressTrackOffsetYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressTrackOffsetY; n=Math.max(-10,Math.min(20,Math.round(n))); Config.playerProgressTrackOffsetY=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ playerProgressTrackOffsetYField.applyValue(Config.playerProgressTrackOffsetY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onPlayerProgressTrackOffsetYChanged(){ playerProgressTrackOffsetYField.text=String(Config.playerProgressTrackOffsetY) } }
                     }
                 }
                 Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerCoverOpacityField; width: 100; height: 30; text: Number(Config.playerCoverOpacity).toFixed(2); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerCoverOpacityField.activeFocus || playerCoverOpacityField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    HoverTextField { id: playerCoverOpacityField; width: 72; height: 30; text: Number(Config.playerCoverOpacity).toFixed(2); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerCoverOpacityField.activeFocus || playerCoverOpacityField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerCoverOpacity; n=Math.max(0,Math.min(1,Math.round(n*20)/20)); Config.playerCoverOpacity=n; text=Number(n).toFixed(2); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerCoverOpacityField.applyValue(Config.playerCoverOpacity+root.wheelDelta(wheel, 0.05));wheel.accepted=true}} Connections{target:Config;function onPlayerCoverOpacityChanged(){playerCoverOpacityField.text=Number(Config.playerCoverOpacity).toFixed(2)}}
                     }
                 }
-
                 Text {
                     visible: root.currentOtherTab === 2
-                    text: "Размытие фона плеера"
-                    color: Config.textMuted
+                    text: "Обложка и фон"
+                    color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
-
                 Row {
                     visible: root.currentOtherTab === 2
                     width: parent.width
@@ -1421,19 +1419,16 @@ Item {
                         onToggled: { Config.playerBlurEnabled = checked; settings.save() }
                         contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width + 5; verticalAlignment: Text.AlignVCenter }
                     }
-                    Text { text: Config.playerBlurEnabled ? "включён" : "выключен"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
                 }
-
                 Text {
                     visible: root.currentOtherTab === 2
-                    text: "Размывается содержимое позади плеера; сила блюра задаётся композитором Niri."
+                    text: "Размывает содержимое позади плеера; сила блюра задаётся композитором Niri."
                     color: Config.textMuted
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(9)
                     wrapMode: Text.WordWrap
                     width: parent.width
                 }
-
                 Row {
                     visible: root.currentOtherTab === 2
                     width: parent.width
@@ -1442,7 +1437,7 @@ Item {
                     Text { width: 210; text: "Радиус области блюра (0–40)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
                         id: playerBlurRadiusField
-                        width: 100
+                        width: 72
                         height: 30
                         text: String(Config.playerBlurRadius)
                         color: Config.text
@@ -1456,21 +1451,6 @@ Item {
                         onEditingFinished: applyValue(text)
                         MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { playerBlurRadiusField.applyValue(Config.playerBlurRadius + root.wheelDelta(wheel, 1)); wheel.accepted = true } }
                         Connections { target: Config; function onPlayerBlurRadiusChanged() { playerBlurRadiusField.text = String(Config.playerBlurRadius) } }
-                    }
-                }
-
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Ширина области Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerSilenceWidthField; width: 100; height: 30; text: String(Config.playerSilenceWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerSilenceWidthField.activeFocus || playerSilenceWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceWidth; n=Math.max(100,Math.min(600,Math.round(n))); Config.playerSilenceWidth=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ playerSilenceWidthField.applyValue(Config.playerSilenceWidth+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onPlayerSilenceWidthChanged(){ playerSilenceWidthField.text=String(Config.playerSilenceWidth) } }
-                    }
-                }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Смещение дорожки прогресса по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: playerProgressTrackOffsetYField; width: 100; height: 30; text: String(Config.playerProgressTrackOffsetY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerProgressTrackOffsetYField.activeFocus || playerProgressTrackOffsetYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressTrackOffsetY; n=Math.max(-10,Math.min(20,Math.round(n))); Config.playerProgressTrackOffsetY=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ playerProgressTrackOffsetYField.applyValue(Config.playerProgressTrackOffsetY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onPlayerProgressTrackOffsetYChanged(){ playerProgressTrackOffsetYField.text=String(Config.playerProgressTrackOffsetY) } }
                     }
                 }
 
@@ -1879,7 +1859,7 @@ Item {
                 }
 
                 // -------------------- Volume --------------------
-                Text { visible: root.currentOtherTab === 7; text: "Иконки громкости"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Text { visible: root.currentOtherTab === 7; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                 Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
@@ -1899,7 +1879,7 @@ Item {
                 Text {
                     visible: root.currentOtherTab === 7
                     text: "Основная полоса и дополнительные аудиопотоки"
-                    color: Config.textMuted
+                    color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
@@ -2353,7 +2333,7 @@ Item {
                 Text {
                     visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
                     text: "Дополнительная геометрия текущей погоды"
-                    color: Config.textMuted
+                    color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
@@ -2380,7 +2360,7 @@ Item {
                     }
                 }
 
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; text: "Дополнительная геометрия и типографика"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; text: "Дополнительная геометрия и типографика"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                 Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура: ширина колонки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempColumnWidthField; width: 100; height: 30; text: String(Config.weatherTempColumnWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherTempColumnWidthField.activeFocus || weatherTempColumnWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2495,7 +2475,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherDescriptionHeightExtraField.applyValue(Config.weatherDescriptionHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherDescriptionHeightChanged(){weatherDescriptionHeightExtraField.text=String(Config.weatherDescriptionHeight)}}
                     }
                 }
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; text: "Почасовой блок"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; text: "Почасовой блок"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                 Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Количество часов / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: whCount; width: 58; height: 30; text: String(Config.weatherHourlyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whCount.activeFocus || whCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyCount;n=Math.max(1,Math.min(12,Math.round(n)));Config.weatherHourlyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
@@ -2519,7 +2499,7 @@ Item {
                     HoverTextField { id: whTF; width: 58; height: 30; text: String(Config.weatherHourlyTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTF.activeFocus || whTF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
                 }
 
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; text: "Дневной блок — максимум 4 колонки"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; text: "Дневной блок — максимум 4 колонки"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                 Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Количество дней / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: wdCount; width: 58; height: 30; text: String(Config.weatherDailyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdCount.activeFocus || wdCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyCount;n=Math.max(1,Math.min(4,Math.round(n)));Config.weatherDailyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
@@ -3462,7 +3442,7 @@ Item {
                             "textDim", "textDisabled", "calendarBackground"
                         ]},
                         { title: "Настройки", colors: [
-                            "settingsBackground", "settingsBorder"
+                            "settingsBackground", "settingsBorder", "settingsSubheading"
                         ]},
                         { title: "Сети", colors: [
                             "activeNetworkBackground", "networkUpload", "networkDownload"
@@ -3529,7 +3509,7 @@ Item {
                                         currentWeather: "Цвет текущей погоды", background: "Полупрозрачный фон",
                                         text: "Основной текст", textMuted: "Приглушённый текст", textDim: "Вторичный текст",
                                         textDisabled: "Неактивный текст", calendarBackground: "Фон календаря",
-                                        settingsBackground: "Фон окна настроек", settingsBorder: "Рамка окна настроек",
+                                        settingsBackground: "Фон окна настроек", settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
                                         volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
                                         playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
                                         playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",

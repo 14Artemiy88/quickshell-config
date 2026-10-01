@@ -70,38 +70,52 @@ Widgets.Frame {
         styleColor: Config.playerTextOutlineColor
     }
 
-    // DeadBeeF data is ordered artist / album / title. The artist is the
-    // prominent first line; other players keep their existing first line.
-    Text {
-        x: Config.playerMetadataXPadding; y: Config.playerMetadataY; width: parent.width - Config.playerMetadataXPadding * 2
-        text: root.player.first_line || ""
-        color: Config.text
-        font.family: Config.playerMetaFont
-        font.pixelSize: Config.playerMetaFontSize
-        font.bold: Config.playerBoldArtist && root.player.player === "deadbeef"
-        elide: Text.ElideRight
-        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-        styleColor: Config.playerTextOutlineColor
-    }
-    Text {
-        x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing; width: parent.width - Config.playerMetadataXPadding * 2
-        text: root.player.second_line || ""
-        color: Config.text
-        font.family: Config.playerMetaFont
-        font.pixelSize: Config.playerMetaSecondaryFontSize
-        elide: Text.ElideRight
-        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-        styleColor: Config.playerTextOutlineColor
-    }
-    Text {
-        x: Config.playerMetadataXPadding; y: Config.playerMetadataY + Config.playerMetaLineSpacing * 2; width: parent.width - Config.playerMetadataXPadding * 2
-        text: root.player.third_line || ""
-        color: Config.text
-        font.family: Config.playerMetaFont
-        font.pixelSize: Config.playerMetaSecondaryFontSize
-        elide: Text.ElideRight
-        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-        styleColor: Config.playerTextOutlineColor
+    // Metadata is anchored to the bottom: one visible line occupies the bottom row,
+    // two lines occupy the two bottom rows, and three lines occupy all rows.
+    Column {
+        x: Config.playerMetadataXPadding
+        width: parent.width - Config.playerMetadataXPadding * 2
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Config.playerMetadataY
+        spacing: Math.max(0, Config.playerMetaLineSpacing - Config.playerMetaSecondaryFontSize)
+
+        Text {
+            visible: !!root.player.first_line
+            width: parent.width
+            height: Config.playerMetaFontSize
+            text: root.player.first_line || ""
+            color: Config.text
+            font.family: Config.playerMetaFont
+            font.pixelSize: Config.playerMetaFontSize
+            font.bold: Config.playerBoldArtist || !!root.player.first_line
+            elide: Text.ElideRight
+            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+            styleColor: Config.playerTextOutlineColor
+        }
+        Text {
+            visible: !!root.player.second_line
+            width: parent.width
+            height: Config.playerMetaSecondaryFontSize
+            text: root.player.second_line || ""
+            color: Config.text
+            font.family: Config.playerMetaFont
+            font.pixelSize: Config.playerMetaSecondaryFontSize
+            elide: Text.ElideRight
+            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+            styleColor: Config.playerTextOutlineColor
+        }
+        Text {
+            visible: !!root.player.third_line
+            width: parent.width
+            height: Config.playerMetaSecondaryFontSize
+            text: root.player.third_line || ""
+            color: Config.text
+            font.family: Config.playerMetaFont
+            font.pixelSize: Config.playerMetaSecondaryFontSize
+            elide: Text.ElideRight
+            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+            styleColor: Config.playerTextOutlineColor
+        }
     }
     Text {
         id: pauseButton
@@ -112,7 +126,17 @@ Widgets.Frame {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
-    Text { x: 0; y: Config.playerControlTopMargin; width: parent.width - Config.playerTimeRightPadding; horizontalAlignment: Text.AlignRight; text: root.player.timeleft || ""; color: Config.text; font.pixelSize: Config.playerTimeFontSize; style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal; styleColor: Config.playerTextOutlineColor }
+    Text {
+        x: 0; y: Config.playerControlTopMargin
+        width: parent.width - Config.playerTimeRightPadding
+        horizontalAlignment: Text.AlignRight
+        text: root.player.timeleft || ""
+        color: Config.text
+        font.family: Config.playerTimeFont
+        font.pixelSize: Config.playerTimeFontSize
+        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+        styleColor: Config.playerTextOutlineColor
+    }
 
     MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", root.player.player || ""]) }
     Text {
@@ -128,7 +152,11 @@ Widgets.Frame {
     Slider {
         visible: Config.playerShowProgress
         id: progress
-        x: 0; y: Config.playerProgressY; width: parent.width; height: Config.playerProgressHeight
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Config.playerProgressY
+        x: 0
+        width: parent.width
+        height: Math.max(1, Config.playerProgressTrackHeight)
         from: 0; to: 100
         value: Number(root.player.position || 0)
         background: Rectangle {

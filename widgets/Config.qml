@@ -24,6 +24,7 @@ QtObject {
     property color volumeFill: "#006666"
     property color settingsBackground: "#e6000000"
     property color settingsBorder: "#00cccc"
+    property color settingsSubheading: "#00cccc"
 
     // Adaptive module minimum heights
     property int timerMinHeight: 72
@@ -126,13 +127,13 @@ QtObject {
     property bool playerBlurEnabled: false
     property int playerBlurRadius: 10
     property int playerMetadataXPadding: 0
-    property int playerMetadataY: 120
-    property int playerProgressY: 180
-    property int playerProgressHeight: 5
+    property int playerMetadataY: 0
+    property int playerProgressY: 0
     property int playerProgressTrackHeight: 3
     property int playerControlTopMargin: 5
     property int playerControlGap: 8
     property int playerTimeFontSize: 11
+    property string playerTimeFont: "Ubuntu Mono Nerd Font"
     property int playerTimeRightPadding: 0
     property real playerCoverOpacity: 0.9
     property int playerSilenceWidth: 275
