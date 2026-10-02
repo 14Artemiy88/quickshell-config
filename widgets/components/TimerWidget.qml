@@ -14,7 +14,7 @@ Widgets.Frame {
     property int controlsMode: 0 // 0 = icons, 1 = timer presets, 2 = alarm presets
     property string selectedFile: ""
     property var dingState: ({})
-    signal timerFinished(string file, string comment, string color, string timerText)
+    signal timerFinished(string file, string comment, string color)
     readonly property int selectedIndex: {
         if (!selectedFile) return -1
         for (let i = 0; i < timerModel.count; ++i) {
@@ -117,7 +117,7 @@ Widgets.Frame {
             const wasKnown = Object.prototype.hasOwnProperty.call(root.dingState, item.file)
             const wasDing = wasKnown ? !!root.dingState[item.file] : false
             if (isDing && wasKnown && !wasDing) {
-                root.timerFinished(item.file, String(item.comment || ""), String(item.color || Config.text), String(item.timer || ""))
+                root.timerFinished(item.file, String(item.comment || ""), String(item.color || Config.text))
             }
             root.dingState[item.file] = isDing
         }
@@ -433,8 +433,16 @@ Widgets.Frame {
 
                     MouseArea {
                         anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton
-                        onClicked: {
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        onClicked: mouse => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                const target = new Date(root.alarmTarget.getTime())
+                                target.setMinutes(0, 0, 0)
+                                root.alarmTarget = target
+                                root.alarmTargetAdjusted = true
+                                return
+                            }
+
                             const target = new Date(root.alarmTarget.getTime())
                             target.setSeconds(0, 0)
                             const now = new Date()

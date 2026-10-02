@@ -13,11 +13,13 @@ PanelWindow {
     property bool keyboardEnabled: false
     property bool backgroundBlurEnabled: false
     property int backgroundBlurRadius: 7
+    property string screenName: Config.monitorName
     screen: {
+        const targetName = String(root.screenName || Config.monitorName)
         const match = Quickshell.screens.find(s =>
-            s.name === Config.monitorName ||
-            s.model === Config.monitorName ||
-            s.toString() === Config.monitorName
+            s.name === targetName ||
+            s.model === targetName ||
+            s.toString() === targetName
         );
         return match || Quickshell.screens[0];
     }

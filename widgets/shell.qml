@@ -17,6 +17,7 @@ ShellRoot {
     property bool calendarVisible: false
     property bool settingsVisible: false
     property bool layoutEditMode: false
+    property bool settingsMoveMode: false
     property bool timerOptionsVisible: false
     property bool timerCommentVisible: false
     property bool timerFinishedVisible: false
@@ -398,6 +399,7 @@ ShellRoot {
         keyboardEnabled: shell.settingsVisible
         offsetX: Settings.settingsGeometry[0]
         offsetY: Settings.settingsGeometry[1]
+        screenName: Settings.settingsMonitorName
         contentWidth: Settings.settingsGeometry[2]
         contentHeight: Settings.settingsGeometry[3]
         bottomLayer: false
@@ -405,9 +407,16 @@ ShellRoot {
         SettingsWidget {
             id: settingsWidget
             anchors.fill: parent
+            onCloseRequested: {
+                shell.settingsVisible = false
+            }
             onLayoutEditRequested: {
                 shell.settingsVisible = false
                 shell.layoutEditMode = true
+            }
+            onSettingsMoveRequested: {
+                shell.settingsVisible = false
+                shell.settingsMoveMode = true
             }
         }
     }
@@ -417,6 +426,15 @@ ShellRoot {
         active: shell.layoutEditMode
         onExitRequested: {
             shell.layoutEditMode = false
+            shell.settingsVisible = true
+        }
+    }
+
+    SettingsMoveWindow {
+        id: settingsMoveWindow
+        active: shell.settingsMoveMode
+        onExitRequested: {
+            shell.settingsMoveMode = false
             shell.settingsVisible = true
         }
     }

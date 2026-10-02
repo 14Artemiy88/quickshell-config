@@ -68,12 +68,13 @@ QtObject {
     property int timerButtonSlideDuration: 700
     property int timerButtonIconFadeDuration: 550
     property string timerIcon: "󰁫"
+    property string timerIconOrder: "alarm-left"
     property int timerIconSize: 27
-    property int timerIconX: 8
+    property int timerIconX: 45
     property int timerIconY: 0
     property string timerAlarmIcon: "󰀠"
     property int timerAlarmIconSize: 23
-    property int timerAlarmIconX: 45
+    property int timerAlarmIconX: 8
     property int timerAlarmIconY: 0
     property bool timerFinishedImageEnabled: false
     property string timerFinishedImagePath: ""
@@ -214,7 +215,7 @@ QtObject {
     // Weather list geometry / typography
     // Weather hourly list
     property int weatherHourlyTopPadding: 8
-    property int weatherHourlyDayHeight: 16
+    property int weatherHourlyDayY: 16
     property int weatherHourlyDayFontSize: 12
     property int weatherHourlyIconWidth: 35
     property int weatherHourlyIconHeight: 45
@@ -225,15 +226,17 @@ QtObject {
 
     // Weather daily list (maximum 4 columns)
     property int weatherDailyTopPadding: 8
-    property int weatherDailyDayHeight: 16
+    property int weatherDailyDayY: 16
     property int weatherDailyDayFontSize: 12
     property int weatherDailyIconWidth: 35
     property int weatherDailyIconHeight: 45
     property int weatherDailyIconY: 20
+    property int weatherDailyHighTempX: 10
     property int weatherDailyHighTempY: 66
     property int weatherDailyHighTempHeight: 18
     property int weatherDailyHighTempFontSize: 11
-    property int weatherDailyLowTempY: 85
+    property int weatherDailyLowTempX: 5
+    property int weatherDailyLowTempY: 86
     property int weatherDailyLowTempHeight: 18
     property int weatherDailyLowTempFontSize: 11
 

@@ -165,9 +165,17 @@ Item {
 
     property int currentTab: 0
     property int currentOtherTab: 0
-    property int currentWeatherTab: 0
+    property int currentOtherSubTab: 0
     signal layoutEditRequested()
+    signal settingsMoveRequested()
+    signal closeRequested()
     clip: true
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: true
+        onActivated: root.closeRequested()
+    }
 
     function clearSettingsFocus() {
         root.forceActiveFocus()
@@ -176,7 +184,7 @@ Item {
     function openWeatherSettings() {
         root.currentTab = 2
         root.currentOtherTab = 3
-        root.currentWeatherTab = 0
+        root.currentOtherSubTab = 0
         root.clearSettingsFocus()
     }
 
@@ -197,7 +205,23 @@ Item {
 
     onCurrentOtherTabChanged: {
         if (otherFlick) otherFlick.contentY = 0
-        if (currentOtherTab !== 3) currentWeatherTab = 0
+        if (currentOtherTab !== 3) currentOtherSubTab = 0
+        root.currentOtherSubTab = 0
+    }
+
+    function otherSubTabNames() {
+        switch (root.currentOtherTab) {
+        case 0: return ["Интерфейс", "Рамки", "Адаптивность", "Анимации"]
+        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка"]
+        case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
+        case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
+        case 4: return ["Основные", "Полосы"]
+        case 5: return ["Общие", "График CPU"]
+        case 6: return ["Обновления", "Сеть"]
+        case 7: return ["Иконки", "Полосы", "Потоки"]
+        case 8: return ["Интерфейс", "Окно настроек", "Профили", "Действия"]
+        default: return []
+        }
     }
 
     ListModel {
@@ -288,7 +312,7 @@ Item {
             spacing: 6
 
             Repeater {
-                model: ["Модули", "Цвета", "Прочие настройки"]
+                model: ["Модули", "Цвета", "Настройки"]
 
                 delegate: Rectangle {
                     width: (tabs.width - 12) / 3
@@ -336,7 +360,7 @@ Item {
                     spacing: 5
 
                     Repeater {
-                        model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Настройки", "Анимации"]
+                        model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Настройки"]
 
                         delegate: Rectangle {
                             width: otherTabs.width
@@ -398,7 +422,7 @@ Item {
                     height: 30
                     Text {
                         width: parent.width - 38
-                        text: "ПРОЧИЕ НАСТРОЙКИ"
+                        text: "НАСТРОЙКИ"
                         color: Config.accent
                         font.family: Config.settingsFont
                         font.pixelSize: Config.settingsUiSize(15)
@@ -407,7 +431,7 @@ Item {
                     SettingsResetButton {
                         tooltip: "Сбросить текущую вкладку"
                         onClicked: {
-                            if (root.currentOtherTab === 0) settings.resetGeneralSettings()
+                            if (root.currentOtherTab === 0) { settings.resetGeneralSettings(); settings.resetAnimationSettings() }
                             else if (root.currentOtherTab === 1) settings.resetTimerSettings()
                             else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
                             else if (root.currentOtherTab === 3) settings.resetWeatherSettings()
@@ -416,13 +440,57 @@ Item {
                             else if (root.currentOtherTab === 6) settings.resetNetworkSettings()
                             else if (root.currentOtherTab === 7) settings.resetVolumeSettings()
                             else if (root.currentOtherTab === 8) settings.resetSettingsWindow()
-                            else if (root.currentOtherTab === 9) settings.resetAnimationSettings()
+                        }
+                    }
+                }
+
+                Row {
+                    visible: root.otherSubTabNames().length > 0
+                    width: parent.width
+                    height: 34
+                    spacing: 5
+
+                    Repeater {
+                        model: root.otherSubTabNames()
+
+                        delegate: Rectangle {
+                            width: (parent.width - (root.otherSubTabNames().length - 1) * 5) / root.otherSubTabNames().length
+                            height: 34
+                            radius: 4
+                            color: root.currentOtherSubTab === index ? Config.accent : Config.background
+                            property bool hovered: false
+                            HoverHandler { onHoveredChanged: parent.hovered = hovered }
+                            border.color: hovered ? Config.accent : Config.baseColor
+                            border.width: 1
+
+                            Text {
+                                anchors.fill: parent
+                                anchors.leftMargin: 6
+                                anchors.rightMargin: 6
+                                text: modelData
+                                color: root.currentOtherSubTab === index ? Config.black : Config.text
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(10)
+                                font.bold: root.currentOtherSubTab === index
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    root.clearSettingsFocus()
+                                    root.currentOtherSubTab = index
+                                    otherFlick.contentY = 0
+                                }
+                            }
                         }
                     }
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     text: "Токен Gismeteo"
                     color: Config.text
                     font.family: Config.settingsFont
@@ -430,7 +498,7 @@ Item {
                 }
 
                 HoverTextField {
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     id: token
                     width: parent.width
                     height: 34
@@ -457,7 +525,7 @@ Item {
 
 
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 0
                     text: "Общие"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -465,7 +533,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 0
                     text: "Основной шрифт интерфейса, LED-шрифт и общие параметры"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -475,7 +543,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -496,7 +564,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -528,7 +596,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -549,7 +617,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     text: "Анимации"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -557,7 +625,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -573,7 +641,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -592,7 +660,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -609,7 +677,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 60
                     spacing: 8
@@ -698,7 +766,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     text: "Единая скорость и длительности встроенных анимаций. 0 мс отключает конкретную анимацию."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -708,7 +776,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -728,7 +796,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -748,7 +816,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 9
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -767,10 +835,10 @@ Item {
                     }
                 }
 
-                Text { visible: root.currentOtherTab === 6; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
+                Text { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
 
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 6
+                    visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "System Monitor (мс) — общие данные"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: systemIntervalField; width: 100; height: 30; text: String(Config.systemMonitorInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -779,7 +847,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuIntervalField; width: 100; height: 30; text: String(Config.cpuUpdateInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -788,7 +856,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Плеер (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerIntervalField; width: 100; height: 30; text: String(Config.playerUpdateInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -797,7 +865,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Погода сейчас (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherNowIntervalField; width: 100; height: 30; text: String(Config.weatherNowIntervalMinutes); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -806,7 +874,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Погода по часам (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherHourlyIntervalField; width: 100; height: 30; text: String(Config.weatherHourlyIntervalMinutes); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -815,7 +883,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Погода по дням (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherDailyIntervalField; width: 100; height: 30; text: String(Config.weatherDailyIntervalMinutes); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -825,7 +893,7 @@ Item {
                 }
 
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Повтор после ошибки (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherRetryDelayField; width: 100; height: 30; text: String(Config.weatherRetryDelayMinutes); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -834,7 +902,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 0
                     Text { width: 210; text: "Пауза между ручными обновлениями (с)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherManualCooldownField; width: 100; height: 30; text: String(Config.weatherManualRefreshCooldownSeconds); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -844,7 +912,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 1
                     text: "Рамки"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -852,7 +920,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 1
                     text: "Общие рамки виджетов. Толщина 0 полностью отключает рамку."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -862,7 +930,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -923,7 +991,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -985,14 +1053,14 @@ Item {
 
 
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 2
                     text: "Адаптивные блоки"
                     color: Config.accent
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(12)
                 }
                 Text {
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 2
                     text: "Высота блока автоматически растёт по содержимому в пределах этих ограничений."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -1001,7 +1069,7 @@ Item {
                     width: parent.width
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 2
                     Text { width: 210; text: "Минимальная высота громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMinHeightField; width: 100; height: 30; text: String(Config.volumeMinHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1010,7 +1078,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 0
+                    visible: root.currentOtherTab === 0 && root.currentOtherSubTab === 2
                     Text { width: 210; text: "Максимальная высота громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMaxHeightField; width: 100; height: 30; text: String(Config.volumeMaxHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1020,14 +1088,14 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     text: "Плеер"
                     color: Config.accent
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(14)
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -1072,7 +1140,7 @@ Item {
                     }
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -1116,7 +1184,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Размер текста Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: silenceSizeField; width: 72; height: 30; text: String(Config.playerSilenceFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1125,7 +1193,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Размер длинного Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: silenceLongSizeField; width: 72; height: 30; text: String(Config.playerSilenceLongFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1133,7 +1201,7 @@ Item {
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ silenceLongSizeField.applyValue(Config.playerSilenceLongFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина области Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerSilenceWidthField; width: 72; height: 30; text: String(Config.playerSilenceWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerSilenceWidthField.activeFocus || playerSilenceWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerSilenceWidth; n=Math.max(100,Math.min(600,Math.round(n))); Config.playerSilenceWidth=n; text=String(n); settings.save() }
@@ -1141,13 +1209,13 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 1
                     text: "Оставшееся время"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
                         id: playerTimeFontSizeField
@@ -1167,14 +1235,14 @@ Item {
                         Connections { target: Config; function onPlayerTimeFontSizeChanged() { playerTimeFontSizeField.text=String(Config.playerTimeFontSize) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Шрифт оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerTimeFontField; width: 140; height: 30; text: Config.playerTimeFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (playerTimeFontField.activeFocus || playerTimeFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         onEditingFinished: { var v=text.trim(); if (v.length > 0) Config.playerTimeFont=v; text=Config.playerTimeFont; settings.save() }
                         Connections { target: Config; function onPlayerTimeFontChanged() { playerTimeFontField.text=Config.playerTimeFont } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
                         id: playerTimeRightPaddingField
@@ -1195,14 +1263,14 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 2
                     text: "Метаданные"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -1246,7 +1314,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: metaSizeField; width: 72; height: 30; text: String(Config.playerMetaFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1255,7 +1323,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: metaSecondarySizeField; width: 72; height: 30; text: String(Config.playerMetaSecondaryFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1264,7 +1332,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: metaSpacingField; width: 72; height: 30; text: String(Config.playerMetaLineSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1272,14 +1340,14 @@ Item {
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ metaSpacingField.applyValue(Config.playerMetaLineSpacing+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerMetaXPadField; width: 72; height: 30; text: String(Config.playerMetadataXPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaXPadField.activeFocus || playerMetaXPadField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataXPadding; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetadataXPadding=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerMetaXPadField.applyValue(Config.playerMetadataXPadding+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerMetadataXPaddingChanged(){playerMetaXPadField.text=String(Config.playerMetadataXPadding)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerMetaYField; width: 72; height: 30; text: String(Config.playerMetadataY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerMetaYField.activeFocus || playerMetaYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerMetadataY; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerMetadataY=n; text=String(n); settings.save() }
@@ -1287,11 +1355,11 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     StyledCheckBox { id: boldArtistBox; width: 210; height: 30; text: "Жирный исполнитель"; checked: Config.playerBoldArtist; onToggled: { Config.playerBoldArtist=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1313,7 +1381,7 @@ Item {
                     }
                 }
                 Row {
-                    visible: root.currentOtherTab === 2 && Config.playerTextOutlineEnabled
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 3 && Config.playerTextOutlineEnabled
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1344,9 +1412,9 @@ Item {
                         Connections { target: Config; function onPlayerTextOutlineColorChanged() { playerTextOutlineColorField.text = Config.playerTextOutlineColor } }
                     }
                 }
-                Text { visible: root.currentOtherTab === 2; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Text { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 4; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                 Column {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 4
                     width: parent.width
                     spacing: 4
                     Row {
@@ -1383,38 +1451,38 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 4
                     text: "Полоска прогресса"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5
                     StyledCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Положение прогресса по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerProgressYField; width: 72; height: 30; text: String(Config.playerProgressY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressYField.activeFocus || playerProgressYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressY; n=Math.max(0,Math.min(100,Math.round(n))); Config.playerProgressY=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerProgressYField.applyValue(Config.playerProgressY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerProgressYChanged(){playerProgressYField.text=String(Config.playerProgressY)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота полосы прогресса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerProgressTrackHeightField; width: 72; height: 30; text: String(Config.playerProgressTrackHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (playerProgressTrackHeightField.activeFocus || playerProgressTrackHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressTrackHeight; n=Math.max(1,Math.min(20,Math.round(n))); Config.playerProgressTrackHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{playerProgressTrackHeightField.applyValue(Config.playerProgressTrackHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onPlayerProgressTrackHeightChanged(){playerProgressTrackHeightField.text=String(Config.playerProgressTrackHeight)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Смещение дорожки прогресса по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerProgressTrackOffsetYField; width: 72; height: 30; text: String(Config.playerProgressTrackOffsetY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerProgressTrackOffsetYField.activeFocus || playerProgressTrackOffsetYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerProgressTrackOffsetY; n=Math.max(-10,Math.min(20,Math.round(n))); Config.playerProgressTrackOffsetY=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ playerProgressTrackOffsetYField.applyValue(Config.playerProgressTrackOffsetY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onPlayerProgressTrackOffsetYChanged(){ playerProgressTrackOffsetYField.text=String(Config.playerProgressTrackOffsetY) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 2; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: playerCoverOpacityField; width: 72; height: 30; text: Number(Config.playerCoverOpacity).toFixed(2); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (playerCoverOpacityField.activeFocus || playerCoverOpacityField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.playerCoverOpacity; n=Math.max(0,Math.min(1,Math.round(n*20)/20)); Config.playerCoverOpacity=n; text=Number(n).toFixed(2); settings.save() }
@@ -1422,14 +1490,14 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 5
                     text: "Обложка и фон"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 6
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1444,7 +1512,7 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 6
                     text: "Размывает содержимое позади плеера; сила блюра задаётся композитором Niri."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -1453,7 +1521,7 @@ Item {
                     width: parent.width
                 }
                 Row {
-                    visible: root.currentOtherTab === 2
+                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 6
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1478,7 +1546,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 4
+                    visible: root.currentOtherTab === 4 && root.currentOtherSubTab === 0
                     text: "CAVA"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -1486,7 +1554,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 4
+                    visible: root.currentOtherTab === 4 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1547,7 +1615,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 4
+                    visible: root.currentOtherTab === 4 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -1607,14 +1675,14 @@ Item {
                     }
                 }
 
-                Row { visible: root.currentOtherTab === 4; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 4 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cavaRowSpacingField; width: 100; height: 30; text: String(Config.cavaRowSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cavaRowSpacingField.activeFocus || cavaRowSpacingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.cavaRowSpacing;n=Math.max(0,Math.min(20,Math.round(n)));Config.cavaRowSpacing=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{cavaRowSpacingField.applyValue(Config.cavaRowSpacing+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onCavaRowSpacingChanged(){cavaRowSpacingField.text=String(Config.cavaRowSpacing)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 4; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 4 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина полоски (% слота)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cavaBarWidthRatioField; width: 100; height: 30; text: Number(Config.cavaBarWidthRatio).toFixed(2); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (cavaBarWidthRatioField.activeFocus || cavaBarWidthRatioField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.cavaBarWidthRatio;n=Math.max(0.05,Math.min(1,n));Config.cavaBarWidthRatio=n;text=Number(n).toFixed(2);settings.save()}
@@ -1623,7 +1691,7 @@ Item {
                 }
                 // -------------------- CPU / RAM --------------------
                 Text {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     text: "CPU и RAM"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -1631,7 +1699,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     text: "Настройки полос CPU и RAM"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -1639,7 +1707,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Интервал обновления CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1658,7 +1726,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1674,7 +1742,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1690,7 +1758,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1706,7 +1774,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1722,7 +1790,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ подписи слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuLabelPaddingField; width: 100; height: 30; text: String(Config.cpuLabelLeftPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cpuLabelPaddingField.activeFocus || cpuLabelPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1732,7 +1800,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Смещение полос слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuBarOffsetField; width: 100; height: 30; text: String(Config.cpuBarLeftOffset); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cpuBarOffsetField.activeFocus || cpuBarOffsetField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1742,7 +1810,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Радиус полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuBarRadiusField; width: 100; height: 30; text: String(Config.cpuBarRadius); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cpuBarRadiusField.activeFocus || cpuBarRadiusField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -1751,9 +1819,9 @@ Item {
                     }
                 }
 
-                Text { visible: root.currentOtherTab === 5; text: "График CPU"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
+                Text { visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 1; text: "График CPU"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
 
-                Row { visible: root.currentOtherTab === 5; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuGraphSlotField; width: 100; height: 30; text: String(Config.cpuGraphSegmentSlotWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cpuGraphSlotField.activeFocus || cpuGraphSlotField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.cpuGraphSegmentSlotWidth; n=Math.max(1,Math.min(20,Math.round(n))); Config.cpuGraphSegmentSlotWidth=n; text=String(n); settings.save() }
@@ -1761,7 +1829,7 @@ Item {
                     }
                 }
 
-                Row { visible: root.currentOtherTab === 5; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Толщина полос графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: cpuGraphBarWidthField; width: 100; height: 30; text: String(Config.cpuGraphBarWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (cpuGraphBarWidthField.activeFocus || cpuGraphBarWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.cpuGraphBarWidth; n=Math.max(1,Math.min(10,Math.round(n))); Config.cpuGraphBarWidth=n; text=String(n); settings.save() }
@@ -1772,7 +1840,7 @@ Item {
 
 
                 Row {
-                    visible: root.currentOtherTab === 5
+                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 1
                     width: parent.width; height: 30; spacing: 8
                     StyledCheckBox {
                         width: 210; height: 30; text: "Показывать RAM"; checked: Config.cpuShowRam
@@ -1783,7 +1851,7 @@ Item {
 
                 // -------------------- Network --------------------
                 Text {
-                    visible: root.currentOtherTab === 6
+                    visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1
                     text: "Сеть"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -1791,7 +1859,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 6
+                    visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1
                     text: "Отображение сетевого трафика и общий интервал system monitor"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -1801,7 +1869,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 6
+                    visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Интервал обновления данных (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -1816,21 +1884,21 @@ Item {
                     }
                 }
 
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ блока слева/справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkPaddingField; width: 100; height: 30; text: String(Config.networkHorizontalPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkPaddingField.activeFocus || networkPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkHorizontalPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.networkHorizontalPadding=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkPaddingField.applyValue(Config.networkHorizontalPadding+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkHorizontalPaddingChanged(){ networkPaddingField.text=String(Config.networkHorizontalPadding) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ иконки слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkIconPaddingField; width: 100; height: 30; text: String(Config.networkIconLeftPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkIconPaddingField.activeFocus || networkIconPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkIconLeftPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.networkIconLeftPadding=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkIconPaddingField.applyValue(Config.networkIconLeftPadding+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkIconLeftPaddingChanged(){ networkIconPaddingField.text=String(Config.networkIconLeftPadding) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина колонки иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkIconColumnWidthField; width: 100; height: 30; text: String(Config.networkIconColumnWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkIconColumnWidthField.activeFocus || networkIconColumnWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkIconColumnWidth; n=Math.max(16,Math.min(80,Math.round(n))); Config.networkIconColumnWidth=n; text=String(n); settings.save() }
@@ -1838,42 +1906,42 @@ Item {
                     }
                 }
 
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     StyledCheckBox { width: 210; height: 30; text: "Показывать Upload"; checked: Config.networkShowUpload; onToggled: { Config.networkShowUpload=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     StyledCheckBox { width: 210; height: 30; text: "Показывать Download"; checked: Config.networkShowDownload; onToggled: { Config.networkShowDownload=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
                 }
 
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkRowHeightField; width: 100; height: 30; text: String(Config.networkRowHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkRowHeightField.activeFocus || networkRowHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkRowHeight; n=Math.max(12,Math.min(60,Math.round(n))); Config.networkRowHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkRowHeightField.applyValue(Config.networkRowHeight+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkRowHeightChanged(){ networkRowHeightField.text=String(Config.networkRowHeight) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkRowSpacingField; width: 100; height: 30; text: String(Config.networkRowSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkRowSpacingField.activeFocus || networkRowSpacingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkRowSpacing; n=Math.max(0,Math.min(30,Math.round(n))); Config.networkRowSpacing=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkRowSpacingField.applyValue(Config.networkRowSpacing+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkRowSpacingChanged(){ networkRowSpacingField.text=String(Config.networkRowSpacing) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkIconSizeField; width: 100; height: 30; text: String(Config.networkIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkIconSizeField.activeFocus || networkIconSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkIconSize; n=Math.max(8,Math.min(40,Math.round(n))); Config.networkIconSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkIconSizeField.applyValue(Config.networkIconSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkIconSizeChanged(){ networkIconSizeField.text=String(Config.networkIconSize) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkFontSizeField; width: 100; height: 30; text: String(Config.networkValueFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkFontSizeField.activeFocus || networkFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkValueFontSize; n=Math.max(8,Math.min(32,Math.round(n))); Config.networkValueFontSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ networkFontSizeField.applyValue(Config.networkValueFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onNetworkValueFontSizeChanged(){ networkFontSizeField.text=String(Config.networkValueFontSize) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 6; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ значений справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: networkRightPaddingField; width: 100; height: 30; text: String(Config.networkRightPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (networkRightPaddingField.activeFocus || networkRightPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.networkRightPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.networkRightPadding=n; text=String(n); settings.save() }
@@ -1882,122 +1950,126 @@ Item {
                 }
 
                 // -------------------- Volume --------------------
-                Text { visible: root.currentOtherTab === 7; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Text { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Без звука"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMutedIconField; width: 100; height: 30; text: Config.volumeMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (volumeMutedIconField.activeFocus || volumeMutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeMutedIcon=text; settings.save() } Connections { target: Config; function onVolumeMutedIconChanged(){volumeMutedIconField.text=Config.volumeMutedIcon} } }
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 7
+                    visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0
                     text: "Громкость"
                     color: Config.accent
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(14)
                 }
                 Text {
-                    visible: root.currentOtherTab === 7
+                    visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0
                     text: "Основная полоса и дополнительные аудиопотоки"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Интервал опроса громкости (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeUpdateField; width: 100; height: 30; text: String(Config.volumeUpdateInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeUpdateField.activeFocus || volumeUpdateField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeUpdateInterval; n=Math.max(50,Math.min(5000,Math.round(n))); Config.volumeUpdateInterval=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeUpdateField.applyValue(Config.volumeUpdateInterval+root.wheelDelta(wheel, 10)); wheel.accepted=true } } Connections { target: Config; function onVolumeUpdateIntervalChanged(){ volumeUpdateField.text=String(Config.volumeUpdateInterval) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота основной строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMainRowHeightField; width: 100; height: 30; text: String(Config.volumeMainRowHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeMainRowHeightField.activeFocus || volumeMainRowHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeMainRowHeight; n=Math.max(20,Math.min(80,Math.round(n))); Config.volumeMainRowHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeMainRowHeightField.applyValue(Config.volumeMainRowHeight+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeMainRowHeightChanged(){ volumeMainRowHeightField.text=String(Config.volumeMainRowHeight) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота строк потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeStreamRowHeightField; width: 100; height: 30; text: String(Config.volumeStreamRowHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeStreamRowHeightField.activeFocus || volumeStreamRowHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeStreamRowHeight; n=Math.max(12,Math.min(60,Math.round(n))); Config.volumeStreamRowHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeStreamRowHeightField.applyValue(Config.volumeStreamRowHeight+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeStreamRowHeightChanged(){ volumeStreamRowHeightField.text=String(Config.volumeStreamRowHeight) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Расстояние между потоками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeStreamSpacingField; width: 100; height: 30; text: String(Config.volumeStreamSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeStreamSpacingField.activeFocus || volumeStreamSpacingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeStreamSpacing; n=Math.max(0,Math.min(20,Math.round(n))); Config.volumeStreamSpacing=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeStreamSpacingField.applyValue(Config.volumeStreamSpacing+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeStreamSpacingChanged(){ volumeStreamSpacingField.text=String(Config.volumeStreamSpacing) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ блока слева/справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeHorizontalPaddingField; width: 100; height: 30; text: String(Config.volumeHorizontalPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeHorizontalPaddingField.activeFocus || volumeHorizontalPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeHorizontalPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.volumeHorizontalPadding=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeHorizontalPaddingField.applyValue(Config.volumeHorizontalPadding+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeHorizontalPaddingChanged(){ volumeHorizontalPaddingField.text=String(Config.volumeHorizontalPadding) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Отступ блока сверху/снизу"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeVerticalPaddingField; width: 100; height: 30; text: String(Config.volumeVerticalPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeVerticalPaddingField.activeFocus || volumeVerticalPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeVerticalPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.volumeVerticalPadding=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeVerticalPaddingField.applyValue(Config.volumeVerticalPadding+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeVerticalPaddingChanged(){ volumeVerticalPaddingField.text=String(Config.volumeVerticalPadding) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина основной полосы"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMainTrackWidthField; width: 100; height: 30; text: String(Config.volumeMainTrackWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeMainTrackWidthField.activeFocus || volumeMainTrackWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeMainTrackWidth; n=Math.max(40,Math.min(1000,Math.round(n))); Config.volumeMainTrackWidth=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeMainTrackWidthField.applyValue(Config.volumeMainTrackWidth+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeMainTrackWidthChanged(){ volumeMainTrackWidthField.text=String(Config.volumeMainTrackWidth) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота полосы громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMainTrackHeightField; width: 100; height: 30; text: String(Config.volumeMainTrackHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeMainTrackHeightField.activeFocus || volumeMainTrackHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeMainTrackHeight; n=Math.max(1,Math.min(30,Math.round(n))); Config.volumeMainTrackHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeMainTrackHeightField.applyValue(Config.volumeMainTrackHeight+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeMainTrackHeightChanged(){ volumeMainTrackHeightField.text=String(Config.volumeMainTrackHeight) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Высота полос потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeStreamTrackHeightField; width: 100; height: 30; text: String(Config.volumeStreamTrackHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeStreamTrackHeightField.activeFocus || volumeStreamTrackHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeStreamTrackHeight; n=Math.max(1,Math.min(20,Math.round(n))); Config.volumeStreamTrackHeight=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeStreamTrackHeightField.applyValue(Config.volumeStreamTrackHeight+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeStreamTrackHeightChanged(){ volumeStreamTrackHeightField.text=String(Config.volumeStreamTrackHeight) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Смещение основной полосы Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMainTrackOffsetField; width: 100; height: 30; text: String(Config.volumeMainTrackOffsetY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (volumeMainTrackOffsetField.activeFocus || volumeMainTrackOffsetField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeMainTrackOffsetY; n=Math.max(-30,Math.min(30,Math.round(n))); Config.volumeMainTrackOffsetY=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeMainTrackOffsetField.applyValue(Config.volumeMainTrackOffsetY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeMainTrackOffsetYChanged(){ volumeMainTrackOffsetField.text=String(Config.volumeMainTrackOffsetY) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    StyledCheckBox { width: 210; height: 30; text: "Показывать дополнительные потоки"; checked: Config.volumeShowStreams; onToggled: { Config.volumeShowStreams=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
+                }
+
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Смещение полос потоков Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeStreamTrackOffsetField; width: 100; height: 30; text: String(Config.volumeStreamTrackOffsetY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (volumeStreamTrackOffsetField.activeFocus || volumeStreamTrackOffsetField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeStreamTrackOffsetY; n=Math.max(-20,Math.min(20,Math.round(n))); Config.volumeStreamTrackOffsetY=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeStreamTrackOffsetField.applyValue(Config.volumeStreamTrackOffsetY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeStreamTrackOffsetYChanged(){ volumeStreamTrackOffsetField.text=String(Config.volumeStreamTrackOffsetY) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ширина иконки громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeMainIconWidthField; width: 100; height: 30; text: String(Config.volumeMainIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeMainIconWidthField.activeFocus || volumeMainIconWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeMainIconWidth; n=Math.max(16,Math.min(80,Math.round(n))); Config.volumeMainIconWidth=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeMainIconWidthField.applyValue(Config.volumeMainIconWidth+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeMainIconWidthChanged(){ volumeMainIconWidthField.text=String(Config.volumeMainIconWidth) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер текста потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeStreamLabelFontField; width: 100; height: 30; text: String(Config.volumeStreamLabelFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeStreamLabelFontField.activeFocus || volumeStreamLabelFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeStreamLabelFontSize; n=Math.max(8,Math.min(32,Math.round(n))); Config.volumeStreamLabelFontSize=n; text=String(n); settings.save() }
                         onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ volumeStreamLabelFontField.applyValue(Config.volumeStreamLabelFontSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onVolumeStreamLabelFontSizeChanged(){ volumeStreamLabelFontField.text=String(Config.volumeStreamLabelFontSize) } }
                     }
                 }
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 7 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Радиус полос громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: volumeTrackRadiusField; width: 100; height: 30; text: String(Config.volumeTrackRadius); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (volumeTrackRadiusField.activeFocus || volumeTrackRadiusField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.volumeTrackRadius; n=Math.max(0,Math.min(20,Math.round(n))); Config.volumeTrackRadius=n; text=String(n); settings.save() }
@@ -2005,12 +2077,8 @@ Item {
                     }
                 }
 
-                Row { visible: root.currentOtherTab === 7; width: parent.width; height: 30; spacing: 8
-                    StyledCheckBox { width: 210; height: 30; text: "Показывать дополнительные потоки"; checked: Config.volumeShowStreams; onToggled: { Config.volumeShowStreams=checked; settings.save() } contentItem: Text { text: parent.text; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); leftPadding: parent.indicator.width+5; verticalAlignment: Text.AlignVCenter } }
-                }
-
                 Text {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 0
                     text: "Таймеры"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -2018,7 +2086,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 0
                     text: "Дефолтные значения кнопок таймера, в минутах"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -2026,7 +2094,7 @@ Item {
                 }
 
                 Column {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 0
                     width: parent.width
                     spacing: 5
 
@@ -2157,7 +2225,7 @@ Item {
 
 
                 Text {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     text: "Таймеры: оформление и поведение"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -2165,7 +2233,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     text: "Окно окончания таймера"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
@@ -2173,7 +2241,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2187,7 +2255,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2210,7 +2278,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2235,7 +2303,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2260,7 +2328,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverComboBox {
@@ -2275,7 +2343,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled && !Config.timerFinishedTitleUsesTimerColor
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled && !Config.timerFinishedTitleUsesTimerColor
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -2290,7 +2358,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -2307,7 +2375,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField {
@@ -2322,7 +2390,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                     width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverComboBox {
@@ -2337,7 +2405,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2355,7 +2423,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2373,7 +2441,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 1 && !Config.timerFinishedBackgroundUsesTimerColor
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 1 && !Config.timerFinishedBackgroundUsesTimerColor
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -2399,16 +2467,41 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 2
                     text: "Иконки таймера"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
                 Column {
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 2
                     width: parent.width
                     spacing: 4
+                    Row {
+                        width: parent.width
+                        height: 30
+                        spacing: 8
+                        Text { width: 210; text: "Порядок иконок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                        HoverComboBox {
+                            id: timerIconOrderCombo
+                            width: 140
+                            height: 30
+                            model: ["Будильник слева", "Таймер слева"]
+                            currentIndex: Config.timerIconOrder === "timer-left" ? 1 : 0
+                            contentItem: Text { text: timerIconOrderCombo.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
+                            background: Rectangle { color: Config.background; border.color: (timerIconOrderCombo.activeFocus || timerIconOrderCombo.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: Config.frameRadius }
+                            onActivated: {
+                                var next = currentIndex === 1 ? "timer-left" : "alarm-left"
+                                if (next === Config.timerIconOrder) return
+                                var oldTimerX = Config.timerIconX
+                                Config.timerIconX = Config.timerAlarmIconX
+                                Config.timerAlarmIconX = oldTimerX
+                                Config.timerIconOrder = next
+                                settings.save()
+                            }
+                            Connections { target: Config; function onTimerIconOrderChanged() { timerIconOrderCombo.currentIndex = Config.timerIconOrder === "timer-left" ? 1 : 0 } }
+                        }
+                    }
                     Row {
                         width: parent.width
                         height: 18
@@ -2439,7 +2532,7 @@ Item {
                 }
 
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Минимальная высота блока таймеров"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerMinHeightField; width: 100; height: 30; text: String(Config.timerMinHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2448,7 +2541,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Шаг колеса таймера"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerWheelStepField; width: 100; height: 30; text: String(Config.timerWheelStep); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2457,7 +2550,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Ширина комментария"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerCommentWidthField; width: 100; height: 30; text: String(Config.timerCommentWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2466,7 +2559,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Максимальная длина комментария"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerCommentMaxLengthField; width: 100; height: 30; text: String(Config.timerCommentMaxLength); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2475,7 +2568,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Отступ комментария до отсчёта"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerCommentGapField; width: 100; height: 30; text: String(Config.timerCommentGap); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2484,7 +2577,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Отступ между таймерами"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerRowSpacingField; width: 100; height: 30; text: String(Config.timerRowSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2493,7 +2586,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Верхний отступ таймеров"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerRowTopField; width: 100; height: 30; text: String(Config.timerRowTopMargin); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2502,7 +2595,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Правый отступ таймеров"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerRowRightField; width: 100; height: 30; text: String(Config.timerRowRightMargin); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2511,7 +2604,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerFadeField; width: 100; height: 30; text: String(Config.timerButtonFadeDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2520,7 +2613,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerSlideField; width: 100; height: 30; text: String(Config.timerButtonSlideDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2529,7 +2622,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1
+                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
                     Text { width: 210; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: timerIconFadeField; width: 100; height: 30; text: String(Config.timerButtonIconFadeDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2538,61 +2631,7 @@ Item {
                     }
                 }
 
-                Text {
-                    visible: root.currentOtherTab === 3
-                    text: "Погода"
-                    color: Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(14)
-                }
-
-                Text {
-                    visible: root.currentOtherTab === 3
-                    text: "Количество элементов, размеры и положение элементов погодных блоков. При ошибке API используется заданная пауза перед новым запросом."
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                    wrapMode: Text.WordWrap
-                    width: parent.width
-                }
-                Row {
-                    visible: root.currentOtherTab === 3
-                    width: parent.width
-                    height: 30
-                    spacing: 6
-
-                    Repeater {
-                        model: ["Погода сейчас", "Погода по часам", "Погода по дням"]
-
-                        delegate: Rectangle {
-                            width: (parent.width - 12) / 3
-                            height: 30
-                            radius: 4
-                            color: root.currentWeatherTab === index ? Config.accent : Config.background
-                            border.color: root.currentWeatherTab === index ? Config.accent : Config.baseColor
-                            border.width: 1
-
-                            Text {
-                                anchors.fill: parent
-                                text: modelData
-                                color: root.currentWeatherTab === index ? Config.black : Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                font.bold: root.currentWeatherTab === index
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.currentWeatherTab = index
-                            }
-                        }
-                    }
-                }
-
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Иконка ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindIconField; width: 160; height: 30; text: Config.weatherWindIcon; color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (weatherWindIconField.activeFocus || weatherWindIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         onEditingFinished: { Config.weatherWindIcon = text; text = Config.weatherWindIcon; settings.save() }
@@ -2601,7 +2640,7 @@ Item {
                 }
 
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Размер иконки текущей погоды"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherIconSizeField; width: 100; height: 30; text: String(Config.weatherIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2610,7 +2649,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Размер стрелки ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherArrowSizeField; width: 100; height: 30; text: String(Config.weatherArrowSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2619,7 +2658,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Смещение стрелки ветра по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherArrowYField; width: 100; height: 30; text: String(Config.weatherArrowYOffset); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2628,7 +2667,7 @@ Item {
                     }
                 }
                 Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1
                     Text { width: 210; text: "Зазор стрелки до скорости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                     HoverTextField { id: weatherWindGapField; width: 100; height: 30; text: String(Config.weatherWindArrowGap); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
                         color: Config.background; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -2637,28 +2676,28 @@ Item {
                     }
                 }
                 Text {
-                    visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0
+                    visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1
                     text: "Дополнительная геометрия текущей погоды"
                     color: Config.settingsSubheading
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Y картинки текущей погоды"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherIconYField; width: 100; height: 30; text: String(Config.weatherIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherIconYField.activeFocus || weatherIconYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherIconY;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherIconY=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherIconYField.applyValue(Config.weatherIconY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherIconYChanged(){weatherIconYField.text=String(Config.weatherIconY)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "X колонки ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindXField; width: 100; height: 30; text: String(Config.weatherWindColumnX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindXField.activeFocus || weatherWindXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindColumnX;n=Math.max(0,Math.min(500,Math.round(n)));Config.weatherWindColumnX=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindXField.applyValue(Config.weatherWindColumnX+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindColumnXChanged(){weatherWindXField.text=String(Config.weatherWindColumnX)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Размер текста описания"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherDescSizeField; width: 100; height: 30; text: String(Config.weatherDescriptionFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherDescSizeField.activeFocus || weatherDescSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDescriptionFontSize;n=Math.max(6,Math.min(48,Math.round(n)));Config.weatherDescriptionFontSize=n;text=String(n);settings.save()}
@@ -2666,15 +2705,15 @@ Item {
                     }
                 }
 
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; text: "Дополнительная геометрия и типографика"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Text { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; text: "Дополнительная геометрия и типографика"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура: ширина колонки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempColumnWidthField; width: 100; height: 30; text: String(Config.weatherTempColumnWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherTempColumnWidthField.activeFocus || weatherTempColumnWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherTempColumnWidth;n=Math.max(40,Math.min(200,Math.round(n)));Config.weatherTempColumnWidth=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherTempColumnWidthField.applyValue(Config.weatherTempColumnWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherTempColumnWidthChanged(){weatherTempColumnWidthField.text=String(Config.weatherTempColumnWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура: X / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempXField; width: 70; height: 30; text: String(Config.weatherTempX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherTempXField.activeFocus || weatherTempXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherTempX;n=Math.max(0,Math.min(200,Math.round(n)));Config.weatherTempX=n;text=String(n);settings.save()}
@@ -2685,18 +2724,14 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherTempWidthField.applyValue(Config.weatherTempWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherTempWidthChanged(){weatherTempWidthField.text=String(Config.weatherTempWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Комфорт: Y / высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Комфорт: Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherComfortYField; width: 70; height: 30; text: String(Config.weatherComfortY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherComfortYField.activeFocus || weatherComfortYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherComfortY;n=Math.max(-20,Math.min(100,Math.round(n)));Config.weatherComfortY=n;text=String(n);settings.save()}
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherComfortYField.applyValue(Config.weatherComfortY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherComfortYChanged(){weatherComfortYField.text=String(Config.weatherComfortY)}}
                     }
-                    HoverTextField { id: weatherComfortHeightField; width: 70; height: 30; text: String(Config.weatherComfortHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherComfortHeightField.activeFocus || weatherComfortHeightField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherComfortHeight;n=Math.max(10,Math.min(100,Math.round(n)));Config.weatherComfortHeight=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherComfortHeightField.applyValue(Config.weatherComfortHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherComfortHeightChanged(){weatherComfortHeightField.text=String(Config.weatherComfortHeight)}}
-                    }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Основная температура: отступ X / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherTempOffsetXField; width: 70; height: 30; text: String(Config.weatherTempOffsetX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherTempOffsetXField.activeFocus || weatherTempOffsetXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherTempOffsetX;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherTempOffsetX=n;text=String(n);settings.save()}
@@ -2707,7 +2742,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherTempOffsetYField.applyValue(Config.weatherTempOffsetY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherTempOffsetYChanged(){weatherTempOffsetYField.text=String(Config.weatherTempOffsetY)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Температура комфорта: отступ X / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherComfortOffsetXField; width: 70; height: 30; text: String(Config.weatherComfortOffsetX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhNone; background: Rectangle { color: Config.background; border.color: (weatherComfortOffsetXField.activeFocus || weatherComfortOffsetXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherComfortOffsetX;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherComfortOffsetX=n;text=String(n);settings.save()}
@@ -2718,7 +2753,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherComfortOffsetYField.applyValue(Config.weatherComfortOffsetY+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherComfortOffsetYChanged(){weatherComfortOffsetYField.text=String(Config.weatherComfortOffsetY)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ветер: X / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindColumnXExtraField; width: 70; height: 30; text: String(Config.weatherWindColumnX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindColumnXExtraField.activeFocus || weatherWindColumnXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindColumnX;n=Math.max(0,Math.min(500,Math.round(n)));Config.weatherWindColumnX=n;text=String(n);settings.save()}
@@ -2729,7 +2764,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindColumnWidthExtraField.applyValue(Config.weatherWindColumnWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindColumnWidthChanged(){weatherWindColumnWidthExtraField.text=String(Config.weatherWindColumnWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Стрелка: ширина / высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindArrowWidthField; width: 70; height: 30; text: String(Config.weatherWindArrowWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindArrowWidthField.activeFocus || weatherWindArrowWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindArrowWidth;n=Math.max(8,Math.min(50,Math.round(n)));Config.weatherWindArrowWidth=n;text=String(n);settings.save()}
@@ -2740,7 +2775,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindArrowHeightField.applyValue(Config.weatherWindArrowHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindArrowHeightChanged(){weatherWindArrowHeightField.text=String(Config.weatherWindArrowHeight)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Скорость ветра: X / Y / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindSpeedXExtraField; width: 62; height: 30; text: String(Config.weatherWindSpeedX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindSpeedXExtraField.activeFocus || weatherWindSpeedXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindSpeedX;n=Math.max(0,Math.min(250,Math.round(n)));Config.weatherWindSpeedX=n;text=String(n);settings.save()}
@@ -2755,7 +2790,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindSpeedWidthExtraField.applyValue(Config.weatherWindSpeedWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindSpeedWidthChanged(){weatherWindSpeedWidthExtraField.text=String(Config.weatherWindSpeedWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ед. ветра: X / Y / ширина"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherWindUnitXExtraField; width: 62; height: 30; text: String(Config.weatherWindUnitX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherWindUnitXExtraField.activeFocus || weatherWindUnitXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherWindUnitX;n=Math.max(0,Math.min(300,Math.round(n)));Config.weatherWindUnitX=n;text=String(n);settings.save()}
@@ -2770,7 +2805,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherWindUnitWidthExtraField.applyValue(Config.weatherWindUnitWidth+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherWindUnitWidthChanged(){weatherWindUnitWidthExtraField.text=String(Config.weatherWindUnitWidth)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Давление: ширина / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherPressureWidthExtraField; width: 70; height: 30; text: String(Config.weatherPressureValueWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherPressureWidthExtraField.activeFocus || weatherPressureWidthExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherPressureValueWidth;n=Math.max(20,Math.min(180,Math.round(n)));Config.weatherPressureValueWidth=n;text=String(n);settings.save()}
@@ -2781,7 +2816,7 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherPressureFontExtraField.applyValue(Config.weatherPressureFontSize+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherPressureFontSizeChanged(){weatherPressureFontExtraField.text=String(Config.weatherPressureFontSize)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 0; width: parent.width; height: 30; spacing: 8
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                     Text { width: 210; text: "Ед. давления: X / Y / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     HoverTextField { id: weatherPressureUnitXExtraField; width: 60; height: 30; text: String(Config.weatherPressureUnitX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherPressureUnitXExtraField.activeFocus || weatherPressureUnitXExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                         function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherPressureUnitX;n=Math.max(0,Math.min(300,Math.round(n)));Config.weatherPressureUnitX=n;text=String(n);settings.save()}
@@ -2796,69 +2831,82 @@ Item {
                         onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherPressureUnitFontExtraField.applyValue(Config.weatherPressureUnitFontSize+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherPressureUnitFontSizeChanged(){weatherPressureUnitFontExtraField.text=String(Config.weatherPressureUnitFontSize)}}
                     }
                 }
-                Row { visible: root.currentOtherTab === 3; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Описание: высота"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: weatherDescriptionHeightExtraField; width: 100; height: 30; text: String(Config.weatherDescriptionHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (weatherDescriptionHeightExtraField.activeFocus || weatherDescriptionHeightExtraField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDescriptionHeight;n=Math.max(8,Math.min(40,Math.round(n)));Config.weatherDescriptionHeight=n;text=String(n);settings.save()}
-                        onEditingFinished:applyValue(text);MouseArea{anchors.fill:parent;acceptedButtons:Qt.NoButton;onWheel:wheel=>{weatherDescriptionHeightExtraField.applyValue(Config.weatherDescriptionHeight+root.wheelDelta(wheel, 1));wheel.accepted=true}} Connections{target:Config;function onWeatherDescriptionHeightChanged(){weatherDescriptionHeightExtraField.text=String(Config.weatherDescriptionHeight)}}
-                    }
+                Text { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; text: "Почасовой блок"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Количество часов"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whCount; width: 58; height: 30; text: String(Config.weatherHourlyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whCount.activeFocus || whCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyCount;n=Math.max(1,Math.min(12,Math.round(n)));Config.weatherHourlyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whCount.applyValue(Number(whCount.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
                 }
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; text: "Почасовой блок"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Количество часов / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: whCount; width: 58; height: 30; text: String(Config.weatherHourlyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whCount.activeFocus || whCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyCount;n=Math.max(1,Math.min(12,Math.round(n)));Config.weatherHourlyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whPad; width: 58; height: 30; text: String(Config.weatherHourlyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whPad.activeFocus || whPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherHourlyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whPad; width: 58; height: 30; text: String(Config.weatherHourlyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whPad.activeFocus || whPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherHourlyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whPad.applyValue(Number(whPad.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "День: высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: whDayH; width: 58; height: 30; text: String(Config.weatherHourlyDayHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDayH.activeFocus || whDayH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayHeight;n=Math.max(10,Math.min(40,Math.round(n)));Config.weatherHourlyDayHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whDayF; width: 58; height: 30; text: String(Config.weatherHourlyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDayF.activeFocus || whDayF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 24; spacing: 8
+                    Item { width: 210; height: 24 }
+                    Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Иконка: ширина / высота / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: whIW; width: 58; height: 30; text: String(Config.weatherHourlyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIW.activeFocus || whIW.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherHourlyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whIH; width: 58; height: 30; text: String(Config.weatherHourlyIconHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIH.activeFocus || whIH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconHeight;n=Math.max(16,Math.min(100,Math.round(n)));Config.weatherHourlyIconHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whIY; width: 58; height: 30; text: String(Config.weatherHourlyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIY.activeFocus || whIY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherHourlyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Время"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whDayYTable; width: 58; height: 30; text: String(Config.weatherHourlyDayY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDayYTable.activeFocus || whDayYTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherHourlyDayY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whDayYTable.applyValue(Number(whDayYTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: whDaySizeTable; width: 58; height: 30; text: String(Config.weatherHourlyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whDaySizeTable.activeFocus || whDaySizeTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whDaySizeTable.applyValue(Number(whDaySizeTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
                 }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: whTY; width: 58; height: 30; text: String(Config.weatherHourlyTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTY.activeFocus || whTY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherHourlyTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whTH; width: 58; height: 30; text: String(Config.weatherHourlyTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTH.activeFocus || whTH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherHourlyTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: whTF; width: 58; height: 30; text: String(Config.weatherHourlyTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTF.activeFocus || whTF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whIconYTable; width: 58; height: 30; text: String(Config.weatherHourlyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIconYTable.activeFocus || whIconYTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherHourlyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whIconYTable.applyValue(Number(whIconYTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: whIconSizeTable; width: 58; height: 30; text: String(Config.weatherHourlyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whIconSizeTable.activeFocus || whIconSizeTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherHourlyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whIconSizeTable.applyValue(Number(whIconSizeTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: whTempYTable; width: 58; height: 30; text: String(Config.weatherHourlyTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTempYTable.activeFocus || whTempYTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherHourlyTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whTempYTable.applyValue(Number(whTempYTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: whTempSizeTable; width: 58; height: 30; text: String(Config.weatherHourlyTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (whTempSizeTable.activeFocus || whTempSizeTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherHourlyTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherHourlyTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { whTempSizeTable.applyValue(Number(whTempSizeTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Text { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; text: "Дневной блок — максимум 4 колонки"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Количество дней"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdCount; width: 58; height: 30; text: String(Config.weatherDailyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdCount.activeFocus || wdCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyCount;n=Math.max(1,Math.min(4,Math.round(n)));Config.weatherDailyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdCount.applyValue(Number(wdCount.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdPad; width: 58; height: 30; text: String(Config.weatherDailyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdPad.activeFocus || wdPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherDailyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdPad.applyValue(Number(wdPad.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 24; spacing: 8
+                    Item { width: 210; height: 24 }
+                    Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "День"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdDayYTable; width: 58; height: 30; text: String(Config.weatherDailyDayY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDayYTable.activeFocus || wdDayYTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherDailyDayY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdDayYTable.applyValue(Number(wdDayYTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdDaySizeTable; width: 58; height: 30; text: String(Config.weatherDailyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDaySizeTable.activeFocus || wdDaySizeTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdDaySizeTable.applyValue(Number(wdDaySizeTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdIconYTable; width: 58; height: 30; text: String(Config.weatherDailyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIconYTable.activeFocus || wdIconYTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherDailyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdIconYTable.applyValue(Number(wdIconYTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdIconSizeTable; width: 58; height: 30; text: String(Config.weatherDailyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIconSizeTable.activeFocus || wdIconSizeTable.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherDailyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdIconSizeTable.applyValue(Number(wdIconSizeTable.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 24; spacing: 8
+                    Item { width: 210; height: 24 }
+                    Text { width: 58; y: 4; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; y: 4; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Дневная температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdHX; width: 58; height: 30; text: String(Config.weatherDailyHighTempX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHX.activeFocus || wdHX.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempX;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherDailyHighTempX=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdHX.applyValue(Number(wdHX.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdHY; width: 58; height: 30; text: String(Config.weatherDailyHighTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHY.activeFocus || wdHY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherDailyHighTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdHY.applyValue(Number(wdHY.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdHF; width: 58; height: 30; text: String(Config.weatherDailyHighTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHF.activeFocus || wdHF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyHighTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdHF.applyValue(Number(wdHF.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                }
+                Row { visible: root.currentOtherTab === 3 && root.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Ночная температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField { id: wdLX; width: 58; height: 30; text: String(Config.weatherDailyLowTempX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLX.activeFocus || wdLX.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempX;n=Math.max(-100,Math.min(100,Math.round(n)));Config.weatherDailyLowTempX=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdLX.applyValue(Number(wdLX.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdLY; width: 58; height: 30; text: String(Config.weatherDailyLowTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLY.activeFocus || wdLY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempY;n=Math.max(0,Math.min(180,Math.round(n)));Config.weatherDailyLowTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdLY.applyValue(Number(wdLY.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
+                    HoverTextField { id: wdLF; width: 58; height: 30; text: String(Config.weatherDailyLowTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLF.activeFocus || wdLF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyLowTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { wdLF.applyValue(Number(wdLF.text) + root.wheelDelta(wheel, 1)); wheel.accepted = true } } }
                 }
 
-                Text { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; text: "Дневной блок — максимум 4 колонки"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Количество дней / верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: wdCount; width: 58; height: 30; text: String(Config.weatherDailyCount); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdCount.activeFocus || wdCount.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyCount;n=Math.max(1,Math.min(4,Math.round(n)));Config.weatherDailyCount=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdPad; width: 58; height: 30; text: String(Config.weatherDailyTopPadding); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdPad.activeFocus || wdPad.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyTopPadding;n=Math.max(0,Math.min(40,Math.round(n)));Config.weatherDailyTopPadding=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "День: высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: wdDayH; width: 58; height: 30; text: String(Config.weatherDailyDayHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDayH.activeFocus || wdDayH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayHeight;n=Math.max(10,Math.min(40,Math.round(n)));Config.weatherDailyDayHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdDayF; width: 58; height: 30; text: String(Config.weatherDailyDayFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdDayF.activeFocus || wdDayF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyDayFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyDayFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Иконка: ширина / высота / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: wdIW; width: 58; height: 30; text: String(Config.weatherDailyIconWidth); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIW.activeFocus || wdIW.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconWidth;n=Math.max(16,Math.min(90,Math.round(n)));Config.weatherDailyIconWidth=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdIH; width: 58; height: 30; text: String(Config.weatherDailyIconHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIH.activeFocus || wdIH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconHeight;n=Math.max(16,Math.min(100,Math.round(n)));Config.weatherDailyIconHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdIY; width: 58; height: 30; text: String(Config.weatherDailyIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdIY.activeFocus || wdIY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyIconY;n=Math.max(0,Math.min(120,Math.round(n)));Config.weatherDailyIconY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Дневная температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: wdHY; width: 58; height: 30; text: String(Config.weatherDailyHighTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHY.activeFocus || wdHY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempY;n=Math.max(0,Math.min(150,Math.round(n)));Config.weatherDailyHighTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdHH; width: 58; height: 30; text: String(Config.weatherDailyHighTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHH.activeFocus || wdHH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherDailyHighTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdHF; width: 58; height: 30; text: String(Config.weatherDailyHighTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdHF.activeFocus || wdHF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyHighTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyHighTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                }
-                Row { visible: root.currentOtherTab === 3 && root.currentWeatherTab === 2; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Ночная температура: Y / высота / шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    HoverTextField { id: wdLY; width: 58; height: 30; text: String(Config.weatherDailyLowTempY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLY.activeFocus || wdLY.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempY;n=Math.max(0,Math.min(180,Math.round(n)));Config.weatherDailyLowTempY=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdLH; width: 58; height: 30; text: String(Config.weatherDailyLowTempHeight); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLH.activeFocus || wdLH.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempHeight;n=Math.max(10,Math.min(50,Math.round(n)));Config.weatherDailyLowTempHeight=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                    HoverTextField { id: wdLF; width: 58; height: 30; text: String(Config.weatherDailyLowTempFontSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (wdLF.activeFocus || wdLF.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){var n=Number(v);if(!isFinite(n))n=Config.weatherDailyLowTempFontSize;n=Math.max(6,Math.min(32,Math.round(n)));Config.weatherDailyLowTempFontSize=n;text=String(n);settings.save()} onEditingFinished:applyValue(text) }
-                }
+
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     text: "Настройки интерфейса настроек"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -2866,7 +2914,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     text: "Отдельный шрифт, размер текста и внутренние отступы самого окна настроек."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -2876,7 +2924,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -2895,7 +2943,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -2916,7 +2964,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -2937,7 +2985,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 0
                     width: parent.width
                     height: 34
                     spacing: 8
@@ -2958,7 +3006,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 1
                     text: "Окно настроек"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -2966,7 +3014,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 1
                     text: "Координаты и размеры окна настроек"
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -2974,7 +3022,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 18
                     spacing: 6
@@ -2997,7 +3045,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 1
                     width: parent.width
                     height: 30
                     spacing: 6
@@ -3061,7 +3109,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 1
                     text: "Изменения применяются и сохраняются сразу. Для X/Y/Width/Height можно использовать колесо мыши с шагом 1."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -3071,7 +3119,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     text: "Профили"
                     color: Config.accent
                     font.family: Config.settingsFont
@@ -3079,7 +3127,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     text: "Сохраняй несколько вариантов всей конфигурации и переключайся между ними без ручной перенастройки."
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -3089,7 +3137,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -3166,7 +3214,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -3266,7 +3314,7 @@ Item {
 
                 Item {
                     id: profileActionFeedback
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     width: parent.width
                     height: 22
 
@@ -3295,7 +3343,7 @@ Item {
                 }
 
                 Text {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     width: parent.width
                     text: settings.activeProfile ? "Текущий профиль: " + settings.activeProfile : "Текущий профиль: по умолчанию"
                     color: Config.textMuted
@@ -3304,7 +3352,7 @@ Item {
                 }
 
                 Row {
-                    visible: root.currentOtherTab === 8
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 2
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -3319,6 +3367,53 @@ Item {
                     SettingsResetButton {
                         tooltip: "Сбросить все параметры"
                         onClicked: settings.resetAllSettings()
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 8 && root.currentOtherSubTab === 3
+                    width: parent.width
+                    height: 46
+                    spacing: 10
+
+                    Rectangle {
+                        id: settingsMoveButton
+                        width: 270
+                        height: 46
+                        radius: Config.frameRadius
+                        color: settingsMoveMouse.containsMouse ? Config.accent : "transparent"
+                        border.color: Config.accent
+                        border.width: Math.max(1, Config.frameBorderWidth)
+
+                        Text {
+                            anchors.fill: parent
+                            text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
+                            color: settingsMoveMouse.containsMouse ? Config.black : Config.accent
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            font.bold: true
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        MouseArea {
+                            id: settingsMoveMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.settingsMoveRequested()
+                        }
+                    }
+
+                    Text {
+                        width: parent.width - 280
+                        height: 46
+                        text: "Скрывает окно настроек и позволяет перемещать его мышью.\nEsc — завершить перемещение и вернуться сюда."
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        wrapMode: Text.WordWrap
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
             }

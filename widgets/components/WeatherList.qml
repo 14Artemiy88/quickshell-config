@@ -62,9 +62,9 @@ Widgets.Frame {
 
                     Text {
                         x: 0
-                        y: 0
+                        y: root.hourly ? Config.weatherHourlyDayY : Config.weatherDailyDayY
                         width: parent.width
-                        height: root.hourly ? Config.weatherHourlyDayHeight : Config.weatherDailyDayHeight
+                        height: implicitHeight
                         text: root.dayText(modelData)
                         color: Config.tempZero
                         font.pixelSize: Config.uiFontSize(root.hourly ? Config.weatherHourlyDayFontSize : Config.weatherDailyDayFontSize)
@@ -82,7 +82,7 @@ Widgets.Frame {
                     }
 
                     Text {
-                        x: 0
+                        x: root.hourly ? 0 : Config.weatherDailyHighTempX
                         y: root.hourly ? Config.weatherHourlyTempY : Config.weatherDailyHighTempY
                         width: parent.width
                         height: root.hourly ? Config.weatherHourlyTempHeight : Config.weatherDailyHighTempHeight
@@ -95,7 +95,7 @@ Widgets.Frame {
 
                     Text {
                         visible: !root.hourly
-                        x: 0
+                        x: Config.weatherDailyLowTempX
                         y: Config.weatherDailyLowTempY
                         width: parent.width
                         height: Config.weatherDailyLowTempHeight
