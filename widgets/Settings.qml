@@ -63,6 +63,22 @@ QtObject {
         settingsFontSize: 13,
         settingsPadding: 15,
         settingsSpacing: 6,
+        calendarPreviousIcon: "←",
+        calendarNextIcon: "→",
+        calendarPreviousSize: 18,
+        calendarNextSize: 18,
+        calendarArrowY: 0,
+        calendarPreviousX: 0,
+        calendarNextX: 0,
+        calendarTitleFontSize: 20,
+        calendarTitleY: 0,
+        calendarTitleFont: "LED",
+        calendarWeekdayFontSize: 12,
+        calendarWeekdayY: 0,
+        calendarWeekdayFont: "JetBrainsMono Nerd Font",
+        calendarDayFontSize: 14,
+        calendarDayY: 0,
+        calendarDayFont: "JetBrainsMono Nerd Font",
         ledFont: "LED",
         playerFont: "HARDBOR",
         playerMetaFont: "Ubuntu Mono Nerd Font",
@@ -195,12 +211,12 @@ QtObject {
         weatherPressureUnitFontSize: 10,
         weatherDescriptionHeight: 16,
         weatherHourlyTopPadding: 8, weatherHourlyDayY: 16, weatherHourlyDayFontSize: 12,
-        weatherHourlyIconWidth: 35, weatherHourlyIconHeight: 45, weatherHourlyIconY: 20,
+        weatherHourlyIconWidth: 35, weatherHourlyIconY: 20,
         weatherHourlyTempY: 65, weatherHourlyTempHeight: 18, weatherHourlyTempFontSize: 12,
         weatherDailyTopPadding: 8, weatherDailyDayY: 16, weatherDailyDayFontSize: 12,
-        weatherDailyIconWidth: 35, weatherDailyIconHeight: 45, weatherDailyIconY: 20,
-        weatherDailyHighTempX: 10, weatherDailyHighTempY: 66, weatherDailyHighTempHeight: 18, weatherDailyHighTempFontSize: 11,
-        weatherDailyLowTempX: 5, weatherDailyLowTempY: 86, weatherDailyLowTempHeight: 18, weatherDailyLowTempFontSize: 11,
+        weatherDailyIconWidth: 35, weatherDailyIconY: 20,
+        weatherDailyHighTempX: 10, weatherDailyHighTempY: 66, weatherDailyHighTempFontSize: 11,
+        weatherDailyLowTempX: 5, weatherDailyLowTempY: 86, weatherDailyLowTempFontSize: 11,
         cavaBars: 50,
         cavaFramerate: 30,
         cavaRowSpacing: 1,
@@ -484,6 +500,26 @@ QtObject {
         if (o.volumeIcon !== undefined) Config.volumeIcon = String(o.volumeIcon)
         if (o.volumeMutedIcon !== undefined) Config.volumeMutedIcon = String(o.volumeMutedIcon)
 
+        // Calendar tuning
+        if (o.calendarPreviousIcon !== undefined) Config.calendarPreviousIcon = String(o.calendarPreviousIcon)
+        if (o.calendarNextIcon !== undefined) Config.calendarNextIcon = String(o.calendarNextIcon)
+        if (o.calendarTitleFont !== undefined) Config.calendarTitleFont = String(o.calendarTitleFont)
+        if (o.calendarWeekdayFont !== undefined) Config.calendarWeekdayFont = String(o.calendarWeekdayFont)
+        if (o.calendarDayFont !== undefined) Config.calendarDayFont = String(o.calendarDayFont)
+        var calendarNumberFields = [
+            ["calendarPreviousSize", 8, 64], ["calendarNextSize", 8, 64], ["calendarArrowY", -20, 20],
+            ["calendarPreviousX", -20, 20], ["calendarNextX", -20, 20],
+            ["calendarTitleFontSize", 8, 48], ["calendarTitleY", -20, 20], ["calendarWeekdayY", -20, 20],
+            ["calendarWeekdayFontSize", 8, 32], ["calendarDayY", -20, 20], ["calendarDayFontSize", 8, 32]
+        ]
+        for (var clf = 0; clf < calendarNumberFields.length; ++clf) {
+            var clname = calendarNumberFields[clf][0]
+            if (o[clname] !== undefined) {
+                var clv = Number(o[clname])
+                if (isFinite(clv)) Config[clname] = Math.max(calendarNumberFields[clf][1], Math.min(calendarNumberFields[clf][2], Math.round(clv)))
+            }
+        }
+
         // Timer tuning
         var timerNumberFields = [
             ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
@@ -562,12 +598,12 @@ QtObject {
             ["weatherPressureUnitX", 0, 300], ["weatherPressureUnitY", -20, 80], ["weatherPressureUnitFontSize", 6, 30],
             ["weatherDescriptionHeight", 8, 40],
             ["weatherHourlyTopPadding", 0, 40], ["weatherHourlyDayY", 0, 120], ["weatherHourlyDayFontSize", 6, 32],
-            ["weatherHourlyIconWidth", 16, 90], ["weatherHourlyIconHeight", 16, 100], ["weatherHourlyIconY", 0, 120],
+            ["weatherHourlyIconWidth", 16, 90], ["weatherHourlyIconY", 0, 120],
             ["weatherHourlyTempY", 0, 150], ["weatherHourlyTempHeight", 10, 50], ["weatherHourlyTempFontSize", 6, 32],
             ["weatherDailyTopPadding", 0, 40], ["weatherDailyDayY", 0, 120], ["weatherDailyDayFontSize", 6, 32],
-            ["weatherDailyIconWidth", 16, 90], ["weatherDailyIconHeight", 16, 100], ["weatherDailyIconY", 0, 120],
-            ["weatherDailyHighTempX", -100, 100], ["weatherDailyHighTempY", 0, 150], ["weatherDailyHighTempHeight", 10, 50], ["weatherDailyHighTempFontSize", 6, 32],
-            ["weatherDailyLowTempX", -100, 100], ["weatherDailyLowTempY", 0, 180], ["weatherDailyLowTempHeight", 10, 50], ["weatherDailyLowTempFontSize", 6, 32]
+            ["weatherDailyIconWidth", 16, 90], ["weatherDailyIconY", 0, 120],
+            ["weatherDailyHighTempX", -100, 100], ["weatherDailyHighTempY", 0, 150], ["weatherDailyHighTempFontSize", 6, 32],
+            ["weatherDailyLowTempX", -100, 100], ["weatherDailyLowTempY", 0, 180], ["weatherDailyLowTempFontSize", 6, 32]
         ]
         for (var wf = 0; wf < weatherNumberFields.length; ++wf) {
             var wname = weatherNumberFields[wf][0]
@@ -579,15 +615,11 @@ QtObject {
 
         // Backward-compatible migration from the old shared hourly/daily list geometry.
         var weatherListMigration = [
-            ["weatherHourlyTopPadding", "weatherListTopPadding"], ["weatherDailyTopPadding", "weatherListTopPadding"],
-            ["weatherHourlyDayHeight", "weatherListDayHeight"], ["weatherDailyDayHeight", "weatherListDayHeight"],
+            ["weatherHourlyTopPadding", "weatherListTopPadding"], ["weatherHourlyDayY", "weatherListDayY"], ["weatherDailyTopPadding", "weatherListTopPadding"], ["weatherDailyDayY", "weatherListDayY"],
             ["weatherHourlyDayFontSize", "weatherListDayFontSize"], ["weatherDailyDayFontSize", "weatherListDayFontSize"],
             ["weatherHourlyIconWidth", "weatherListIconWidth"], ["weatherDailyIconWidth", "weatherListIconWidth"],
-            ["weatherHourlyIconHeight", "weatherListIconHeight"], ["weatherDailyIconHeight", "weatherListIconHeight"],
             ["weatherHourlyIconY", "weatherListIconY"], ["weatherDailyIconY", "weatherListIconY"],
             ["weatherHourlyTempY", "weatherListHourlyTempY"], ["weatherDailyHighTempY", "weatherListDailyTempY"],
-            ["weatherHourlyTempHeight", "weatherListTempHeight"], ["weatherDailyHighTempHeight", "weatherListTempHeight"],
-            ["weatherDailyLowTempHeight", "weatherListTempHeight"],
             ["weatherHourlyTempFontSize", "weatherListHourlyTempFontSize"], ["weatherDailyHighTempFontSize", "weatherListDailyTempFontSize"],
             ["weatherDailyLowTempY", "weatherListLowTempY"], ["weatherDailyLowTempFontSize", "weatherListLowTempFontSize"]
         ]
@@ -965,12 +997,9 @@ QtObject {
                 "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY",
                 "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize",
                 "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight",
-                "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth",
-                "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight",
+                "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight",
                 "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize",
-                "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY",
-                "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY",
-                "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"
+                "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"
             ])
             if (profile.weatherToken !== undefined)
                 weatherToken = String(profile.weatherToken)
@@ -1077,9 +1106,14 @@ QtObject {
 
     function resetWeatherSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"]);
+        applyConfigKeysFromProfile(profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
         if (profile.weatherToken !== undefined) weatherToken = String(profile.weatherToken)
         save()
+    }
+
+    function resetCalendarSettings() {
+        var profile = activeProfileData(); if (!profile) return
+        applyConfigKeysFromProfile(profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont"]); save()
     }
 
     function resetCavaSettings() {
@@ -1153,6 +1187,12 @@ QtObject {
             playerControlTopMargin: Config.playerControlTopMargin, playerControlGap: Config.playerControlGap,
             playerTimeFontSize: Config.playerTimeFontSize, playerTimeFont: Config.playerTimeFont, playerTimeRightPadding: Config.playerTimeRightPadding, playerCoverOpacity: Config.playerCoverOpacity,
             playerSilenceWidth: Config.playerSilenceWidth, playerProgressTrackOffsetY: Config.playerProgressTrackOffsetY,
+            calendarPreviousIcon: Config.calendarPreviousIcon, calendarNextIcon: Config.calendarNextIcon,
+            calendarPreviousSize: Config.calendarPreviousSize, calendarNextSize: Config.calendarNextSize, calendarArrowY: Config.calendarArrowY,
+            calendarPreviousX: Config.calendarPreviousX, calendarNextX: Config.calendarNextX,
+            calendarTitleFontSize: Config.calendarTitleFontSize, calendarTitleY: Config.calendarTitleY, calendarTitleFont: Config.calendarTitleFont,
+            calendarWeekdayFontSize: Config.calendarWeekdayFontSize, calendarWeekdayY: Config.calendarWeekdayY, calendarWeekdayFont: Config.calendarWeekdayFont,
+            calendarDayFontSize: Config.calendarDayFontSize, calendarDayY: Config.calendarDayY, calendarDayFont: Config.calendarDayFont,
             weatherIconSize: Config.weatherIconSize, weatherArrowSize: Config.weatherArrowSize, weatherArrowYOffset: Config.weatherArrowYOffset, weatherWindArrowGap: Config.weatherWindArrowGap,
             weatherHourlyCount: Config.weatherHourlyCount, weatherDailyCount: Config.weatherDailyCount,
             weatherIconY: Config.weatherIconY, weatherWindColumnX: Config.weatherWindColumnX, weatherWindSpeedFontSize: Config.weatherWindSpeedFontSize, weatherWindUnitFontSize: Config.weatherWindUnitFontSize,
@@ -1162,12 +1202,12 @@ QtObject {
             weatherWindUnitX: Config.weatherWindUnitX, weatherWindUnitY: Config.weatherWindUnitY, weatherWindUnitWidth: Config.weatherWindUnitWidth, weatherPressureValueWidth: Config.weatherPressureValueWidth, weatherPressureFontSize: Config.weatherPressureFontSize,
             weatherPressureUnitX: Config.weatherPressureUnitX, weatherPressureUnitY: Config.weatherPressureUnitY, weatherPressureUnitFontSize: Config.weatherPressureUnitFontSize, weatherDescriptionHeight: Config.weatherDescriptionHeight,
             weatherHourlyTopPadding: Config.weatherHourlyTopPadding, weatherHourlyDayY: Config.weatherHourlyDayY, weatherHourlyDayFontSize: Config.weatherHourlyDayFontSize,
-            weatherHourlyIconWidth: Config.weatherHourlyIconWidth, weatherHourlyIconHeight: Config.weatherHourlyIconHeight, weatherHourlyIconY: Config.weatherHourlyIconY,
+            weatherHourlyIconWidth: Config.weatherHourlyIconWidth, weatherHourlyIconY: Config.weatherHourlyIconY,
             weatherHourlyTempY: Config.weatherHourlyTempY, weatherHourlyTempHeight: Config.weatherHourlyTempHeight, weatherHourlyTempFontSize: Config.weatherHourlyTempFontSize,
             weatherDailyTopPadding: Config.weatherDailyTopPadding, weatherDailyDayY: Config.weatherDailyDayY, weatherDailyDayFontSize: Config.weatherDailyDayFontSize,
-            weatherDailyIconWidth: Config.weatherDailyIconWidth, weatherDailyIconHeight: Config.weatherDailyIconHeight, weatherDailyIconY: Config.weatherDailyIconY,
-            weatherDailyHighTempX: Config.weatherDailyHighTempX, weatherDailyHighTempY: Config.weatherDailyHighTempY, weatherDailyHighTempHeight: Config.weatherDailyHighTempHeight, weatherDailyHighTempFontSize: Config.weatherDailyHighTempFontSize,
-            weatherDailyLowTempX: Config.weatherDailyLowTempX, weatherDailyLowTempY: Config.weatherDailyLowTempY, weatherDailyLowTempHeight: Config.weatherDailyLowTempHeight, weatherDailyLowTempFontSize: Config.weatherDailyLowTempFontSize,
+            weatherDailyIconWidth: Config.weatherDailyIconWidth, weatherDailyIconY: Config.weatherDailyIconY,
+            weatherDailyHighTempX: Config.weatherDailyHighTempX, weatherDailyHighTempY: Config.weatherDailyHighTempY, weatherDailyHighTempFontSize: Config.weatherDailyHighTempFontSize,
+            weatherDailyLowTempX: Config.weatherDailyLowTempX, weatherDailyLowTempY: Config.weatherDailyLowTempY, weatherDailyLowTempFontSize: Config.weatherDailyLowTempFontSize,
             cavaBars: Config.cavaBars, cavaFramerate: Config.cavaFramerate, cavaRowSpacing: Config.cavaRowSpacing, cavaBarWidthRatio: Config.cavaBarWidthRatio, frameBorderWidth: Config.frameBorderWidth, frameRadius: Config.frameRadius,
             cpuBarThickness: Config.cpuBarThickness, cpuBarWidth: Config.cpuBarWidth, cpuRowHeight: Config.cpuRowHeight, cpuRowSpacing: Config.cpuRowSpacing, cpuLabelLeftPadding: Config.cpuLabelLeftPadding, cpuBarLeftOffset: Config.cpuBarLeftOffset, cpuBarRadius: Config.cpuBarRadius, cpuGraphSegmentSlotWidth: Config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: Config.cpuGraphBarWidth, cpuShowRam: Config.cpuShowRam,
             networkShowUpload: Config.networkShowUpload, networkShowDownload: Config.networkShowDownload, networkRowHeight: Config.networkRowHeight, networkRowSpacing: Config.networkRowSpacing, networkIconSize: Config.networkIconSize, networkValueFontSize: Config.networkValueFontSize, networkRightPadding: Config.networkRightPadding, networkHorizontalPadding: Config.networkHorizontalPadding, networkIconLeftPadding: Config.networkIconLeftPadding, networkIconColumnWidth: Config.networkIconColumnWidth,

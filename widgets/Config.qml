@@ -20,6 +20,23 @@ QtObject {
     property color playerProgressFill: "#00cccc"
     property color activeNetworkBackground: "#1a323232"
     property color calendarBackground: "#cc000000"
+    // Calendar appearance / navigation
+    property string calendarPreviousIcon: "←"
+    property string calendarNextIcon: "→"
+    property int calendarPreviousSize: 18
+    property int calendarNextSize: 18
+    property int calendarArrowY: 0
+    property int calendarPreviousX: 0
+    property int calendarNextX: 0
+    property int calendarTitleFontSize: 20
+    property int calendarTitleY: 0
+    property string calendarTitleFont: "LED"
+    property int calendarWeekdayFontSize: 12
+    property int calendarWeekdayY: 0
+    property string calendarWeekdayFont: "JetBrainsMono Nerd Font"
+    property int calendarDayFontSize: 14
+    property int calendarDayY: 0
+    property string calendarDayFont: "JetBrainsMono Nerd Font"
     property color volumeTrack: "#99006666"
     property color volumeFill: "#006666"
     property color settingsBackground: "#e6000000"
@@ -218,7 +235,6 @@ QtObject {
     property int weatherHourlyDayY: 16
     property int weatherHourlyDayFontSize: 12
     property int weatherHourlyIconWidth: 35
-    property int weatherHourlyIconHeight: 45
     property int weatherHourlyIconY: 20
     property int weatherHourlyTempY: 65
     property int weatherHourlyTempHeight: 18
@@ -229,15 +245,12 @@ QtObject {
     property int weatherDailyDayY: 16
     property int weatherDailyDayFontSize: 12
     property int weatherDailyIconWidth: 35
-    property int weatherDailyIconHeight: 45
     property int weatherDailyIconY: 20
     property int weatherDailyHighTempX: 10
     property int weatherDailyHighTempY: 66
-    property int weatherDailyHighTempHeight: 18
     property int weatherDailyHighTempFontSize: 11
     property int weatherDailyLowTempX: 5
     property int weatherDailyLowTempY: 86
-    property int weatherDailyLowTempHeight: 18
     property int weatherDailyLowTempFontSize: 11
 
     // CPU / system metrics

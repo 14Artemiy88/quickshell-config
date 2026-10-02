@@ -58,7 +58,6 @@ screenshots/
 - `cava`
 - `mpv`
 - `ffmpeg`
-- `lua`
 
 Some dependencies are only required for specific widgets.
 
