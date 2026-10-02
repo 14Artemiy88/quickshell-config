@@ -23,7 +23,15 @@ ShellRoot {
     property string timerCommentFile: ""
     property string timerCommentText: ""
     property string timerFinishedComment: ""
+    property string timerFinishedTitle: ""
     property string timerFinishedColor: Config.text
+    readonly property string timerFinishedImageSource: {
+        var p = String(Config.timerFinishedImagePath || "").trim()
+        if (p === "") return ""
+        if (p.indexOf("~/") === 0) p = Quickshell.env("HOME") + p.slice(1)
+        if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(p)) return p
+        return "file://" + p
+    }
     property string focusedOutputName: ""
     property var focusedOutputScreen: Quickshell.screens[0]
 
@@ -188,9 +196,12 @@ ShellRoot {
             Rectangle {
                 id: timerFinishedCard
                 anchors.centerIn: parent
-                width: 305
-                height: 102
-                color: Config.background
+                readonly property bool imageMode: Config.timerFinishedImageEnabled && shell.timerFinishedImageSource !== ""
+                                width: imageMode ? Math.max(305, Config.timerFinishedImageWidth + Config.timerFinishedImageMargin * 2) : 305
+                height: imageMode
+                    ? timerFinishedImageTitle.y + timerFinishedImageTitle.height + Config.timerFinishedImageMargin + timerFinishedImage.height + Config.timerFinishedImageMargin
+                    : 102
+                color: Config.timerFinishedBackgroundUsesTimerColor ? shell.timerFinishedColor : Config.timerFinishedBackgroundColor
                 focus: true
 
                 Component.onCompleted: forceActiveFocus()
@@ -202,11 +213,42 @@ ShellRoot {
                     }
                 }
                 radius: Config.frameRadius
-                border.color: shell.timerFinishedColor
+                border.color: Config.timerFinishedBorderUsesTimerColor ? shell.timerFinishedColor : Config.baseColor
                 border.width: Config.frameBorderWidth
                 antialiasing: true
 
+                Image {
+                    id: timerFinishedImage
+                    visible: timerFinishedCard.imageMode
+                    source: visible ? shell.timerFinishedImageSource : ""
+                    x: (parent.width - width) / 2
+                    y: timerFinishedImageTitle.y + timerFinishedImageTitle.height + Config.timerFinishedImageMargin
+                    width: Math.min(Config.timerFinishedImageWidth, parent.width - Config.timerFinishedImageMargin * 2)
+                    height: implicitWidth > 0 && implicitHeight > 0 ? width * (implicitHeight / implicitWidth) : 0
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                }
+
                 Text {
+                    id: timerFinishedImageTitle
+                    visible: timerFinishedCard.imageMode
+                    x: Config.timerFinishedImageMargin
+                    y: Config.timerFinishedImageMargin
+                    width: parent.width - Config.timerFinishedImageMargin * 2
+                    height: Math.max(24, Config.timerFinishedTitleFontSize + 4)
+                    text: shell.timerFinishedTitle || "Время вышло"
+                    color: Config.timerFinishedTitleUsesTimerColor ? shell.timerFinishedColor : Config.timerFinishedTitleColor
+                    font.family: Config.timerFinishedTitleFont
+                    font.pixelSize: Config.timerFinishedTitleFontSize
+                    horizontalAlignment: Config.timerFinishedTitleAlignment === 0
+                        ? Text.AlignLeft
+                        : (Config.timerFinishedTitleAlignment === 2 ? Text.AlignRight : Text.AlignHCenter)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    visible: !timerFinishedCard.imageMode
                     x: 12
                     y: 10
                     width: parent.width - 24
@@ -218,6 +260,7 @@ ShellRoot {
                 }
 
                 Text {
+                    visible: !timerFinishedCard.imageMode
                     x: 12
                     y: 39
                     width: parent.width - 24
@@ -230,6 +273,7 @@ ShellRoot {
                 }
 
                 Text {
+                    visible: !timerFinishedCard.imageMode
                     x: 12
                     y: 68
                     width: parent.width - 24
@@ -272,8 +316,9 @@ ShellRoot {
 
     Connections {
         target: timerWidget
-        function onTimerFinished(file, comment, color) {
+        function onTimerFinished(file, comment, color, timerText) {
             shell.timerFinishedComment = comment
+            shell.timerFinishedTitle = String(comment || timerText || "Время вышло")
             shell.timerFinishedColor = color || Config.text
             shell.timerFinishedVisible = true
             focusedOutputProcess.running = true

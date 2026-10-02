@@ -67,6 +67,29 @@ QtObject {
     property int timerButtonFadeDuration: 450
     property int timerButtonSlideDuration: 700
     property int timerButtonIconFadeDuration: 550
+    property string timerIcon: "󰁫"
+    property int timerIconSize: 27
+    property int timerIconX: 8
+    property int timerIconY: 0
+    property string timerAlarmIcon: "󰀠"
+    property int timerAlarmIconSize: 23
+    property int timerAlarmIconX: 45
+    property int timerAlarmIconY: 0
+    property bool timerFinishedImageEnabled: false
+    property string timerFinishedImagePath: ""
+    property bool timerFinishedBorderUsesTimerColor: true
+    property bool timerFinishedBackgroundUsesTimerColor: false
+    property color timerFinishedBackgroundColor: "#4d000000"
+    property int timerFinishedImageWidth: 280
+    property int timerFinishedImageMargin: 10
+    // Legacy aliases kept for settings/profile compatibility.
+    property int timerFinishedImageTopMargin: 10
+    property int timerFinishedImageBottomMargin: 10
+    property bool timerFinishedTitleUsesTimerColor: true
+    property color timerFinishedTitleColor: "#ffffff"
+    property int timerFinishedTitleFontSize: 18
+    property string timerFinishedTitleFont: "JetBrainsMono Nerd Font"
+    property int timerFinishedTitleAlignment: 1
 
     // CPU / RAM tuning
     property int cpuBarThickness: 8

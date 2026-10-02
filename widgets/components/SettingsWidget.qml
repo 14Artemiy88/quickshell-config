@@ -2164,6 +2164,280 @@ Item {
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
+                Text {
+                    visible: root.currentOtherTab === 1
+                    text: "Окно окончания таймера"
+                    color: Config.settingsSubheading
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    StyledCheckBox {
+                        width: 210
+                        height: 30
+                        text: "Показывать изображение"
+                        checked: Config.timerFinishedImageEnabled
+                        onToggled: { Config.timerFinishedImageEnabled = checked; settings.save() }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Путь к изображению"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                    HoverTextField {
+                        id: timerFinishedImagePathField
+                        width: 250
+                        height: 30
+                        enabled: Config.timerFinishedImageEnabled
+                        opacity: enabled ? 1 : 0.55
+                        text: Config.timerFinishedImagePath
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        activeFocusOnTab: true
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedImagePathField.activeFocus || timerFinishedImagePathField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: { Config.timerFinishedImagePath = text.trim(); settings.save() }
+                        Connections { target: Config; function onTimerFinishedImagePathChanged() { timerFinishedImagePathField.text = Config.timerFinishedImagePath } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Ширина изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: timerFinishedImageWidthField
+                        width: 100
+                        height: 30
+                        text: String(Config.timerFinishedImageWidth)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedImageWidthField.activeFocus || timerFinishedImageWidthField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerFinishedImageWidth; n=Math.max(50,Math.min(1200,Math.round(n))); Config.timerFinishedImageWidth=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { timerFinishedImageWidthField.applyValue(Config.timerFinishedImageWidth + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onTimerFinishedImageWidthChanged() { timerFinishedImageWidthField.text=String(Config.timerFinishedImageWidth) } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Отступ изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                    HoverTextField {
+                        id: timerFinishedImageMarginField
+                        width: 100
+                        height: 30
+                        text: String(Config.timerFinishedImageMargin)
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedImageMarginField.activeFocus || timerFinishedImageMarginField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerFinishedImageMargin; n=Math.max(0,Math.min(100,Math.round(n))); Config.timerFinishedImageMargin=n; Config.timerFinishedImageTopMargin=n; Config.timerFinishedImageBottomMargin=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { timerFinishedImageMarginField.applyValue(Config.timerFinishedImageMargin + root.wheelDelta(wheel, 1)); wheel.accepted=true } }
+                        Connections { target: Config; function onTimerFinishedImageMarginChanged() { timerFinishedImageMarginField.text=String(Config.timerFinishedImageMargin) } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverComboBox {
+                        id: timerFinishedTitleColorModeBox
+                        width: 250; height: 30
+                        model: ["Цвет таймера", "Свой цвет"]
+                        currentIndex: Config.timerFinishedTitleUsesTimerColor ? 0 : 1
+                        contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                        onItemChosen: index => { Config.timerFinishedTitleUsesTimerColor = index === 0; settings.save() }
+                        Connections { target: Config; function onTimerFinishedTitleUsesTimerColorChanged() { timerFinishedTitleColorModeBox.currentIndex = Config.timerFinishedTitleUsesTimerColor ? 0 : 1 } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled && !Config.timerFinishedTitleUsesTimerColor
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: timerFinishedTitleColorField
+                        width: 140; height: 30
+                        text: Config.timerFinishedTitleColor
+                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedTitleColorField.activeFocus || timerFinishedTitleColorField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: { var v=text.trim(); if (/^#[0-9a-fA-F]{6,8}$/.test(v) || v === "transparent") { Config.timerFinishedTitleColor=v; text=v; settings.save() } else text=Config.timerFinishedTitleColor }
+                        Connections { target: Config; function onTimerFinishedTitleColorChanged() { timerFinishedTitleColorField.text=Config.timerFinishedTitleColor } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: timerFinishedTitleFontSizeField
+                        width: 100; height: 30
+                        text: String(Config.timerFinishedTitleFontSize)
+                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedTitleFontSizeField.activeFocus || timerFinishedTitleFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerFinishedTitleFontSize; n=Math.max(8,Math.min(72,Math.round(n))); Config.timerFinishedTitleFontSize=n; text=String(n); settings.save() }
+                        onEditingFinished: applyValue(text)
+                        MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerFinishedTitleFontSizeField.applyValue(Config.timerFinishedTitleFontSize+root.wheelDelta(wheel,1)); wheel.accepted=true } }
+                        Connections { target: Config; function onTimerFinishedTitleFontSizeChanged(){ timerFinishedTitleFontSizeField.text=String(Config.timerFinishedTitleFontSize) } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: timerFinishedTitleFontField
+                        width: 250; height: 30
+                        text: Config.timerFinishedTitleFont
+                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedTitleFontField.activeFocus || timerFinishedTitleFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: { Config.timerFinishedTitleFont=text.trim() || Config.timerFinishedTitleFont; text=Config.timerFinishedTitleFont; settings.save() }
+                        Connections { target: Config; function onTimerFinishedTitleFontChanged(){ timerFinishedTitleFontField.text=Config.timerFinishedTitleFont } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && Config.timerFinishedImageEnabled
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                    HoverComboBox {
+                        id: timerFinishedTitleAlignmentBox
+                        width: 250; height: 30
+                        model: ["Слева", "По центру", "Справа"]
+                        currentIndex: Config.timerFinishedTitleAlignment
+                        contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                        onItemChosen: index => { Config.timerFinishedTitleAlignment = index; settings.save() }
+                        Connections { target: Config; function onTimerFinishedTitleAlignmentChanged() { timerFinishedTitleAlignmentBox.currentIndex = Config.timerFinishedTitleAlignment } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Цвет рамки окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverComboBox {
+                        id: timerFinishedBorderColorBox
+                        width: 250
+                        height: 30
+                        model: ["Цвет таймера", "Общие рамки"]
+                        currentIndex: Config.timerFinishedBorderUsesTimerColor ? 0 : 1
+                        contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                        onItemChosen: index => { Config.timerFinishedBorderUsesTimerColor = index === 0; settings.save() }
+                        Connections { target: Config; function onTimerFinishedBorderUsesTimerColorChanged() { timerFinishedBorderColorBox.currentIndex = Config.timerFinishedBorderUsesTimerColor ? 0 : 1 } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Фон окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverComboBox {
+                        id: timerFinishedBackgroundModeBox
+                        width: 250
+                        height: 30
+                        model: ["Свой цвет", "Цвет таймера"]
+                        currentIndex: Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0
+                        contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                        onItemChosen: index => { Config.timerFinishedBackgroundUsesTimerColor = index === 1; settings.save() }
+                        Connections { target: Config; function onTimerFinishedBackgroundUsesTimerColorChanged() { timerFinishedBackgroundModeBox.currentIndex = Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0 } }
+                    }
+                }
+
+                Row {
+                    visible: root.currentOtherTab === 1 && !Config.timerFinishedBackgroundUsesTimerColor
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text { width: 210; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    HoverTextField {
+                        id: timerFinishedBackgroundColorField
+                        width: 140
+                        height: 30
+                        text: Config.timerFinishedBackgroundColor
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        horizontalAlignment: Text.AlignHCenter
+                        activeFocusOnTab: true
+                        background: Rectangle { color: Config.background; border.color: (timerFinishedBackgroundColorField.activeFocus || timerFinishedBackgroundColorField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                        onEditingFinished: {
+                            var v = text.trim()
+                            if (/^#[0-9a-fA-F]{6,8}$/.test(v) || v === "transparent") { Config.timerFinishedBackgroundColor = v; text = v; settings.save() }
+                            else text = Config.timerFinishedBackgroundColor
+                        }
+                        Connections { target: Config; function onTimerFinishedBackgroundColorChanged() { timerFinishedBackgroundColorField.text = Config.timerFinishedBackgroundColor } }
+                    }
+                }
+
+                Text {
+                    visible: root.currentOtherTab === 1
+                    text: "Иконки таймера"
+                    color: Config.settingsSubheading
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                }
+                Column {
+                    visible: root.currentOtherTab === 1
+                    width: parent.width
+                    spacing: 4
+                    Row {
+                        width: parent.width
+                        height: 18
+                        spacing: 8
+                        Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                        Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                        Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                        Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    }
+                    Row {
+                        width: parent.width
+                        height: 30
+                        spacing: 8
+                        HoverTextField { id: timerIconField; width: 58; height: 30; text: Config.timerIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerIconField.activeFocus || timerIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.timerIcon=text; settings.save() } Connections { target: Config; function onTimerIconChanged(){ timerIconField.text=Config.timerIcon } } }
+                        HoverTextField { id: timerIconSizeField; width: 58; height: 30; text: String(Config.timerIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (timerIconSizeField.activeFocus || timerIconSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerIconSize; n=Math.max(8,Math.min(64,Math.round(n))); Config.timerIconSize=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerIconSizeField.applyValue(Config.timerIconSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerIconSizeChanged(){ timerIconSizeField.text=String(Config.timerIconSize) } } }
+                        HoverTextField { id: timerIconXField; width: 58; height: 30; text: String(Config.timerIconX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerIconXField.activeFocus || timerIconXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerIconX; n=Math.max(-100,Math.min(100,Math.round(n))); Config.timerIconX=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerIconXField.applyValue(Config.timerIconX+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerIconXChanged(){ timerIconXField.text=String(Config.timerIconX) } } }
+                        HoverTextField { id: timerIconYField; width: 58; height: 30; text: String(Config.timerIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerIconYField.activeFocus || timerIconYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerIconY; n=Math.max(-100,Math.min(100,Math.round(n))); Config.timerIconY=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerIconYField.applyValue(Config.timerIconY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerIconYChanged(){ timerIconYField.text=String(Config.timerIconY) } } }
+                    }
+                    Row {
+                        width: parent.width
+                        height: 30
+                        spacing: 8
+                        HoverTextField { id: timerAlarmIconField; width: 58; height: 30; text: Config.timerAlarmIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerAlarmIconField.activeFocus || timerAlarmIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.timerAlarmIcon=text; settings.save() } Connections { target: Config; function onTimerAlarmIconChanged(){ timerAlarmIconField.text=Config.timerAlarmIcon } } }
+                        HoverTextField { id: timerAlarmIconSizeField; width: 58; height: 30; text: String(Config.timerAlarmIconSize); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly; background: Rectangle { color: Config.background; border.color: (timerAlarmIconSizeField.activeFocus || timerAlarmIconSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerAlarmIconSize; n=Math.max(8,Math.min(64,Math.round(n))); Config.timerAlarmIconSize=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerAlarmIconSizeField.applyValue(Config.timerAlarmIconSize+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerAlarmIconSizeChanged(){ timerAlarmIconSizeField.text=String(Config.timerAlarmIconSize) } } }
+                        HoverTextField { id: timerAlarmIconXField; width: 58; height: 30; text: String(Config.timerAlarmIconX); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerAlarmIconXField.activeFocus || timerAlarmIconXField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerAlarmIconX; n=Math.max(-100,Math.min(100,Math.round(n))); Config.timerAlarmIconX=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerAlarmIconXField.applyValue(Config.timerAlarmIconX+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerAlarmIconXChanged(){ timerAlarmIconXField.text=String(Config.timerAlarmIconX) } } }
+                        HoverTextField { id: timerAlarmIconYField; width: 58; height: 30; text: String(Config.timerAlarmIconY); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.background; border.color: (timerAlarmIconYField.activeFocus || timerAlarmIconYField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } function applyValue(v){ var n=Number(v); if(!isFinite(n)) n=Config.timerAlarmIconY; n=Math.max(-100,Math.min(100,Math.round(n))); Config.timerAlarmIconY=n; text=String(n); settings.save() } onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerAlarmIconYField.applyValue(Config.timerAlarmIconY+root.wheelDelta(wheel, 1)); wheel.accepted=true } } Connections { target: Config; function onTimerAlarmIconYChanged(){ timerAlarmIconYField.text=String(Config.timerAlarmIconY) } } }
+                    }
+                }
+
                 Row { width: parent.width; height: 30; spacing: 8
                     visible: root.currentOtherTab === 1
                     Text { width: 210; text: "Минимальная высота блока таймеров"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }

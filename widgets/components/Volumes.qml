@@ -22,15 +22,19 @@ Widgets.Frame {
     readonly property int streamCount: streamRepeater.count
     readonly property int effectiveStreamCount: Config.volumeShowStreams ? streamCount : 0
     readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
-    // Exact vertical footprint of the content: configurable top/bottom padding,
-    // configurable main row, and one label + one track row per extra stream.
-    readonly property int adaptiveHeight: Math.min(
-        Config.volumeMaxHeight,
-        Math.max(
-            Config.volumeMinHeight,
-            2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight + effectiveStreamCount * (20 + effectiveStreamRowHeight + Config.volumeStreamSpacing)
+    // When extra streams are hidden, the widget must collapse to the main row
+    // instead of retaining the minimum height/Column spacing reserved for them.
+    readonly property int mainContentHeight: 2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight
+    readonly property int adaptiveHeight: Config.volumeShowStreams
+        ? Math.min(
+            Config.volumeMaxHeight,
+            Math.max(
+                Config.volumeMinHeight,
+                mainContentHeight + effectiveStreamCount * (20 + effectiveStreamRowHeight + Config.volumeStreamSpacing)
+            )
         )
-    )
+        : Math.min(Config.volumeMaxHeight, mainContentHeight)
+    implicitHeight: adaptiveHeight
 
     function acceptBackendVolume(v, muted) {
         if (!isFinite(v)) return
@@ -106,7 +110,7 @@ Widgets.Frame {
         anchors.rightMargin: Config.volumeHorizontalPadding
         anchors.topMargin: Config.volumeVerticalPadding
         anchors.bottomMargin: Config.volumeVerticalPadding
-        spacing: 7
+        spacing: Config.volumeShowStreams ? 7 : 0
 
         Row {
             width: parent.width
@@ -183,11 +187,12 @@ Widgets.Frame {
 
         Repeater {
             id: streamRepeater
-            visible: Config.volumeShowStreams
             model: root.monitor?.data?.volumes ?? []
 
             delegate: Column {
                 id: streamColumn
+                visible: Config.volumeShowStreams
+                height: visible ? implicitHeight : 0
                 width: parent.width
                 spacing: Config.volumeStreamSpacing
                 property real backendValue: Number(modelData.value ?? 0)

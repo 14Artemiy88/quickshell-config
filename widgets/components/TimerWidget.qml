@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import "." as Widgets
 import ".."
 import Quickshell
@@ -10,10 +11,10 @@ Widgets.Frame {
     width: 315
     height: 145
     property var timers: []
-    property bool showButtons: false
+    property int controlsMode: 0 // 0 = icons, 1 = timer presets, 2 = alarm presets
     property string selectedFile: ""
     property var dingState: ({})
-    signal timerFinished(string file, string comment, string color)
+    signal timerFinished(string file, string comment, string color, string timerText)
     readonly property int selectedIndex: {
         if (!selectedFile) return -1
         for (let i = 0; i < timerModel.count; ++i) {
@@ -33,6 +34,41 @@ Widgets.Frame {
         configuredMinHeight,
         14 + visibleTimerCount * timerRowHeight + Math.max(0, visibleTimerCount - 1) * Config.timerRowSpacing
     )
+
+    // Alarm target is kept at minute precision. It starts at the current
+    // minute and can be shifted with the mouse wheel before creating the timer.
+    property date alarmTarget: new Date()
+    property bool alarmTargetAdjusted: false
+    property bool timerIconHovered: false
+    property bool alarmIconHovered: false
+    property bool timerButtonsHovered: false
+    property bool alarmButtonsHovered: false
+    function updateControlsMode() {
+        // The two icon hitboxes are deliberately tiny and mutually exclusive.
+        // Buttons stay active while the pointer is over their own row.
+        if (alarmButtonsHovered || alarmIconHovered) controlsMode = 2
+        else if (timerButtonsHovered || timerIconHovered) controlsMode = 1
+        else controlsMode = 0
+    }
+    property string alarmTargetText: {
+        const h = alarmTarget.getHours().toString().padStart(2, "0")
+        const m = alarmTarget.getMinutes().toString().padStart(2, "0")
+        return h + ":" + m
+    }
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            // Keep the default target synchronized with the current minute
+            // until the user actually changes it with the wheel.
+            if (!root.alarmTargetAdjusted) {
+                const now = new Date()
+                root.alarmTarget = now
+            }
+        }
+    }
 
     ListModel {
         id: timerModel
@@ -81,7 +117,7 @@ Widgets.Frame {
             const wasKnown = Object.prototype.hasOwnProperty.call(root.dingState, item.file)
             const wasDing = wasKnown ? !!root.dingState[item.file] : false
             if (isDing && wasKnown && !wasDing) {
-                root.timerFinished(item.file, String(item.comment || ""), String(item.color || Config.text))
+                root.timerFinished(item.file, String(item.comment || ""), String(item.color || Config.text), String(item.timer || ""))
             }
             root.dingState[item.file] = isDing
         }
@@ -121,48 +157,147 @@ Widgets.Frame {
 
     Item {
         id: setButtons
-        // Presets stay at the left; the active
-        // timer values remain anchored to the right side independently.
         x: 0
         y: 0
-        width: Math.min(parent.width - 100, Math.max(125, 16 + Settings.timerPresets.length * 33 + Math.max(0, Settings.timerPresets.length - 1) * 7))
+        width: parent.width
         height: parent.height
         clip: true
         z: 20
 
-        HoverHandler {
-            onHoveredChanged: root.showButtons = hovered
+        // One permanent hover/click area for both icons. The previous versions
+        // used two independent MouseAreas/handlers; when the controls replaced
+        // the icons, their hover state could conflict and the alarm zone would
+        // fall back to timer controls. Here the pointer is classified by X,
+        // with the alarm zone taking precedence when the two settings overlap.
+        MouseArea {
+            id: iconInteraction
+            z: 5
+            property int minX: Math.min(Config.timerIconX, Config.timerAlarmIconX)
+            property int maxX: Math.max(Config.timerIconX + 30, Config.timerAlarmIconX + 30)
+            x: minX
+            y: (parent.height - height) / 2 + Math.min(Config.timerIconY, Config.timerAlarmIconY)
+            width: Math.max(30, maxX - minX)
+            height: 33 + Math.abs(Config.timerIconY - Config.timerAlarmIconY)
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton
+            property int hoverZone: 0 // 0 = none, 1 = timer, 2 = alarm
+
+            function zoneAt(localX, localY) {
+                const timerStartX = Config.timerIconX - minX
+                const alarmStartX = Config.timerAlarmIconX - minX
+                const timerStartY = Config.timerIconY - Math.min(Config.timerIconY, Config.timerAlarmIconY)
+                const alarmStartY = Config.timerAlarmIconY - Math.min(Config.timerIconY, Config.timerAlarmIconY)
+                const inTimer = localX >= timerStartX && localX < timerStartX + 30
+                    && localY >= timerStartY && localY < timerStartY + 33
+                const inAlarm = localX >= alarmStartX && localX < alarmStartX + 30
+                    && localY >= alarmStartY && localY < alarmStartY + 33
+                if (inAlarm) return 2
+                if (inTimer) return 1
+                return 0
+            }
+
+            function updateZone(localX, localY) {
+                const zone = zoneAt(localX, localY)
+                if (zone === hoverZone) return
+                hoverZone = zone
+                if (zone === 2) root.controlsMode = 2
+                else if (zone === 1) root.controlsMode = 1
+                else if (root.controlsMode !== 2 && root.controlsMode !== 1) root.controlsMode = 0
+            }
+
+            onEntered: updateZone(mouseX, mouseY)
+            onPositionChanged: updateZone(mouseX, mouseY)
+            onExited: {
+                hoverZone = 0
+                // Do not immediately hide buttons here: the pointer can move
+                // from the icon into the corresponding button row. The row's
+                // own HoverHandler will return the controls to icon mode only
+                // after the pointer really leaves the controls.
+            }
+
+            onClicked: mouse => {
+                if (hoverZone !== 2) return
+                const now = new Date()
+                let target = new Date(root.alarmTarget.getTime())
+                target.setSeconds(0, 0)
+                if (target.getTime() <= now.getTime())
+                    target.setDate(target.getDate() + 1)
+                const hh = target.getHours().toString().padStart(2, "0")
+                const mm = target.getMinutes().toString().padStart(2, "0")
+                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
+                root.alarmTargetAdjusted = false
+                root.alarmTarget = new Date()
+            }
+
+            onWheel: wheel => {
+                if (hoverZone !== 2) {
+                    wheel.accepted = false
+                    return
+                }
+                const direction = wheel.angleDelta.y > 0 ? 1 : -1
+                const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                const target = new Date(root.alarmTarget.getTime())
+                target.setMinutes(target.getMinutes() + direction * multiplier)
+                target.setSeconds(0, 0)
+                root.alarmTarget = target
+                root.alarmTargetAdjusted = true
+                wheel.accepted = true
+            }
         }
 
         Text {
-            x: 10
+            id: timerIcon
+            x: Config.timerIconX
+            y: (parent.height - height) / 2 + Config.timerIconY
             width: 30
             height: 33
-            anchors.verticalCenter: parent.verticalCenter
-            text: "󰁫"
+            text: Config.timerIcon
             color: Config.text
-            font.pixelSize: 27
-            opacity: root.showButtons ? 0 : 1
+            font.pixelSize: Config.timerIconSize
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            opacity: root.controlsMode === 0 ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
+        }
+
+        Text {
+            id: alarmIcon
+            x: Config.timerAlarmIconX
+            y: (parent.height - height) / 2 + Config.timerAlarmIconY
+            width: 30
+            height: 33
+            text: Config.timerAlarmIcon
+            color: Config.text
+            font.pixelSize: Config.timerAlarmIconSize
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            opacity: root.controlsMode === 0 ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
         }
 
         Flickable {
+            id: timerButtons
+            z: 20
+            enabled: root.controlsMode === 1
             x: 8
             width: parent.width - 16
-            height: parent.height
+            height: 33
+            anchors.verticalCenter: parent.verticalCenter
             contentWidth: Math.max(width, 8 + Settings.timerPresets.length * 33 + Math.max(0, Settings.timerPresets.length - 1) * 7)
-            contentHeight: parent.height
+            contentHeight: 33
             clip: true
             interactive: contentWidth > width
             boundsBehavior: Flickable.StopAtBounds
-            opacity: root.showButtons ? 1 : 0
+            opacity: root.controlsMode === 1 ? 1 : 0
             transform: Translate {
-                id: buttonSlide
-                x: root.showButtons ? 0 : -18
+                x: root.controlsMode === 1 ? 0 : -18
                 Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration, "movement"); easing.type: Config.easingType() } }
             }
             Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration, "appearance"); easing.type: Config.easingType() } }
-
+            HoverHandler {
+                enabled: root.controlsMode === 1
+                onHoveredChanged: if (!hovered && root.controlsMode === 1) root.controlsMode = 0
+            }
             Row {
                 spacing: 7
                 anchors.verticalCenter: parent.verticalCenter
@@ -192,6 +327,134 @@ Widgets.Frame {
                                 Settings.adjustTimerPreset(index, direction * Config.timerWheelStep * multiplier)
                                 wheel.accepted = true
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: alarmButtons
+            z: 20
+            enabled: root.controlsMode === 2
+            x: 8
+            width: parent.width - 16
+            height: 33
+            anchors.verticalCenter: parent.verticalCenter
+            opacity: root.controlsMode === 2 ? 1 : 0
+            transform: Translate {
+                x: root.controlsMode === 2 ? 0 : -18
+                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration, "movement"); easing.type: Config.easingType() } }
+            }
+            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration, "appearance"); easing.type: Config.easingType() } }
+
+            HoverHandler {
+                enabled: root.controlsMode === 2
+                onHoveredChanged: if (!hovered && root.controlsMode === 2) root.controlsMode = 0
+            }
+
+            Row {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 5
+
+                Rectangle {
+                    id: alarmHourBox
+                    width: 33
+                    height: 33
+                    radius: 7
+                    color: Config.background
+                    border.color: Config.baseColor
+                    border.width: 1
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.alarmTarget.getHours().toString().padStart(2, "0")
+                        color: Config.textDim
+                        font.family: Config.settingsFont
+                        font.pixelSize: 11
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        onClicked: {
+                            const target = new Date(root.alarmTarget.getTime())
+                            target.setSeconds(0, 0)
+                            const now = new Date()
+                            if (target.getTime() <= now.getTime())
+                                target.setDate(target.getDate() + 1)
+                            const hh = target.getHours().toString().padStart(2, "0")
+                            const mm = target.getMinutes().toString().padStart(2, "0")
+                            Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
+                            root.alarmTargetAdjusted = false
+                            root.alarmTarget = new Date()
+                        }
+                        onWheel: wheel => {
+                            const direction = wheel.angleDelta.y > 0 ? 1 : -1
+                            const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                            const target = new Date(root.alarmTarget.getTime())
+                            target.setHours(target.getHours() + direction * multiplier)
+                            target.setSeconds(0, 0)
+                            root.alarmTarget = target
+                            root.alarmTargetAdjusted = true
+                            wheel.accepted = true
+                        }
+                    }
+                }
+
+                Text {
+                    width: 8
+                    height: 33
+                    text: ":"
+                    color: Config.textDim
+                    font.family: Config.settingsFont
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Rectangle {
+                    id: alarmMinuteBox
+                    width: 33
+                    height: 33
+                    radius: 7
+                    color: Config.background
+                    border.color: Config.baseColor
+                    border.width: 1
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.alarmTarget.getMinutes().toString().padStart(2, "0")
+                        color: Config.textDim
+                        font.family: Config.settingsFont
+                        font.pixelSize: 11
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        onClicked: {
+                            const target = new Date(root.alarmTarget.getTime())
+                            target.setSeconds(0, 0)
+                            const now = new Date()
+                            if (target.getTime() <= now.getTime())
+                                target.setDate(target.getDate() + 1)
+                            const hh = target.getHours().toString().padStart(2, "0")
+                            const mm = target.getMinutes().toString().padStart(2, "0")
+                            Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
+                            root.alarmTargetAdjusted = false
+                            root.alarmTarget = new Date()
+                        }
+                        onWheel: wheel => {
+                            const direction = wheel.angleDelta.y > 0 ? 1 : -1
+                            const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                            const target = new Date(root.alarmTarget.getTime())
+                            target.setMinutes(target.getMinutes() + direction * multiplier)
+                            target.setSeconds(0, 0)
+                            root.alarmTarget = target
+                            root.alarmTargetAdjusted = true
+                            wheel.accepted = true
                         }
                     }
                 }

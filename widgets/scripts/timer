@@ -117,6 +117,25 @@ timer_delete() {
     rm -f "$1"
 }
 
+timer_add_at() {
+    local target="$1"
+    [[ "$target" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || return 1
+
+    [[ ! -d "$IMG_PATH" ]] && mkdir -p "$IMG_PATH"
+    [[ ! -d "$TIMER_DIR" ]] && mkdir -p "$TIMER_DIR"
+
+    local now target_epoch delta minutes file
+    now=$(date '+%s')
+    target_epoch=$(date -d "today $target" '+%s') || return 1
+    if (( target_epoch <= now )); then
+        target_epoch=$(date -d "tomorrow $target" '+%s') || return 1
+    fi
+    delta=$((target_epoch - now))
+    minutes=$(( (delta + 59) / 60 ))
+    file="$TIMER_DIR/${now}_$RANDOM"
+    echo "$minutes $target_epoch 0 $(get_color) 0 $target" > "$file"
+}
+
 timer_add() {
 	# Создание всех необходимых директорий при старте оболочки
 	[[ ! -d "$IMG_PATH" ]] && mkdir -p "$IMG_PATH"
@@ -237,6 +256,7 @@ write_timer_file() {
 # Главная логика
 case "$1" in
     add)          timer_add "$2" "$3";;
+    add_at)       timer_add_at "$2";;
     up)           timer_up "$2";;
     down)         timer_down "$2";;
     delete)       timer_delete "$2";;

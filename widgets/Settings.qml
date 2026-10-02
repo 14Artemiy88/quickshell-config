@@ -96,6 +96,28 @@ QtObject {
         timerButtonFadeDuration: 450,
         timerButtonSlideDuration: 700,
         timerButtonIconFadeDuration: 550,
+        timerIcon: "󰁫",
+        timerIconSize: 27,
+        timerIconX: 8,
+        timerIconY: 0,
+        timerAlarmIcon: "󰀠",
+        timerAlarmIconSize: 23,
+        timerAlarmIconX: 45,
+        timerAlarmIconY: 0,
+        timerFinishedImageEnabled: false,
+        timerFinishedImagePath: "",
+        timerFinishedBorderUsesTimerColor: true,
+        timerFinishedBackgroundUsesTimerColor: false,
+        timerFinishedBackgroundColor: "#4d000000",
+        timerFinishedImageWidth: 280,
+        timerFinishedImageMargin: 10,
+        timerFinishedImageTopMargin: 10,
+        timerFinishedImageBottomMargin: 10,
+        timerFinishedTitleUsesTimerColor: true,
+        timerFinishedTitleColor: "#ffffff",
+        timerFinishedTitleFontSize: 18,
+        timerFinishedTitleFont: "JetBrainsMono Nerd Font",
+        timerFinishedTitleAlignment: 1,
         playerSilenceFontSize: 57,
         playerTextOutlineEnabled: false,
         playerTextOutlineColor: "#000000",
@@ -299,6 +321,24 @@ QtObject {
         if (o.playerPlayingIcon !== undefined) Config.playerPlayingIcon = String(o.playerPlayingIcon)
         if (o.playerPausedIcon !== undefined) Config.playerPausedIcon = String(o.playerPausedIcon)
         if (o.playerNextIcon !== undefined) Config.playerNextIcon = String(o.playerNextIcon)
+        if (o.timerIcon !== undefined) Config.timerIcon = String(o.timerIcon)
+        if (o.timerAlarmIcon !== undefined) Config.timerAlarmIcon = String(o.timerAlarmIcon)
+        if (o.timerFinishedImageEnabled !== undefined) Config.timerFinishedImageEnabled = !!o.timerFinishedImageEnabled
+        if (o.timerFinishedImagePath !== undefined) Config.timerFinishedImagePath = String(o.timerFinishedImagePath)
+        if (o.timerFinishedBorderUsesTimerColor !== undefined) Config.timerFinishedBorderUsesTimerColor = !!o.timerFinishedBorderUsesTimerColor
+        if (o.timerFinishedBackgroundUsesTimerColor !== undefined) Config.timerFinishedBackgroundUsesTimerColor = !!o.timerFinishedBackgroundUsesTimerColor
+        if (o.timerFinishedBackgroundColor !== undefined) Config.timerFinishedBackgroundColor = String(o.timerFinishedBackgroundColor)
+        if (o.timerFinishedImageWidth !== undefined) { var tiw = Number(o.timerFinishedImageWidth); if (isFinite(tiw)) Config.timerFinishedImageWidth = Math.max(50, Math.min(1200, Math.round(tiw))) }
+        if (o.timerFinishedImageMargin !== undefined) { var tim = Number(o.timerFinishedImageMargin); if (isFinite(tim)) { tim = Math.max(0, Math.min(100, Math.round(tim))); Config.timerFinishedImageMargin = tim; Config.timerFinishedImageTopMargin = tim; Config.timerFinishedImageBottomMargin = tim } }
+        else {
+            var legacyTim = o.timerFinishedImageTopMargin !== undefined ? Number(o.timerFinishedImageTopMargin) : (o.timerFinishedImageBottomMargin !== undefined ? Number(o.timerFinishedImageBottomMargin) : NaN)
+            if (isFinite(legacyTim)) { legacyTim = Math.max(0, Math.min(100, Math.round(legacyTim))); Config.timerFinishedImageMargin = legacyTim; Config.timerFinishedImageTopMargin = legacyTim; Config.timerFinishedImageBottomMargin = legacyTim }
+        }
+        if (o.timerFinishedTitleUsesTimerColor !== undefined) Config.timerFinishedTitleUsesTimerColor = !!o.timerFinishedTitleUsesTimerColor
+        if (o.timerFinishedTitleColor !== undefined) Config.timerFinishedTitleColor = String(o.timerFinishedTitleColor)
+        if (o.timerFinishedTitleFontSize !== undefined) { var ttfs = Number(o.timerFinishedTitleFontSize); if (isFinite(ttfs)) Config.timerFinishedTitleFontSize = Math.max(8, Math.min(72, Math.round(ttfs))) }
+        if (o.timerFinishedTitleFont !== undefined) Config.timerFinishedTitleFont = String(o.timerFinishedTitleFont)
+        if (o.timerFinishedTitleAlignment !== undefined) { var tta = Number(o.timerFinishedTitleAlignment); if (isFinite(tta)) Config.timerFinishedTitleAlignment = Math.max(0, Math.min(2, Math.round(tta))) }
         if (o.playerPlayingIconY !== undefined) Config.playerPlayingIconY = Number(o.playerPlayingIconY)
         if (o.playerPausedIconY !== undefined) Config.playerPausedIconY = Number(o.playerPausedIconY)
         if (o.playerNextIconY !== undefined) Config.playerNextIconY = Number(o.playerNextIconY)
@@ -435,6 +475,8 @@ QtObject {
         var timerNumberFields = [
             ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
             ["timerCommentMaxLength", 1, 30], ["timerCommentGap", 0, 40], ["timerRowSpacing", 0, 50],
+            ["timerIconSize", 8, 64], ["timerIconX", -100, 100], ["timerIconY", -100, 100],
+            ["timerAlarmIconSize", 8, 64], ["timerAlarmIconX", -100, 100], ["timerAlarmIconY", -100, 100],
             ["timerRowTopMargin", 0, 50], ["timerRowRightMargin", 0, 50],
             ["timerButtonFadeDuration", 0, 5000], ["timerButtonSlideDuration", 0, 5000],
             ["timerButtonIconFadeDuration", 0, 5000]
@@ -890,6 +932,8 @@ QtObject {
         } else if (moduleName === "timer") {
             applyConfigKeysFromProfile(profile, [
                 "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowSpacing",
+                "timerIcon", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY",
+                "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedImageTopMargin", "timerFinishedImageBottomMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment",
                 "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration",
                 "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"
             ])
@@ -965,7 +1009,7 @@ QtObject {
 
     function resetTimerSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowSpacing", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+        applyConfigKeysFromProfile(profile, ["timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowSpacing", "timerIcon", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedImageTopMargin", "timerFinishedImageBottomMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
         if (profile.timerPresetDefaults !== undefined) timerPresetDefaults = (profile.timerPresetDefaults || []).slice()
         else if (profile.timerPresets !== undefined) timerPresetDefaults = (profile.timerPresets || []).slice()
         timerPresets = timerPresetDefaults.slice()
@@ -1038,6 +1082,12 @@ QtObject {
             timerRowSpacing: Config.timerRowSpacing,
             timerRowTopMargin: Config.timerRowTopMargin, timerRowRightMargin: Config.timerRowRightMargin,
             timerButtonFadeDuration: Config.timerButtonFadeDuration, timerButtonSlideDuration: Config.timerButtonSlideDuration, timerButtonIconFadeDuration: Config.timerButtonIconFadeDuration,
+            timerIcon: Config.timerIcon, timerIconSize: Config.timerIconSize, timerIconX: Config.timerIconX, timerIconY: Config.timerIconY,
+            timerAlarmIcon: Config.timerAlarmIcon, timerAlarmIconSize: Config.timerAlarmIconSize, timerAlarmIconX: Config.timerAlarmIconX, timerAlarmIconY: Config.timerAlarmIconY,
+            timerFinishedImageEnabled: Config.timerFinishedImageEnabled, timerFinishedImagePath: Config.timerFinishedImagePath,
+            timerFinishedBorderUsesTimerColor: Config.timerFinishedBorderUsesTimerColor, timerFinishedBackgroundUsesTimerColor: Config.timerFinishedBackgroundUsesTimerColor, timerFinishedBackgroundColor: Config.timerFinishedBackgroundColor,
+            timerFinishedImageWidth: Config.timerFinishedImageWidth, timerFinishedImageMargin: Config.timerFinishedImageMargin, timerFinishedImageTopMargin: Config.timerFinishedImageMargin, timerFinishedImageBottomMargin: Config.timerFinishedImageMargin,
+            timerFinishedTitleUsesTimerColor: Config.timerFinishedTitleUsesTimerColor, timerFinishedTitleColor: Config.timerFinishedTitleColor, timerFinishedTitleFontSize: Config.timerFinishedTitleFontSize, timerFinishedTitleFont: Config.timerFinishedTitleFont, timerFinishedTitleAlignment: Config.timerFinishedTitleAlignment,
             playerSilenceFontSize: Config.playerSilenceFontSize, playerSilenceLongFontSize: Config.playerSilenceLongFontSize, playerMetaFontSize: Config.playerMetaFontSize,
             playerTextOutlineEnabled: Config.playerTextOutlineEnabled, playerTextOutlineColor: Config.playerTextOutlineColor,
             playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
