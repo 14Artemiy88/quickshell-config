@@ -119,10 +119,10 @@ Widgets.Frame {
     }
     Text {
         id: pauseButton
-        x: Config.playerControlTopMargin; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
+        x: Config.playerControlTopMargin; y: Config.playerControlTopMargin + (root.player.status === "\uF04C" ? Config.playerPlayingIconY : Config.playerPausedIconY); width: (root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize) + 2; height: (root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize) + 2
         text: root.player.status === "\uF04C" ? Config.playerPlayingIcon : (root.player.status === "\uF04B" ? Config.playerPausedIcon : (root.player.status || ""))
         color: Config.text
-        font.pixelSize: Config.playerControlIconSize
+        font.pixelSize: root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
@@ -140,10 +140,10 @@ Widgets.Frame {
 
     MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", root.player.player || ""]) }
     Text {
-        x: Config.playerControlTopMargin + Config.playerControlIconSize + Config.playerControlGap; y: Config.playerControlTopMargin; width: Config.playerControlIconSize + 2; height: Config.playerControlIconSize + 2
+        x: Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap; y: Config.playerControlTopMargin + Config.playerNextIconY; width: Config.playerNextIconSize + 2; height: Config.playerNextIconSize + 2
         text: Config.playerNextIcon
         color: Config.text
-        font.pixelSize: Config.playerControlIconSize
+        font.pixelSize: Config.playerNextIconSize
         visible: !!root.player.player
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

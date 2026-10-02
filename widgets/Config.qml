@@ -61,6 +61,7 @@ QtObject {
     property int timerCommentWidth: 90
     property int timerCommentMaxLength: 10
     property int timerCommentGap: 14
+    property int timerRowSpacing: 0
     property int timerRowTopMargin: 10
     property int timerRowRightMargin: 10
     property int timerButtonFadeDuration: 450
@@ -121,6 +122,12 @@ QtObject {
     property bool playerBoldArtist: true
     property bool playerShowProgress: true
     property int playerControlIconSize: 22
+    property int playerPlayingIconSize: 22
+    property int playerPausedIconSize: 22
+    property int playerNextIconSize: 22
+    property int playerPlayingIconY: 0
+    property int playerPausedIconY: 0
+    property int playerNextIconY: 0
     property string playerPlayingIcon: "\uF04C"
     property string playerPausedIcon: "\uF04B"
     property string playerNextIcon: "󰒭"
@@ -158,7 +165,11 @@ QtObject {
     property int weatherTempColumnWidth: 100
     property int weatherTempX: 10
     property int weatherTempWidth: 90
+    property int weatherTempOffsetX: 0
+    property int weatherTempOffsetY: 0
     property int weatherComfortY: 39
+    property int weatherComfortOffsetX: 0
+    property int weatherComfortOffsetY: 0
     property int weatherComfortHeight: 35
     property int weatherWindColumnWidth: 120
     property int weatherWindArrowWidth: 17

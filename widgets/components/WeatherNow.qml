@@ -12,6 +12,7 @@ Widgets.Frame {
     property var weatherService: null
     property bool hasData: weather && Object.keys(weather).length > 0
     property string statusMessage: weatherService ? weatherService.nowStatusMessage : "Погода недоступна"
+    signal settingsRequested()
 
     function windAngle(scale) {
         const n = Number(scale || 0)
@@ -25,8 +26,8 @@ Widgets.Frame {
         height: parent.height
 
         Text {
-            x: Config.weatherTempX
-            y: 0
+            x: Config.weatherTempX + Config.weatherTempOffsetX
+            y: Config.weatherTempOffsetY
             width: Config.weatherTempWidth
             height: 55
             text: root.weather.temperature?.air?.C ?? ""
@@ -36,11 +37,12 @@ Widgets.Frame {
             lineHeight: 55
             lineHeightMode: Text.FixedHeight
             verticalAlignment: Text.AlignTop
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
-            x: Config.weatherTempX
-            y: Config.weatherComfortY
+            x: Config.weatherTempX + Config.weatherComfortOffsetX
+            y: Config.weatherComfortY + Config.weatherComfortOffsetY
             width: Config.weatherTempWidth
             height: Config.weatherComfortHeight
             text: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
@@ -51,12 +53,13 @@ Widgets.Frame {
             lineHeight: Config.weatherComfortHeight
             lineHeightMode: Text.FixedHeight
             verticalAlignment: Text.AlignTop
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
     Image {
         visible: root.hasData
-        anchors.horizontalCenter: parent.horizontalCenter
+        x: (Config.weatherTempColumnWidth + Config.weatherWindColumnX - width) / 2
         y: Config.weatherIconY
         width: Config.weatherIconSize
         height: Config.weatherIconSize
@@ -174,6 +177,7 @@ Widgets.Frame {
         visible: !root.hasData
         message: root.statusMessage
         weatherService: root.weatherService
+        onSettingsRequested: root.settingsRequested()
     }
 
     MouseArea {

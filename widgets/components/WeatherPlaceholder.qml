@@ -8,6 +8,8 @@ Item {
     property string message: "Погода недоступна"
     property var weatherService: null
     property bool retryLocked: !!(weatherService && weatherService.manualRefreshCoolingDown)
+    property bool tokenMissing: !String(Settings.weatherToken || "").trim()
+    signal settingsRequested()
 
     Column {
         anchors.centerIn: parent
@@ -27,8 +29,8 @@ Item {
         Button {
             id: refreshButton
             anchors.horizontalCenter: parent.horizontalCenter
-            enabled: root.weatherService !== null && !root.retryLocked
-            text: root.retryLocked ? ("↻  Подожди " + weatherService.manualCooldownRemaining + "с") : "↻  Обновить"
+            enabled: root.tokenMissing || (root.weatherService !== null && !root.retryLocked)
+            text: root.tokenMissing ? "⚙  Настроить погоду" : (root.retryLocked ? ("↻  Подожди " + weatherService.manualCooldownRemaining + "с") : "↻  Обновить")
             font.family: Config.font
             font.pixelSize: Config.uiFontSize(11)
             contentItem: Text {
@@ -46,8 +48,11 @@ Item {
                 radius: Config.radius
             }
             onClicked: {
-                if (root.weatherService)
+                if (root.tokenMissing) {
+                    root.settingsRequested()
+                } else if (root.weatherService) {
                     root.weatherService.manualRefresh()
+                }
             }
         }
     }

@@ -12,6 +12,8 @@ Widgets.Frame {
     property var timers: []
     property bool showButtons: false
     property string selectedFile: ""
+    property var dingState: ({})
+    signal timerFinished(string file, string comment, string color)
     readonly property int selectedIndex: {
         if (!selectedFile) return -1
         for (let i = 0; i < timerModel.count; ++i) {
@@ -29,11 +31,19 @@ Widgets.Frame {
     }
     readonly property int adaptiveHeight: Math.max(
         configuredMinHeight,
-        14 + visibleTimerCount * timerRowHeight
+        14 + visibleTimerCount * timerRowHeight + Math.max(0, visibleTimerCount - 1) * Config.timerRowSpacing
     )
 
     ListModel {
         id: timerModel
+    }
+
+    function commentForFile(file) {
+        for (let i = 0; i < timerModel.count; ++i) {
+            if (timerModel.get(i).file === file)
+                return String(timerModel.get(i).comment || "")
+        }
+        return ""
     }
 
     function syncTimerModel(items) {
@@ -59,10 +69,30 @@ Widgets.Frame {
             if (found < 0) timerModel.append(item)
             else {
                 const current = timerModel.get(found)
-                for (const key of ["file", "comment", "timer", "color", "sign", "time_passed"]) {
+                for (const key of ["file", "comment", "timer", "color", "sign", "time_passed", "ding"]) {
                     if (current[key] !== item[key]) timerModel.setProperty(found, key, item[key])
                 }
             }
+
+            // The daemon marks a timer as dinged exactly once. Suppress a
+            // notification for timers that were already finished when the
+            // widget was started, but notify on a live transition to ding=1.
+            const isDing = !!item.ding
+            const wasKnown = Object.prototype.hasOwnProperty.call(root.dingState, item.file)
+            const wasDing = wasKnown ? !!root.dingState[item.file] : false
+            if (isDing && wasKnown && !wasDing) {
+                root.timerFinished(item.file, String(item.comment || ""), String(item.color || Config.text))
+            }
+            root.dingState[item.file] = isDing
+        }
+
+        // Drop notification state for timers that no longer exist.
+        for (const file in root.dingState) {
+            let exists = false
+            for (let j = 0; j < visible.length; ++j) {
+                if (visible[j].file === file) { exists = true; break }
+            }
+            if (!exists) delete root.dingState[file]
         }
 
         // Keep server order. Reorder only when the file sequence actually changed.
@@ -183,7 +213,7 @@ Widgets.Frame {
             anchors.topMargin: Config.timerRowTopMargin
             anchors.rightMargin: Config.timerRowRightMargin
             width: parent.width - anchors.leftMargin - anchors.rightMargin
-            spacing: 0
+            spacing: Config.timerRowSpacing
 
             Repeater {
                 model: timerModel

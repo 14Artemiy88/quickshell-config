@@ -90,6 +90,7 @@ QtObject {
         timerCommentWidth: 90,
         timerCommentMaxLength: 10,
         timerCommentGap: 18,
+        timerRowSpacing: 0,
         timerRowTopMargin: 10,
         timerRowRightMargin: 10,
         timerButtonFadeDuration: 450,
@@ -105,6 +106,12 @@ QtObject {
         playerBoldArtist: true,
         playerShowProgress: true,
         playerControlIconSize: 16,
+        playerPlayingIconSize: 16,
+        playerPausedIconSize: 16,
+        playerNextIconSize: 16,
+        playerPlayingIconY: 0,
+        playerPausedIconY: 0,
+        playerNextIconY: 0,
         playerPlayingIcon: "\uF04C",
         playerPausedIcon: "\uF04B",
         playerNextIcon: "󰒭",
@@ -140,7 +147,11 @@ QtObject {
         weatherTempColumnWidth: 100,
         weatherTempX: 10,
         weatherTempWidth: 90,
+        weatherTempOffsetX: 0,
+        weatherTempOffsetY: 0,
         weatherComfortY: 39,
+        weatherComfortOffsetX: 0,
+        weatherComfortOffsetY: 0,
         weatherComfortHeight: 35,
         weatherWindColumnWidth: 120,
         weatherWindArrowWidth: 17,
@@ -288,6 +299,9 @@ QtObject {
         if (o.playerPlayingIcon !== undefined) Config.playerPlayingIcon = String(o.playerPlayingIcon)
         if (o.playerPausedIcon !== undefined) Config.playerPausedIcon = String(o.playerPausedIcon)
         if (o.playerNextIcon !== undefined) Config.playerNextIcon = String(o.playerNextIcon)
+        if (o.playerPlayingIconY !== undefined) Config.playerPlayingIconY = Number(o.playerPlayingIconY)
+        if (o.playerPausedIconY !== undefined) Config.playerPausedIconY = Number(o.playerPausedIconY)
+        if (o.playerNextIconY !== undefined) Config.playerNextIconY = Number(o.playerNextIconY)
 
         // General behaviour / update intervals
         if (o.animationsEnabled !== undefined) Config.animationsEnabled = !!o.animationsEnabled
@@ -345,6 +359,10 @@ QtObject {
             if (isFinite(wrc)) Config.weatherManualRefreshCooldownSeconds = Math.max(5, Math.min(3600, Math.round(wrc)))
         }
 
+        if (o.timerRowSpacing !== undefined) {
+            var trs = Number(o.timerRowSpacing)
+            if (isFinite(trs)) Config.timerRowSpacing = Math.max(0, Math.min(50, Math.round(trs)))
+        }
         if (o.timerMinHeight !== undefined) {
             var tmh = Number(o.timerMinHeight)
             if (isFinite(tmh)) Config.timerMinHeight = Math.max(30, Math.min(1000, Math.round(tmh)))
@@ -416,7 +434,7 @@ QtObject {
         // Timer tuning
         var timerNumberFields = [
             ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
-            ["timerCommentMaxLength", 1, 30], ["timerCommentGap", 0, 40],
+            ["timerCommentMaxLength", 1, 30], ["timerCommentGap", 0, 40], ["timerRowSpacing", 0, 50],
             ["timerRowTopMargin", 0, 50], ["timerRowRightMargin", 0, 50],
             ["timerButtonFadeDuration", 0, 5000], ["timerButtonSlideDuration", 0, 5000],
             ["timerButtonIconFadeDuration", 0, 5000]
@@ -434,6 +452,8 @@ QtObject {
             ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
             ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],
             ["playerMetaLineSpacing", 0, 100], ["playerControlIconSize", 8, 64],
+            ["playerPlayingIconSize", 8, 64], ["playerPausedIconSize", 8, 64], ["playerNextIconSize", 8, 64],
+            ["playerPlayingIconY", -100, 100], ["playerPausedIconY", -100, 100], ["playerNextIconY", -100, 100],
             ["playerMetadataXPadding", 0, 100], ["playerMetadataY", 0, 100], ["playerProgressY", 0, 100],
             ["playerProgressTrackHeight", 1, 20], ["playerControlTopMargin", 0, 100],
             ["playerControlGap", 0, 100], ["playerTimeFontSize", 8, 48],
@@ -470,7 +490,8 @@ QtObject {
             ["weatherDescriptionY", 0, 120], ["weatherDescriptionFontSize", 6, 48],
             ["weatherTempFontSize", 12, 96], ["weatherComfortFontSize", 8, 72],
             ["weatherTempColumnWidth", 40, 200], ["weatherTempX", 0, 200], ["weatherTempWidth", 20, 200],
-            ["weatherComfortY", -20, 100], ["weatherComfortHeight", 10, 100], ["weatherWindColumnWidth", 60, 300],
+            ["weatherTempOffsetX", -100, 100], ["weatherTempOffsetY", -100, 100],
+            ["weatherComfortY", -20, 100], ["weatherComfortOffsetX", -100, 100], ["weatherComfortOffsetY", -100, 100], ["weatherComfortHeight", 10, 100], ["weatherWindColumnWidth", 60, 300],
             ["weatherWindArrowWidth", 8, 50], ["weatherWindArrowHeight", 15, 80],
             ["weatherWindSpeedX", 0, 250], ["weatherWindSpeedY", -20, 80], ["weatherWindSpeedWidth", 20, 150],
             ["weatherWindUnitX", 0, 300], ["weatherWindUnitY", -20, 80], ["weatherWindUnitWidth", 10, 120],
@@ -852,7 +873,7 @@ QtObject {
                 "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize",
                 "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize",
                 "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX",
-                "weatherTempWidth", "weatherComfortY", "weatherComfortHeight", "weatherWindColumnWidth",
+                "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth",
                 "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX",
                 "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY",
                 "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize",
@@ -868,7 +889,7 @@ QtObject {
                 weatherToken = String(profile.weatherToken)
         } else if (moduleName === "timer") {
             applyConfigKeysFromProfile(profile, [
-                "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap",
+                "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowSpacing",
                 "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration",
                 "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"
             ])
@@ -892,6 +913,8 @@ QtObject {
                 "playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled",
                 "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize",
                 "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize",
+                "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize",
+                "playerPlayingIconY", "playerPausedIconY", "playerNextIconY",
                 "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius",
                 "playerMetadataXPadding", "playerMetadataY", "playerProgressY",
                 "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize",
@@ -942,7 +965,7 @@ QtObject {
 
     function resetTimerSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+        applyConfigKeysFromProfile(profile, ["timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerRowSpacing", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
         if (profile.timerPresetDefaults !== undefined) timerPresetDefaults = (profile.timerPresetDefaults || []).slice()
         else if (profile.timerPresets !== undefined) timerPresetDefaults = (profile.timerPresets || []).slice()
         timerPresets = timerPresetDefaults.slice()
@@ -951,12 +974,12 @@ QtObject {
 
     function resetPlayerSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"]); save()
+        applyConfigKeysFromProfile(profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerUpdateInterval"]); save()
     }
 
     function resetWeatherSettings() {
         var profile = activeProfileData(); if (!profile) return
-        applyConfigKeysFromProfile(profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherComfortY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayHeight", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayHeight", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempY", "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempY", "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"]);
+        applyConfigKeysFromProfile(profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayHeight", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconHeight", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayHeight", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconHeight", "weatherDailyIconY", "weatherDailyHighTempY", "weatherDailyHighTempHeight", "weatherDailyHighTempFontSize", "weatherDailyLowTempY", "weatherDailyLowTempHeight", "weatherDailyLowTempFontSize"]);
         if (profile.weatherToken !== undefined) weatherToken = String(profile.weatherToken)
         save()
     }
@@ -1012,12 +1035,13 @@ QtObject {
             weatherNowIntervalMinutes: Config.weatherNowIntervalMinutes, weatherHourlyIntervalMinutes: Config.weatherHourlyIntervalMinutes, weatherDailyIntervalMinutes: Config.weatherDailyIntervalMinutes, weatherRetryDelayMinutes: Config.weatherRetryDelayMinutes, weatherManualRefreshCooldownSeconds: Config.weatherManualRefreshCooldownSeconds,
             timerMinHeight: Config.timerMinHeight, volumeMinHeight: Config.volumeMinHeight, volumeMaxHeight: Config.volumeMaxHeight,
             timerWheelStep: Config.timerWheelStep, timerCommentWidth: Config.timerCommentWidth, timerCommentMaxLength: Config.timerCommentMaxLength, timerCommentGap: Config.timerCommentGap,
+            timerRowSpacing: Config.timerRowSpacing,
             timerRowTopMargin: Config.timerRowTopMargin, timerRowRightMargin: Config.timerRowRightMargin,
             timerButtonFadeDuration: Config.timerButtonFadeDuration, timerButtonSlideDuration: Config.timerButtonSlideDuration, timerButtonIconFadeDuration: Config.timerButtonIconFadeDuration,
             playerSilenceFontSize: Config.playerSilenceFontSize, playerSilenceLongFontSize: Config.playerSilenceLongFontSize, playerMetaFontSize: Config.playerMetaFontSize,
             playerTextOutlineEnabled: Config.playerTextOutlineEnabled, playerTextOutlineColor: Config.playerTextOutlineColor,
             playerMetaSecondaryFontSize: Config.playerMetaSecondaryFontSize, playerMetaLineSpacing: Config.playerMetaLineSpacing, playerBoldArtist: Config.playerBoldArtist,
-            playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize, playerPlayingIcon: Config.playerPlayingIcon, playerPausedIcon: Config.playerPausedIcon, playerNextIcon: Config.playerNextIcon,
+            playerShowProgress: Config.playerShowProgress, playerControlIconSize: Config.playerControlIconSize, playerPlayingIconSize: Config.playerPlayingIconSize, playerPausedIconSize: Config.playerPausedIconSize, playerNextIconSize: Config.playerNextIconSize, playerPlayingIconY: Config.playerPlayingIconY, playerPausedIconY: Config.playerPausedIconY, playerNextIconY: Config.playerNextIconY, playerPlayingIcon: Config.playerPlayingIcon, playerPausedIcon: Config.playerPausedIcon, playerNextIcon: Config.playerNextIcon,
             playerBlurEnabled: Config.playerBlurEnabled, playerBlurRadius: Config.playerBlurRadius,
             playerMetadataXPadding: Config.playerMetadataXPadding,
             playerMetadataY: Config.playerMetadataY, playerProgressY: Config.playerProgressY,
@@ -1029,7 +1053,7 @@ QtObject {
             weatherHourlyCount: Config.weatherHourlyCount, weatherDailyCount: Config.weatherDailyCount,
             weatherIconY: Config.weatherIconY, weatherWindColumnX: Config.weatherWindColumnX, weatherWindSpeedFontSize: Config.weatherWindSpeedFontSize, weatherWindUnitFontSize: Config.weatherWindUnitFontSize,
             weatherPressureY: Config.weatherPressureY, weatherDescriptionY: Config.weatherDescriptionY, weatherDescriptionFontSize: Config.weatherDescriptionFontSize, weatherTempFontSize: Config.weatherTempFontSize, weatherComfortFontSize: Config.weatherComfortFontSize,
-            weatherTempColumnWidth: Config.weatherTempColumnWidth, weatherTempX: Config.weatherTempX, weatherTempWidth: Config.weatherTempWidth, weatherComfortY: Config.weatherComfortY, weatherComfortHeight: Config.weatherComfortHeight,
+            weatherTempColumnWidth: Config.weatherTempColumnWidth, weatherTempX: Config.weatherTempX, weatherTempWidth: Config.weatherTempWidth, weatherTempOffsetX: Config.weatherTempOffsetX, weatherTempOffsetY: Config.weatherTempOffsetY, weatherComfortY: Config.weatherComfortY, weatherComfortOffsetX: Config.weatherComfortOffsetX, weatherComfortOffsetY: Config.weatherComfortOffsetY, weatherComfortHeight: Config.weatherComfortHeight,
             weatherWindColumnWidth: Config.weatherWindColumnWidth, weatherWindArrowWidth: Config.weatherWindArrowWidth, weatherWindIcon: Config.weatherWindIcon, weatherWindArrowHeight: Config.weatherWindArrowHeight, weatherWindSpeedX: Config.weatherWindSpeedX, weatherWindSpeedY: Config.weatherWindSpeedY, weatherWindSpeedWidth: Config.weatherWindSpeedWidth,
             weatherWindUnitX: Config.weatherWindUnitX, weatherWindUnitY: Config.weatherWindUnitY, weatherWindUnitWidth: Config.weatherWindUnitWidth, weatherPressureValueWidth: Config.weatherPressureValueWidth, weatherPressureFontSize: Config.weatherPressureFontSize,
             weatherPressureUnitX: Config.weatherPressureUnitX, weatherPressureUnitY: Config.weatherPressureUnitY, weatherPressureUnitFontSize: Config.weatherPressureUnitFontSize, weatherDescriptionHeight: Config.weatherDescriptionHeight,

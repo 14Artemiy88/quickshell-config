@@ -60,7 +60,6 @@ run_daemon() {
                 t_data["$file"]="$total_time:$end_time:$ding:$color:$paused_at:$comment"
                 write_timer_file "$file"
                 say "$MESSAGE" &
-                kdialog --imgbox ~/Images/D/100-1/50.jpg --title "$total_time мин $comment" &>/dev/null &
             fi
 
             [[ -z "$comment" ]] && comment="$total_time"
@@ -72,8 +71,10 @@ run_daemon() {
 
             time_passed=$(format_time $((total_time * 60 - seconds_left)))
 
+            local comment_json
+            comment_json=$(json_escape "$comment")
             timers+=(
-              "{\"file\":\"$file\", \"comment\":\"$comment\", \"timer\":\"$timer_str\", \"color\":\"#$color\", \"sign\":\"$sign\", \"time_passed\":\"$time_passed\"}"
+              "{\"file\":\"$file\", \"comment\":\"$comment_json\", \"timer\":\"$timer_str\", \"color\":\"#$color\", \"sign\":\"$sign\", \"time_passed\":\"$time_passed\", \"ding\":$ding}"
             )
         done
 
@@ -156,6 +157,15 @@ get_color() {
     printf '%02x%02x%02x\n' "$r" "$g" "$b"
 }
 
+json_escape() {
+    local value="$1"
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\n'/\\n}
+    value=${value//$'\r'/\\r}
+    printf '%s' "$value"
+}
+
 format_time() {
     local total_seconds=$1 hours minutes seconds time_str
     hours=$((total_seconds / 3600))
@@ -173,16 +183,12 @@ update_color() {
     write_timer_file "$file"
 }
 
-comment() {
-    local file="$1" new_comment
+set_comment() {
+    local file="$1"
+    local new_comment="$2"
     read_timer_file "$file" || return
-    new_comment=$(kdialog --inputbox "Комментарий" "$comment")
-    if [[ $? -eq 0 ]]; then
-        comment="$new_comment"
-        write_timer_file "$file"
-    else
-        rm -f "$file"
-    fi
+    comment="$new_comment"
+    write_timer_file "$file"
 }
 
 refresh() {
@@ -235,7 +241,7 @@ case "$1" in
     down)         timer_down "$2";;
     delete)       timer_delete "$2";;
     update_color) update_color "$2";;
-    comment)      comment "$2";;
+    set_comment)  set_comment "$2" "$3";;
     refresh)      refresh "$2";;
     refresh_add)  refresh_add "$2";;
     toggle_pause) toggle_pause "$2";;

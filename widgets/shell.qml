@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import "components"
 import "services"
 
@@ -17,6 +18,14 @@ ShellRoot {
     property bool settingsVisible: false
     property bool layoutEditMode: false
     property bool timerOptionsVisible: false
+    property bool timerCommentVisible: false
+    property bool timerFinishedVisible: false
+    property string timerCommentFile: ""
+    property string timerCommentText: ""
+    property string timerFinishedComment: ""
+    property string timerFinishedColor: Config.text
+    property string focusedOutputName: ""
+    property var focusedOutputScreen: Quickshell.screens[0]
 
     WidgetWindow { visible: Settings.time; offsetX: Settings.geometryForLayout("time")[0]; offsetY: Settings.geometryForLayout("time")[1]; contentWidth: Settings.geometry.time[2]; contentHeight: Settings.geometry.time[3]
         TimeWidget { anchors.fill: parent; clock: clock; onCalendarRequested: shell.calendarVisible = !shell.calendarVisible; onSettingsRequested: shell.settingsVisible = !shell.settingsVisible }
@@ -63,6 +72,10 @@ ShellRoot {
             anchors.fill: parent
             weather: weatherLoader.item ? weatherLoader.item.now : ({})
             weatherService: weatherLoader.item
+            onSettingsRequested: {
+                shell.settingsVisible = true
+                settingsWidget.openWeatherSettings()
+            }
         }
 }
     WidgetWindow {
@@ -133,6 +146,11 @@ ShellRoot {
                 timers: timerWidget.timers
                 selectedFile: timerWidget.selectedFile
                 onCloseRequested: timerOptionsPopup.startClose()
+                onCommentRequested: file => {
+                    timerOptionsPopup.commentFile = file
+                    timerOptionsPopup.commentText = timerWidget.commentForFile(file)
+                    timerOptionsPopup.commentMode = true
+                }
                 onCloseFinished: {
                     timerWidget.selectedFile = ""
                     shell.timerOptionsVisible = false
@@ -152,10 +170,114 @@ ShellRoot {
             // The popup surface remains alive. Closing is driven by the timer
             // selection state instead of destroying the popup surface.
         }
+
+
+        PanelWindow {
+            id: timerFinishedPopup
+            visible: shell.timerFinishedVisible
+            screen: shell.focusedOutputScreen || Quickshell.screens[0]
+            color: Config.transparent
+            focusable: true
+            exclusionMode: ExclusionMode.Ignore
+            anchors.left: true
+            anchors.right: true
+            anchors.top: true
+            anchors.bottom: true
+            WlrLayershell.layer: WlrLayer.Overlay
+
+            Rectangle {
+                id: timerFinishedCard
+                anchors.centerIn: parent
+                width: 305
+                height: 102
+                color: Config.background
+                focus: true
+
+                Component.onCompleted: forceActiveFocus()
+
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Space) {
+                        shell.timerFinishedVisible = false
+                        event.accepted = true
+                    }
+                }
+                radius: Config.frameRadius
+                border.color: shell.timerFinishedColor
+                border.width: Config.frameBorderWidth
+                antialiasing: true
+
+                Text {
+                    x: 12
+                    y: 10
+                    width: parent.width - 24
+                    height: 24
+                    text: "󰀠  Таймер завершён"
+                    color: shell.timerFinishedColor
+                    font.family: Config.ledFont
+                    font.pixelSize: 18
+                }
+
+                Text {
+                    x: 12
+                    y: 39
+                    width: parent.width - 24
+                    height: 20
+                    text: shell.timerFinishedComment || "Время вышло"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: 13
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    x: 12
+                    y: 68
+                    width: parent.width - 24
+                    height: 18
+                    text: "динь-динь"
+                    color: Config.textDim
+                    font.family: Config.settingsFont
+                    font.pixelSize: 10
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: shell.timerFinishedVisible = false
+                }
+            }
+        }
+    }
+
+    Process {
+        id: focusedOutputProcess
+        command: ["niri", "msg", "-j", "focused-output"]
+        stdout: StdioCollector {
+            id: focusedOutputCollector
+        }
+        onExited: {
+            try {
+                const data = JSON.parse(focusedOutputCollector.text)
+                shell.focusedOutputName = data.name || ""
+                shell.focusedOutputScreen = Quickshell.screens.find(s =>
+                    s.name === shell.focusedOutputName ||
+                    s.model === shell.focusedOutputName ||
+                    s.toString() === shell.focusedOutputName
+                ) || Quickshell.screens[0]
+            } catch (e) {
+                shell.focusedOutputName = ""
+                shell.focusedOutputScreen = Quickshell.screens[0]
+            }
+        }
     }
 
     Connections {
         target: timerWidget
+        function onTimerFinished(file, comment, color) {
+            shell.timerFinishedComment = comment
+            shell.timerFinishedColor = color || Config.text
+            shell.timerFinishedVisible = true
+            focusedOutputProcess.running = true
+        }
         function onSelectedFileChanged() {
             if (timerWidget.selectedFile !== "") {
                 shell.timerOptionsVisible = true
@@ -236,6 +358,7 @@ ShellRoot {
         bottomLayer: false
         WlrLayershell.layer: WlrLayer.Overlay
         SettingsWidget {
+            id: settingsWidget
             anchors.fill: parent
             onLayoutEditRequested: {
                 shell.settingsVisible = false

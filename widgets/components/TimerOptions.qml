@@ -12,6 +12,10 @@ Item {
     property bool closing: false
     signal closeRequested()
     signal closeFinished()
+    signal commentRequested(string file)
+    property bool commentMode: false
+    property string commentFile: ""
+    property string commentText: ""
     enabled: selectedFile !== "" && !closing
     opacity: 0
     scale: 0.97
@@ -109,11 +113,98 @@ Item {
         onClicked: {}
     }
 
+    // Comment editor uses the same popup surface and geometry as the timer
+    // options window. This avoids a second xdg-popup with a different anchor
+    // coordinate system and gives the input the popup's keyboard focus.
+    Item {
+        anchors.fill: parent
+        visible: root.commentMode
+        z: 10
+
+        Text {
+            x: 7
+            y: 7
+            width: parent.width - 14
+            height: 16
+            text: "Комментарий"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: 11
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Rectangle {
+            x: 7
+            y: 28
+            width: parent.width - 14
+            height: 27
+            radius: 4
+            color: Config.settingsBackground
+            border.color: Config.settingsBorder
+            border.width: 1
+
+            TextInput {
+                id: commentInput
+                anchors.fill: parent
+                anchors.leftMargin: 5
+                anchors.rightMargin: 5
+                color: Config.text
+                selectionColor: Config.accent
+                font.family: Config.settingsFont
+                font.pixelSize: 11
+                verticalAlignment: TextInput.AlignVCenter
+                text: root.commentText
+                activeFocusOnPress: true
+                onTextChanged: root.commentText = text
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                        Quickshell.execDetached([
+                            Quickshell.shellDir + "/scripts/timer",
+                            "set_comment",
+                            root.commentFile,
+                            commentInput.text
+                        ])
+                        root.commentMode = false
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Escape) {
+                        root.commentMode = false
+                        event.accepted = true
+                    }
+                }
+            }
+        }
+
+        Text {
+            x: 7
+            y: 61
+            width: parent.width - 14
+            height: 15
+            text: "Enter — сохранить"
+            color: Config.textDim
+            font.family: Config.settingsFont
+            font.pixelSize: 9
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        Text {
+            x: 7
+            y: 76
+            width: parent.width - 14
+            height: 14
+            text: "Esc — отменить"
+            color: Config.textDim
+            font.family: Config.settingsFont
+            font.pixelSize: 9
+            horizontalAlignment: Text.AlignHCenter
+        }
+    }
+
     Column {
         anchors.centerIn: parent
         width: parent.width - 8
         spacing: 5
         z: 1
+        visible: !root.commentMode
 
         Text {
             text: root.selected ? (root.selected.time_passed || "") : ""
@@ -148,10 +239,31 @@ Item {
                     }
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", modelData[1], root.selectedFile])
+                        onClicked: {
+                            if (modelData[1] === "comment") {
+                                root.commentFile = root.selectedFile
+                                root.commentText = root.selected ? String(root.selected.comment || "") : ""
+                                root.commentMode = true
+                                Qt.callLater(function() {
+                                    commentInput.forceActiveFocus()
+                                    commentInput.selectAll()
+                                })
+                            } else {
+                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", modelData[1], root.selectedFile])
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    onCommentModeChanged: {
+        if (commentMode) {
+            Qt.callLater(function() {
+                commentInput.forceActiveFocus()
+                commentInput.selectAll()
+            })
         }
     }
 
