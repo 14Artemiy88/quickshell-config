@@ -89,6 +89,21 @@ The settings interface is used to configure the shell. Configuration is stored i
 
 Most settings can be changed directly through the graphical configuration interface.
 
+## Project structure
+
+The project keeps settings UI components and settings logic separate from the main widget components:
+
+```text
+components/
+├── settings/      # settings UI and controls
+├── ...            # widget components
+services/           # background services
+js/settings/        # settings state/helpers
+scripts/             # shell/system scripts
+```
+
+The main `Settings.qml` singleton remains at the project root because it is registered through `qmldir`.
+
 ## Development
 
 Run the project checks with:

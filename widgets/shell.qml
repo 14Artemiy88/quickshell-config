@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import "components"
+import "components/settings"
 import "services"
 
 ShellRoot {

@@ -1,11 +1,14 @@
 import QtQuick
-import ".."
+import "../.."
 import QtQuick.Controls
 
 Item {
     id: root
     property string label: "↺"
     property string tooltip: "Сбросить"
+    property bool emphasized: false
+    property bool emphasizedHoverOnly: false
+    property color emphasizedColor: Config.accent
     signal clicked()
 
     width: 30
@@ -14,14 +17,15 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 4
-        color: mouse.containsMouse ? Config.accent : Config.background
-        border.color: Config.baseColor
+        color: root.emphasized && (mouse.containsMouse || !root.emphasizedHoverOnly) ? root.emphasizedColor : Config.settingsBackground
+        border.color: root.emphasized ? root.emphasizedColor : Config.baseColor
         border.width: 1
 
         Text {
             anchors.fill: parent
             text: root.label
-            color: mouse.containsMouse ? Config.black : Config.text
+            color: root.emphasized && mouse.containsMouse ? Config.black : (root.emphasized ? root.emphasizedColor : Config.text)
+            font.bold: root.emphasized
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(12)
             horizontalAlignment: Text.AlignHCenter
