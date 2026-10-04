@@ -115,3 +115,7 @@ Run the project checks with:
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+- Smart Editing directly drags the real widget window; multi-monitor placement is selected per module in Settings → Modules.
+
+### Settings layout editing
+Smart Editing uses the actual widget windows for interaction. A single selected widget is shown as a drag proxy while it is moved; monitor changes are detected automatically on release and persisted per module. There is no manual monitor selector in the Modules settings UI.

@@ -24,17 +24,25 @@ function updateGeometryDrag(owner, moduleName, x, y) {
     owner.layoutEditGeometry = live
 }
 
-function endGeometryDrag(owner, moduleName) {
+function endGeometryDrag(owner, moduleName, monitorName, x, y) {
     var live = owner.layoutEditGeometry[moduleName]
     if (!live || live.length !== 4)
         return
 
     var g = Object.assign({}, owner.geometry)
     var a = (g[moduleName] || [0, 0, 100, 100]).slice()
-    a[0] = Math.round(Number(live[0]))
-    a[1] = Math.round(Number(live[1]))
+    var finalX = x !== undefined && isFinite(Number(x)) ? Number(x) : Number(live[0])
+    var finalY = y !== undefined && isFinite(Number(y)) ? Number(y) : Number(live[1])
+    a[0] = Math.round(finalX)
+    a[1] = Math.round(finalY)
     g[moduleName] = a
     owner.geometry = g
+
+    if (monitorName !== undefined && String(monitorName).trim() !== "") {
+        var monitors = Object.assign({}, owner.moduleMonitors || {})
+        monitors[moduleName] = String(monitorName)
+        owner.moduleMonitors = monitors
+    }
 
     var overrides = Object.assign({}, owner.layoutEditGeometry)
     delete overrides[moduleName]

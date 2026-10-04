@@ -37,10 +37,13 @@ ShellRoot {
     property string focusedOutputName: ""
     property var focusedOutputScreen: Quickshell.screens[0]
 
-    WidgetWindow { visible: Settings.time; offsetX: Settings.geometryForLayout("time")[0]; offsetY: Settings.geometryForLayout("time")[1]; contentWidth: Settings.geometry.time[2]; contentHeight: Settings.geometry.time[3]
+    WidgetWindow { visible: Settings.time; moduleName: "time"; layoutEditMode: shell.layoutEditMode; layoutEditor: layoutEditorWindow; offsetX: Settings.geometryForLayout("time")[0]; offsetY: Settings.geometryForLayout("time")[1]; contentWidth: Settings.geometry.time[2]; contentHeight: Settings.geometry.time[3]
         TimeWidget { anchors.fill: parent; clock: clock; onCalendarRequested: shell.calendarVisible = !shell.calendarVisible; onSettingsRequested: shell.settingsVisible = !shell.settingsVisible }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "cpu"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.cpu
         offsetX: Settings.geometryForLayout("cpu")[0]
         offsetY: Settings.geometryForLayout("cpu")[1]
@@ -49,6 +52,9 @@ ShellRoot {
         CpuWidget { anchors.fill: parent }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "cpuGraph"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.cpuGraph
         offsetX: Settings.geometryForLayout("cpuGraph")[0]
         offsetY: Settings.geometryForLayout("cpuGraph")[1]
@@ -57,6 +63,9 @@ ShellRoot {
         CpuGraph { anchors.fill: parent }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "topApps"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.topApps
         offsetX: Settings.geometryForLayout("topApps")[0]
         offsetY: Settings.geometryForLayout("topApps")[1]
@@ -65,6 +74,9 @@ ShellRoot {
         TopApps { anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "networkStat"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.networkStat
         offsetX: Settings.geometryForLayout("networkStat")[0]
         offsetY: Settings.geometryForLayout("networkStat")[1]
@@ -73,6 +85,9 @@ ShellRoot {
         NetworkStat { anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "weatherNow"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherNow
         offsetX: Settings.geometryForLayout("weatherNow")[0]
         offsetY: Settings.geometryForLayout("weatherNow")[1]
@@ -89,6 +104,9 @@ ShellRoot {
         }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "weatherHourly"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherHourly
         offsetX: Settings.geometryForLayout("weatherHourly")[0]
         offsetY: Settings.geometryForLayout("weatherHourly")[1]
@@ -102,6 +120,9 @@ ShellRoot {
         }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "weatherDaily"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherDaily
         offsetX: Settings.geometryForLayout("weatherDaily")[0]
         offsetY: Settings.geometryForLayout("weatherDaily")[1]
@@ -115,7 +136,10 @@ ShellRoot {
         }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
         id: timerWindow
+        moduleName: "timer"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.timer
         offsetX: Settings.geometryForLayout("timer")[0]
         offsetY: Settings.geometryForLayout("timer")[1]
@@ -351,6 +375,9 @@ ShellRoot {
         }
     }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "calendar"
+        layoutEditMode: shell.layoutEditMode
         visible: shell.calendarVisible && Settings.calendar
         offsetX: Settings.geometryForLayout("calendar")[0]
         offsetY: Settings.geometryForLayout("calendar")[1]
@@ -361,6 +388,9 @@ ShellRoot {
 }
 
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "volumes"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.volumes
         offsetX: Settings.geometryForLayout("volumes")[0]
         offsetY: Settings.geometryForLayout("volumes")[1]
@@ -369,6 +399,9 @@ ShellRoot {
         Volumes { id: volumesWidget; anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "player"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.player
         offsetX: Settings.geometryForLayout("player")[0]
         offsetY: Settings.geometryForLayout("player")[1]
@@ -379,6 +412,9 @@ ShellRoot {
         Player { anchors.fill: parent; anchors.margins: 0 }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "cava"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.cava
         offsetX: Settings.geometryForLayout("cava")[0]
         offsetY: Settings.geometryForLayout("cava")[1]
@@ -387,6 +423,9 @@ ShellRoot {
         Cava { anchors.fill: parent }
 }
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
+        moduleName: "networks"
+        layoutEditMode: shell.layoutEditMode
         visible: Settings.networks
         offsetX: Settings.geometryForLayout("networks")[0]
         offsetY: Settings.geometryForLayout("networks")[1]
@@ -396,6 +435,7 @@ ShellRoot {
 }
 
     WidgetWindow {
+        layoutEditor: layoutEditorWindow
         visible: shell.settingsVisible
         keyboardEnabled: shell.settingsVisible
         offsetX: Settings.settingsGeometry[0]

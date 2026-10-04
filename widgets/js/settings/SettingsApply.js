@@ -356,6 +356,14 @@ function applyObject(owner, Config, o, moduleNames, defaultModuleFrames, default
         var savedBackgrounds = o.moduleBackgrounds || {}
         for (var bi=0; bi<moduleNames.length; ++bi) if (savedBackgrounds[moduleNames[bi]] !== undefined) backgrounds[moduleNames[bi]] = !!savedBackgrounds[moduleNames[bi]]
         owner.moduleBackgrounds = backgrounds
+        var monitors = {}
+        var savedMonitors = o.moduleMonitors || {}
+        for (var mi=0; mi<moduleNames.length; ++mi) {
+            var monitorValue = savedMonitors[moduleNames[mi]]
+            if (monitorValue !== undefined && String(monitorValue).trim() !== "")
+                monitors[moduleNames[mi]] = String(monitorValue)
+        }
+        owner.moduleMonitors = monitors
         if (o.geometry) {
             var g = Object.assign({}, owner.geometry)
             for (var k in o.geometry) if (o.geometry[k] && o.geometry[k].length === 4) g[k] = o.geometry[k].map(Number)

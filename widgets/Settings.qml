@@ -35,6 +35,7 @@ QtObject {
     property bool networks: true
     property bool calendar: true
     property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
+    property var moduleMonitors: ({})
     property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
@@ -80,6 +81,7 @@ QtObject {
     readonly property var defaultModules: SettingsMetadata.defaultModules
     readonly property var defaultModuleFrames: SettingsMetadata.defaultModuleFrames
     readonly property var defaultModuleBackgrounds: SettingsMetadata.defaultModuleBackgrounds
+    readonly property var defaultModuleMonitors: SettingsMetadata.defaultModuleMonitors
     signal changed()
     signal saved()
     signal resetUnavailable(string message)
@@ -130,7 +132,7 @@ QtObject {
 
     function updateGeometryDrag(moduleName, x, y) { SettingsGeometry.updateGeometryDrag(root, moduleName, x, y) }
 
-    function endGeometryDrag(moduleName) { SettingsGeometry.endGeometryDrag(root, moduleName) }
+    function endGeometryDrag(moduleName, monitorName, x, y) { SettingsGeometry.endGeometryDrag(root, moduleName, monitorName, x, y) }
 
     function cancelGeometryDrag(moduleName) { SettingsGeometry.cancelGeometryDrag(root, moduleName) }
 

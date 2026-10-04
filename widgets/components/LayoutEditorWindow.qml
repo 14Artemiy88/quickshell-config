@@ -7,27 +7,123 @@ PanelWindow {
     id: root
 
     visible: root.active
-    screen: editScreen
+    screen: root.editScreen
+    implicitWidth: root.editScreen ? Math.max(1, root.editScreen.width) : 1
+    implicitHeight: root.editScreen ? Math.max(1, root.editScreen.height) : 1
+    anchors.left: true
+    anchors.top: true
     aboveWindows: true
     focusable: root.active
     color: Config.transparent
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-    property var settings: Settings
     property bool active: false
+    property var settings: Settings
+    property var editScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    property bool proxyActive: false
+    property string proxyModuleName: ""
+    property string proxySource: ""
+    property real proxyGlobalX: 0
+    property real proxyGlobalY: 0
+    property real proxyWidth: 1
+    property real proxyHeight: 1
+    property var proxyTargetScreen: null
     signal exitRequested()
-    property var editScreen: Quickshell.screens.find(s =>
-        s.name === Config.monitorName ||
-        s.model === Config.monitorName ||
-        s.toString() === Config.monitorName
-    ) || Quickshell.screens[0]
 
-    anchors {
-        left: true
-        right: true
-        top: true
-        bottom: true
+    function screenMatchesName(screen, name) {
+        if (!screen || !name) return false
+        var wanted = String(name).trim().toLowerCase()
+        return String(screen.name || '').trim().toLowerCase() === wanted
+            || String(screen.model || '').trim().toLowerCase() === wanted
+            || String(screen).trim().toLowerCase() === wanted
+    }
+
+    function screenStorageName(screen) {
+        if (!screen) return ""
+        if (screen.name && String(screen.name).trim() !== "")
+            return String(screen.name)
+        if (screen.model && String(screen.model).trim() !== "")
+            return String(screen.model)
+        return ""
+    }
+
+    function findScreenForGlobalPoint(globalX, globalY) {
+        var nearest = null
+        var nearestDistance = Number.POSITIVE_INFINITY
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var s = Quickshell.screens[i]
+            if (!s) continue
+            var sx = Number(s.x || 0)
+            var sy = Number(s.y || 0)
+            var sw = Number(s.width || 0)
+            var sh = Number(s.height || 0)
+            if (globalX >= sx && globalX < sx + sw && globalY >= sy && globalY < sy + sh)
+                return s
+            var cx = Math.max(sx, Math.min(globalX, sx + sw))
+            var cy = Math.max(sy, Math.min(globalY, sy + sh))
+            var dx = globalX - cx
+            var dy = globalY - cy
+            var distance = dx * dx + dy * dy
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = s
+            }
+        }
+        return nearest || root.editScreen || Quickshell.screens[0] || null
+    }
+
+    function setProxySource(source) {
+        if (!root.proxyActive)
+            return
+        root.proxySource = String(source || "")
+    }
+
+    function beginProxyDrag(moduleName, globalX, globalY, width, height) {
+        root.proxyModuleName = String(moduleName || "")
+        root.proxyGlobalX = Number(globalX) || 0
+        root.proxyGlobalY = Number(globalY) || 0
+        root.proxyWidth = Math.max(1, Number(width) || 1)
+        root.proxyHeight = Math.max(1, Number(height) || 1)
+        root.proxySource = ""
+        root.proxyActive = true
+        root.updateProxyScreen()
+    }
+
+    function updateProxyScreen() {
+        var centerX = root.proxyGlobalX + root.proxyWidth / 2
+        var centerY = root.proxyGlobalY + root.proxyHeight / 2
+        root.proxyTargetScreen = root.findScreenForGlobalPoint(centerX, centerY)
+        if (root.proxyTargetScreen)
+            root.editScreen = root.proxyTargetScreen
+    }
+
+    function updateProxyDrag(globalX, globalY, width, height) {
+        if (!root.proxyActive)
+            return
+        root.proxyGlobalX = Number(globalX) || 0
+        root.proxyGlobalY = Number(globalY) || 0
+        if (width !== undefined)
+            root.proxyWidth = Math.max(1, Number(width) || 1)
+        if (height !== undefined)
+            root.proxyHeight = Math.max(1, Number(height) || 1)
+        root.updateProxyScreen()
+    }
+
+    function endProxyDrag() {
+        root.proxyActive = false
+        root.proxyModuleName = ""
+        root.proxySource = ""
+    }
+
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            if (root.proxyActive)
+                root.updateProxyScreen()
+            else if (!root.editScreen && Quickshell.screens.length > 0)
+                root.editScreen = Quickshell.screens[0]
+        }
     }
 
     Item {
@@ -35,9 +131,12 @@ PanelWindow {
         anchors.fill: parent
         focus: root.active
 
+        Component.onCompleted: {
+            if (root.active) forceActiveFocus()
+        }
+
         onVisibleChanged: {
-            if (root.active && visible)
-                forceActiveFocus()
+            if (root.active && visible) forceActiveFocus()
         }
 
         Keys.onPressed: function(event) {
@@ -48,117 +147,69 @@ PanelWindow {
         }
     }
 
-    Repeater {
-        model: settings.moduleNames
+    Item {
+        id: proxyItem
+        x: root.proxyGlobalX - Number(root.editScreen && root.editScreen.x || 0)
+        y: root.proxyGlobalY - Number(root.editScreen && root.editScreen.y || 0)
+        width: root.proxyWidth
+        height: root.proxyHeight
+        visible: root.proxyActive
+        z: 10000
 
-        delegate: Item {
-            id: editorItem
-            property string moduleName: modelData
-            property string moduleLabel: settings.moduleLabels[moduleName] || moduleName
-            property var currentGeometry: settings.geometryForLayout(moduleName) || [0, 0, 100, 100]
-            property bool moduleEnabled: !!settings[moduleName]
-            property bool pointerHovered: false
+        Image {
+            anchors.fill: parent
+            visible: source !== ""
+            source: root.proxySource
+            asynchronous: true
+            fillMode: Image.Stretch
+            smooth: true
+            cache: false
+        }
 
-            visible: moduleEnabled
-            x: currentGeometry[0]
-            y: currentGeometry[1]
-            width: Math.max(1, currentGeometry[2])
-            height: Math.max(1, currentGeometry[3])
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            border.color: Config.accent
+            border.width: Math.max(2, Config.frameBorderWidth + 1)
+            radius: Config.frameRadius
+            antialiasing: true
+        }
 
-            function geometryChangedByDrag() {
-                var g = settings.geometryForLayout(moduleName) || [0, 0, width, height]
-                return g
-            }
-
-            Rectangle {
-                id: editFrame
-                anchors.fill: parent
-                color: editorItem.pointerHovered || dragHandler.active ? "#3000cccc" : "#1800cccc"
-                border.color: Config.accent
-                border.width: dragHandler.active ? Math.max(2, Config.frameBorderWidth + 1) : Math.max(1, Config.frameBorderWidth)
-                radius: Config.frameRadius
-                opacity: dragHandler.active ? 0.82 : (editorItem.pointerHovered ? 0.68 : 0.55)
-            }
-
-            Rectangle {
-                id: badge
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.margins: 5
-                width: label.implicitWidth + 14
-                height: label.implicitHeight + 8
-                radius: 4
-                color: dragHandler.active || editorItem.pointerHovered ? Config.accent : Config.settingsBackground
-                border.color: Config.accent
-                border.width: 1
-
-                Text {
-                    id: label
-                    anchors.centerIn: parent
-                    text: dragHandler.active ? "↕ " + editorItem.moduleLabel : editorItem.moduleLabel
-                    color: dragHandler.active || editorItem.pointerHovered ? Config.black : Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    font.bold: true
-                }
-            }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: 5
+            width: proxyLabel.implicitWidth + 14
+            height: proxyLabel.implicitHeight + 8
+            radius: 4
+            color: Config.accent
 
             Text {
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 5
-                text: {
-                    var g = settings.geometryForLayout(editorItem.moduleName) || [0, 0, 0, 0]
-                    return Math.round(g[0]) + ":" + Math.round(g[1]) + "  " + Math.round(g[2]) + "×" + Math.round(g[3])
-                }
-                color: Config.text
+                id: proxyLabel
+                anchors.centerIn: parent
+                text: root.proxyModuleName
+                color: Config.black
                 font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(10)
-                style: Text.Outline
-                styleColor: Config.black
-            }
-
-            DragHandler {
-                id: dragHandler
-                target: null
-                acceptedButtons: Qt.LeftButton
-
-                property real startX: 0
-                property real startY: 0
-
-                onActiveChanged: {
-                    if (active) {
-                        var g = settings.geometryForLayout(editorItem.moduleName) || [0, 0, 100, 100]
-                        startX = Number(g[0]) || 0
-                        startY = Number(g[1]) || 0
-                        settings.beginGeometryDrag(editorItem.moduleName)
-                    } else {
-                        settings.endGeometryDrag(editorItem.moduleName)
-                    }
-                }
-
-                onActiveTranslationChanged: {
-                    if (!active)
-                        return
-
-                    settings.updateGeometryDrag(
-                        editorItem.moduleName,
-                        startX + activeTranslation.x,
-                        startY + activeTranslation.y
-                    )
-                }
-            }
-
-            HoverHandler {
-                id: hoverHandler
-                onHoveredChanged: editorItem.pointerHovered = hovered
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.NoButton
-                cursorShape: Qt.SizeAllCursor
+                font.pixelSize: Config.settingsUiSize(11)
+                font.bold: true
             }
         }
+    }
+
+    mask: Region {
+        item: root.proxyActive ? proxyInputRegion : null
+    }
+
+    Item {
+        id: proxyInputRegion
+        x: proxyItem.x
+        y: proxyItem.y
+        width: proxyItem.width
+        height: proxyItem.height
+    }
+
+    onActiveChanged: {
+        if (active) Qt.callLater(function() { if (root.active) keyHandler.forceActiveFocus() })
+        else endProxyDrag()
     }
 }

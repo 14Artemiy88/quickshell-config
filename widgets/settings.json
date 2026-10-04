@@ -297,6 +297,7 @@
         "cava": true,
         "networks": false
     },
+    "moduleMonitors": {},
     "geometry": {
         "time": [
             5,
@@ -390,8 +391,8 @@
         ]
     },
     "settingsGeometry": [
-        621,
-        167,
+        598,
+        153,
         656,
         850
     ],
@@ -905,6 +906,7 @@
             "valid": true
         }
     },
+    "activeTheme": "14 Theme",
     "profiles": {
         "14PK": {
             "weatherToken": "1111111111111111111111\n",
@@ -1857,6 +1859,5 @@
             "tempVeryCold": "#0ad1f3",
             "tempFreezing": "#3c82e2"
         }
-    },
-    "activeTheme": "14 Theme"
+    }
 }

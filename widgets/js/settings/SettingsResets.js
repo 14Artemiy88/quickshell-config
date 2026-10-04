@@ -102,6 +102,7 @@ function resetModule(owner, config, moduleName) {
     var modules = profile.modules || {}
     var frames = profile.moduleFrames || {}
     var backgrounds = profile.moduleBackgrounds || {}
+    var profileMonitors = profile.moduleMonitors || {}
     var profileGeometry = profile.geometry || {}
 
     if (modules[moduleName] !== undefined)
@@ -121,6 +122,13 @@ function resetModule(owner, config, moduleName) {
     if (backgrounds[moduleName] !== undefined)
         b[moduleName] = !!backgrounds[moduleName]
     owner.moduleBackgrounds = b
+
+    var m = Object.assign({}, owner.moduleMonitors || {})
+    if (profileMonitors[moduleName] !== undefined && String(profileMonitors[moduleName]).trim() !== "")
+        m[moduleName] = String(profileMonitors[moduleName])
+    else
+        delete m[moduleName]
+    owner.moduleMonitors = m
 
     if (moduleName === "calendar") {
         applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarSlideDuration", "animationCalendarFadeDuration"])
@@ -212,6 +220,7 @@ function resetModules(owner) {
     }
     owner.moduleFrames = Object.assign({}, profile.moduleFrames || owner.moduleFrames)
     owner.moduleBackgrounds = Object.assign({}, profile.moduleBackgrounds || owner.moduleBackgrounds)
+    owner.moduleMonitors = Object.assign({}, profile.moduleMonitors || {})
     if (profile.geometry) owner.geometry = JSON.parse(JSON.stringify(profile.geometry))
     owner.save()
 }
