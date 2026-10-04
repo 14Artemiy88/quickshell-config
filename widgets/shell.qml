@@ -19,6 +19,29 @@ ShellRoot {
     property bool settingsVisible: false
     property bool layoutEditMode: false
     property bool settingsMoveMode: false
+
+    onLayoutEditModeChanged: {
+        if (layoutEditMode) {
+            settingsMoveMode = false
+            settingsVisible = false
+        }
+    }
+
+    onSettingsMoveModeChanged: {
+        if (settingsMoveMode) {
+            layoutEditMode = false
+            settingsVisible = false
+        }
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: shell.settingsMoveMode
+        onActivated: {
+            shell.settingsMoveMode = false
+            shell.settingsVisible = true
+        }
+    }
     property bool timerOptionsVisible: false
     property bool timerCommentVisible: false
     property bool timerFinishedVisible: false
@@ -37,11 +60,11 @@ ShellRoot {
     property string focusedOutputName: ""
     property var focusedOutputScreen: Quickshell.screens[0]
 
-    WidgetWindow { visible: Settings.time; moduleName: "time"; layoutEditMode: shell.layoutEditMode; layoutEditor: layoutEditorWindow; offsetX: Settings.geometryForLayout("time")[0]; offsetY: Settings.geometryForLayout("time")[1]; contentWidth: Settings.geometry.time[2]; contentHeight: Settings.geometry.time[3]
+    WidgetWindow { visible: Settings.time; moduleName: "time"; layoutEditMode: shell.layoutEditMode; layoutEditor: moduleLayoutEditorWindow; offsetX: Settings.geometryForLayout("time")[0]; offsetY: Settings.geometryForLayout("time")[1]; contentWidth: Settings.geometry.time[2]; contentHeight: Settings.geometry.time[3]
         TimeWidget { anchors.fill: parent; clock: clock; onCalendarRequested: shell.calendarVisible = !shell.calendarVisible; onSettingsRequested: shell.settingsVisible = !shell.settingsVisible }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "cpu"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.cpu
@@ -52,7 +75,7 @@ ShellRoot {
         CpuWidget { anchors.fill: parent }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "cpuGraph"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.cpuGraph
@@ -63,7 +86,7 @@ ShellRoot {
         CpuGraph { anchors.fill: parent }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "topApps"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.topApps
@@ -74,7 +97,7 @@ ShellRoot {
         TopApps { anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "networkStat"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.networkStat
@@ -85,7 +108,7 @@ ShellRoot {
         NetworkStat { anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "weatherNow"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherNow
@@ -104,7 +127,7 @@ ShellRoot {
         }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "weatherHourly"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherHourly
@@ -120,7 +143,7 @@ ShellRoot {
         }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "weatherDaily"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherDaily
@@ -136,7 +159,7 @@ ShellRoot {
         }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         id: timerWindow
         moduleName: "timer"
         layoutEditMode: shell.layoutEditMode
@@ -375,7 +398,7 @@ ShellRoot {
         }
     }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "calendar"
         layoutEditMode: shell.layoutEditMode
         visible: shell.calendarVisible && Settings.calendar
@@ -388,7 +411,7 @@ ShellRoot {
 }
 
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "volumes"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.volumes
@@ -399,7 +422,7 @@ ShellRoot {
         Volumes { id: volumesWidget; anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "player"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.player
@@ -412,7 +435,7 @@ ShellRoot {
         Player { anchors.fill: parent; anchors.margins: 0 }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "cava"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.cava
@@ -423,7 +446,7 @@ ShellRoot {
         Cava { anchors.fill: parent }
 }
     WidgetWindow {
-        layoutEditor: layoutEditorWindow
+        layoutEditor: moduleLayoutEditorWindow
         moduleName: "networks"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.networks
@@ -435,7 +458,13 @@ ShellRoot {
 }
 
     WidgetWindow {
+        id: settingsWindow
+        moduleName: "settings"
+        settingsDragMode: shell.settingsMoveMode
+        layoutEditMode: shell.settingsMoveMode
         layoutEditor: layoutEditorWindow
+        normalWlrLayer: WlrLayer.Overlay
+        editWlrLayer: WlrLayer.Overlay
         visible: shell.settingsVisible
         keyboardEnabled: shell.settingsVisible
         offsetX: Settings.settingsGeometry[0]
@@ -444,26 +473,49 @@ ShellRoot {
         contentWidth: Settings.settingsGeometry[2]
         contentHeight: Settings.settingsGeometry[3]
         bottomLayer: false
-        WlrLayershell.layer: WlrLayer.Overlay
         SettingsWidget {
             id: settingsWidget
+            settingsMoveMode: shell.settingsMoveMode
             anchors.fill: parent
             onCloseRequested: {
                 shell.settingsVisible = false
             }
             onLayoutEditRequested: {
+                shell.settingsMoveMode = false
                 shell.settingsVisible = false
                 shell.layoutEditMode = true
             }
             onSettingsMoveRequested: {
+                shell.layoutEditMode = false
                 shell.settingsVisible = false
                 shell.settingsMoveMode = true
+                Qt.callLater(function() {
+                    if (!shell.settingsMoveMode)
+                        return
+                    var moveScreen = settingsWindow.resolveScreen(Settings.settingsMonitorName || Config.monitorName)
+                    if (!moveScreen)
+                        return
+                    var geometry = Settings.settingsGeometry || [0, 0, 560, 850]
+                    layoutEditorWindow.beginProxyDrag(
+                        "settings",
+                        Number(moveScreen.x || 0) + Number(geometry[0] || 0),
+                        Number(moveScreen.y || 0) + Number(geometry[1] || 0),
+                        Number(geometry[2] || settingsWindow.width || 560),
+                        Number(geometry[3] || settingsWindow.height || 850),
+                        settingsWindow.screenStorageName(moveScreen)
+                    )
+                })
             }
         }
     }
 
-    LayoutEditorWindow {
-        id: layoutEditorWindow
+    LayoutEditorProxyWindow { editor: layoutEditorWindow; targetScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null }
+    LayoutEditorProxyWindow { editor: layoutEditorWindow; targetScreen: Quickshell.screens.length > 1 ? Quickshell.screens[1] : null }
+    LayoutEditorProxyWindow { editor: layoutEditorWindow; targetScreen: Quickshell.screens.length > 2 ? Quickshell.screens[2] : null }
+    LayoutEditorProxyWindow { editor: layoutEditorWindow; targetScreen: Quickshell.screens.length > 3 ? Quickshell.screens[3] : null }
+
+    ModuleLayoutEditorWindow {
+        id: moduleLayoutEditorWindow
         active: shell.layoutEditMode
         onExitRequested: {
             shell.layoutEditMode = false
@@ -471,12 +523,13 @@ ShellRoot {
         }
     }
 
-    SettingsMoveWindow {
-        id: settingsMoveWindow
+    LayoutEditorWindow {
+        id: layoutEditorWindow
         active: shell.settingsMoveMode
         onExitRequested: {
             shell.settingsMoveMode = false
             shell.settingsVisible = true
         }
     }
+
 }

@@ -15,13 +15,20 @@ PanelWindow {
     property int backgroundBlurRadius: 7
     property string moduleName: ""
     property bool layoutEditMode: false
+    property bool settingsDragMode: false
+    property int normalWlrLayer: bottomLayer ? WlrLayer.Bottom : WlrLayer.Top
+    property int editWlrLayer: WlrLayer.Top
     property bool liveDragging: false
+    signal layoutDragFinished()
+    signal layoutDragCanceled()
     property var layoutEditor: null
     property real dragBaseGlobalX: 0
     property real dragBaseGlobalY: 0
     property real dragPressX: 0
     property real dragPressY: 0
     property string screenName: {
+        if (root.settingsDragMode)
+            return String(Settings.settingsMonitorName || Config.monitorName)
         var configured = root.moduleName && Settings.moduleMonitors ? Settings.moduleMonitors[root.moduleName] : ""
         return String(configured || Config.monitorName)
     }
@@ -87,12 +94,20 @@ PanelWindow {
     anchors.top: true
     margins.left: root.offsetX
     margins.top: root.offsetY
-    WlrLayershell.layer: root.layoutEditMode ? WlrLayer.Top : (bottomLayer ? WlrLayer.Bottom : WlrLayer.Top)
+    WlrLayershell.layer: root.layoutEditMode ? root.editWlrLayer : root.normalWlrLayer
+
+    default property alias contentData: contentHost.data
+
+    Item {
+        id: contentHost
+        anchors.fill: parent
+        z: 0
+    }
 
     Item {
         id: editOverlay
         anchors.fill: parent
-        visible: root.layoutEditMode && root.moduleName !== ""
+        visible: root.layoutEditMode && root.moduleName !== "" && !root.settingsDragMode
         z: 10000
 
         Rectangle {
@@ -158,7 +173,7 @@ PanelWindow {
 
                 root.liveDragging = false
                 Qt.callLater(function() {
-                    root.contentItem.opacity = 1
+                    contentHost.opacity = 1
                 })
             }
 
@@ -171,7 +186,10 @@ PanelWindow {
                 root.dragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(root.offsetX)
                 root.dragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(root.offsetY)
                 root.liveDragging = true
-                Settings.beginGeometryDrag(root.moduleName)
+                if (root.settingsDragMode)
+                    Settings.beginSettingsGeometryDrag()
+                else
+                    Settings.beginGeometryDrag(root.moduleName)
 
                 var startGlobalX = root.dragBaseGlobalX
                 var startGlobalY = root.dragBaseGlobalY
@@ -185,12 +203,12 @@ PanelWindow {
                     )
                 }
 
-                root.contentItem.grabToImage(function(result) {
+                contentHost.grabToImage(function(result) {
                     if (!root.liveDragging) {
-                        root.contentItem.opacity = 1
+                        contentHost.opacity = 1
                         return
                     }
-                    root.contentItem.opacity = 0
+                    contentHost.opacity = 0
                     if (root.layoutEditor)
                         root.layoutEditor.setProxySource(result.url)
                 }, Qt.size(Math.max(1, Math.round(root.width)), Math.max(1, Math.round(root.height))))
@@ -220,9 +238,11 @@ PanelWindow {
                     return
                 if (root.layoutEditor)
                     root.layoutEditor.endProxyDrag()
-                Settings.cancelGeometryDrag(root.moduleName)
+                if (!root.settingsDragMode)
+                    Settings.cancelGeometryDrag(root.moduleName)
+                root.layoutDragCanceled()
                 root.liveDragging = false
-                root.contentItem.opacity = 1
+                contentHost.opacity = 1
             }
         }
     }
@@ -230,7 +250,7 @@ PanelWindow {
     // Blur what is behind this layer-shell surface, not its own contents.
     // Requires compositor support for ext-background-effect-v1.
     BackgroundEffect.blurRegion: Region {
-        item: root.backgroundBlurEnabled ? root.contentItem : null
+        item: root.backgroundBlurEnabled ? contentHost : null
         radius: Math.max(0, root.backgroundBlurRadius)
     }
 }

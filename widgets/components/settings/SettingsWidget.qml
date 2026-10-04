@@ -15,6 +15,7 @@ Item {
     property int currentTab: 0
     property int currentOtherTab: 0
     property int currentOtherSubTab: 0
+    property bool settingsMoveMode: false
     signal layoutEditRequested()
     signal settingsMoveRequested()
     signal closeRequested()
@@ -22,7 +23,7 @@ Item {
 
     Shortcut {
         sequence: "Esc"
-        enabled: true
+        enabled: !root.settingsMoveMode
         onActivated: root.closeRequested()
     }
 
@@ -47,7 +48,7 @@ Item {
     }
 
     onCurrentTabChanged: {
-        if (modulesFlick) modulesFlick.contentY = 0
+        if (modulesSectionSettingsSection) modulesSectionSettingsSection.resetScroll()
         if (colorsSectionSettingsSection) colorsSectionSettingsSection.resetScroll()
         if (otherFlick) otherFlick.contentY = 0
     }

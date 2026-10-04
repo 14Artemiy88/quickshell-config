@@ -96,7 +96,15 @@ function updateSettingsGeometryDrag(owner, newX, newY, monitorName) {
         owner.settingsMonitorName = String(monitorName)
 }
 
-function endSettingsGeometryDrag(owner) {
+function endSettingsGeometryDrag(owner, monitorName, x, y) {
+    var a = (owner.settingsGeometry || [640, 40, 560, 850]).slice()
+    if (x !== undefined && isFinite(Number(x)))
+        a[0] = Number(x)
+    if (y !== undefined && isFinite(Number(y)))
+        a[1] = Number(y)
+    owner.settingsGeometry = a
+    if (monitorName !== undefined && String(monitorName).trim() !== "")
+        owner.settingsMonitorName = String(monitorName)
     owner.save()
 }
 

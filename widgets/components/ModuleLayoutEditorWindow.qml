@@ -13,8 +13,8 @@ PanelWindow {
     anchors.left: true
     anchors.top: true
     aboveWindows: true
-    color: Config.transparent
     focusable: root.active
+    color: Config.transparent
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.active ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
@@ -29,11 +29,6 @@ PanelWindow {
     property real proxyWidth: 1
     property real proxyHeight: 1
     property var proxyTargetScreen: null
-    property bool dragging: false
-    property real pressMouseX: 0
-    property real pressMouseY: 0
-    property real dragStartGlobalX: 0
-    property real dragStartGlobalY: 0
     signal exitRequested()
 
     function screenMatchesName(screen, name) {
@@ -84,7 +79,7 @@ PanelWindow {
         root.proxySource = String(source || "")
     }
 
-    function beginProxyDrag(moduleName, globalX, globalY, width, height, inputScreenName) {
+    function beginProxyDrag(moduleName, globalX, globalY, width, height) {
         root.proxyModuleName = String(moduleName || "")
         root.proxyGlobalX = Number(globalX) || 0
         root.proxyGlobalY = Number(globalY) || 0
@@ -92,12 +87,7 @@ PanelWindow {
         root.proxyHeight = Math.max(1, Number(height) || 1)
         root.proxySource = ""
         root.proxyActive = true
-        root.proxyTargetScreen = root.findScreenForGlobalPoint(
-            root.proxyGlobalX + root.proxyWidth / 2,
-            root.proxyGlobalY + root.proxyHeight / 2
-        )
-        if (root.proxyTargetScreen)
-            root.editScreen = root.proxyTargetScreen
+        root.updateProxyScreen()
     }
 
     function updateProxyScreen() {
@@ -121,71 +111,9 @@ PanelWindow {
     }
 
     function endProxyDrag() {
-        root.dragging = false
         root.proxyActive = false
         root.proxyModuleName = ""
         root.proxySource = ""
-        root.proxyTargetScreen = null
-    }
-
-    function pointInProxy(globalX, globalY) {
-        if (!root.proxyActive)
-            return false
-        return globalX >= root.proxyGlobalX
-            && globalX <= root.proxyGlobalX + root.proxyWidth
-            && globalY >= root.proxyGlobalY
-            && globalY <= root.proxyGlobalY + root.proxyHeight
-    }
-
-    function globalFromMouse(mouseX, mouseY) {
-        return {
-            x: Number(root.editScreen && root.editScreen.x || 0) + Number(mouseX),
-            y: Number(root.editScreen && root.editScreen.y || 0) + Number(mouseY)
-        }
-    }
-
-    function beginSettingsDrag(mouseX, mouseY) {
-        var global = root.globalFromMouse(mouseX, mouseY)
-        if (!root.pointInProxy(global.x, global.y))
-            return false
-        root.dragging = true
-        root.pressMouseX = Number(mouseX)
-        root.pressMouseY = Number(mouseY)
-        root.dragStartGlobalX = root.proxyGlobalX
-        root.dragStartGlobalY = root.proxyGlobalY
-        Settings.beginSettingsGeometryDrag()
-        return true
-    }
-
-    function updateSettingsDrag(mouseX, mouseY) {
-        if (!root.dragging || !root.proxyActive)
-            return
-        var globalX = root.dragStartGlobalX + (Number(mouseX) - root.pressMouseX)
-        var globalY = root.dragStartGlobalY + (Number(mouseY) - root.pressMouseY)
-        root.updateProxyDrag(globalX, globalY, root.proxyWidth, root.proxyHeight)
-    }
-
-    function finishSettingsDrag() {
-        if (!root.dragging || !root.proxyActive)
-            return
-        var centerX = root.proxyGlobalX + root.proxyWidth / 2
-        var centerY = root.proxyGlobalY + root.proxyHeight / 2
-        var currentScreen = root.findScreenForGlobalPoint(centerX, centerY)
-        if (currentScreen) {
-            var localX = root.proxyGlobalX - Number(currentScreen.x || 0)
-            var localY = root.proxyGlobalY - Number(currentScreen.y || 0)
-            Settings.endSettingsGeometryDrag(
-                root.screenStorageName(currentScreen),
-                localX,
-                localY
-            )
-        }
-        root.dragging = false
-    }
-
-    function cancelSettingsDragMode() {
-        root.endProxyDrag()
-        root.exitRequested()
     }
 
     Connections {
@@ -204,19 +132,17 @@ PanelWindow {
         focus: root.active
 
         Component.onCompleted: {
-            if (root.active)
-                forceActiveFocus()
+            if (root.active) forceActiveFocus()
         }
 
         onVisibleChanged: {
-            if (root.active && visible)
-                forceActiveFocus()
+            if (root.active && visible) forceActiveFocus()
         }
 
         Keys.onPressed: function(event) {
             if (event.key === Qt.Key_Escape) {
                 event.accepted = true
-                root.cancelSettingsDragMode()
+                root.exitRequested()
             }
         }
     }
@@ -233,7 +159,7 @@ PanelWindow {
         Image {
             anchors.fill: parent
             visible: source !== ""
-            source: root.proxySource || ""
+            source: root.proxySource
             asynchronous: true
             fillMode: Image.Stretch
             smooth: true
@@ -270,37 +196,6 @@ PanelWindow {
         }
     }
 
-    MouseArea {
-        id: dragArea
-        anchors.fill: parent
-        enabled: root.active && root.proxyActive
-        visible: root.active && root.proxyActive
-        acceptedButtons: Qt.LeftButton
-        preventStealing: true
-        hoverEnabled: true
-
-        onPressed: function(mouse) {
-            mouse.accepted = root.beginSettingsDrag(mouse.x, mouse.y)
-        }
-
-        onPositionChanged: function(mouse) {
-            if (!pressed || !root.dragging)
-                return
-            root.updateSettingsDrag(mouse.x, mouse.y)
-        }
-
-        onReleased: function(mouse) {
-            if (!root.dragging)
-                return
-            root.updateSettingsDrag(mouse.x, mouse.y)
-            root.finishSettingsDrag()
-        }
-
-        onCanceled: {
-            root.dragging = false
-        }
-    }
-
     mask: Region {
         item: root.proxyActive ? proxyInputRegion : null
     }
@@ -314,13 +209,7 @@ PanelWindow {
     }
 
     onActiveChanged: {
-        if (active) {
-            Qt.callLater(function() {
-                if (root.active)
-                    keyHandler.forceActiveFocus()
-            })
-        } else {
-            root.endProxyDrag()
-        }
+        if (active) Qt.callLater(function() { if (root.active) keyHandler.forceActiveFocus() })
+        else endProxyDrag()
     }
 }

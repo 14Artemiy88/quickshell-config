@@ -8,6 +8,10 @@ Item {
 
     property var host: null
     property var settings: Settings
+
+    function resetScroll() {
+        modulesFlick.contentY = 0
+    }
     visible: host && host.currentTab === 0
     width: parent ? parent.width : 0
     height: visible ? parent.height - y : 0

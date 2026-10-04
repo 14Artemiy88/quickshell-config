@@ -144,7 +144,7 @@ QtObject {
 
     function updateSettingsGeometryDrag(newX, newY, monitorName) { SettingsGeometry.updateSettingsGeometryDrag(root, newX, newY, monitorName) }
 
-    function endSettingsGeometryDrag() { SettingsGeometry.endSettingsGeometryDrag(root) }
+    function endSettingsGeometryDrag(monitorName, x, y) { SettingsGeometry.endSettingsGeometryDrag(root, monitorName, x, y) }
 
     function updateTimerPreset(index, value) {
         SettingsTimerPresets.updateTimerPreset(root, index, value)
