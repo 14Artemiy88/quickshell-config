@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import "../.."
+import "../../.."
 
 TextField {
     id: root
@@ -10,12 +10,16 @@ TextField {
     function clearSettingsFocus() {
         var item = parent
         while (item) {
-            if (item.objectName === "quickshellSettingsWidget" && item.forceActiveFocus) {
+            if (
+                item.objectName === "quickshellSettingsWidget" &&
+                item.forceActiveFocus
+            ) {
                 item.forceActiveFocus()
                 return
             }
             item = item.parent
         }
+
         root.focus = false
     }
 
@@ -26,11 +30,14 @@ TextField {
         acceptedButtons: Qt.NoButton
     }
 
-    onAccepted: clearSettingsFocus()
+    onAccepted: root.clearSettingsFocus()
 
     background: Rectangle {
         color: Config.settingsBackground
-        border.color: (root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor
+        border.color:
+            (root.activeFocus || root.pointerHovered)
+            ? Config.accent
+            : Config.baseColor
         border.width: 1
         radius: 4
     }

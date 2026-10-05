@@ -32,6 +32,8 @@ Widgets.Frame {
     Rectangle {
         anchors.fill: parent
         color: root.moduleBackgroundVisible ? Config.background : Config.transparent
+        border.color: root.moduleFrameVisible ? Config.baseColor : Config.transparent
+        border.width: root.moduleFrameVisible ? Config.frameBorderWidth : 0
         radius: Config.frameRadius
         antialiasing: true
         z: 0
@@ -115,16 +117,6 @@ Widgets.Frame {
         z: 1.5
         message: root.statusMessage
         weatherService: root.weatherService
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: Config.transparent
-        border.color: Config.baseColor
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
-        z: 2
-        antialiasing: true
     }
 
     function dayText(e) {

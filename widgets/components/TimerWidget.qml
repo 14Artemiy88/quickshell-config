@@ -56,17 +56,50 @@ Widgets.Frame {
         return h + ":" + m
     }
 
+    function syncAlarmTargetClock() {
+        if (!Settings.loaded || !Settings.timer || root.alarmTargetAdjusted) {
+            alarmTargetSyncTimer.stop()
+            return
+        }
+
+        // The displayed alarm target has minute precision, so waking every
+        // second is unnecessary. Align the next update to the next minute.
+        const now = new Date()
+        root.alarmTarget = now
+        const msToNextMinute = Math.max(50,
+            60000 - now.getSeconds() * 1000 - now.getMilliseconds())
+        alarmTargetSyncTimer.interval = msToNextMinute
+        alarmTargetSyncTimer.restart()
+    }
+
     Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: {
-            // Keep the default target synchronized with the current minute
-            // until the user actually changes it with the wheel.
-            if (!root.alarmTargetAdjusted) {
-                const now = new Date()
-                root.alarmTarget = now
-            }
+        id: alarmTargetSyncTimer
+        interval: 60000
+        running: false
+        repeat: false
+        onTriggered: root.syncAlarmTargetClock()
+    }
+
+    onAlarmTargetAdjustedChanged: {
+        if (root.alarmTargetAdjusted)
+            alarmTargetSyncTimer.stop()
+        else
+            root.syncAlarmTargetClock()
+    }
+
+    Connections {
+        target: Settings
+        function onLoadedChanged() {
+            if (Settings.loaded)
+                root.syncAlarmTargetClock()
+            else
+                alarmTargetSyncTimer.stop()
+        }
+        function onTimerChanged() {
+            if (Settings.timer)
+                root.syncAlarmTargetClock()
+            else
+                alarmTargetSyncTimer.stop()
         }
     }
 

@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import "../.."
+import "primitives"
+import "sections"
 
 Item {
     id: root
@@ -55,11 +57,10 @@ Item {
 
     onCurrentOtherTabChanged: {
         if (otherFlick) otherFlick.contentY = 0
-        if (currentOtherTab !== 3) currentOtherSubTab = 0
         root.currentOtherSubTab = 0
     }
 
-    function otherSubTabNames() {
+    readonly property var currentOtherSubTabs: {
         switch (root.currentOtherTab) {
         case 0: return ["Интерфейс", "Рамки", "Анимации"]
         case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка"]
@@ -165,30 +166,13 @@ Item {
             Repeater {
                 model: ["Модули", "Цвета", "Настройки"]
 
-                delegate: Rectangle {
+                delegate: SettingsTab {
                     width: (tabs.width - 12) / 3
-                    height: tabs.height
-                    radius: Config.radius
-                    color: root.currentTab === index ? Config.accent : Config.settingsBackground
-                    property bool hovered: false
-                    HoverHandler { onHoveredChanged: parent.hovered = hovered }
-                    border.color: hovered ? Config.accent : Config.baseColor
-                    border.width: 1
-
-                    Text {
-                        anchors.fill: parent
-                        text: modelData
-                        color: root.currentTab === index ? Config.black : Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        font.bold: root.currentTab === index
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: { root.clearSettingsFocus(); root.currentTab = index }
+                    selected: root.currentTab === index
+                    text: modelData
+                    onClicked: {
+                        root.clearSettingsFocus()
+                        root.currentTab = index
                     }
                 }
             }
@@ -213,33 +197,15 @@ Item {
                     Repeater {
                         model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Настройки"]
 
-                        delegate: Rectangle {
+                        delegate: SettingsSubTab {
                             width: otherTabs.width
-                            height: 34
-                            radius: 4
-                            color: root.currentOtherTab === index ? Config.accent : Config.settingsBackground
-                            property bool hovered: false
-                            HoverHandler { onHoveredChanged: parent.hovered = hovered }
-                            border.color: hovered ? Config.accent : Config.baseColor
-                            border.width: 1
-
-                            Text {
-                                anchors.fill: parent
-                                anchors.leftMargin: 8
-                                anchors.rightMargin: 8
-                                text: modelData
-                                color: root.currentOtherTab === index ? Config.black : Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                font.bold: root.currentOtherTab === index
-                                horizontalAlignment: Text.AlignLeft
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: { root.clearSettingsFocus(); root.currentOtherTab = index }
+                            selected: root.currentOtherTab === index
+                            text: modelData
+                            leftAligned: true
+                            horizontalPadding: 8
+                            onClicked: {
+                                root.clearSettingsFocus()
+                                root.currentOtherTab = index
                             }
                         }
                     }
@@ -297,45 +263,22 @@ Item {
                 }
 
                 Row {
-                    visible: root.otherSubTabNames().length > 0
+                    visible: root.currentOtherSubTabs.length > 0
                     width: parent.width
                     height: 34
                     spacing: 5
 
                     Repeater {
-                        model: root.otherSubTabNames()
+                        model: root.currentOtherSubTabs
 
-                        delegate: Rectangle {
-                            width: (parent.width - (root.otherSubTabNames().length - 1) * 5) / root.otherSubTabNames().length
-                            height: 34
-                            radius: 4
-                            color: root.currentOtherSubTab === index ? Config.accent : Config.settingsBackground
-                            property bool hovered: false
-                            HoverHandler { onHoveredChanged: parent.hovered = hovered }
-                            border.color: hovered ? Config.accent : Config.baseColor
-                            border.width: 1
-
-                            Text {
-                                anchors.fill: parent
-                                anchors.leftMargin: 6
-                                anchors.rightMargin: 6
-                                text: modelData
-                                color: root.currentOtherSubTab === index ? Config.black : Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                font.bold: root.currentOtherSubTab === index
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: {
-                                    root.clearSettingsFocus()
-                                    root.currentOtherSubTab = index
-                                    otherFlick.contentY = 0
-                                }
+                        delegate: SettingsSubTab {
+                            width: (parent.width - (root.currentOtherSubTabs.length - 1) * 5) / root.currentOtherSubTabs.length
+                            selected: root.currentOtherSubTab === index
+                            text: modelData
+                            onClicked: {
+                                root.clearSettingsFocus()
+                                root.currentOtherSubTab = index
+                                otherFlick.contentY = 0
                             }
                         }
                     }
@@ -363,32 +306,35 @@ Item {
 
                 Text { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
 
-                Row { width: parent.width; height: 30; spacing: 8
+                SettingsNumberField {
                     visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0
-                    Text { width: 210; text: "System Monitor (мс) — общие данные"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    SettingsTextField { id: systemIntervalField; width: 100; height: 30; text: String(Config.systemMonitorInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue() { var n = Number(text); if (!isFinite(n)) n = Config.systemMonitorInterval; n = Math.max(200, Math.min(10000, Math.round(n))); Config.systemMonitorInterval = n; text = String(n); settings.save() }
-                        onEditingFinished: applyValue(); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel => { var n = Math.max(200, Math.min(10000, Config.systemMonitorInterval + root.wheelDelta(wheel, 100))); Config.systemMonitorInterval=n; systemIntervalField.text=String(n); settings.save(); wheel.accepted=true } }
-                    }
+                    label: "System Monitor (мс) — общие данные"
+                    value: Config.systemMonitorInterval
+                    minimum: 200
+                    maximum: 10000
+                    step: 100
+                    wheelStep: 100
+                    onValueEdited: value => { Config.systemMonitorInterval = value; settings.save() }
                 }
-                Row { width: parent.width; height: 30; spacing: 8
+                SettingsNumberField {
                     visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
-                    Text { width: 210; text: "CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    SettingsTextField { id: cpuIntervalField; width: 100; height: 30; text: String(Config.cpuUpdateInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue() { var n=Number(text); if(!isFinite(n)) n=Config.cpuUpdateInterval; n=Math.max(200,Math.min(10000,Math.round(n))); Config.cpuUpdateInterval=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ var n=Math.max(200,Math.min(10000,Config.cpuUpdateInterval+root.wheelDelta(wheel, 100))); Config.cpuUpdateInterval=n; cpuIntervalField.text=String(n); settings.save(); wheel.accepted=true } }
-                    }
+                    label: "CPU (мс)"
+                    value: Config.cpuUpdateInterval
+                    minimum: 200
+                    maximum: 10000
+                    step: 100
+                    wheelStep: 100
+                    onValueEdited: value => { Config.cpuUpdateInterval = value; settings.save() }
                 }
-                Row { width: parent.width; height: 30; spacing: 8
+                SettingsNumberField {
                     visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
-                    Text { width: 210; text: "Плеер (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                    SettingsTextField { id: playerIntervalField; width: 100; height: 30; text: String(Config.playerUpdateInterval); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue() { var n=Number(text); if(!isFinite(n)) n=Config.playerUpdateInterval; n=Math.max(200,Math.min(10000,Math.round(n))); Config.playerUpdateInterval=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ var n=Math.max(200,Math.min(10000,Config.playerUpdateInterval+root.wheelDelta(wheel, 100))); Config.playerUpdateInterval=n; playerIntervalField.text=String(n); settings.save(); wheel.accepted=true } }
-                    }
+                    label: "Плеер (мс)"
+                    value: Config.playerUpdateInterval
+                    minimum: 50
+                    maximum: 5000
+                    step: 50
+                    wheelStep: 50
+                    onValueEdited: value => { Config.playerUpdateInterval = value; settings.save() }
                 }
 
                 SettingsPlayerSection {
@@ -428,56 +374,6 @@ Item {
                     host: root
                     settings: root.settings
                 }
-                Row {
-                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                    width: parent.width
-                    height: 30
-                    spacing: 8
-                    Text { width: 210; text: "Таймеры"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    SettingsTextField { id: timerRowSpacingField; width: 58; height: 30; text: String(Config.timerRowSpacing); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                                            color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerRowSpacing; n=Math.max(0,Math.min(50,Math.round(n))); Config.timerRowSpacing=n; text=String(n); settings.save() }
-                                            onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerRowSpacingField.applyValue(Config.timerRowSpacing+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                                        }
-                    SettingsTextField { id: timerRowTopField; width: 58; height: 30; text: String(Config.timerRowTopMargin); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                                            color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerRowTopMargin; n=Math.max(0,Math.min(50,Math.round(n / 1) * 1)); Config.timerRowTopMargin=n; text=String(n); settings.save() }
-                                            onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerRowTopField.applyValue(Config.timerRowTopMargin+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                                        }
-                    SettingsTextField { id: timerRowRightField; width: 58; height: 30; text: String(Config.timerRowRightMargin); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                                            color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerRowRightMargin; n=Math.max(0,Math.min(50,Math.round(n / 1) * 1)); Config.timerRowRightMargin=n; text=String(n); settings.save() }
-                                            onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerRowRightField.applyValue(Config.timerRowRightMargin+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                                        }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                    Text { width: 210; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    SettingsTextField { id: timerFadeField; width: 100; height: 30; text: String(Config.timerButtonFadeDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerButtonFadeDuration; n=Math.max(0,Math.min(5000,Math.round(n / 1) * 1)); Config.timerButtonFadeDuration=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerFadeField.applyValue(Config.timerButtonFadeDuration+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                    Text { width: 210; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    SettingsTextField { id: timerSlideField; width: 100; height: 30; text: String(Config.timerButtonSlideDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerButtonSlideDuration; n=Math.max(0,Math.min(5000,Math.round(n / 1) * 1)); Config.timerButtonSlideDuration=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerSlideField.applyValue(Config.timerButtonSlideDuration+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-                Row { width: parent.width; height: 30; spacing: 8
-                    visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                    Text { width: 210; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                    SettingsTextField { id: timerIconFadeField; width: 100; height: 30; text: String(Config.timerButtonIconFadeDuration); color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle {
-                        color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                        function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.timerButtonIconFadeDuration; n=Math.max(0,Math.min(5000,Math.round(n / 1) * 1)); Config.timerButtonIconFadeDuration=n; text=String(n); settings.save() }
-                        onEditingFinished: applyValue(text); MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ timerIconFadeField.applyValue(Config.timerButtonIconFadeDuration+root.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                    }
-                }
-
                 SettingsWindowSection {
                     id: settingsWindowSectionSettingsSection
                     host: root

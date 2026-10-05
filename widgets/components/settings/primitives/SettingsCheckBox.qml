@@ -1,12 +1,15 @@
 import QtQuick
 import QtQuick.Controls
-import "../.."
+import "../../.."
 
 CheckBox {
     id: root
 
     property bool pointerHovered: checkHoverArea.containsMouse
     property bool indicatorOnly: false
+    property real labelFontSize: 11
+    property real labelLeftPadding: 5
+    property bool labelElide: true
 
     MouseArea {
         id: checkHoverArea
@@ -44,9 +47,9 @@ CheckBox {
         text: root.text
         color: root.enabled ? Config.text : Config.textMuted
         font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(11)
-        leftPadding: root.indicator.width + 5
+        font.pixelSize: Config.settingsUiSize(root.labelFontSize)
+        leftPadding: root.indicator.width + root.labelLeftPadding
         verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
+        elide: root.labelElide ? Text.ElideRight : Text.ElideNone
     }
 }

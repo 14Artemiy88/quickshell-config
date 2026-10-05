@@ -74,24 +74,26 @@ function snapshotObject(owner, config) {
 
 function save(owner, config) {
 
+        if (!owner.writer)
+            owner.writer = owner.writerComponent.createObject(owner)
+
+        if (owner.writer.running) {
+            // The current writer already has a snapshot in flight.
+            // Only remember that another snapshot is required after it finishes;
+            // build the expensive JSON payload once, at that point.
+            owner.pendingWriteRequested = true
+            owner.saved()
+            return
+        }
+
         var payloadObject = snapshotObject(owner, config)
         payloadObject.profiles = owner.profiles
         payloadObject.activeProfile = owner.activeProfile
         payloadObject.customThemes = owner.customThemes
         payloadObject.activeTheme = owner.activeTheme
-        var payload = JSON.stringify(payloadObject)
 
-        if (!owner.writer)
-            owner.writer = owner.writerComponent.createObject(owner)
-
-        if (owner.writer.running) {
-            // Keep only the newest snapshot. This prevents a burst of UI changes
-            // from creating a growing list of Process objects.
-            owner.pendingWritePayload = payload
-        } else {
-            owner.writer.payload = payload
-            owner.writer.running = true
-        }
+        owner.writer.payload = JSON.stringify(payloadObject)
+        owner.writer.running = true
         owner.saved()
     
 }

@@ -70,7 +70,6 @@ QtObject {
     property int weatherHourlyIntervalMinutes: 60
     property int weatherDailyIntervalMinutes: 60
     property int weatherRetryDelayMinutes: 10
-    property int weatherRequestTimeoutSeconds: 10
     property int weatherManualRefreshCooldownSeconds: 30
 
     // Timer tuning
@@ -341,5 +340,4 @@ QtObject {
     }
 
     property string monitorName: "LCD195VXM+"
-    property string monitorNameMode: "name-or-model"
 }

@@ -256,12 +256,4 @@ Widgets.Frame {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: Config.transparent
-        border.color: Config.baseColor
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
-        z: 100
-    }
 }

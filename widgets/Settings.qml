@@ -90,7 +90,7 @@ QtObject {
 
     property var loader: null
     property var writer: null
-    property string pendingWritePayload: ""
+    property bool pendingWriteRequested: false
 
     property Component loaderComponent: Component {
         Process {
@@ -112,10 +112,16 @@ QtObject {
             command: [Quickshell.shellDir + "/scripts/settings", "set-json", payload]
             stdout: StdioCollector {}
             onRunningChanged: {
-                if (!running && root.pendingWritePayload !== "") {
-                    payload = root.pendingWritePayload
-                    root.pendingWritePayload = ""
-                    Qt.callLater(function() { writeProc.running = true })
+                if (!running && root.pendingWriteRequested) {
+                    root.pendingWriteRequested = false
+                    Qt.callLater(function() {
+                        if (writeProc.running)
+                            return
+                        writeProc.payload = JSON.stringify(
+                            SettingsPersistence.snapshotObject(root, Config)
+                        )
+                        writeProc.running = true
+                    })
                 }
             }
         }

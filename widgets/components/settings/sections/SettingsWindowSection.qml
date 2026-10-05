@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import "../.."
+import "../../.."
+import "../primitives"
 
 Column {
     id: settingsWindowColumn
@@ -53,19 +54,25 @@ Column {
                         height: 34
                         spacing: 8
                         Text { width: 210; text: "Размер шрифта настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                        SettingsTextField {
-                            id: settingsFontSizeField
-                            width: 100; height: 30
-                            text: String(Config.settingsFontSize)
-                            color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black
-                            font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                            horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly
-                            background: Rectangle { color: Config.settingsBackground; border.color: (settingsFontSizeField.activeFocus || settingsFontSizeField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.settingsFontSize; n=Math.max(6,Math.min(32,Math.round(n))); Config.settingsFontSize=n; text=String(n); settings.save() }
-                            onEditingFinished: applyValue(text)
-                            MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ settingsFontSizeField.applyValue(Config.settingsFontSize+host.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                            Connections { target: Config; function onSettingsFontSizeChanged() { settingsFontSizeField.text = String(Config.settingsFontSize) } }
-                        }
+                        SettingsNumberField {
+    id: settingsFontSizeField
+    width: 100
+    height: 30
+    value: Config.settingsFontSize
+    minimum: 6
+    maximum: 32
+    step: 1
+    wheelStep: 1
+    decimals: 0
+    compact: true
+    fieldWidth: 100
+    fieldFontSize: 11
+    inputMethodHints: Qt.ImhDigitsOnly
+    targetObject: Config
+    targetProperty: "settingsFontSize"
+    settingsObject: root.settings
+    saveOnEdit: true
+}
                     }
 
                     Row {
@@ -74,19 +81,25 @@ Column {
                         height: 34
                         spacing: 8
                         Text { width: 210; text: "Внутренний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                        SettingsTextField {
-                            id: settingsPaddingField
-                            width: 100; height: 30
-                            text: String(Config.settingsPadding)
-                            color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black
-                            font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                            horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly
-                            background: Rectangle { color: Config.settingsBackground; border.color: (settingsPaddingField.activeFocus || settingsPaddingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.settingsPadding; n=Math.max(0,Math.min(40,Math.round(n))); Config.settingsPadding=n; text=String(n); settings.save() }
-                            onEditingFinished: applyValue(text)
-                            MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ settingsPaddingField.applyValue(Config.settingsPadding+host.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                            Connections { target: Config; function onSettingsPaddingChanged() { settingsPaddingField.text = String(Config.settingsPadding) } }
-                        }
+                        SettingsNumberField {
+    id: settingsPaddingField
+    width: 100
+    height: 30
+    value: Config.settingsPadding
+    minimum: 0
+    maximum: 40
+    step: 1
+    wheelStep: 1
+    decimals: 0
+    compact: true
+    fieldWidth: 100
+    fieldFontSize: 11
+    inputMethodHints: Qt.ImhDigitsOnly
+    targetObject: Config
+    targetProperty: "settingsPadding"
+    settingsObject: root.settings
+    saveOnEdit: true
+}
                     }
 
                     Row {
@@ -95,19 +108,25 @@ Column {
                         height: 34
                         spacing: 8
                         Text { width: 210; text: "Расстояние между элементами"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                        SettingsTextField {
-                            id: settingsSpacingField
-                            width: 100; height: 30
-                            text: String(Config.settingsSpacing)
-                            color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black
-                            font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                            horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; inputMethodHints: Qt.ImhDigitsOnly
-                            background: Rectangle { color: Config.settingsBackground; border.color: (settingsSpacingField.activeFocus || settingsSpacingField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                            function applyValue(v) { var n=Number(v); if(!isFinite(n)) n=Config.settingsSpacing; n=Math.max(0,Math.min(40,Math.round(n))); Config.settingsSpacing=n; text=String(n); settings.save() }
-                            onEditingFinished: applyValue(text)
-                            MouseArea { anchors.fill: parent; acceptedButtons: Qt.NoButton; onWheel: wheel=>{ settingsSpacingField.applyValue(Config.settingsSpacing+host.wheelDelta(wheel, 1)); wheel.accepted=true } }
-                            Connections { target: Config; function onSettingsSpacingChanged() { settingsSpacingField.text = String(Config.settingsSpacing) } }
-                        }
+                        SettingsNumberField {
+    id: settingsSpacingField
+    width: 100
+    height: 30
+    value: Config.settingsSpacing
+    minimum: 0
+    maximum: 40
+    step: 1
+    wheelStep: 1
+    decimals: 0
+    compact: true
+    fieldWidth: 100
+    fieldFontSize: 11
+    inputMethodHints: Qt.ImhDigitsOnly
+    targetObject: Config
+    targetProperty: "settingsSpacing"
+    settingsObject: root.settings
+    saveOnEdit: true
+}
                     }
 
                     Text {
@@ -157,56 +176,27 @@ Column {
 
                         Repeater {
                             model: [0, 1, 2, 3]
-                            delegate: SettingsTextField {
+                            delegate: SettingsNumberField {
                                 id: settingsGeometryField
                                 width: 76
                                 height: 30
                                 property int fieldIndex: modelData
-                                text: String(settings.settingsGeometry[fieldIndex])
-                                color: Config.text
-                                selectionColor: Config.accent
-                                selectedTextColor: Config.black
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                horizontalAlignment: Text.AlignHCenter
-                                activeFocusOnTab: true
-                                inputMethodHints: Qt.ImhDigitsOnly
-                                background: Rectangle {
-                                    color: Config.settingsBackground
-                                    border.color: (settingsGeometryField.activeFocus || settingsGeometryField.pointerHovered) ? Config.accent : Config.baseColor
-                                    border.width: 1
-                                    radius: 4
-                                }
-                                onEditingFinished: {
+                                value: Number(settings.settingsGeometry[fieldIndex])
+                                minimum: fieldIndex === 2 ? 320 : fieldIndex === 3 ? 240 : -Infinity
+                                maximum: Infinity
+                                step: 1
+                                wheelStep: 1
+                                compact: true
+                                fieldWidth: 76
+                                fieldFontSize: 10
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                valueWriter: function(n) {
                                     var a = (settings.settingsGeometry || [640, 40, 560, 850]).slice()
-                                    var n = Number(text)
-                                    if (!isNaN(n)) {
-                                        if (fieldIndex === 2) n = Math.max(320, Math.round(n))
-                                        if (fieldIndex === 3) n = Math.max(240, Math.round(n))
-                                        a[fieldIndex] = Math.round(n)
-                                        settings.settingsGeometry = a
-                                        settings.save()
-                                        text = String(a[fieldIndex])
-                                    } else {
-                                        text = String(settings.settingsGeometry[fieldIndex])
-                                    }
+                                    a[fieldIndex] = Math.round(n)
+                                    settings.settingsGeometry = a
+                                    settings.save()
                                 }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.NoButton
-                                    onWheel: wheel => {
-                                        settings.adjustSettingsGeometry(settingsGeometryField.fieldIndex, host.wheelDelta(wheel, 1))
-                                        settingsGeometryField.text = String(settings.settingsGeometry[settingsGeometryField.fieldIndex])
-                                        wheel.accepted = true
-                                    }
-                                }
-                                Connections {
-                                    target: settings
-                                    function onSettingsGeometryChanged() {
-                                        settingsGeometryField.text = String(settings.settingsGeometry[settingsGeometryField.fieldIndex])
-                                    }
-                                }
-                                ToolTip.visible: hovered
+                                ToolTip.visible: settingsGeometryField.pointerHovered
                                 ToolTip.text: ["X", "Y", "Width", "Height"][fieldIndex]
                                 ToolTip.delay: 500
                             }
@@ -366,50 +356,34 @@ Column {
                             font.pixelSize: Config.settingsUiSize(11)
                         }
 
-                        Button {
+                        SettingsButton {
                             width: 85
                             height: 30
                             text: "Загрузить"
+                            fontSize: 10
                             enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.enabled ? (parent.hovered ? Config.black : Config.accent) : Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            background: Rectangle {
-                                color: parent.enabled && parent.hovered ? Config.accent : "transparent"
-                                border.color: parent.enabled ? Config.accent : Config.baseColor
-                                border.width: 1
-                                radius: Config.radius
-                            }
+                            fillOnHover: true
+                            borderOnHover: true
+                            accentColor: Config.accent
+                            backgroundColor: "transparent"
+                            textColor: Config.accent
                             onClicked: {
                                 if (settings.loadProfile(profileCombo.currentText))
                                     profileActionFeedback.showMessage("✓ профиль загружен")
                             }
                         }
 
-                        Button {
+                        SettingsButton {
                             width: 85
                             height: 30
                             text: "Удалить"
+                            fontSize: 10
                             enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.enabled ? (parent.hovered ? Config.black : Config.accent) : Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                            background: Rectangle {
-                                color: parent.enabled && parent.hovered ? Config.accent : "transparent"
-                                border.color: parent.enabled ? Config.accent : Config.baseColor
-                                border.width: 1
-                                radius: Config.radius
-                            }
+                            fillOnHover: true
+                            borderOnHover: true
+                            accentColor: Config.accent
+                            backgroundColor: "transparent"
+                            textColor: Config.accent
                             onClicked: {
                                 if (settings.deleteProfile(profileCombo.currentText))
                                     profileActionFeedback.showMessage("✓ профиль удалён")
@@ -481,35 +455,20 @@ Column {
                         height: 46
                         spacing: 10
 
-                        Rectangle {
+                        SettingsButton {
                             id: settingsMoveButton
                             width: 270
                             height: 46
-                            radius: Config.frameRadius
-                            color: settingsMoveMouse.containsMouse ? Config.accent : "transparent"
-                            border.color: Config.accent
-                            border.width: Math.max(1, Config.frameBorderWidth)
-
-                            Text {
-                                anchors.fill: parent
-                                text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
-                                color: settingsMoveMouse.containsMouse ? Config.black : Config.accent
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(11)
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            MouseArea {
-                                id: settingsMoveMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: host.settingsMoveRequested()
-                            }
+                            text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
+                            fontSize: 11
+                            fontBold: true
+                            fillOnHover: true
+                            borderOnHover: true
+                            accentColor: Config.accent
+                            backgroundColor: "transparent"
+                            textColor: Config.accent
+                            onClicked: host.settingsMoveRequested()
                         }
-
                         Text {
                             width: parent.width - 280
                             height: 46

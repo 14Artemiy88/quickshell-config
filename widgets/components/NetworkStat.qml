@@ -3,6 +3,7 @@ import "." as Widgets
 import ".."
 
 Widgets.Frame {
+    moduleName: "networkStat"
     width: 313
     height: 55
     property var monitor

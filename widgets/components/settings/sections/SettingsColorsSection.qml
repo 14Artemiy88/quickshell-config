@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import "../.."
+import "../../.."
+import "../primitives"
 
 Flickable {
     id: root
@@ -236,11 +237,12 @@ Flickable {
             Repeater {
                 model: parent.groups
 
-                delegate: Column {
+                delegate: SettingsGroup {
                     visible: root.editingColors
                     width: parent.width
                     height: visible ? implicitHeight : 0
-                    spacing: 5
+                    contentSpacing: 5
+                    showFrame: false
 
                     Row {
                         width: parent.width
@@ -293,59 +295,18 @@ Flickable {
                                 tempCold: "Погода: холодно", tempVeryCold: "Погода: очень холодно", tempFreezing: "Погода: мороз"
                             })
 
-                            Rectangle {
-                                width: 24; height: 24; radius: 4
-                                color: Config[colorName]
-                                border.color: Config.baseColor; border.width: 1
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Column {
-                                width: 220
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 1
-                                Text {
-                                    width: parent.width
-                                    text: colorLabels[colorName] || colorName
-                                    color: Config.text
-                                    font.family: Config.settingsFont
-                                    font.pixelSize: Config.settingsUiSize(11)
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    width: parent.width
-                                    text: colorName
-                                    color: Config.textMuted
-                                    font.family: Config.settingsFont
-                                    font.pixelSize: Config.settingsUiSize(9)
-                                    elide: Text.ElideRight
-                                }
-                            }
-
-                            SettingsTextField {
-                                id: colorField
-                                width: 120; height: 30
-                                text: String(Config[colorName])
-                                color: Config.text
-                                selectionColor: Config.accent
-                                selectedTextColor: Config.black
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(11)
-                                activeFocusOnTab: true
-                                background: Rectangle {
-                                    color: Config.settingsBackground
-                                    border.color: (colorField.activeFocus || colorField.pointerHovered) ? Config.accent : Config.baseColor
-                                    border.width: 1; radius: 4
-                                }
-                                onEditingFinished: {
-                                    if (/^#[0-9a-fA-F]{6,8}$/.test(text) || text === "transparent") {
-                                        Config[colorName] = text
-                                        settings.bumpThemeStateRevision()
-                                        settings.save()
-                                    } else {
-                                        text = String(Config[colorName])
-                                    }
-                                }
+                            SettingsColorField {
+                                width: parent.width
+                                label: colorLabels[colorName] || colorName
+                                value: String(Config[colorName])
+                                targetObject: Config
+                                targetProperty: colorName
+                                settingsObject: settings
+                                saveOnEdit: true
+                                allowAlpha: true
+                                allowTransparent: true
+                                fieldWidth: 120
+                                compact: false
                             }
                         }
                     }

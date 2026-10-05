@@ -1,7 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 import Quickshell
-import "../.."
+import "../../.."
+import "../primitives"
 
 Item {
     id: modulesSection
@@ -103,76 +104,33 @@ Item {
                             settings[moduleRow.moduleName] = checked
                             settings.save()
                         }
-                        contentItem: Text {
-                            text: parent.text
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            leftPadding: parent.indicator.width + 5
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                        }
                     }
 
                     Repeater {
                         model: ["X", "Y", "Width", "Height"]
 
-                        delegate: SettingsTextField {
+                        delegate: SettingsNumberField {
                             id: geometryField
                             width: 60
                             height: 30
-                            text: String(settings.geometry[moduleRow.moduleName][index])
-                            color: Config.text
-                            selectionColor: Config.accent
-                            selectedTextColor: Config.black
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                            horizontalAlignment: Text.AlignHCenter
-                            activeFocusOnTab: true
-                            inputMethodHints: Qt.ImhDigitsOnly
-
-                            background: Rectangle {
-                                color: Config.settingsBackground
-                                border.color: (geometryField.activeFocus || geometryField.pointerHovered) ? Config.accent : Config.baseColor
-                                border.width: 1
-                                radius: 4
-                            }
-
-                            onEditingFinished: {
+                            value: Number(settings.geometry[moduleRow.moduleName][index])
+                            minimum: index >= 2 ? 1 : -Infinity
+                            maximum: Infinity
+                            step: 1
+                            wheelStep: 1
+                            compact: true
+                            fieldWidth: 60
+                            fieldFontSize: 10
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            valueWriter: function(n) {
                                 var g = Object.assign({}, settings.geometry)
                                 var a = (g[moduleRow.moduleName] || [0, 0, 100, 100]).slice()
-                                var n = Number(text)
-                                if (!isNaN(n)) {
-                                    if (index >= 2) n = Math.max(1, n)
-                                    a[index] = n
-                                    g[moduleRow.moduleName] = a
-                                    settings.geometry = g
-                                    settings.save()
-                                    text = String(n)
-                                } else {
-                                    text = String(settings.geometry[moduleRow.moduleName][index])
-                                }
+                                a[index] = n
+                                g[moduleRow.moduleName] = a
+                                settings.geometry = g
+                                settings.save()
                             }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                acceptedButtons: Qt.NoButton
-                                        onWheel: wheel => {
-                                    var delta = host.wheelDelta(wheel, 1)
-                                    settings.adjustGeometry(moduleRow.moduleName, index, delta)
-                                    geometryField.text = String(settings.geometry[moduleRow.moduleName][index])
-                                    wheel.accepted = true
-                                }
-                            }
-
-                            Connections {
-                                target: settings
-                                function onGeometryChanged() {
-                                    geometryField.text = String(settings.geometry[moduleRow.moduleName][index])
-                                }
-                            }
-
-                            ToolTip.visible: hovered
+                            ToolTip.visible: geometryField.pointerHovered
                             ToolTip.text: ["X", "Y", "Width", "Height"][index]
                             ToolTip.delay: 500
                         }
@@ -224,35 +182,20 @@ Item {
                 height: 46
                 spacing: 10
 
-                Rectangle {
+                SettingsButton {
                     id: layoutEditButton
                     width: 270
                     height: 46
-                    radius: Config.frameRadius
-                    color: layoutEditMouse.containsMouse ? Config.accent : "transparent"
-                    border.color: Config.accent
-                    border.width: Math.max(1, Config.frameBorderWidth)
-
-                    Text {
-                        anchors.fill: parent
-                        text: "УМНОЕ РЕДАКТИРОВАНИЕ"
-                        color: layoutEditMouse.containsMouse ? Config.black : Config.accent
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    MouseArea {
-                        id: layoutEditMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: host.layoutEditRequested()
-                    }
+                    text: "УМНОЕ РЕДАКТИРОВАНИЕ"
+                    fontSize: 11
+                    fontBold: true
+                    fillOnHover: true
+                    borderOnHover: true
+                    accentColor: Config.accent
+                    backgroundColor: "transparent"
+                    textColor: Config.accent
+                    onClicked: host.layoutEditRequested()
                 }
-
                 Text {
                     width: parent.width - 280
                     height: 46

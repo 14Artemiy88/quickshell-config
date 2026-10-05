@@ -8,7 +8,7 @@ import "services"
 
 ShellRoot {
     id: shell
-    Clock { id: clock }
+    Clock { id: clock; active: Settings.loaded && (Settings.time || (shell.calendarVisible && Settings.calendar)) }
     SystemMonitor { id: monitor }
     Loader {
         id: weatherLoader
