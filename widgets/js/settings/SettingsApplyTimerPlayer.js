@@ -59,5 +59,47 @@ function apply(Config, o, legacyTimerIconOrder) {
             if (isFinite(pco)) Config.playerCoverOpacity = Math.max(0, Math.min(1, pco))
         }
 
+        // Player backend priority. Keep the list ordered, unique, and
+        // limited to known backend IDs. Missing entries are appended so
+        // older settings files migrate cleanly.
+        var defaultPlayerPriority = [
+            "deadbeef",
+            "mopidy",
+            "mpv",
+            "spotify",
+            "plasma-browser-integration",
+            "org.telegram.desktop"
+        ]
+        if (o.playerPriority instanceof Array) {
+            var normalizedPriority = []
+            for (var pi = 0; pi < o.playerPriority.length; ++pi) {
+                var item = o.playerPriority[pi]
+                var backendId = ""
+                var enabled = true
+                if (typeof item === "string") {
+                    backendId = item
+                } else if (item && typeof item === "object") {
+                    backendId = String(item.id || "")
+                    enabled = item.enabled !== false
+                }
+                if (!backendId || defaultPlayerPriority.indexOf(backendId) < 0)
+                    continue
+                var duplicate = false
+                for (var pj = 0; pj < normalizedPriority.length; ++pj) {
+                    if (normalizedPriority[pj].id === backendId) { duplicate = true; break }
+                }
+                if (!duplicate)
+                    normalizedPriority.push({ id: backendId, enabled: enabled })
+            }
+            for (var pk = 0; pk < defaultPlayerPriority.length; ++pk) {
+                var missing = true
+                for (var pl = 0; pl < normalizedPriority.length; ++pl) {
+                    if (normalizedPriority[pl].id === defaultPlayerPriority[pk]) { missing = false; break }
+                }
+                if (missing)
+                    normalizedPriority.push({ id: defaultPlayerPriority[pk], enabled: true })
+            }
+            Config.playerPriority = normalizedPriority
+        }
 
 }

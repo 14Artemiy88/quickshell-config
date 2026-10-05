@@ -551,7 +551,7 @@ Column {
         maximum: 1000
         step: 1
         fieldWidth: 100
-        onValueEdited: {
+        onValueEdited: function(value) {
             Config.timerMinHeight = value
             root.settings.save()
         }
@@ -564,7 +564,7 @@ Column {
         maximum: 60
         step: 1
         fieldWidth: 100
-        onValueEdited: {
+        onValueEdited: function(value) {
             Config.timerWheelStep = value
             root.settings.save()
         }

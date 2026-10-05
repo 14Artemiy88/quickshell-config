@@ -41,7 +41,7 @@ function snapshotObject(owner, config) {
             playerProgressTrackHeight: config.playerProgressTrackHeight,
             playerControlTopMargin: config.playerControlTopMargin, playerControlGap: config.playerControlGap,
             playerTimeFontSize: config.playerTimeFontSize, playerTimeFont: config.playerTimeFont, playerTimeRightPadding: config.playerTimeRightPadding, playerCoverOpacity: config.playerCoverOpacity,
-            playerSilenceWidth: config.playerSilenceWidth, playerProgressTrackOffsetY: config.playerProgressTrackOffsetY,
+            playerSilenceWidth: config.playerSilenceWidth, playerProgressTrackOffsetY: config.playerProgressTrackOffsetY, playerPriority: JSON.parse(JSON.stringify(config.playerPriority || [])),
             calendarPreviousIcon: config.calendarPreviousIcon, calendarNextIcon: config.calendarNextIcon,
             calendarPreviousSize: config.calendarPreviousSize, calendarNextSize: config.calendarNextSize, calendarArrowY: config.calendarArrowY,
             calendarPreviousX: config.calendarPreviousX, calendarNextX: config.calendarNextX,

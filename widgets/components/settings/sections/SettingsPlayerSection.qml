@@ -7,8 +7,95 @@ Column {
     id: root
     property var host
     property var settings: Settings
+    property var playerBackendDefinitions: [
+        { id: "deadbeef", label: "DeaDBeeF" },
+        { id: "mopidy", label: "Mopidy" },
+        { id: "mpv", label: "mpv" },
+        { id: "spotify", label: "Spotify" },
+        { id: "plasma-browser-integration", label: "Браузер" },
+        { id: "org.telegram.desktop", label: "Telegram" }
+    ]
     spacing: 10
     width: parent ? parent.width : 0
+
+    ListModel {
+        id: playerPriorityModel
+    }
+
+    function backendLabel(backendId) {
+        for (var i = 0; i < root.playerBackendDefinitions.length; ++i) {
+            if (root.playerBackendDefinitions[i].id === backendId)
+                return root.playerBackendDefinitions[i].label
+        }
+        return backendId
+    }
+
+    function syncPlayerPriorityModel() {
+        playerPriorityModel.clear()
+
+        var source = Config.playerPriority || []
+        var used = ({})
+
+        for (var i = 0; i < source.length; ++i) {
+            var item = source[i] || {}
+            var backendId = typeof item === "string" ? item : String(item.id || "")
+            if (!backendId || used[backendId])
+                continue
+
+            used[backendId] = true
+            playerPriorityModel.append({
+                backendId: backendId,
+                label: root.backendLabel(backendId),
+                enabled: typeof item === "string" ? true : item.enabled !== false
+            })
+        }
+
+        for (var j = 0; j < root.playerBackendDefinitions.length; ++j) {
+            var def = root.playerBackendDefinitions[j]
+            if (used[def.id])
+                continue
+            playerPriorityModel.append({
+                backendId: def.id,
+                label: def.label,
+                enabled: true
+            })
+        }
+    }
+
+    function savePlayerPriority() {
+        var value = []
+        for (var i = 0; i < playerPriorityModel.count; ++i) {
+            var item = playerPriorityModel.get(i)
+            value.push({
+                id: String(item.backendId),
+                enabled: !!item.enabled
+            })
+        }
+        Config.playerPriority = value
+        settings.save()
+    }
+
+    function togglePlayerPriority(index, enabled) {
+        if (index < 0 || index >= playerPriorityModel.count)
+            return
+        playerPriorityModel.setProperty(index, "enabled", !!enabled)
+        root.savePlayerPriority()
+    }
+
+    function movePlayerPriority(index, delta) {
+        var target = index + delta
+        if (index < 0 || index >= playerPriorityModel.count || target < 0 || target >= playerPriorityModel.count)
+            return
+        playerPriorityModel.move(index, target, 1)
+        root.savePlayerPriority()
+    }
+
+    Connections {
+        target: Config
+        function onPlayerPriorityChanged() { root.syncPlayerPriorityModel() }
+    }
+
+    Component.onCompleted: root.syncPlayerPriorityModel()
 
     Text {
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
@@ -622,7 +709,7 @@ Column {
             maximum: 100
             step: 1
             fieldWidth: 72
-            onValueEdited: {
+            onValueEdited: function(value) {
                 Config.playerProgressY = value
                 settings.save()
             }
@@ -634,7 +721,7 @@ Column {
             maximum: 20
             step: 1
             fieldWidth: 72
-            onValueEdited: {
+            onValueEdited: function(value) {
                 Config.playerProgressTrackHeight = value
                 settings.save()
             }
@@ -646,7 +733,7 @@ Column {
             maximum: 20
             step: 1
             fieldWidth: 72
-            onValueEdited: {
+            onValueEdited: function(value) {
                 Config.playerProgressTrackOffsetY = value
                 settings.save()
             }
@@ -730,5 +817,87 @@ Column {
     settingsObject: root.settings
     saveOnEdit: true
 }
+    }
+
+    Text {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
+        text: "Приоритет проигрывателей"
+        color: Config.settingsSubheading
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+    Text {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
+        text: "Первый включённый backend в списке, который сейчас доступен, используется плеером. Отключённые backend пропускаются."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(9)
+        wrapMode: Text.WordWrap
+        width: parent.width
+    }
+    Column {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
+        width: parent.width
+        spacing: 5
+
+        Repeater {
+            model: playerPriorityModel
+
+            delegate: Row {
+                width: parent ? parent.width : 0
+                height: 30
+                spacing: 6
+
+                Text {
+                    width: 24
+                    height: 30
+                    text: "#" + (index + 1)
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    horizontalAlignment: Text.AlignRight
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                SettingsCheckBox {
+                    width: 28
+                    height: 30
+                    indicatorOnly: true
+                    checked: model.enabled
+                    onToggled: root.togglePlayerPriority(index, checked)
+                }
+
+                Text {
+                    width: 170
+                    height: 30
+                    text: model.label
+                    color: model.enabled ? Config.text : Config.textDisabled
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 18 - 56); height: 30 }
+
+                SettingsButton {
+                    width: 26
+                    height: 26
+                    text: "↑"
+                    enabled: index > 0
+                    tooltip: "Поднять выше"
+                    onClicked: root.movePlayerPriority(index, -1)
+                }
+
+                SettingsButton {
+                    width: 26
+                    height: 26
+                    text: "↓"
+                    enabled: index < playerPriorityModel.count - 1
+                    tooltip: "Опустить ниже"
+                    onClicked: root.movePlayerPriority(index, 1)
+                }
+            }
+        }
     }
 }

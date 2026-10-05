@@ -213,6 +213,38 @@ Column {
                         width: parent.width
                     }
 
+                    Row {
+                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+                        width: parent.width
+                        height: 46
+                        spacing: 10
+
+                        SettingsButton {
+                            width: 270
+                            height: 46
+                            text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
+                            fontSize: 11
+                            fontBold: true
+                            fillOnHover: true
+                            borderOnHover: true
+                            accentColor: Config.accent
+                            backgroundColor: "transparent"
+                            textColor: Config.accent
+                            onClicked: host.settingsMoveRequested()
+                        }
+
+                        Text {
+                            width: parent.width - 280
+                            height: 46
+                            text: "Скрывает окно настроек и позволяет перемещать его мышью.\nEsc — завершить перемещение и вернуться сюда."
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            wrapMode: Text.WordWrap
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+
                     Text {
                         visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
                         text: "Профили"
@@ -446,38 +478,6 @@ Column {
                         SettingsResetButton {
                             tooltip: "Сбросить все параметры"
                             onClicked: settings.resetAllSettings()
-                        }
-                    }
-
-                    Row {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 3
-                        width: parent.width
-                        height: 46
-                        spacing: 10
-
-                        SettingsButton {
-                            id: settingsMoveButton
-                            width: 270
-                            height: 46
-                            text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
-                            fontSize: 11
-                            fontBold: true
-                            fillOnHover: true
-                            borderOnHover: true
-                            accentColor: Config.accent
-                            backgroundColor: "transparent"
-                            textColor: Config.accent
-                            onClicked: host.settingsMoveRequested()
-                        }
-                        Text {
-                            width: parent.width - 280
-                            height: 46
-                            text: "Скрывает окно настроек и позволяет перемещать его мышью.\nEsc — завершить перемещение и вернуться сюда."
-                            color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                            wrapMode: Text.WordWrap
-                            verticalAlignment: Text.AlignVCenter
                         }
                     }
 

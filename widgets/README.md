@@ -96,6 +96,12 @@ The shell is designed for Wayland and requires Quickshell. Some dependencies are
 
 A Nerd Font is recommended for the icon-based modules.
 
+
+### Player backend architecture
+
+Player metadata and controls intentionally remain separate. The two stable entrypoints (`scripts/player` and `scripts/player_pausing`) share a small backend layer under `scripts/player.d/`. Backend-specific code is isolated there, making it easier to extend the Player with additional integrations such as Mopidy without turning the main scripts into monolithic files.
+Player backend selection follows the configurable priority order from the Player settings. Disabled backends are skipped, and the first available enabled backend supplies the current metadata.
+
 ### Configuration and data
 
 The project keeps persistent settings in its `settings.json`. Most configuration is intended to be changed through the built-in Settings UI rather than by editing QML manually.
@@ -216,6 +222,12 @@ quickshell -c ~/.config/quickshell/desktop-shell
 
 Для модулей с иконками рекомендуется Nerd Font.
 
+
+### Архитектура Плеера
+
+Получение метаданных и управление Плеером намеренно разделены. Два стабильных entrypoint-файла (`scripts/player` и `scripts/player_pausing`) используют общий слой backend-логики в `scripts/player.d/`. Код конкретных backend изолирован отдельно, поэтому добавление новых интеграций, например Mopidy, не превращает основные скрипты в монолитные файлы.
+Порядок выбора backend настраивается отдельно в параметрах Плеера: отключённые backend пропускаются, а первый доступный включённый backend становится источником текущих метаданных.
+
 ### Настройки и данные
 
 Сохранённые настройки находятся в `settings.json`. Основная настройка проекта предполагается через встроенное окно Settings, без необходимости вручную редактировать QML.
@@ -235,7 +247,10 @@ quickshell -c ~/.config/quickshell/desktop-shell
 │       ├── primitives/   # переиспользуемые элементы интерфейса Settings
 │       └── sections/     # настройки отдельных модулей/разделов
 ├── services/              # Weather, System Monitor, Clock
-├── scripts/               # вспомогательные скрипты модулей
+├── scripts/
+│   ├── player             # получение состояния и метаданных Плеера
+│   ├── player_pausing     # управление Плеером
+│   └── player.d/          # общая логика и backend-адаптеры Плеера
 ├── install.sh
 └── LICENSE
 ```

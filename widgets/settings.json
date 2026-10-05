@@ -53,25 +53,25 @@
     "timerFinishedImageEnabled": true,
     "timerFinishedImagePath": "~/Images/D/100-1/100.jpg",
     "timerFinishedBorderUsesTimerColor": true,
-    "timerFinishedBackgroundUsesTimerColor": true,
+    "timerFinishedBackgroundUsesTimerColor": false,
     "timerFinishedBackgroundColor": {
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 1,
-        "hsvHue": 0,
+        "a": 0.4000000059604645,
+        "hsvHue": -1,
         "hsvSaturation": 0,
         "hsvValue": 0,
-        "hslHue": 0,
+        "hslHue": -1,
         "hslSaturation": 0,
         "hslLightness": 0,
-        "valid": false
+        "valid": true
     },
     "timerFinishedImageWidth": 400,
     "timerFinishedImageMargin": 6,
     "timerFinishedImageTopMargin": 6,
     "timerFinishedImageBottomMargin": 6,
-    "timerFinishedTitleUsesTimerColor": false,
+    "timerFinishedTitleUsesTimerColor": true,
     "timerFinishedTitleColor": {
         "r": 0,
         "g": 0,
@@ -88,7 +88,7 @@
     "timerFinishedTitleFontSize": 18,
     "timerFinishedTitleFont": "Pixel LCD7",
     "timerFinishedTitleAlignment": 0,
-    "playerSilenceFontSize": 57,
+    "playerSilenceFontSize": 66,
     "playerSilenceLongFontSize": 25,
     "playerMetaFontSize": 12,
     "playerTextOutlineEnabled": true,
@@ -121,6 +121,32 @@
     "playerCoverOpacity": 1,
     "playerSilenceWidth": 275,
     "playerProgressTrackOffsetY": 0,
+    "playerPriority": [
+        {
+            "id": "deadbeef",
+            "enabled": true
+        },
+        {
+            "id": "plasma-browser-integration",
+            "enabled": true
+        },
+        {
+            "id": "mopidy",
+            "enabled": false
+        },
+        {
+            "id": "mpv",
+            "enabled": true
+        },
+        {
+            "id": "spotify",
+            "enabled": true
+        },
+        {
+            "id": "org.telegram.desktop",
+            "enabled": true
+        }
+    ],
     "calendarPreviousIcon": "",
     "calendarNextIcon": "",
     "calendarPreviousSize": 20,
@@ -297,6 +323,7 @@
         "cava": true,
         "networks": false
     },
+    "moduleMonitors": {},
     "geometry": {
         "time": [
             5,
@@ -349,7 +376,7 @@
         "timer": [
             5,
             890,
-            316,
+            314,
             50
         ],
         "timerOptions": [
@@ -905,6 +932,7 @@
             "valid": true
         }
     },
+    "activeTheme": "14 Theme",
     "profiles": {
         "14PK": {
             "weatherToken": "\n",
@@ -1857,6 +1885,5 @@
             "tempVeryCold": "#0ad1f3",
             "tempFreezing": "#3c82e2"
         }
-    },
-    "activeTheme": "14 Theme"
+    }
 }

@@ -13,7 +13,19 @@ Widgets.Frame {
 
     Process {
         id: proc
-        command: [Quickshell.shellDir + "/scripts/player"]
+        command: {
+            var args = [Quickshell.shellDir + "/scripts/player", "--priority"]
+            var priority = Config.playerPriority || []
+            for (var i = 0; i < priority.length; ++i) {
+                var item = priority[i]
+                if (!item || item.enabled === false)
+                    continue
+                var backendId = String(item.id || "")
+                if (backendId !== "")
+                    args.push(backendId)
+            }
+            return args
+        }
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -62,10 +74,12 @@ Widgets.Frame {
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
         font.family: Config.playerFont
-        font.pixelSize: root.player.text?.length > 24 ? Config.playerSilenceLongFontSize : Config.playerSilenceFontSize
+        font.pixelSize: Config.playerSilenceFontSize
+        fontSizeMode: Text.HorizontalFit
+        minimumPixelSize: Config.playerSilenceLongFontSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        wrapMode: Text.Wrap
+        wrapMode: Text.NoWrap
         style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
         styleColor: Config.playerTextOutlineColor
     }
@@ -149,6 +163,62 @@ Widgets.Frame {
         verticalAlignment: Text.AlignVCenter
         MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""]) }
     }
+    property real pendingSeekPercent: -1
+    property real pendingSeekDuration: -1
+    property string pendingSeekPlayer: ""
+
+    Timer {
+        id: pendingSeekTimeout
+        interval: 1000
+        repeat: false
+        onTriggered: root.clearPendingSeek()
+    }
+
+    function clearPendingSeek() {
+        root.pendingSeekPercent = -1
+        root.pendingSeekDuration = -1
+        root.pendingSeekPlayer = ""
+        pendingSeekTimeout.stop()
+    }
+
+    Connections {
+        target: root
+        function onPlayerChanged() {
+            var pending = Number(root.pendingSeekPercent)
+            if (pending < 0)
+                return
+
+            var current = Number(root.player.position || 0)
+            var duration = Number(root.player.duration || 0)
+            var player = root.player.player || ""
+
+            if (
+                player !== root.pendingSeekPlayer ||
+                duration !== root.pendingSeekDuration ||
+                Math.abs(current - pending) <= 0.5
+            ) {
+                root.clearPendingSeek()
+            }
+        }
+    }
+
+    function requestSeek(percent) {
+        var target = Math.max(0, Math.min(100, Number(percent)))
+        root.pendingSeekPercent = target
+        root.pendingSeekDuration = Number(root.player.duration || 0)
+        root.pendingSeekPlayer = root.player.player || ""
+        pendingSeekTimeout.restart()
+        progress.value = target
+
+        Quickshell.execDetached([
+            Quickshell.shellDir + "/scripts/player_pausing",
+            "position",
+            String(Math.round(target)),
+            root.pendingSeekPlayer,
+            String(root.pendingSeekDuration || "")
+        ])
+    }
+
     Slider {
         visible: Config.playerShowProgress
         id: progress
@@ -158,7 +228,22 @@ Widgets.Frame {
         width: parent.width
         height: Math.max(1, Config.playerProgressTrackHeight)
         from: 0; to: 100
-        value: Number(root.player.position || 0)
+        value: {
+            var current = Number(root.player.position || 0)
+            var duration = Number(root.player.duration || 0)
+            var player = root.player.player || ""
+            var pending = Number(root.pendingSeekPercent)
+
+            if (
+                pending >= 0 &&
+                root.pendingSeekPlayer === player &&
+                root.pendingSeekDuration === duration
+            ) {
+                return pending
+            }
+
+            return current
+        }
         background: Rectangle {
             x: 0
             y: Config.playerProgressTrackOffsetY
@@ -172,12 +257,17 @@ Widgets.Frame {
             }
         }
         handle: Item { implicitWidth: 0; implicitHeight: 0 }
-        Binding {
-            target: progress
-            property: "value"
-            value: Number(root.player.position || 0)
-            when: !progress.pressed
+        TapHandler {
+            acceptedButtons: Qt.LeftButton
+            onTapped: function(eventPoint) {
+                var ratio = Math.max(0, Math.min(1, eventPoint.position.x / progress.width))
+                var target = progress.from + (progress.to - progress.from) * ratio
+                root.requestSeek(target)
+            }
         }
-        onMoved: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "position", String(Math.round(value))])
+        HoverHandler {
+            cursorShape: Qt.PointingHandCursor
+        }
+        onMoved: root.requestSeek(value)
     }
 }

@@ -183,7 +183,7 @@ Widgets.Frame {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
-        onClicked: {
+        onClicked: function(mouse) {
             if (mouse.button === Qt.RightButton && root.weatherService)
                 root.weatherService.manualRefresh()
         }

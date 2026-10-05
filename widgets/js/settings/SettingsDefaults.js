@@ -114,6 +114,14 @@ var defaultConfig = ({
     playerCoverOpacity: 0.9,
     playerSilenceWidth: 275,
     playerProgressTrackOffsetY: 1,
+    playerPriority: [
+        { id: "deadbeef", enabled: true },
+        { id: "mopidy", enabled: true },
+        { id: "mpv", enabled: true },
+        { id: "spotify", enabled: true },
+        { id: "plasma-browser-integration", enabled: true },
+        { id: "org.telegram.desktop", enabled: true }
+    ],
     weatherIconSize: 55,
     weatherArrowSize: 20,
     weatherArrowYOffset: -3,

@@ -185,6 +185,14 @@ QtObject {
     property real playerCoverOpacity: 0.9
     property int playerSilenceWidth: 275
     property int playerProgressTrackOffsetY: 1
+    property var playerPriority: ([
+        { id: "deadbeef", enabled: true },
+        { id: "mopidy", enabled: true },
+        { id: "mpv", enabled: true },
+        { id: "spotify", enabled: true },
+        { id: "plasma-browser-integration", enabled: true },
+        { id: "org.telegram.desktop", enabled: true }
+    ])
 
     // Weather tuning
     property int weatherIconSize: 55

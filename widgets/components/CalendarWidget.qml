@@ -146,9 +146,9 @@ Widgets.Frame {
         acceptedButtons: Qt.NoButton
         onWheel: function(wheel) {
             if (wheel.angleDelta.y > 0)
-                root.shiftMonth(-1)
-            else if (wheel.angleDelta.y < 0)
                 root.shiftMonth(1)
+            else if (wheel.angleDelta.y < 0)
+                root.shiftMonth(-1)
             wheel.accepted = true
         }
     }
