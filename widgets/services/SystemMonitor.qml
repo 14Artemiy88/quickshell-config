@@ -16,7 +16,14 @@ Item {
 
     Process {
         id: proc
-        command: ["bash", Quickshell.shellDir + "/scripts/system_monitor"]
+        command: [
+            "bash",
+            Quickshell.shellDir + "/scripts/system_monitor",
+            Settings.topApps ? "1" : "0",
+            Settings.networkStat ? "1" : "0",
+            Settings.volumes ? "1" : "0",
+            Settings.networks ? "1" : "0"
+        ]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

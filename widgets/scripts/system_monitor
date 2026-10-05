@@ -6,6 +6,12 @@ CACHE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache"
 CACHE_NET_TIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache_time"
 TMPD=$(mktemp -d)
 
+# Requested data sources. Keep defaults enabled for standalone compatibility.
+WANT_TOP_APPS="${1:-1}"
+WANT_NET_STAT="${2:-1}"
+WANT_VOLUMES="${3:-1}"
+WANT_NETWORK="${4:-1}"
+
 # --- NET state ---
 prev_up=0 prev_down=0
 if [[ -f "$STATE_NET" ]]; then
@@ -160,10 +166,13 @@ get_network() {
 }
 
 # --- parallel execution ---
-get_net > "$TMPD/net" &
-get_top_apps > "$TMPD/top" &
-get_volumes > "$TMPD/vol" &
-get_network > "$TMPD/netw" &
+# Only collect sources that are currently needed by enabled modules.
+# Keep an empty, valid JSON value for disabled sources so the QML data contract
+# remains unchanged.
+if [[ "$WANT_NET_STAT" == "1" ]]; then get_net > "$TMPD/net" & else printf '{"down":"0 B","up":"0 B","speed_down":"0 B","speed_up":"0 B"}' > "$TMPD/net"; fi
+if [[ "$WANT_TOP_APPS" == "1" ]]; then get_top_apps > "$TMPD/top" & else printf '{"cpu":[],"mem":[]}' > "$TMPD/top"; fi
+if [[ "$WANT_VOLUMES" == "1" ]]; then get_volumes > "$TMPD/vol" & else printf '[]' > "$TMPD/vol"; fi
+if [[ "$WANT_NETWORK" == "1" ]]; then get_network > "$TMPD/netw" & else printf '[]' > "$TMPD/netw"; fi
 wait
 
 jq -n \
