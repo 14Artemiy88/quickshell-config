@@ -32,6 +32,19 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         if (o.geometry) {
             var g = Object.assign({}, owner.geometry)
             for (var k in o.geometry) if (o.geometry[k] && o.geometry[k].length === 4) g[k] = o.geometry[k].map(Number)
+
+            // v408 placed Mopidy over the default Networks surface, so its input
+            // could be intercepted even though the module was visibly rendered.
+            // Migrate only the untouched old default; preserve any user-moved layout.
+            var mopidyGeometry = g.mopidy
+            if (mopidyGeometry && mopidyGeometry.length === 4
+                    && Number(mopidyGeometry[0]) === 330
+                    && Number(mopidyGeometry[1]) === 730
+                    && Number(mopidyGeometry[2]) === 300
+                    && Number(mopidyGeometry[3]) === 150) {
+                g.mopidy = [330, 865, 300, 150]
+            }
+
             owner.geometry = g
         }
         if (o.settingsGeometry && o.settingsGeometry.length === 4) {

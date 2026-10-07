@@ -64,7 +64,7 @@ Item {
         switch (root.currentOtherTab) {
         case 0: return ["Интерфейс", "Рамки", "Анимации"]
         case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка"]
-        case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон", "Приоритет"]
+        case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
         case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
         case 4: return ["Основные", "Полосы"]
         case 5: return ["Общие", "График CPU"]
@@ -72,6 +72,7 @@ Item {
         case 7: return ["Иконки", "Полосы", "Потоки", "Адаптивность"]
         case 8: return ["Общие"]
         case 9: return ["Интерфейс", "Окно настроек", "Профили"]
+        case 10: return ["Общее", "Время", "Иконки", "Пусто и недоступен"]
         default: return []
         }
     }
@@ -195,7 +196,7 @@ Item {
                     spacing: 5
 
                     Repeater {
-                        model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Настройки"]
+                        model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Настройки", "Mopidy"]
 
                         delegate: SettingsSubTab {
                             width: otherTabs.width
@@ -258,6 +259,7 @@ Item {
                             else if (root.currentOtherTab === 7) settings.resetVolumeSettings()
                             else if (root.currentOtherTab === 8) settings.resetCalendarSettings()
                             else if (root.currentOtherTab === 9) settings.resetSettingsWindow()
+                            else if (root.currentOtherTab === 10) settings.resetMopidySettings()
                         }
                     }
                 }
@@ -341,6 +343,26 @@ Item {
                     id: playerSectionSettingsSection
                     visible: root.currentOtherTab === 2
                     width: parent.width
+                    host: root
+                    settings: root.settings
+                }
+                SettingsMopidySection {
+                    id: mopidySectionSettingsSection
+                    host: root
+                    settings: root.settings
+                }
+                SettingsMopidyTimeSection {
+                    id: mopidyTimeSectionSettingsSection
+                    host: root
+                    settings: root.settings
+                }
+                SettingsMopidyIconsSection {
+                    id: mopidyIconsSectionSettingsSection
+                    host: root
+                    settings: root.settings
+                }
+                SettingsMopidyStatusSection {
+                    id: mopidyStatusSectionSettingsSection
                     host: root
                     settings: root.settings
                 }

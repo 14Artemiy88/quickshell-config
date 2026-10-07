@@ -20,6 +20,7 @@ QtObject {
     property color playerProgressFill: "#00cccc"
     property color activeNetworkBackground: "#1a323232"
     property color calendarBackground: "#cc000000"
+    property color mopidyBackground: "#cc000000"
     // Calendar appearance / navigation
     property string calendarPreviousIcon: "←"
     property string calendarNextIcon: "→"
@@ -193,6 +194,105 @@ QtObject {
         { id: "plasma-browser-integration", enabled: true },
         { id: "org.telegram.desktop", enabled: true }
     ])
+    // Mopidy module queue presentation
+    property bool mopidyShowTrackNumbers: true
+    property bool mopidyShowMoveButtons: true
+    property string mopidyMoveUpIcon: "↑"
+    property int mopidyMoveUpIconSize: 16
+    property int mopidyMoveUpIconX: 0
+    property int mopidyMoveUpIconY: 0
+    property bool mopidyShowMoveUpIcon: true
+    property string mopidyMoveDownIcon: "↓"
+    property int mopidyMoveDownIconSize: 16
+    property int mopidyMoveDownIconX: 0
+    property int mopidyMoveDownIconY: 0
+    property bool mopidyShowMoveDownIcon: true
+    property bool mopidyGroupAlbums: true
+    property string mopidyAlbumFont: "JetBrainsMono Nerd Font"
+    property int mopidyAlbumFontSize: 10
+    property string mopidyTrackFont: "JetBrainsMono Nerd Font"
+    property int mopidyTrackFontSize: 12
+    property string mopidyArtistFont: "JetBrainsMono Nerd Font"
+    property int mopidyArtistFontSize: 10
+    property string mopidyDurationFont: "Ubuntu Mono Nerd Font"
+    property int mopidyDurationFontSize: 11
+    property string mopidyAlbumSeparator: "between-line"
+    property bool mopidyAlbumBold: true
+    property bool mopidyToggleWithPlayerRightClick: true
+    property string mopidyHoverMode: "background"
+    property string mopidyHoverColor: "#1a323232"
+    property string mopidyStopIcon: ""
+    property int mopidyStopIconSize: 16
+    property int mopidyStopIconX: 0
+    property int mopidyStopIconY: 0
+    property string mopidyRefreshIcon: ""
+    property int mopidyRefreshIconSize: 16
+    property int mopidyRefreshIconX: 0
+    property int mopidyRefreshIconY: 0
+    property string mopidyClearIcon: ""
+    property int mopidyClearIconSize: 16
+    property int mopidyClearIconX: 0
+    property int mopidyClearIconY: 0
+    property string mopidyControlIconColor: "#00cccc"
+    property bool mopidyShowStopIcon: true
+    property bool mopidyShowRefreshIcon: true
+    property bool mopidyShowClearIcon: true
+    property bool mopidyShowQueueTotalDuration: true
+    property string mopidyQueueDurationMode: "total"
+    property string mopidyQueueDurationFont: "Ubuntu Mono Nerd Font"
+    property int mopidyQueueDurationFontSize: 11
+    property string mopidyQueueDurationColor: "#aaaaaa"
+    property int mopidyQueueDurationX: 0
+    property int mopidyQueueDurationY: 0
+    property bool mopidyShowAlbumRemaining: false
+    property bool mopidyShowTrackRemaining: false
+    property string mopidyShuffleIcon: ""
+    property int mopidyShuffleIconSize: 16
+    property int mopidyShuffleIconX: 0
+    property int mopidyShuffleIconY: 0
+    property bool mopidyShowShuffleIcon: true
+    property string mopidyRepeatIcon: ""
+    property int mopidyRepeatIconSize: 16
+    property int mopidyRepeatIconX: 0
+    property int mopidyRepeatIconY: 0
+    property bool mopidyShowRepeatIcon: true
+    property string mopidyOpenAddIcon: ""
+    property int mopidyOpenAddIconSize: 16
+    property int mopidyOpenAddIconX: 0
+    property int mopidyOpenAddIconY: 0
+    property bool mopidyShowOpenAddIcon: true
+    property string mopidyAddIcon: ""
+    property int mopidyAddIconSize: 16
+    property int mopidyAddIconX: 0
+    property int mopidyAddIconY: 0
+    property bool mopidyShowAddIcon: true
+    property string mopidySwitchPlaylistIcon: ""
+    property int mopidySwitchPlaylistIconSize: 16
+    property int mopidySwitchPlaylistIconX: 0
+    property int mopidySwitchPlaylistIconY: 0
+    property bool mopidyShowSwitchPlaylistIcon: true
+    property string mopidyPlaylistDeleteIcon: ""
+    property int mopidyPlaylistDeleteIconSize: 16
+    property int mopidyPlaylistDeleteIconX: 0
+    property int mopidyPlaylistDeleteIconY: 0
+    property bool mopidyShowPlaylistDeleteIcon: true
+    property string mopidyVolumeIcon: "󰕾"
+    property string mopidyMutedIcon: "󰖁"
+    property int mopidyVolumeIconSize: 16
+    property int mopidyVolumeIconX: 0
+    property int mopidyVolumeIconY: 0
+    property int mopidyMutedIconSize: 16
+    property int mopidyMutedIconX: 0
+    property int mopidyMutedIconY: 0
+    property bool mopidyShowVolumeIcon: true
+    property bool mopidyShowVolumePercent: true
+    property int mopidyVolumeStep: 5
+    property string mopidyEmptyQueueText: "Очередь пуста"
+    property string mopidyUnavailableText: "Недоступен"
+    property string mopidyStatusFont: "JetBrainsMono Nerd Font"
+    property int mopidyStatusFontSize: 16
+    property int mopidyStatusLongFontSize: 11
+    property int mopidyStatusWidth: 280
 
     // Weather tuning
     property int weatherIconSize: 55

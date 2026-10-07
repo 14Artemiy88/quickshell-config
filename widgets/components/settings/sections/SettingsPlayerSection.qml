@@ -262,6 +262,87 @@ Column {
 }
     }
     Text {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+        text: "Приоритет проигрывателей"
+        color: Config.settingsSubheading
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+    Text {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+        text: "Первый включённый backend в списке, который сейчас доступен, используется плеером. Отключённые backend пропускаются."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(9)
+        wrapMode: Text.WordWrap
+        width: parent.width
+    }
+    Column {
+        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+        width: parent.width
+        spacing: 5
+
+        Repeater {
+            model: playerPriorityModel
+
+            delegate: Row {
+                width: parent ? parent.width : 0
+                height: 30
+                spacing: 6
+
+                Text {
+                    width: 24
+                    height: 30
+                    text: "#" + (index + 1)
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    horizontalAlignment: Text.AlignRight
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                SettingsCheckBox {
+                    width: 28
+                    height: 30
+                    indicatorOnly: true
+                    checked: model.enabled
+                    onToggled: root.togglePlayerPriority(index, checked)
+                }
+
+                Text {
+                    width: 170
+                    height: 30
+                    text: model.label
+                    color: model.enabled ? Config.text : Config.textDisabled
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 18 - 56); height: 30 }
+
+                SettingsButton {
+                    width: 26
+                    height: 26
+                    text: "↑"
+                    enabled: index > 0
+                    tooltip: "Поднять выше"
+                    onClicked: root.movePlayerPriority(index, -1)
+                }
+
+                SettingsButton {
+                    width: 26
+                    height: 26
+                    text: "↓"
+                    enabled: index < playerPriorityModel.count - 1
+                    tooltip: "Опустить ниже"
+                    onClicked: root.movePlayerPriority(index, 1)
+                }
+            }
+        }
+    }
+    Text {
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
         text: "Оставшееся время"
         color: Config.settingsSubheading
@@ -817,87 +898,5 @@ Column {
     settingsObject: root.settings
     saveOnEdit: true
 }
-    }
-
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
-        text: "Приоритет проигрывателей"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(12)
-    }
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
-        text: "Первый включённый backend в списке, который сейчас доступен, используется плеером. Отключённые backend пропускаются."
-        color: Config.textMuted
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(9)
-        wrapMode: Text.WordWrap
-        width: parent.width
-    }
-    Column {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 7
-        width: parent.width
-        spacing: 5
-
-        Repeater {
-            model: playerPriorityModel
-
-            delegate: Row {
-                width: parent ? parent.width : 0
-                height: 30
-                spacing: 6
-
-                Text {
-                    width: 24
-                    height: 30
-                    text: "#" + (index + 1)
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                    horizontalAlignment: Text.AlignRight
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                SettingsCheckBox {
-                    width: 28
-                    height: 30
-                    indicatorOnly: true
-                    checked: model.enabled
-                    onToggled: root.togglePlayerPriority(index, checked)
-                }
-
-                Text {
-                    width: 170
-                    height: 30
-                    text: model.label
-                    color: model.enabled ? Config.text : Config.textDisabled
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-
-                Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 18 - 56); height: 30 }
-
-                SettingsButton {
-                    width: 26
-                    height: 26
-                    text: "↑"
-                    enabled: index > 0
-                    tooltip: "Поднять выше"
-                    onClicked: root.movePlayerPriority(index, -1)
-                }
-
-                SettingsButton {
-                    width: 26
-                    height: 26
-                    text: "↓"
-                    enabled: index < playerPriorityModel.count - 1
-                    tooltip: "Опустить ниже"
-                    onClicked: root.movePlayerPriority(index, 1)
-                }
-            }
-        }
     }
 }

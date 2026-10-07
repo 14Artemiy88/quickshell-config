@@ -8,6 +8,7 @@ import Quickshell.Io
 Widgets.Frame {
     id: root
     moduleName: "player"
+    signal mopidyToggleRequested()
     property var player: ({})
     property string imagePath: root.player.image || ""
 
@@ -269,5 +270,11 @@ Widgets.Frame {
             cursorShape: Qt.PointingHandCursor
         }
         onMoved: root.requestSeek(value)
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: root.mopidyToggleRequested()
     }
 }

@@ -31,12 +31,13 @@ QtObject {
     property bool timer: true
     property bool volumes: true
     property bool player: true
+    property bool mopidy: false
     property bool cava: true
     property bool networks: true
     property bool calendar: true
-    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
     property var moduleMonitors: ({})
-    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, cava:true, networks:true})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
@@ -46,7 +47,7 @@ QtObject {
         topApps: [5,322,315,198], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
         weatherHourly: [3,665,335,125], weatherDaily: [3,795,325,125], timer: [3,930,315,145],
         timerOptions: [325,888,90,95], calendar: [5,65,315,285], volumes: [331,72,275,210],
-        player: [330,405,300,320], cava: [325,578,300,80], networks: [331,675,300,180]
+        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180]
     })
     // Geometry of the settings window itself: X, Y, Width, Height.
     property var settingsGeometry: [640, 40, 560, 850]
@@ -205,6 +206,7 @@ QtObject {
     function resetTimerSettings() { SettingsResets.resetTimerSettings(root, Config) }
 
     function resetPlayerSettings() { SettingsResets.resetPlayerSettings(root, Config) }
+    function resetMopidySettings() { SettingsResets.resetMopidySettings(root, Config) }
 
     function resetWeatherSettings() { SettingsResets.resetWeatherSettings(root, Config) }
 

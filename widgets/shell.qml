@@ -16,6 +16,7 @@ ShellRoot {
         sourceComponent: Component { Weather {} }
     }
     property bool calendarVisible: false
+    property bool mopidyVisible: false
     property bool settingsVisible: false
     property bool layoutEditMode: false
     property bool settingsMoveMode: false
@@ -31,6 +32,22 @@ ShellRoot {
         if (settingsMoveMode) {
             layoutEditMode = false
             settingsVisible = false
+        }
+    }
+
+    Connections {
+        target: Settings
+        function onMopidyChanged() {
+            if (!Settings.mopidy)
+                shell.mopidyVisible = false
+        }
+    }
+
+    Connections {
+        target: Config
+        function onMopidyToggleWithPlayerRightClickChanged() {
+            if (Config.mopidyToggleWithPlayerRightClick)
+                shell.mopidyVisible = false
         }
     }
 
@@ -432,7 +449,26 @@ ShellRoot {
         contentHeight: Settings.geometry.player[3]
         backgroundBlurEnabled: Config.playerBlurEnabled
         backgroundBlurRadius: Config.playerBlurRadius
-        Player { anchors.fill: parent; anchors.margins: 0 }
+        Player {
+            anchors.fill: parent
+            anchors.margins: 0
+            onMopidyToggleRequested: {
+                if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick)
+                    shell.mopidyVisible = !shell.mopidyVisible
+            }
+        }
+}
+    WidgetWindow {
+        layoutEditor: moduleLayoutEditorWindow
+        moduleName: "mopidy"
+        layoutEditMode: shell.layoutEditMode
+        visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible)
+        offsetX: Settings.geometryForLayout("mopidy")[0]
+        offsetY: Settings.geometryForLayout("mopidy")[1]
+        contentWidth: Settings.geometry.mopidy[2]
+        contentHeight: Settings.geometry.mopidy[3]
+        keyboardEnabled: true
+        Mopidy { anchors.fill: parent }
 }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow

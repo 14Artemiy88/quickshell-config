@@ -2,6 +2,7 @@
 
 PLAYER_SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$PLAYER_SCRIPT_DIR/common.sh"
+source "$PLAYER_SCRIPT_DIR/backend_mopidy.sh"
 
 declare -r MPV_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mpvsocket"
 declare -A PLAYER_COMMANDS=(
@@ -9,7 +10,6 @@ declare -A PLAYER_COMMANDS=(
     ["org.telegram.desktop"]="playerctl -p \"%s\" play-pause"
     ["plasma-browser-integration"]="playerctl -p %s play-pause"
     ["spotify"]="playerctl -p %s play-pause"
-    ["mopidy"]="mopidy playpauseexit 0"
     ['deadbeef']="deadbeef --toggle-pause"
 )
 
@@ -37,6 +37,9 @@ create_image() {
 # Основная функция паузы
 pause() {
     case "$1" in
+        mopidy)
+            mopidy_pause_toggle
+            ;;
         mpv)
             # Получаем все необходимые свойства за один вызов
             mapfile -t props < <(get_mpv_properties "media-title" "path" "time-pos")
@@ -58,13 +61,21 @@ pause() {
 
 # Основная функция следующего трека
 next() {
-    playerctl -p "$1" next
+    if [[ "$1" == "mopidy" ]]; then
+        mopidy_next
+    else
+        playerctl -p "$1" next
+    fi
     exit 0
 }
 
-# Основная функция следующего трека
+# Основная функция предыдущего трека
 prev() {
-    playerctl -p "$1" prev
+    if [[ "$1" == "mopidy" ]]; then
+        mopidy_prev
+    else
+        playerctl -p "$1" prev
+    fi
     exit 0
 }
 
@@ -74,6 +85,11 @@ position() {
     local pos_percent="$1"
     local player_name="${2:-}"
     local duration_ms="${3:-}"
+
+    if [[ "$player_name" == "mopidy" ]]; then
+        mopidy_seek_percent "$pos_percent" "$duration_ms"
+        exit 0
+    fi
 
     # MPV использует собственный IPC и обрабатывается только когда именно
     # mpv является активным player backend.
