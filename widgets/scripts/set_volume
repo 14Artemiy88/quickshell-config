@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/audio/common.sh"
+
 mode="${1:-}"
 value="${2:-}"
 
@@ -10,15 +13,7 @@ fi
 
 case "$mode" in
     main)
-        if command -v wpctl >/dev/null 2>&1; then
-            wpctl set-volume @DEFAULT_AUDIO_SINK@ "${value}%"
-        elif command -v pactl >/dev/null 2>&1; then
-            pactl set-sink-volume @DEFAULT_SINK@ "${value}%"
-        elif command -v amixer >/dev/null 2>&1; then
-            amixer -D pulse sset Master "${value}%" >/dev/null
-        else
-            exit 127
-        fi
+        set_main_volume "$value"
         ;;
     stream)
         id="${3:-}"
