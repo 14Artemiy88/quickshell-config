@@ -57,7 +57,9 @@ Widgets.Frame {
         }
     }
 
+    // Existing compact row layout for left-to-right / right-to-left fills.
     Column {
+        visible: Config.cpuBarDirection === "leftToRight" || Config.cpuBarDirection === "rightToLeft"
         anchors.fill: parent
         anchors.margins: 5
         spacing: Config.cpuRowSpacing
@@ -85,4 +87,32 @@ Widgets.Frame {
             trackColor: Config.ramTrack
         }
     }
+
+    // Vertical directions show each CPU core and RAM as its own vertical meter.
+    // All meters share the available space so the widget remains within its frame.
+    Row {
+        visible: Config.cpuBarDirection === "topToBottom" || Config.cpuBarDirection === "bottomToTop"
+        anchors.fill: parent
+        anchors.margins: 5
+        spacing: 1
+
+        Repeater {
+            model: Config.cpuShowRam ? 9 : 8
+            delegate: MetricBar {
+                verticalGauge: true
+                width: (parent.width - parent.spacing * ((Config.cpuShowRam ? 9 : 8) - 1)) / (Config.cpuShowRam ? 9 : 8)
+                height: parent.height
+                label: index === 8 ? "" : ""
+                value: index === 8 ? root.ramValue : Number(root.stats.cpu && root.stats.cpu.length > index ? root.stats.cpu[index] : 0)
+                fillColor: index === 8 ? Config.ram : root.colors[index % root.colors.length]
+                trackColor: index === 8 ? Config.ramTrack : Qt.rgba(
+                    Qt.color(root.colors[index % root.colors.length]).r,
+                    Qt.color(root.colors[index % root.colors.length]).g,
+                    Qt.color(root.colors[index % root.colors.length]).b,
+                    0.3
+                )
+            }
+        }
+    }
+
 }

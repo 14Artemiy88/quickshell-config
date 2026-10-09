@@ -475,6 +475,7 @@ ShellRoot {
         backgroundBlurEnabled: Config.playerBlurEnabled
         backgroundBlurRadius: Config.playerBlurRadius
         Player {
+            id: playerWidget
             anchors.fill: parent
             anchors.margins: 0
             onMopidyToggleRequested: {
@@ -544,7 +545,21 @@ ShellRoot {
         offsetY: Settings.geometryForLayout("cava")[1]
         contentWidth: Settings.geometry.cava[2]
         contentHeight: Settings.geometry.cava[3]
-        Cava { anchors.fill: parent }
+        Cava {
+            anchors.fill: parent
+            onPlaybackToggleRequested: {
+                var backend = String(playerWidget.player.player || "").trim().toLowerCase()
+                if (backend !== "")
+                    Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", backend])
+            }
+            onMopidyToggleRequested: {
+                if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick) {
+                    if (shell.mopidyVisible)
+                        mopidyWidget.resetToInitialScreen()
+                    shell.mopidyVisible = !shell.mopidyVisible
+                }
+            }
+        }
 }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow

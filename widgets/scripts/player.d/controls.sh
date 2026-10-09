@@ -36,7 +36,10 @@ create_image() {
 
 # Основная функция паузы
 pause() {
-    case "$1" in
+    # Backend IDs normally arrive lowercase from Player.qml, but normalize here
+    # as well so a backend-name casing change cannot silently disable playback.
+    local backend="${1,,}"
+    case "$backend" in
         mopidy)
             mopidy_pause_toggle
             ;;
@@ -53,7 +56,10 @@ pause() {
             eval "${PLAYER_COMMANDS[mpv]}"
             ;;
         *)
-            eval "$(printf "${PLAYER_COMMANDS[$1]}" "$1")"
+            local command_template="${PLAYER_COMMANDS[$backend]:-}"
+            if [[ -n "$command_template" ]]; then
+                eval "$(printf "$command_template" "$backend")"
+            fi
             ;;
     esac
     exit 0

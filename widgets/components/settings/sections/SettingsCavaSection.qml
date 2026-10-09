@@ -58,6 +58,38 @@ Row {
 
     Text {
         width: 210
+        text: "Скрывать полоски без звука"
+        color: Config.text
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(11)
+        verticalAlignment: Text.AlignVCenter
+    }
+
+    SettingsCheckBox {
+        id: cavaHideWhenSilentCheckBox
+        width: 58
+        height: 30
+        indicatorOnly: true
+        checked: Config.cavaHideWhenSilent
+        onToggled: {
+            Config.cavaHideWhenSilent = checked
+            settings.save()
+        }
+        Connections {
+            target: Config
+            function onCavaHideWhenSilentChanged() { cavaHideWhenSilentCheckBox.checked = Config.cavaHideWhenSilent }
+        }
+    }
+}
+
+Row {
+    visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+    width: parent.width
+    height: 30
+    spacing: 8
+
+    Text {
+        width: 210
         text: "Количество полос CAVA"
         color: Config.text
         font.family: Config.settingsFont

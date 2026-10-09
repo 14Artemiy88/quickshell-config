@@ -15,6 +15,7 @@ Widgets.Frame {
     signal topPanelHideRequested()
 
     property bool queueAvailable: false
+    property bool mopidyLaunchCooldown: false
     property int currentTlid: -1
     property int currentPositionMs: 0
     property int mopidyVolume: -1
@@ -74,6 +75,18 @@ Widgets.Frame {
             return root.browseEntries
         return [{type: "parent", uri: "", name: ".."}].concat(root.browseEntries)
     }
+    property bool fileFilterOpen: false
+    property string fileFilterQuery: ""
+    readonly property var filteredBrowseDisplayEntries: {
+        var entries = root.browseDisplayEntries
+        var query = String(root.fileFilterQuery || "").trim().toLowerCase()
+        if (!query)
+            return entries
+        return entries.filter(function(entry) {
+            if (entry && entry.type === "parent") return true
+            return String(entry && entry.name || "").toLowerCase().indexOf(query) >= 0
+        })
+    }
     property real preservedQueueContentY: 0
     property int stickyAlbumIndex: -1
     property var stickyAlbumData: null
@@ -93,7 +106,7 @@ Widgets.Frame {
                 albumIndices.push(i)
                 y += albumHeight
             } else {
-                y += 38
+                y += Config.mopidyTrackRowHeight
             }
             if (i < items.length - 1)
                 y += spacing
@@ -176,6 +189,30 @@ Widgets.Frame {
 
     function hoverBorderColor(hovered) {
         return hovered && Config.mopidyHoverMode === "frame" ? Config.mopidyHoverColor : Config.transparent
+    }
+
+    function escapeRichText(value) {
+        return String(value === undefined || value === null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;")
+    }
+
+    function formatOneLineTrack(artist, title) {
+        var artistName = String(artist || "")
+        var trackName = String(title || "Без названия")
+        if (!artistName)
+            return root.escapeRichText(trackName)
+
+        var artistMarkup = root.escapeRichText(artistName)
+        if (Config.mopidyArtistBold)
+            artistMarkup = "<b>" + artistMarkup + "</b>"
+        if (Config.mopidyArtistItalic)
+            artistMarkup = "<i>" + artistMarkup + "</i>"
+
+        return artistMarkup + root.escapeRichText(Config.mopidyTrackArtistSeparator) + root.escapeRichText(trackName)
     }
 
     function playlistDeleteIconColor(hovered) {
@@ -309,6 +346,14 @@ Widgets.Frame {
         queueProcess.running = true
     }
 
+    function requestMopidyStart() {
+        if (root.queueAvailable || root.mopidyLaunchCooldown || mopidyLaunchProcess.running)
+            return
+        root.mopidyLaunchCooldown = true
+        mopidyLaunchCooldownTimer.restart()
+        mopidyLaunchProcess.running = true
+    }
+
     function runQueueCommand(args) {
         if (!Settings.mopidy || queueBusy) return
         queueBusy = true
@@ -370,6 +415,8 @@ Widgets.Frame {
     function toggleSearch() {
         if (root.searchOpen) {
             root.searchOpen = false
+            root.fileFilterOpen = false
+            root.fileFilterQuery = ""
             root.searchQuery = ""
             root.searchResults = []
             root.browseEntries = []
@@ -389,6 +436,7 @@ Widgets.Frame {
             root.libraryMode = "browse"
             root.openBrowseRoot()
             root.searchOpen = true
+            root.focusBrowsePanel()
         }
     }
 
@@ -400,9 +448,43 @@ Widgets.Frame {
         root.searchResults = []
         root.libraryMode = "browse"
         root.openBrowseRoot()
+        root.focusBrowsePanel()
+    }
+
+    function focusBrowsePanel() {
+        Qt.callLater(function() {
+            if (browsePanel && root.searchOpen && root.libraryMode === "browse" && !root.fileFilterOpen)
+                browsePanel.forceActiveFocus()
+        })
+    }
+
+    function openFileFilter() {
+        if (!root.searchOpen || root.libraryMode !== "browse") return
+        root.fileFilterQuery = ""
+        root.fileFilterOpen = true
+        Qt.callLater(function() {
+            if (fileFilterField && root.fileFilterOpen) {
+                fileFilterField.text = ""
+                fileFilterField.forceActiveFocus()
+            }
+        })
+    }
+
+    function closeFileFilter(clearQuery) {
+        root.fileFilterOpen = false
+        if (clearQuery) {
+            root.fileFilterQuery = ""
+            if (fileFilterField) fileFilterField.text = ""
+        }
+        Qt.callLater(function() {
+            if (browsePanel && root.searchOpen && root.libraryMode === "browse")
+                browsePanel.forceActiveFocus()
+        })
     }
 
     function openBrowseRoot() {
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         root.libraryMode = "browse"
         root.browseStack = []
         root.browseUri = ""
@@ -415,6 +497,8 @@ Widgets.Frame {
 
     function browseUriAt(uri, title) {
         if (root.browseBusy) return
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         root.browseStack = root.browseStack.concat([{uri: root.browseUri, title: root.browseTitle}])
         root.browseUri = String(uri || "")
         root.browseTitle = String(title || "Музыка")
@@ -425,6 +509,8 @@ Widgets.Frame {
 
     function browseBack() {
         if (root.browseBusy || root.browseStack.length === 0) return
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         var stack = root.browseStack.slice(0)
         var previous = stack.pop()
         root.browseStack = stack
@@ -437,20 +523,61 @@ Widgets.Frame {
         browseProcess.running = true
     }
 
+    function closeLibraryBrowserToQueue() {
+        root.searchOpen = false
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
+        root.searchQuery = ""
+        root.searchResults = []
+        root.browseEntries = []
+        root.browseStack = []
+        root.browseUri = ""
+        root.browseTitle = "Музыка"
+        root.playlists = []
+        root.playlistItems = []
+        root.playlistUri = ""
+        root.playlistTitle = ""
+        root.addingToPlaylist = false
+        root.libraryMode = "browse"
+    }
+
     function showSearch() {
+        if (root.searchOpen && root.libraryMode === "search") {
+            root.closeLibraryBrowserToQueue()
+            return
+        }
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         root.libraryMode = "search"
         root.searchResults = []
         Qt.callLater(function() { if (searchField) searchField.forceActiveFocus() })
     }
 
     function showBrowse() {
+        if (root.searchOpen && root.libraryMode === "browse" && root.browseStack.length === 0) {
+            root.closeLibraryBrowserToQueue()
+            return
+        }
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         root.libraryMode = "browse"
         root.searchQuery = ""
         root.searchResults = []
         root.openBrowseRoot()
+        root.focusBrowsePanel()
     }
 
     function showPlaylists() {
+        if (root.searchOpen && root.libraryMode === "playlists") {
+            root.closeLibraryBrowserToQueue()
+            return
+        }
+        if (root.searchOpen && root.libraryMode === "playlistItems") {
+            root.backToPlaylists()
+            return
+        }
+        root.fileFilterOpen = false
+        root.fileFilterQuery = ""
         root.addingToPlaylist = false
         root.libraryMode = "playlists"
         root.searchQuery = ""
@@ -701,6 +828,27 @@ Widgets.Frame {
         if (hours > 0)
             return hours + ":" + twoDigits(minutes) + ":" + twoDigits(seconds)
         return minutes + ":" + twoDigits(seconds)
+    }
+
+    Process {
+        id: mopidyLaunchProcess
+        command: [Quickshell.shellDir + "/scripts/mopidy/start.sh"]
+        running: false
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: function(exitCode) {
+            if (exitCode !== 0)
+                root.showErrorNotice("Не удалось запустить Mopidy")
+            // The queue poller will detect when the RPC service becomes ready.
+            // Keep the click area gated briefly even if the launcher exited early.
+        }
+    }
+
+    Timer {
+        id: mopidyLaunchCooldownTimer
+        interval: 5000
+        repeat: false
+        onTriggered: root.mopidyLaunchCooldown = false
     }
 
     Process {
@@ -1302,7 +1450,7 @@ Widgets.Frame {
                         color: Config.mopidyQueueDurationColor
                         font.family: Config.mopidyQueueDurationFont
                         font.pixelSize: Config.mopidyQueueDurationFontSize
-                        horizontalAlignment: Text.AlignRight
+                        horizontalAlignment: Config.mopidyQueueDurationAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideNone
                     }
@@ -1490,7 +1638,7 @@ Widgets.Frame {
                             id: browseTabMouse
                             anchors.fill: parent
                             hoverEnabled: true
-                            enabled: root.libraryMode !== "browse" && !root.browseBusy
+                            enabled: !root.browseBusy
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.showBrowse()
                         }
@@ -1544,7 +1692,7 @@ Widgets.Frame {
                             id: searchTabMouse
                             anchors.fill: parent
                             hoverEnabled: true
-                            enabled: root.libraryMode !== "search"
+                            enabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.showSearch()
                         }
@@ -1574,9 +1722,23 @@ Widgets.Frame {
                 }
 
                 Item {
+                    id: browsePanel
                     width: parent.width
                     height: Math.max(0, parent.height - 35)
                     visible: root.libraryMode === "browse"
+                    focus: visible && !root.fileFilterOpen
+
+                    Keys.onPressed: function(event) {
+                        if (root.searchOpen && root.libraryMode === "browse" && !root.fileFilterOpen && event.text === "/" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+                            root.openFileFilter()
+                            event.accepted = true
+                        }
+                    }
+
+                    onVisibleChanged: {
+                        if (visible && root.searchOpen && root.libraryMode === "browse")
+                            Qt.callLater(function() { if (browsePanel.visible && !root.fileFilterOpen) browsePanel.forceActiveFocus() })
+                    }
 
                     Column {
                         anchors.fill: parent
@@ -1593,17 +1755,68 @@ Widgets.Frame {
                             elide: Text.ElideRight
                         }
 
-                        ListView {
+                        Row {
                             width: parent.width
-                            height: Math.max(0, parent.height - 26)
+                            height: 27
+                            spacing: 5
+                            visible: root.fileFilterOpen
+
+                            Text {
+                                width: 16
+                                height: parent.height
+                                text: "/"
+                                color: Config.accent
+                                font.family: Config.font
+                                font.pixelSize: Config.fontSize
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+
+                            TextField {
+                                id: fileFilterField
+                                width: Math.max(0, parent.width - 21)
+                                height: parent.height
+                                text: root.fileFilterQuery
+                                placeholderText: "Фильтр файлов…"
+                                color: Config.text
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(10)
+                                selectByMouse: true
+                                leftPadding: 6
+                                rightPadding: 6
+                                topPadding: 2
+                                bottomPadding: 2
+                                background: Rectangle {
+                                    color: Config.settingsBackground
+                                    radius: 4
+                                    border.width: 1
+                                    border.color: fileFilterField.activeFocus ? Config.accent : Config.baseColor
+                                }
+                                onTextChanged: root.fileFilterQuery = text
+                                Keys.onEscapePressed: {
+                                    root.closeFileFilter(true)
+                                }
+                                Keys.onReturnPressed: {
+                                    root.closeFileFilter(false)
+                                }
+                                Keys.onEnterPressed: {
+                                    root.closeFileFilter(false)
+                                }
+                            }
+                        }
+
+                        ListView {
+                            id: browseListView
+                            width: parent.width
+                            height: Math.max(0, parent.height - (root.fileFilterOpen ? 57 : 26))
                             clip: true
                             spacing: 2
-                            model: root.browseDisplayEntries
+                            model: root.filteredBrowseDisplayEntries
                             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
                             delegate: Rectangle {
                                 width: parent ? parent.width : 0
-                                height: 38
+                                height: Config.mopidyTrackRowHeight
                                 radius: 4
                                 property bool addButtonVisible: Config.mopidyShowAddIcon && (modelData.type === "directory" || modelData.type === "track")
                                 property bool rowHovered: browseMouse.containsMouse
@@ -1645,7 +1858,7 @@ Widgets.Frame {
                                     color: root.hoverTextColor(rowHovered && modelData.type !== "parent", Config.text)
                                     font.family: modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumFont : Config.mopidyTrackFont
                                     font.pixelSize: modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumFontSize : Config.mopidyTrackFontSize
-                                    font.bold: modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumBold : false
+                                    font.bold: false
                                     elide: Text.ElideRight
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -1699,6 +1912,7 @@ Widgets.Frame {
                                     height: parent.height
                                     cursorShape: Qt.PointingHandCursor
                                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                                    onPressed: browsePanel.forceActiveFocus()
                                     onClicked: function(mouse) {
                                         if (modelData.type === "parent") {
                                             if (mouse.button === Qt.LeftButton)
@@ -1725,8 +1939,20 @@ Widgets.Frame {
                 Text {
                     width: parent.width
                     height: parent.height
-                    visible: root.libraryMode === "browse" && !root.browseBusy && root.browseEntries.length === 0
+                    visible: root.libraryMode === "browse" && !root.browseBusy && root.browseEntries.length === 0 && !root.fileFilterQuery.trim()
                     text: "Папка пуста"
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                Text {
+                    width: parent.width
+                    height: parent.height
+                    visible: root.libraryMode === "browse" && !root.browseBusy && root.fileFilterQuery.trim().length > 0 && root.filteredBrowseDisplayEntries.length === 0
+                    text: "Совпадений нет"
                     color: Config.textMuted
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
@@ -1777,7 +2003,7 @@ Widgets.Frame {
 
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
-                            height: 38
+                            height: Config.mopidyTrackRowHeight
                             radius: 4
                             property bool addButtonVisible: Config.mopidyShowAddIcon
                             property bool switchButtonVisible: Config.mopidyShowSwitchPlaylistIcon
@@ -2012,7 +2238,7 @@ Widgets.Frame {
 
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
-                            height: 38
+                            height: Config.mopidyTrackRowHeight
                             radius: 4
                             color: root.hoverBackgroundColor(playlistItemMouse.containsMouse)
                             border.width: root.hoverBorderWidth(playlistItemMouse.containsMouse)
@@ -2247,7 +2473,7 @@ Widgets.Frame {
 
                         delegate: Rectangle {
                             width: parent ? parent.width : 0
-                            height: 38
+                            height: Config.mopidyTrackRowHeight
                             radius: 4
                             color: root.hoverBackgroundColor(resultMouse.containsMouse)
                             border.width: root.hoverBorderWidth(resultMouse.containsMouse)
@@ -2435,7 +2661,7 @@ Widgets.Frame {
                 Rectangle {
                     id: trackRow
                     width: queueView.width
-                    height: 38
+                    height: Config.mopidyTrackRowHeight
                     radius: 4
                     color: rowMouse.containsMouse ? root.hoverBackgroundColor(true) : Config.transparent
                     border.width: root.hoverBorderWidth(rowMouse.containsMouse)
@@ -2464,17 +2690,24 @@ Widgets.Frame {
 
                         Item {
                             width: parent.width - trackRow.numberWidth - trackRow.durationWidth - trackRow.actionWidth - 15
-                            height: 28
+                            height: parent.height
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.verticalCenterOffset: itemData.track.artist ? 2 : 0
+                            anchors.verticalCenterOffset: (Config.mopidyTrackArtistDisplayMode === "two-lines" && itemData.track.artist) ? 2 : 0
 
                             Text {
                                 id: trackTitleText
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 anchors.top: parent.top
-                                height: itemData.track.artist ? 16 : parent.height
-                                text: itemData.track.name || "Без названия"
+                                height: (Config.mopidyTrackArtistDisplayMode === "one-line" || !itemData.track.artist) ? parent.height : Math.round(parent.height * 0.57)
+                                text: {
+                                    var trackName = itemData.track.name || "Без названия"
+                                    var artistName = itemData.track.artist || ""
+                                    return Config.mopidyTrackArtistDisplayMode === "one-line"
+                                        ? root.formatOneLineTrack(artistName, trackName)
+                                        : trackName
+                                }
+                                textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.RichText : Text.PlainText
                                 color: Number(itemData.track.tlid) === root.currentTlid ? Config.accent : root.hoverTextColor(rowMouse.containsMouse, Config.text)
                                 font.family: Config.mopidyTrackFont
                                 font.pixelSize: Config.mopidyTrackFontSize
@@ -2484,15 +2717,17 @@ Widgets.Frame {
 
                             Text {
                                 id: trackArtistText
-                                visible: !!itemData.track.artist
+                                visible: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 anchors.bottom: parent.bottom
-                                height: 12
+                                height: Math.max(8, parent.height - trackTitleText.height)
                                 text: itemData.track.artist || ""
                                 color: Number(itemData.track.tlid) === root.currentTlid ? Config.accent : root.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
                                 font.family: Config.mopidyArtistFont
                                 font.pixelSize: Config.mopidyArtistFontSize
+                                font.bold: Config.mopidyArtistBold
+                                font.italic: Config.mopidyArtistItalic
                                 elide: Text.ElideRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -2508,7 +2743,7 @@ Widgets.Frame {
                         id: trackDurationText
                         z: 3
                         width: trackRow.durationWidth
-                        height: 28
+                        height: Math.min(28, Math.max(20, trackRow.height - 6))
                         x: trackRow.width - width - 5
                         y: Math.round((trackRow.height - height) / 2)
                         text: root.formatDuration(root.trackDisplayDuration(itemData.track))
@@ -2570,7 +2805,41 @@ Widgets.Frame {
                 }
             }
 
-        }
+        
+
+            // When Mopidy is available but the playback queue is empty, any click
+            // in the queue area opens the track browser. The top panel remains
+            // outside this item, so its existing buttons keep their own actions.
+            MouseArea {
+                id: emptyQueueOpenBrowserMouse
+                anchors.fill: parent
+                z: 100
+                visible: root.queueAvailable && root.tracks.length === 0 && !root.searchOpen
+                enabled: visible && !root.queueBusy
+                acceptedButtons: Qt.LeftButton
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (root.queueAvailable && root.tracks.length === 0 && !root.searchOpen)
+                        root.toggleSearch()
+                }
+            }
+}
+    }
+
+    // When the Mopidy RPC service is unavailable, clicking anywhere in the
+    // module attempts to start the local `mopidy` command. This overlay sits
+    // above the module's normal controls but below modal dialogs.
+    MouseArea {
+        id: unavailableMopidyClickArea
+        anchors.fill: parent
+        z: 150
+        visible: !root.queueAvailable && !root.playlistDialogVisible
+        enabled: visible
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        hoverEnabled: true
+        cursorShape: root.mopidyLaunchCooldown ? Qt.ArrowCursor : Qt.PointingHandCursor
+        onClicked: root.requestMopidyStart()
     }
 
     Rectangle {

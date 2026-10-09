@@ -135,11 +135,11 @@ function resetModule(owner, config, moduleName) {
     } else if (moduleName === "cpu") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
-            "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth",
+            "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth",
             "cpuGraphBarWidth", "cpuShowRam"
         ])
     } else if (moduleName === "cpuGraph") {
-        applyConfigKeysFromProfile(owner, config, profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth"])
+        applyConfigKeysFromProfile(owner, config, profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode"])
     } else if (moduleName === "networkStat" || moduleName === "networks") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
@@ -198,12 +198,12 @@ function resetModule(owner, config, moduleName) {
             "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius",
             "playerMetadataXPadding", "playerMetadataY", "playerProgressY",
             "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize",
-            "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY",
+            "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY",
             "playerUpdateInterval"
         ])
     } else if (moduleName === "cava") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio"
+            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent"
         ])
     }
 
@@ -231,7 +231,7 @@ function resetColors(owner, config, names, themes, colorNames) {
 
 function resetCpuSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuShowRam"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam"]); owner.save()
 }
 
 function resetNetworkSettings(owner, config) {
@@ -264,12 +264,12 @@ function resetTimerSettings(owner, config) {
 
 function resetPlayerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerControlIconSize", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval"]); owner.save()
 }
 
 function resetMopidySettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyShowMoveButtons", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyShowMoveButtons", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyTrackRowHeight", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyQueueDurationAlignment", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
 }
 
 function resetWeatherSettings(owner, config) {
@@ -286,7 +286,7 @@ function resetCalendarSettings(owner, config) {
 
 function resetCavaSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode", "cavaHideWhenSilent"]); owner.save()
 }
 
 function resetGeneralSettings(owner, config) {

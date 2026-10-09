@@ -77,6 +77,27 @@ Column {
         SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyQueueDurationY"; settingsObject: root.settings; saveOnEdit: true }
     }
 
+    Row {
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 180; text: "Выравнивание времени очереди"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsComboBox {
+            id: queueDurationAlignmentCombo
+            width: 140; height: 30
+            model: ["Справа", "Слева"]
+            currentIndex: Config.mopidyQueueDurationAlignment === "left" ? 1 : 0
+            onItemChosen: function(index) {
+                Config.mopidyQueueDurationAlignment = index === 1 ? "left" : "right"
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onMopidyQueueDurationAlignmentChanged() {
+                    queueDurationAlignmentCombo.currentIndex = Config.mopidyQueueDurationAlignment === "left" ? 1 : 0
+                }
+            }
+        }
+    }
+
     Text {
         text: "Время треков и альбомов"
         color: Config.accent
@@ -100,6 +121,128 @@ Column {
         checked: Config.mopidyShowAlbumRemaining
         onClicked: { Config.mopidyShowAlbumRemaining = checked; settings.save() }
         Connections { target: Config; function onMopidyShowAlbumRemainingChanged() { showAlbumRemainingCheckBox.checked = Config.mopidyShowAlbumRemaining } }
+    }
+
+    Text {
+        text: "Отображение названия и исполнителя"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(14)
+    }
+
+    Row {
+        width: parent.width
+        height: 30
+        spacing: 8
+        Text {
+            width: 180
+            text: "Режим отображения"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsComboBox {
+            id: trackArtistDisplayModeCombo
+            width: 250
+            height: 30
+            model: ["В две строки", "В одну строку (исполнитель + разделитель + название)"]
+            currentIndex: Config.mopidyTrackArtistDisplayMode === "one-line" ? 1 : 0
+            onItemChosen: function(index) {
+                Config.mopidyTrackArtistDisplayMode = index === 1 ? "one-line" : "two-lines"
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onMopidyTrackArtistDisplayModeChanged() {
+                    trackArtistDisplayModeCombo.currentIndex = Config.mopidyTrackArtistDisplayMode === "one-line" ? 1 : 0
+                }
+            }
+        }
+    }
+
+    Row {
+        width: parent.width; height: 30; spacing: 8
+        Text {
+            width: 180
+            text: "Высота строки списка"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsNumberField {
+            width: 72; height: 30
+            value: Config.mopidyTrackRowHeight
+            minimum: 30; maximum: 80; step: 1; wheelStep: 1; decimals: 0
+            compact: true; fieldWidth: 72; fieldFontSize: 11
+            inputMethodHints: Qt.ImhDigitsOnly
+            targetObject: Config; targetProperty: "mopidyTrackRowHeight"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+        Text {
+            text: "px"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
+
+    Row {
+        width: parent.width; height: 30; spacing: 8
+        Text {
+            width: 180
+            text: "Разделитель в одну строку"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsTextField {
+            id: trackArtistSeparatorField
+            width: 160; height: 30
+            text: Config.mopidyTrackArtistSeparator
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            activeFocusOnTab: true
+            onEditingFinished: function() {
+                Config.mopidyTrackArtistSeparator = trackArtistSeparatorField.text
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onMopidyTrackArtistSeparatorChanged() {
+                    trackArtistSeparatorField.text = Config.mopidyTrackArtistSeparator
+                }
+            }
+        }
+        Text {
+            text: "пример:  ·  /  —  /  |"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
+
+    SettingsCheckBox {
+        id: artistBoldCheckBox
+        width: parent.width; height: 28
+        text: "Исполнитель жирным"
+        checked: Config.mopidyArtistBold
+        onClicked: { Config.mopidyArtistBold = checked; settings.save() }
+        Connections { target: Config; function onMopidyArtistBoldChanged() { artistBoldCheckBox.checked = Config.mopidyArtistBold } }
+    }
+
+    SettingsCheckBox {
+        id: artistItalicCheckBox
+        width: parent.width; height: 28
+        text: "Исполнитель курсивом"
+        checked: Config.mopidyArtistItalic
+        onClicked: { Config.mopidyArtistItalic = checked; settings.save() }
+        Connections { target: Config; function onMopidyArtistItalicChanged() { artistItalicCheckBox.checked = Config.mopidyArtistItalic } }
     }
 
     Text {

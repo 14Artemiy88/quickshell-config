@@ -22,7 +22,9 @@ Widgets.Frame {
             }
         }
     }
+    // Both halves: the existing mirrored graph with its baseline at the center.
     Column {
+        visible: Config.cpuGraphMode === "both"
         anchors.fill: parent
         anchors.margins: 3
         spacing: 0
@@ -73,4 +75,59 @@ Widgets.Frame {
             }
         }
     }
+
+    // Upper-only: use the full graph height and grow upward from the bottom edge.
+    Item {
+        visible: Config.cpuGraphMode === "top"
+        anchors.fill: parent
+        anchors.margins: 3
+        Row {
+            anchors.fill: parent
+            spacing: 0
+            Repeater {
+                model: 51
+                delegate: Item {
+                    width: Config.cpuGraphSegmentSlotWidth
+                    height: parent.height
+                    Rectangle {
+                        width: Config.cpuGraphBarWidth
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
+                        color: Config.baseColor
+                        border.color: Config.baseColor
+                        border.width: 1
+                    }
+                }
+            }
+        }
+    }
+
+    // Lower-only: use the full graph height and grow downward from the top edge.
+    Item {
+        visible: Config.cpuGraphMode === "bottom"
+        anchors.fill: parent
+        anchors.margins: 3
+        Row {
+            anchors.fill: parent
+            spacing: 0
+            Repeater {
+                model: 51
+                delegate: Item {
+                    width: Config.cpuGraphSegmentSlotWidth
+                    height: parent.height
+                    Rectangle {
+                        width: Config.cpuGraphBarWidth
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        height: Math.max(1, Math.min(parent.height, Number(root.values[index] || 0) * parent.height / 100))
+                        color: Config.baseColor
+                        border.color: Config.baseColor
+                        border.width: 1
+                    }
+                }
+            }
+        }
+    }
+
 }

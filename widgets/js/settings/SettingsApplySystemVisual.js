@@ -16,6 +16,8 @@ function apply(Config, o) {
                 if (isFinite(cv)) Config[cname] = Math.max(cpuNumberFields[cf][1], Math.min(cpuNumberFields[cf][2], Math.round(cv)))
             }
         }
+        if (o.cpuBarDirection !== undefined) { var cbd = String(o.cpuBarDirection); Config.cpuBarDirection = ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"].indexOf(cbd) >= 0 ? cbd : "leftToRight" }
+        if (o.cpuGraphMode !== undefined) { var cgm = String(o.cpuGraphMode); Config.cpuGraphMode = ["both", "top", "bottom"].indexOf(cgm) >= 0 ? cgm : "both" }
         if (o.cpuShowRam !== undefined) Config.cpuShowRam = !!o.cpuShowRam
 
         // Network display tuning

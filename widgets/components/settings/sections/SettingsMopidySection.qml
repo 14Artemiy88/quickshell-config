@@ -107,6 +107,19 @@ Column {
         fieldHeight: 30
     }
 
+    // Persist direct changes to this dedicated color immediately, even if the
+    // settings field loses focus while its panel is being closed or switched.
+    Connections {
+        target: Config
+        function onMopidyBackgroundChanged() {
+            if (root.settings && root.settings.loaded)
+                Qt.callLater(function() {
+                    if (root.settings && root.settings.loaded)
+                        root.settings.save()
+                })
+        }
+    }
+
     Text {
         text: "Очередь"
         color: Config.accent

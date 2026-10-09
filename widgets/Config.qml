@@ -20,7 +20,9 @@ QtObject {
     property color playerProgressFill: "#00cccc"
     property color activeNetworkBackground: "#1a323232"
     property color calendarBackground: "#cc000000"
-    property color mopidyBackground: "#cc000000"
+    // Keep Mopidy background as a plain string so its exact #AARRGGBB value
+    // survives JSON snapshots, profile copies and reloads without QColor conversion.
+    property string mopidyBackground: "#cc000000"
     // Calendar appearance / navigation
     property string calendarPreviousIcon: "←"
     property string calendarNextIcon: "→"
@@ -56,6 +58,7 @@ QtObject {
     property int cavaRowSpacing: 1
     property real cavaBarWidthRatio: 0.45
     property string cavaMode: "both"
+    property bool cavaHideWhenSilent: false
 
     // General behaviour / update intervals
     property bool animationsEnabled: true
@@ -126,8 +129,10 @@ QtObject {
     property int cpuLabelLeftPadding: 10
     property int cpuBarLeftOffset: 35
     property int cpuBarRadius: 8
+    property string cpuBarDirection: "leftToRight"
     property int cpuGraphSegmentSlotWidth: 6
     property int cpuGraphBarWidth: 2
+    property string cpuGraphMode: "both"
     property bool cpuShowRam: true
 
     // Network display tuning
@@ -191,6 +196,7 @@ QtObject {
     property int playerControlGap: 8
     property int playerTimeFontSize: 11
     property string playerTimeFont: "Ubuntu Mono Nerd Font"
+    property int playerTimeY: 0
     property int playerTimeRightPadding: 0
     property real playerCoverOpacity: 0.9
     property int playerSilenceWidth: 275
@@ -221,8 +227,13 @@ QtObject {
     property int mopidyAlbumFontSize: 10
     property string mopidyTrackFont: "JetBrainsMono Nerd Font"
     property int mopidyTrackFontSize: 12
+    property int mopidyTrackRowHeight: 38
     property string mopidyArtistFont: "JetBrainsMono Nerd Font"
     property int mopidyArtistFontSize: 10
+    property bool mopidyArtistBold: false
+    property bool mopidyArtistItalic: false
+    property string mopidyTrackArtistDisplayMode: "two-lines" // "two-lines" or "one-line"
+    property string mopidyTrackArtistSeparator: " · "
     property string mopidyDurationFont: "Ubuntu Mono Nerd Font"
     property int mopidyDurationFontSize: 11
     property string mopidyAlbumSeparator: "between-line"
@@ -258,6 +269,7 @@ QtObject {
     property string mopidyQueueDurationColor: "#aaaaaa"
     property int mopidyQueueDurationX: 0
     property int mopidyQueueDurationY: 0
+    property string mopidyQueueDurationAlignment: "right"
     property bool mopidyShowAlbumRemaining: false
     property bool mopidyShowTrackRemaining: false
     property string mopidyShuffleIcon: ""

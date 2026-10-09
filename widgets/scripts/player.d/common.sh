@@ -5,7 +5,7 @@ source "$PLAYER_LIB_DIR/../env"
 
 declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-player"
 declare -r IMG_SUFFIX=".png"
-declare -r DEFAULT_IMG="$QS_CONFIG_DIR/assets/1px.png"
+declare -r DEFAULT_IMG="$QS_PROJECT_DIR/assets/1px.png"
 declare -r DEFAULT_TEXT="no image"
 declare -r DEFAULT_TITLE_CLASS="default"
 

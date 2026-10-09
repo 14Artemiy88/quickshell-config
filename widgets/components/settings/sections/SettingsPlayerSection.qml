@@ -388,6 +388,28 @@ Column {
         }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Смещение оставшегося времени по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            id: playerTimeYField
+            width: 72
+            height: 30
+            value: Config.playerTimeY
+            minimum: -100
+            maximum: 100
+            step: 1
+            wheelStep: 1
+            decimals: 0
+            compact: true
+            fieldWidth: 72
+            fieldFontSize: 11
+            inputMethodHints: Qt.ImhFormattedNumbersOnly
+            targetObject: Config
+            targetProperty: "playerTimeY"
+            settingsObject: root.settings
+            saveOnEdit: true
+        }
+    }
+    Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
         Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerTimeRightPaddingField

@@ -84,8 +84,6 @@ mopidy_cover_for_track() {
     local track_uri="$1" album_uri="${2:-}" cache_dir key marker stamp art_uri now
     local image_url url_path ext output_path tmp params images_json failed_stamp failed_at
     local local_track_path local_cover
-    local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-
     [[ -n "$track_uri" ]] || { mopidy_cover_fallback; return 0; }
 
     # Use the shared adjacent-file lookup first for local tracks. This keeps
@@ -100,7 +98,7 @@ mopidy_cover_for_track() {
         fi
     fi
 
-    cache_dir="$runtime_dir/quickshell-mopidy-covers"
+    cache_dir="$QS_CACHE_DIR/mopidy-covers"
     mkdir -p "$cache_dir" 2>/dev/null || { mopidy_cover_fallback; return 0; }
     key=$(printf '%s' "$track_uri" | sha256sum | awk '{print $1}')
     marker="$cache_dir/$key.uri"
@@ -199,12 +197,98 @@ mopidy_cover_for_track() {
     fi
 }
 
+mopidy_control_log() {
+    local state_dir="${QS_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/quickshell-widgets}"
+    mkdir -p "$state_dir" 2>/dev/null || return 0
+    printf '[%s] %s\n' "$(date '+%F %T')" "$*" >> "$state_dir/mopidy-control.log" 2>/dev/null || true
+}
+
+mopidy_force_play_current_track() {
+    # Recovery path for backends which report `playing` after resume but do not
+    # restart the underlying provider. Stop and explicitly play the active tlid,
+    # then restore the position that was saved before the recovery.
+    local tlid="$1" previous_pos="$2" params response state current_pos attempt
+    [[ "$tlid" =~ ^[0-9]+$ ]] || return 1
+
+    mopidy_rpc 'core.playback.stop' >/dev/null
+    params=$(jq -cn --argjson tlid "$tlid" '{tlid:$tlid}')
+    response=$(mopidy_rpc 'core.playback.play' "$params")
+    if [[ -n "$(jq -r '.error.message // empty' <<< "$response" 2>/dev/null)" ]]; then
+        mopidy_control_log "forced play failed: $(jq -r '.error.message' <<< "$response" 2>/dev/null)"
+        return 1
+    fi
+
+    # Wait for playback's clock to move before seeking; some providers ignore
+    # a seek issued immediately after changing tracks.
+    for attempt in {1..10}; do
+        sleep 0.15
+        state=$(mopidy_rpc 'core.playback.get_state' | jq -r '.result // empty' 2>/dev/null)
+        current_pos=$(mopidy_rpc 'core.playback.get_time_position' | jq -r '.result // 0' 2>/dev/null)
+        [[ "$state" == "playing" ]] || continue
+        [[ "$current_pos" =~ ^[0-9]+$ && "$current_pos" -gt 0 ]] && break
+    done
+
+    if [[ "$previous_pos" =~ ^[0-9]+$ && "$previous_pos" -gt 0 ]]; then
+        params=$(jq -cn --argjson position "$previous_pos" '{time_position:$position}')
+        response=$(mopidy_rpc 'core.playback.seek' "$params")
+        if [[ -n "$(jq -r '.error.message // empty' <<< "$response" 2>/dev/null)" ]]; then
+            mopidy_control_log "position restore failed: $(jq -r '.error.message' <<< "$response" 2>/dev/null)"
+        fi
+    fi
+    mopidy_control_log "restarted current track via tlid=$tlid after resume did not advance playback"
+    return 0
+}
+
+mopidy_resume_current_track() {
+    local current_tl_response tlid previous_pos track_length response state current_pos attempt
+    current_tl_response=$(mopidy_rpc 'core.playback.get_current_tl_track')
+    tlid=$(jq -r '.result.tlid // empty' <<< "$current_tl_response" 2>/dev/null)
+    track_length=$(jq -r '.result.track.length // 0' <<< "$current_tl_response" 2>/dev/null)
+    previous_pos=$(mopidy_rpc 'core.playback.get_time_position' | jq -r '.result // 0' 2>/dev/null)
+
+    # Use Mopidy's dedicated resume method first. Unlike calling play() without
+    # a tlid, it is specifically intended to resume the active playback provider.
+    response=$(mopidy_rpc 'core.playback.resume')
+    if [[ -n "$(jq -r '.error.message // empty' <<< "$response" 2>/dev/null)" ]]; then
+        mopidy_control_log "core.playback.resume returned error: $(jq -r '.error.message' <<< "$response" 2>/dev/null)"
+        mopidy_force_play_current_track "$tlid" "$previous_pos"
+        return
+    fi
+
+    # Do not trust only get_state: some backends can flip the core state while
+    # their playback clock remains frozen. Confirm that a finite track advances.
+    for attempt in {1..7}; do
+        sleep 0.2
+        state=$(mopidy_rpc 'core.playback.get_state' | jq -r '.result // empty' 2>/dev/null)
+        current_pos=$(mopidy_rpc 'core.playback.get_time_position' | jq -r '.result // 0' 2>/dev/null)
+        [[ "$state" == "playing" ]] || continue
+
+        # For streams without a known length, state=playing is the only useful
+        # signal. For normal tracks require the playback position to actually move.
+        if ! [[ "$track_length" =~ ^[0-9]+$ ]] || (( track_length <= 0 )); then
+            return 0
+        fi
+        if [[ "$current_pos" =~ ^[0-9]+$ && "$previous_pos" =~ ^[0-9]+$ ]] && (( current_pos != previous_pos )); then
+            return 0
+        fi
+    done
+
+    mopidy_control_log "resume did not advance playback (state=${state:-unknown}, position=${current_pos:-unknown}); forcing current track start and restoring position"
+    mopidy_force_play_current_track "$tlid" "$previous_pos"
+}
+
 mopidy_pause_toggle() {
-    local state
+    local state response
     state=$(mopidy_rpc 'core.playback.get_state' | jq -r '.result // empty')
     case "$state" in
-        playing) mopidy_rpc 'core.playback.pause' >/dev/null ;;
-        paused) mopidy_rpc 'core.playback.resume' >/dev/null ;;
+        playing)
+            response=$(mopidy_rpc 'core.playback.pause')
+            if [[ -n "$(jq -r '.error.message // empty' <<< "$response" 2>/dev/null)" ]]; then
+                mopidy_control_log "pause failed: $(jq -r '.error.message' <<< "$response" 2>/dev/null)"
+                return 1
+            fi
+            ;;
+        paused) mopidy_resume_current_track ;;
         stopped) mopidy_rpc 'core.playback.play' >/dev/null ;;
         *) return 1 ;;
     esac

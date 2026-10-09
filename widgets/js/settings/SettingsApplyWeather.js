@@ -63,6 +63,7 @@ function apply(Config, o) {
         if (o.cavaRowSpacing !== undefined) Config.cavaRowSpacing = Math.max(0, Math.min(20, Math.round(Number(o.cavaRowSpacing) || Config.cavaRowSpacing)))
         if (o.cavaBarWidthRatio !== undefined) { var cbwr=Number(o.cavaBarWidthRatio); if (isFinite(cbwr)) Config.cavaBarWidthRatio=Math.max(0.05,Math.min(1,cbwr)) }
         if (o.cavaMode !== undefined) { var cm = String(o.cavaMode); Config.cavaMode = ["both", "top", "bottom"].indexOf(cm) >= 0 ? cm : "both" }
+        if (o.cavaHideWhenSilent !== undefined) Config.cavaHideWhenSilent = !!o.cavaHideWhenSilent
         if (o.frameBorderWidth !== undefined) {
             var bw = Number(o.frameBorderWidth)
             if (isFinite(bw)) Config.frameBorderWidth = Math.max(0, Math.min(20, Math.round(bw)))

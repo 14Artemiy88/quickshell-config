@@ -10,6 +10,20 @@ Widgets.Frame {
     width: 300
     height: 80
     property var values: []
+    property bool soundActive: true
+
+    signal playbackToggleRequested()
+    signal mopidyToggleRequested()
+
+    // Keep the last visible bars briefly through short gaps in the signal.
+    Timer {
+        id: silenceTimer
+        interval: 450
+        repeat: false
+        onTriggered: {
+            if (Config.cavaHideWhenSilent) root.soundActive = false
+        }
+    }
 
     Process {
         id: cavaProc
@@ -17,8 +31,36 @@ Widgets.Frame {
         running: Settings.loaded && Settings.cava
         stdout: SplitParser {
             onRead: line => {
-                try { root.values = JSON.parse(line.trim()) } catch(e) {}
+                try {
+                    var sample = JSON.parse(line.trim())
+                    root.values = sample
+                    root.updateSignalState(sample)
+                } catch(e) {}
             }
+        }
+    }
+
+    function updateSignalState(samples) {
+        if (!Config.cavaHideWhenSilent) {
+            silenceTimer.stop()
+            soundActive = true
+            return
+        }
+
+        var peak = 0
+        if (samples && samples.length) {
+            for (var i = 0; i < samples.length; ++i) {
+                var value = Number(samples[i])
+                if (isFinite(value) && value > peak) peak = value
+            }
+        }
+
+        // Ignore tiny noise-floor values; show bars only for a real signal.
+        if (peak > 1.0) {
+            silenceTimer.stop()
+            soundActive = true
+        } else if (soundActive && !silenceTimer.running) {
+            silenceTimer.start()
         }
     }
 
@@ -35,6 +77,7 @@ Widgets.Frame {
         target: Config
         function onCavaBarsChanged() { root.restartCava() }
         function onCavaFramerateChanged() { root.restartCava() }
+        function onCavaHideWhenSilentChanged() { root.updateSignalState(root.values) }
     }
 
     function barWidthForSlot(slotWidth) {
@@ -47,6 +90,7 @@ Widgets.Frame {
 
     Item {
         anchors.fill: parent
+        visible: !Config.cavaHideWhenSilent || root.soundActive
 
         // Mirrored mode: preserve the original CAVA layout.
         Item {
@@ -157,4 +201,20 @@ Widgets.Frame {
             }
         }
     }
+
+    // Match Player interaction: left-click toggles the active backend,
+    // right-click toggles Mopidy when that behavior is enabled.
+    MouseArea {
+        id: cavaClickArea
+        anchors.fill: parent
+        z: 1000
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: function(mouse) {
+            if (mouse.button === Qt.LeftButton)
+                root.playbackToggleRequested()
+            else if (mouse.button === Qt.RightButton)
+                root.mopidyToggleRequested()
+        }
+    }
+
 }

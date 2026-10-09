@@ -1,3 +1,89 @@
 #!/bin/bash
-export QS_CONFIG_DIR="${QS_CONFIG_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# Paths used by quickshell-widgets follow the XDG Base Directory Specification.
+# Keep the installed/source tree separate from user data: assets and scripts
+# are project files, not a writable settings directory.
+QS_PROJECT_DIR="${QS_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+
+# XDG base variables are only valid when absolute; fall back to spec defaults
+# if an invalid relative path was inherited from the desktop environment.
+_xdg_config_home="${XDG_CONFIG_HOME:-}"
+_xdg_data_home="${XDG_DATA_HOME:-}"
+_xdg_state_home="${XDG_STATE_HOME:-}"
+_xdg_cache_home="${XDG_CACHE_HOME:-}"
+[[ "$_xdg_config_home" == /* ]] || _xdg_config_home="$HOME/.config"
+[[ "$_xdg_data_home" == /* ]] || _xdg_data_home="$HOME/.local/share"
+[[ "$_xdg_state_home" == /* ]] || _xdg_state_home="$HOME/.local/state"
+[[ "$_xdg_cache_home" == /* ]] || _xdg_cache_home="$HOME/.cache"
+_qs_legacy_quickshell_dir="$_xdg_config_home/quickshell"
+
+QS_CONFIG_DIR="${QS_CONFIG_DIR:-$_xdg_config_home/quickshell-widgets}"
+QS_DATA_DIR="${QS_DATA_DIR:-$_xdg_data_home/quickshell-widgets}"
+QS_STATE_DIR="${QS_STATE_DIR:-$_xdg_state_home/quickshell-widgets}"
+QS_CACHE_DIR="${QS_CACHE_DIR:-$_xdg_cache_home/quickshell-widgets}"
+unset _xdg_config_home _xdg_data_home _xdg_state_home _xdg_cache_home
+export QS_PROJECT_DIR QS_CONFIG_DIR QS_DATA_DIR QS_STATE_DIR QS_CACHE_DIR
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+# New user directories should be private because settings can contain API tokens.
+umask 077
+mkdir -p "$QS_CONFIG_DIR" "$QS_DATA_DIR" "$QS_STATE_DIR" "$QS_CACHE_DIR" 2>/dev/null || true
+
+# Migrate legacy files only when a canonical destination does not exist.
+# Source files are deliberately retained as rollback copies. If the current
+# project directory has no legacy file, look for older Quickshell installs.
+_qs_migrate_json_if_missing() {
+    local legacy="$1" destination="$2" kind="$3" temp marker
+    marker="$(dirname "$destination")/.migration-${kind}-v1"
+    [[ -e "$marker" ]] && return 0
+    # A canonical file always wins. Mark the migration as complete so deleting
+    # that file later (for a reset) cannot resurrect a stale legacy copy.
+    if [[ -e "$destination" ]]; then
+        : > "$marker" 2>/dev/null || true
+        chmod 600 "$marker" 2>/dev/null || true
+        return 0
+    fi
+    [[ "$legacy" != "$destination" && -f "$legacy" ]] || return 0
+    command -v jq >/dev/null 2>&1 || return 0
+    case "$kind" in
+        settings)
+            jq -e 'type == "object" and (.modules.time? != null) and (.modules.timer? != null) and ((.geometry? | type) == "object")' "$legacy" >/dev/null 2>&1 || return 0
+            ;;
+        calendar-notes)
+            jq -e 'type == "object"' "$legacy" >/dev/null 2>&1 || return 0
+            ;;
+        *) return 0 ;;
+    esac
+    mkdir -p "$(dirname "$destination")" 2>/dev/null || return 0
+    temp=$(mktemp "${destination}.migrate.XXXXXX" 2>/dev/null) || return 0
+    if ! cp "$legacy" "$temp" 2>/dev/null; then
+        rm -f "$temp"
+        return 0
+    fi
+    chmod 600 "$temp" 2>/dev/null || true
+    mv -n "$temp" "$destination" 2>/dev/null || true
+    if [[ -e "$temp" ]]; then rm -f "$temp"; fi
+    if [[ -e "$destination" ]]; then
+        : > "$marker" 2>/dev/null || true
+        chmod 600 "$marker" 2>/dev/null || true
+    fi
+}
+
+_qs_migrate_json_if_missing "$QS_PROJECT_DIR/settings.json" "$QS_CONFIG_DIR/settings.json" settings
+if [[ ! -f "$QS_CONFIG_DIR/settings.json" ]]; then
+    for _qs_old in "$_qs_legacy_quickshell_dir/desktop-shell/settings.json" "$_qs_legacy_quickshell_dir"/*/settings.json; do
+        [[ -f "$_qs_old" ]] || continue
+        _qs_migrate_json_if_missing "$_qs_old" "$QS_CONFIG_DIR/settings.json" settings
+        [[ -f "$QS_CONFIG_DIR/settings.json" ]] && break
+    done
+fi
+
+_qs_migrate_json_if_missing "$QS_PROJECT_DIR/calendar-notes.json" "$QS_DATA_DIR/calendar-notes.json" calendar-notes
+if [[ ! -f "$QS_DATA_DIR/calendar-notes.json" ]]; then
+    for _qs_old in "$_qs_legacy_quickshell_dir/desktop-shell/calendar-notes.json" "$_qs_legacy_quickshell_dir"/*/calendar-notes.json; do
+        [[ -f "$_qs_old" ]] || continue
+        _qs_migrate_json_if_missing "$_qs_old" "$QS_DATA_DIR/calendar-notes.json" calendar-notes
+        [[ -f "$QS_DATA_DIR/calendar-notes.json" ]] && break
+    done
+fi
+unset -f _qs_migrate_json_if_missing
+unset _qs_legacy_quickshell_dir _qs_old

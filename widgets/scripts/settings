@@ -6,6 +6,8 @@ CFG="$CFG_DIR/settings.json"
 mkdir -p "$CFG_DIR"
 DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
 [[ -f "$CFG" ]] || printf '%s\n' "$DEFAULT" > "$CFG"
+: > "$CFG_DIR/.migration-settings-v1"
+chmod 600 "$CFG_DIR/.migration-settings-v1" 2>/dev/null || true
 case "${1:-get}" in
   get) cat "$CFG" ;;
   set-json)

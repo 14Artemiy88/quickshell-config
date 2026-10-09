@@ -37,7 +37,7 @@ function apply(Config, o, legacyTimerIconOrder) {
             ["playerMetadataXPadding", 0, 100], ["playerMetadataY", 0, 100], ["playerProgressY", 0, 100],
             ["playerProgressTrackHeight", 1, 20], ["playerControlTopMargin", 0, 100],
             ["playerControlGap", 0, 100], ["playerTimeFontSize", 8, 48],
-            ["playerTimeRightPadding", 0, 100], ["playerSilenceWidth", 100, 600],
+            ["playerTimeY", -100, 100], ["playerTimeRightPadding", 0, 100], ["playerSilenceWidth", 100, 600],
             ["playerProgressTrackOffsetY", -10, 20]
         ]
         for (var pf = 0; pf < playerNumberFields.length; ++pf) {
@@ -95,8 +95,17 @@ function apply(Config, o, legacyTimerIconOrder) {
         if (o.mopidyAlbumFontSize !== undefined) Config.mopidyAlbumFontSize = Math.max(6, Math.min(40, Number(o.mopidyAlbumFontSize) || Config.mopidyAlbumFontSize))
         if (o.mopidyTrackFont !== undefined) Config.mopidyTrackFont = String(o.mopidyTrackFont)
         if (o.mopidyTrackFontSize !== undefined) Config.mopidyTrackFontSize = Math.max(6, Math.min(40, Number(o.mopidyTrackFontSize) || Config.mopidyTrackFontSize))
+        if (o.mopidyTrackRowHeight !== undefined) Config.mopidyTrackRowHeight = Math.max(30, Math.min(80, Number(o.mopidyTrackRowHeight) || Config.mopidyTrackRowHeight))
         if (o.mopidyArtistFont !== undefined) Config.mopidyArtistFont = String(o.mopidyArtistFont)
         if (o.mopidyArtistFontSize !== undefined) Config.mopidyArtistFontSize = Math.max(6, Math.min(40, Number(o.mopidyArtistFontSize) || Config.mopidyArtistFontSize))
+        if (o.mopidyArtistBold !== undefined) Config.mopidyArtistBold = !!o.mopidyArtistBold
+        if (o.mopidyArtistItalic !== undefined) Config.mopidyArtistItalic = !!o.mopidyArtistItalic
+        if (o.mopidyTrackArtistSeparator !== undefined) Config.mopidyTrackArtistSeparator = String(o.mopidyTrackArtistSeparator)
+        if (o.mopidyTrackArtistDisplayMode !== undefined) {
+            var trackArtistMode = String(o.mopidyTrackArtistDisplayMode)
+            if (["two-lines", "one-line"].indexOf(trackArtistMode) >= 0)
+                Config.mopidyTrackArtistDisplayMode = trackArtistMode
+        }
         if (o.mopidyDurationFont !== undefined) Config.mopidyDurationFont = String(o.mopidyDurationFont)
         if (o.mopidyDurationFontSize !== undefined) Config.mopidyDurationFontSize = Math.max(6, Math.min(40, Number(o.mopidyDurationFontSize) || Config.mopidyDurationFontSize))
         if (o.mopidyAlbumSeparator !== undefined) {
@@ -117,9 +126,9 @@ function apply(Config, o, legacyTimerIconOrder) {
         }
         if (o.mopidyAlbumBold !== undefined) Config.mopidyAlbumBold = !!o.mopidyAlbumBold
         if (o.mopidyBackground !== undefined) {
-            var mopidyBackground = String(o.mopidyBackground)
-            if (/^#[0-9a-fA-F]{6,8}$/.test(mopidyBackground) || mopidyBackground === "transparent")
-                Config.mopidyBackground = mopidyBackground
+            var mopidyBackground = String(o.mopidyBackground).trim()
+            if (/^#[0-9a-fA-F]{6,8}$/.test(mopidyBackground) || mopidyBackground.toLowerCase() === "transparent")
+                Config.mopidyBackground = mopidyBackground.toLowerCase() === "transparent" ? "transparent" : mopidyBackground
         }
         if (o.mopidyToggleWithPlayerRightClick !== undefined) Config.mopidyToggleWithPlayerRightClick = !!o.mopidyToggleWithPlayerRightClick
         if (o.mopidyHoverMode !== undefined) {
@@ -169,6 +178,10 @@ function apply(Config, o, legacyTimerIconOrder) {
         }
         if (o.mopidyQueueDurationX !== undefined) { var queueDurationX = Number(o.mopidyQueueDurationX); if (isFinite(queueDurationX)) Config.mopidyQueueDurationX = Math.round(queueDurationX) }
         if (o.mopidyQueueDurationY !== undefined) Config.mopidyQueueDurationY = Math.max(-20, Math.min(20, Number(o.mopidyQueueDurationY) || 0))
+        if (o.mopidyQueueDurationAlignment !== undefined) {
+            var queueDurationAlignment = String(o.mopidyQueueDurationAlignment)
+            if (queueDurationAlignment === "left" || queueDurationAlignment === "right") Config.mopidyQueueDurationAlignment = queueDurationAlignment
+        }
         if (o.mopidyShowAlbumRemaining !== undefined) Config.mopidyShowAlbumRemaining = !!o.mopidyShowAlbumRemaining
         if (o.mopidyShowTrackRemaining !== undefined) Config.mopidyShowTrackRemaining = !!o.mopidyShowTrackRemaining
         if (o.mopidyShuffleIcon !== undefined) Config.mopidyShuffleIcon = String(o.mopidyShuffleIcon)

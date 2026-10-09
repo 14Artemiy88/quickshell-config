@@ -172,7 +172,7 @@ Widgets.Frame {
         verticalAlignment: Text.AlignVCenter
     }
     Text {
-        x: 0; y: Config.playerControlTopMargin
+        x: 0; y: Config.playerControlTopMargin + Config.playerTimeY
         width: parent.width - Config.playerTimeRightPadding
         horizontalAlignment: Text.AlignRight
         text: root.player.timeleft || ""
@@ -183,7 +183,19 @@ Widgets.Frame {
         styleColor: Config.playerTextOutlineColor
     }
 
-    MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", root.player.player || ""]) }
+    MouseArea {
+        id: playbackToggleMouse
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        // Keep this as the background click target: the Next button and progress
+        // slider are later/higher interactive children, while plain metadata and
+        // cover areas still toggle play/pause.
+        onClicked: {
+            var backend = String(root.player.player || "").trim().toLowerCase()
+            if (backend !== "")
+                Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", backend])
+        }
+    }
     Text {
         x: Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap; y: Config.playerControlTopMargin + Config.playerNextIconY; width: Config.playerNextIconSize + 2; height: Config.playerNextIconSize + 2
         text: Config.playerNextIcon
@@ -241,7 +253,10 @@ Widgets.Frame {
         root.pendingSeekDuration = Number(root.player.duration || 0)
         root.pendingSeekPlayer = root.player.player || ""
         pendingSeekTimeout.restart()
-        progress.value = target
+        // Do not assign to progress.value here: it has a declarative binding
+        // to the live backend position. Assigning it imperatively destroys that
+        // binding, leaving the bar stuck at the last seek target until QS restarts.
+        // pendingSeekPercent already drives the optimistic value through the binding.
 
         Quickshell.execDetached([
             Quickshell.shellDir + "/scripts/player_pausing",
@@ -255,6 +270,9 @@ Widgets.Frame {
     Slider {
         visible: Config.playerShowProgress
         id: progress
+        // Keep the progress slider above the full-widget right-click MouseArea
+        // so its HoverHandler can set PointingHandCursor reliably.
+        z: 1
         anchors.bottom: parent.bottom
         anchors.bottomMargin: Config.playerProgressY
         x: 0

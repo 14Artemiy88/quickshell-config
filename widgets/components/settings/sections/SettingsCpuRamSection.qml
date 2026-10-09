@@ -53,6 +53,23 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Направление заполнения полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsComboBox {
+            id: cpuBarDirectionCombo
+            width: 170
+            height: 30
+            model: ["Слева направо", "Справа налево", "Сверху вниз", "Снизу вверх"]
+            currentIndex: ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"].indexOf(Config.cpuBarDirection) >= 0 ? ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"].indexOf(Config.cpuBarDirection) : 0
+            onItemChosen: index => {
+                Config.cpuBarDirection = ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"][index]
+                settings.save()
+            }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+        width: parent.width; height: 30; spacing: 8
         Text { width: 210; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuBarThicknessField
@@ -226,6 +243,21 @@ Column {
     }
 
     Text { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; text: "График CPU"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
+
+    Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Режим графика CPU"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsComboBox {
+            id: cpuGraphModeCombo
+            width: 130
+            height: 30
+            model: ["Обе половины", "Только верхние", "Только нижние"]
+            currentIndex: ["both", "top", "bottom"].indexOf(Config.cpuGraphMode) >= 0 ? ["both", "top", "bottom"].indexOf(Config.cpuGraphMode) : 0
+            onItemChosen: index => {
+                Config.cpuGraphMode = ["both", "top", "bottom"][index]
+                settings.save()
+            }
+        }
+    }
 
     Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
         Text { width: 210; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
