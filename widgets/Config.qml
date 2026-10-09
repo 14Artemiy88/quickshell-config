@@ -38,6 +38,9 @@ QtObject {
     property int calendarDayFontSize: 14
     property int calendarDayY: 0
     property string calendarDayFont: "JetBrainsMono Nerd Font"
+    property string calendarNoteMarkerStyle: "dot"
+    property string calendarNoteMarkerPosition: "bottomCenter"
+    property color calendarNoteFrameColor: "#00cccc"
     property color volumeTrack: "#99006666"
     property color volumeFill: "#006666"
     property color settingsBackground: "#e6000000"
@@ -52,11 +55,17 @@ QtObject {
     property int cavaFramerate: 30
     property int cavaRowSpacing: 1
     property real cavaBarWidthRatio: 0.45
+    property string cavaMode: "both"
 
     // General behaviour / update intervals
     property bool animationsEnabled: true
     property real animationSpeed: 1.0
     property string animationEasing: "OutCubic"
+    // Per-module appearance/disappearance styles.
+    property string animationCalendarVisibilityStyle: "fade"
+    property string animationMopidyVisibilityStyle: "fade"
+    property string animationTimerVisibilityStyle: "fade"
+    property string animationSettingsVisibilityStyle: "fade"
     property bool animationAppearanceEnabled: true
     property bool animationMovementEnabled: true
     property bool animationSizeEnabled: true
@@ -219,6 +228,11 @@ QtObject {
     property string mopidyAlbumSeparator: "between-line"
     property bool mopidyAlbumBold: true
     property bool mopidyToggleWithPlayerRightClick: true
+    property bool mopidyHideTopPanel: false
+    property int mopidyTopPanelHoverHeight: 6
+    property int mopidyTopPanelOffsetY: 6
+    property string mopidyTopPanelBackground: "#cc000000"
+    property string mopidyTopIconOrder: "stop,shuffle,repeat,volume,refresh,openAdd,clear"
     property string mopidyHoverMode: "background"
     property string mopidyHoverColor: "#1a323232"
     property string mopidyStopIcon: ""
@@ -310,6 +324,7 @@ QtObject {
     property int weatherDescriptionFontSize: 12
     property int weatherTempFontSize: 55
     property int weatherComfortFontSize: 35
+    property bool weatherShowComfort: true
     property int weatherTempColumnWidth: 100
     property int weatherTempX: 10
     property int weatherTempWidth: 90

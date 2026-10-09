@@ -54,6 +54,7 @@ function apply(Config, o) {
             }
         }
         if (o.weatherWindIcon !== undefined) Config.weatherWindIcon = String(o.weatherWindIcon)
+        if (o.weatherShowComfort !== undefined) Config.weatherShowComfort = !!o.weatherShowComfort
 
         Config.weatherDailyCount = Math.max(1, Math.min(4, Config.weatherDailyCount))
 
@@ -61,6 +62,7 @@ function apply(Config, o) {
         if (o.cavaFramerate !== undefined) Config.cavaFramerate = Math.max(1, Math.min(120, Math.round(Number(o.cavaFramerate) || Config.cavaFramerate)))
         if (o.cavaRowSpacing !== undefined) Config.cavaRowSpacing = Math.max(0, Math.min(20, Math.round(Number(o.cavaRowSpacing) || Config.cavaRowSpacing)))
         if (o.cavaBarWidthRatio !== undefined) { var cbwr=Number(o.cavaBarWidthRatio); if (isFinite(cbwr)) Config.cavaBarWidthRatio=Math.max(0.05,Math.min(1,cbwr)) }
+        if (o.cavaMode !== undefined) { var cm = String(o.cavaMode); Config.cavaMode = ["both", "top", "bottom"].indexOf(cm) >= 0 ? cm : "both" }
         if (o.frameBorderWidth !== undefined) {
             var bw = Number(o.frameBorderWidth)
             if (isFinite(bw)) Config.frameBorderWidth = Math.max(0, Math.min(20, Math.round(bw)))

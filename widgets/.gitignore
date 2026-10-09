@@ -1,1 +1,4 @@
 .qmlls.ini
+
+# User-created calendar notes
+calendar-notes.json

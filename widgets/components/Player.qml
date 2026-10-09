@@ -12,6 +12,34 @@ Widgets.Frame {
     property var player: ({})
     property string imagePath: root.player.image || ""
 
+    // QML Image expects a properly encoded URL. Raw local paths can contain
+    // spaces, Cyrillic characters, #, ?, and %, all of which must not be
+    // interpreted as URL syntax when building a file:// source.
+    function imageSourceForPath(value) {
+        var path = String(value || "")
+        if (path === "" || path === Quickshell.shellDir + "/assets/1px.png")
+            return ""
+
+        // Preserve non-file image URLs and Qt resource/image-provider URLs.
+        if (/^(https?:|data:|qrc:|image:)/i.test(path))
+            return path
+
+        var localPath = path
+        if (path.startsWith("file://")) {
+            localPath = path.substring(7)
+            if (localPath.startsWith("localhost/"))
+                localPath = localPath.substring("localhost".length)
+            // Existing file URLs may already contain percent-encoding. Decode
+            // first so they can be normalized once rather than double-encoded.
+            try { localPath = decodeURIComponent(localPath) } catch (e) {}
+        } else if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path)) {
+            return path
+        }
+
+        var encodedPath = encodeURIComponent(localPath).replace(/%2F/gi, "/")
+        return "file://" + encodedPath
+    }
+
     Process {
         id: proc
         command: {
@@ -53,7 +81,7 @@ Widgets.Frame {
         anchors.fill: parent
         cache: true
         asynchronous: true
-        source: root.imagePath !== "" && root.imagePath !== Quickshell.shellDir + "/assets/1px.png" ? "file://" + root.imagePath : ""
+        source: root.imageSourceForPath(root.imagePath)
         fillMode: Image.PreserveAspectFit
         opacity: Config.playerCoverOpacity
     }
@@ -71,7 +99,9 @@ Widgets.Frame {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         width: Config.playerSilenceWidth
-        text: (!root.player.image || root.player.image.endsWith("/assets/1px.png") || root.player.image.endsWith("/album_cover.png"))
+        // A stale/unreadable path used to suppress the fallback text even when
+        // QtQuick could not load the cover. Use the actual Image status too.
+        text: (!root.player.image || root.player.image.endsWith("/assets/1px.png") || root.player.image.endsWith("/album_cover.png") || coverImage.status === Image.Error || coverImage.status === Image.Null)
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
         font.family: Config.playerFont
@@ -159,7 +189,9 @@ Widgets.Frame {
         text: Config.playerNextIcon
         color: Config.text
         font.pixelSize: Config.playerNextIconSize
-        visible: !!root.player.player
+        // Next is supported only by backends with an implemented next action.
+        // Other player backends may be active but do not reliably handle this control.
+        visible: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""]) }

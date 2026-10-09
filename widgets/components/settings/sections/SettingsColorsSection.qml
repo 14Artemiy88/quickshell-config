@@ -37,7 +37,7 @@ Flickable {
             spacing: 7
 
             Text {
-                text: "Цвета"
+                text: "Темы"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(15)

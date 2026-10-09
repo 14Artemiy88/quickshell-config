@@ -5,6 +5,7 @@ import Quickshell.Io
 import "components"
 import "components/settings"
 import "services"
+import "components/primitives" as Primitives
 
 ShellRoot {
     id: shell
@@ -20,6 +21,14 @@ ShellRoot {
     property bool settingsVisible: false
     property bool layoutEditMode: false
     property bool settingsMoveMode: false
+    property bool mopidyTopReveal: false
+
+    Connections {
+        target: mopidyWidget
+        function onTopPanelHideRequested() {
+            shell.mopidyTopReveal = false
+        }
+    }
 
     onLayoutEditModeChanged: {
         if (layoutEditMode) {
@@ -38,16 +47,20 @@ ShellRoot {
     Connections {
         target: Settings
         function onMopidyChanged() {
-            if (!Settings.mopidy)
+            if (!Settings.mopidy) {
                 shell.mopidyVisible = false
+                shell.mopidyTopReveal = false
+            }
         }
     }
 
     Connections {
         target: Config
         function onMopidyToggleWithPlayerRightClickChanged() {
-            if (Config.mopidyToggleWithPlayerRightClick)
+            if (Config.mopidyToggleWithPlayerRightClick) {
                 shell.mopidyVisible = false
+                shell.mopidyTopReveal = false
+            }
         }
     }
 
@@ -415,17 +428,29 @@ ShellRoot {
         }
     }
     WidgetWindow {
+        id: calendarWindow
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "calendar"
         layoutEditMode: shell.layoutEditMode
-        visible: shell.calendarVisible && Settings.calendar
+        visible: Settings.calendar
         offsetX: Settings.geometryForLayout("calendar")[0]
         offsetY: Settings.geometryForLayout("calendar")[1]
         contentWidth: Settings.geometry.calendar[2]
         contentHeight: Settings.geometry.calendar[3]
         bottomLayer: false
-        CalendarWidget { anchors.fill: parent; date: clock.now; open: shell.calendarVisible }
-}
+        // The calendar becomes keyboard-focusable while editing a date note.
+        // Layer-shell windows default to non-focusable, so TextArea.forceActiveFocus()
+        // alone cannot receive key events until this is enabled.
+        keyboardEnabled: calendarNotesWidget.noteOverlayMode === "edit"
+        Primitives.AnimatedVisibility {
+            id: calendarVisibility
+            anchors.fill: parent
+            shown: shell.calendarVisible
+            animationStyle: Config.animationCalendarVisibilityStyle
+            duration: Config.animationDuration(Math.max(Config.animationCalendarSlideDuration, Config.animationCalendarFadeDuration), "appearance")
+            CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }
+        }
+    }
 
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
@@ -453,23 +478,63 @@ ShellRoot {
             anchors.fill: parent
             anchors.margins: 0
             onMopidyToggleRequested: {
-                if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick)
+                if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick) {
+                    if (shell.mopidyVisible)
+                        mopidyWidget.resetToInitialScreen()
                     shell.mopidyVisible = !shell.mopidyVisible
+                }
             }
         }
 }
     WidgetWindow {
+        id: mopidyWindow
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "mopidy"
         layoutEditMode: shell.layoutEditMode
-        visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible)
+        visible: Settings.mopidy
         offsetX: Settings.geometryForLayout("mopidy")[0]
         offsetY: Settings.geometryForLayout("mopidy")[1]
         contentWidth: Settings.geometry.mopidy[2]
         contentHeight: Settings.geometry.mopidy[3]
         keyboardEnabled: true
-        Mopidy { anchors.fill: parent }
-}
+        bottomLayer: !(Config.mopidyHideTopPanel && shell.mopidyTopReveal)
+        Primitives.AnimatedVisibility {
+            id: mopidyVisibility
+            anchors.fill: parent
+            shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible
+            animationStyle: Config.animationMopidyVisibilityStyle
+            duration: Config.animationDuration(280, "appearance")
+            Mopidy {
+                id: mopidyWidget
+                anchors.fill: parent
+                externalTopPanelHover: shell.mopidyTopReveal
+            }
+        }
+    }
+    PanelWindow {
+        id: mopidyTopHoverWindow
+        visible: Settings.mopidy && Config.mopidyHideTopPanel && !shell.mopidyTopReveal
+        screen: mopidyWindow.screen
+        implicitWidth: Settings.geometry.mopidy[2]
+        implicitHeight: Config.mopidyTopPanelHoverHeight
+        color: Config.transparent
+        focusable: false
+        exclusionMode: ExclusionMode.Ignore
+        anchors.left: true
+        anchors.top: true
+        margins.left: Settings.geometryForLayout("mopidy")[0]
+        margins.top: Settings.geometryForLayout("mopidy")[1]
+        WlrLayershell.layer: WlrLayer.Top
+
+        MouseArea {
+            id: mopidyTopRevealMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+            onEntered: shell.mopidyTopReveal = true
+        }
+    }
+
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "cava"
@@ -501,16 +566,22 @@ ShellRoot {
         layoutEditor: layoutEditorWindow
         normalWlrLayer: WlrLayer.Overlay
         editWlrLayer: WlrLayer.Overlay
-        visible: shell.settingsVisible
-        keyboardEnabled: shell.settingsVisible
+        visible: shell.settingsVisible || settingsVisibility.running
+        keyboardEnabled: shell.settingsVisible || settingsVisibility.running
         offsetX: Settings.settingsGeometry[0]
         offsetY: Settings.settingsGeometry[1]
         screenName: Settings.settingsMonitorName
         contentWidth: Settings.settingsGeometry[2]
         contentHeight: Settings.settingsGeometry[3]
         bottomLayer: false
-        SettingsWidget {
-            id: settingsWidget
+        Primitives.AnimatedVisibility {
+            id: settingsVisibility
+            anchors.fill: parent
+            shown: shell.settingsVisible
+            animationStyle: Config.animationSettingsVisibilityStyle
+            duration: Config.animationDuration(300, "appearance")
+            SettingsWidget {
+                id: settingsWidget
             settingsMoveMode: shell.settingsMoveMode
             anchors.fill: parent
             onCloseRequested: {
@@ -541,6 +612,7 @@ ShellRoot {
                         settingsWindow.screenStorageName(moveScreen)
                     )
                 })
+                }
             }
         }
     }

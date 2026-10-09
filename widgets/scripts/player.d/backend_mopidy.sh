@@ -12,6 +12,193 @@ mopidy_rpc() {
         "$MOPIDY_RPC_URL" 2>/dev/null
 }
 
+# Validate artwork before handing its path to QML. A non-empty HTTP error page
+# is not a usable cover and otherwise hides the Player's fallback text.
+mopidy_is_image_file() {
+    local path="$1" mime header
+    [[ -s "$path" ]] || return 1
+    if command -v file >/dev/null 2>&1; then
+        mime=$(file --brief --mime-type -- "$path" 2>/dev/null) || return 1
+        [[ "$mime" == image/* ]] && return 0
+    fi
+    header=$(od -An -tx1 -N12 -- "$path" 2>/dev/null | tr -d ' \n')
+    case "$header" in
+        89504e470d0a1a0a*|ffd8ff*|474946383761*|474946383961*|424d*) return 0 ;;
+        52494646????????57454250*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Keep compatibility with the pre-v551 artwork path when the Mopidy API does
+# not return a usable image. This path was used by the working version before
+# the new URI based lookup was introduced.
+mopidy_cover_fallback() {
+    local legacy="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/album_cover.png"
+    if mopidy_is_image_file "$legacy"; then
+        printf '%s\n' "$legacy"
+    else
+        printf '%s\n' "$DEFAULT_IMG"
+    fi
+}
+
+# Resolve Mopidy Image URIs to a local file for the Player widget.
+# Mopidy's core.library.get_images commonly returns paths like /local/<hash>.jpeg,
+# which must be requested from the same HTTP server as the JSON-RPC endpoint.
+mopidy_image_url() {
+    local image_uri="$1" base
+    case "$image_uri" in
+        http://*|https://*) printf '%s\n' "$image_uri"; return 0 ;;
+        file://*) printf '%s\n' "${image_uri#file://}"; return 0 ;;
+        /*) ;;
+        *) image_uri="/$image_uri" ;;
+    esac
+
+    base="${MOPIDY_RPC_URL%/mopidy/rpc}"
+    if [[ "$base" == "$MOPIDY_RPC_URL" ]]; then
+        base="${MOPIDY_RPC_URL%%/mopidy/*}"
+    fi
+    printf '%s%s\n' "$base" "$image_uri"
+}
+
+# Convert local Mopidy file URIs to a filesystem path so local Mopidy tracks
+# use the exact same cover search as DeaDBeeF. Remote/library URIs return empty.
+mopidy_local_track_path() {
+    local uri="$1"
+    command -v python3 >/dev/null 2>&1 || return 0
+    python3 - "$uri" <<'PYURI'
+import sys
+from urllib.parse import urlsplit, unquote
+uri = sys.argv[1]
+try:
+    parsed = urlsplit(uri)
+    if parsed.scheme == "file" and parsed.netloc in ("", "localhost"):
+        print(unquote(parsed.path))
+    elif not parsed.scheme and uri.startswith("/"):
+        print(unquote(uri))
+except Exception:
+    pass
+PYURI
+}
+
+mopidy_cover_for_track() {
+    local track_uri="$1" album_uri="${2:-}" cache_dir key marker stamp art_uri now
+    local image_url url_path ext output_path tmp params images_json failed_stamp failed_at
+    local local_track_path local_cover
+    local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+    [[ -n "$track_uri" ]] || { mopidy_cover_fallback; return 0; }
+
+    # Use the shared adjacent-file lookup first for local tracks. This keeps
+    # DeaDBeeF and local-file Mopidy consistent, and avoids the API/cache path
+    # selecting artwork belonging to a different album.
+    local_track_path=$(mopidy_local_track_path "$track_uri")
+    if [[ -n "$local_track_path" && -f "$local_track_path" ]]; then
+        local_cover=$(get_cover_for_file "$local_track_path")
+        if [[ -n "$local_cover" && "$local_cover" != "$DEFAULT_IMG" && -s "$local_cover" ]]; then
+            printf '%s\n' "$local_cover"
+            return 0
+        fi
+    fi
+
+    cache_dir="$runtime_dir/quickshell-mopidy-covers"
+    mkdir -p "$cache_dir" 2>/dev/null || { mopidy_cover_fallback; return 0; }
+    key=$(printf '%s' "$track_uri" | sha256sum | awk '{print $1}')
+    marker="$cache_dir/$key.uri"
+    stamp="$cache_dir/$key.checked"
+
+    # Cache image URI per track so Player's frequent metadata polling doesn't
+    # repeatedly call get_images. Negative results are retried after 30 seconds.
+    if [[ -f "$marker" ]]; then
+        IFS= read -r art_uri < "$marker" || true
+        if [[ -z "$art_uri" ]]; then
+            now=$(date +%s)
+            local checked=0
+            [[ -f "$stamp" ]] && read -r checked < "$stamp"
+            if [[ "$checked" =~ ^[0-9]+$ ]] && (( now - checked < 30 )); then
+                mopidy_cover_fallback
+                return 0
+            fi
+        fi
+    fi
+
+    if [[ ! -f "$marker" || -z "$art_uri" ]]; then
+        params=$(jq -cn --arg track "$track_uri" --arg album "$album_uri" \
+            '{uris: ([$track, $album] | map(select(length > 0)) | unique)}')
+        images_json=$(mopidy_rpc 'core.library.get_images' "$params")
+        art_uri=$(jq -r --arg track "$track_uri" --arg album "$album_uri" '
+            def best($uri): ((.result[$uri] // []) | sort_by(((.width // 0) * (.height // 0))) | last | .uri // "");
+            (best($track)) as $track_image |
+            if $track_image != "" then $track_image else best($album) end
+        ' <<< "$images_json" 2>/dev/null)
+        [[ "$art_uri" == "null" ]] && art_uri=""
+        printf '%s\n' "$art_uri" > "$marker"
+        date +%s > "$stamp"
+    fi
+
+    if [[ -z "$art_uri" ]]; then
+        mopidy_cover_fallback
+        return 0
+    fi
+
+    # Some backends return a local file URI directly; use it without copying.
+    case "$art_uri" in
+        file://*)
+            output_path="${art_uri#file://}"
+            if mopidy_is_image_file "$output_path"; then
+                printf '%s\n' "$output_path"
+                return 0
+            fi
+            ;;
+        /*)
+            if [[ "$art_uri" != /local/* ]] && mopidy_is_image_file "$art_uri"; then
+                printf '%s\n' "$art_uri"
+                return 0
+            fi
+            ;;
+    esac
+
+    image_url=$(mopidy_image_url "$art_uri")
+    url_path="${art_uri%%\?*}"
+    url_path="${url_path%%\#*}"
+    ext="${url_path##*.}"
+    ext="${ext,,}"
+    case "$ext" in
+        jpg|jpeg|png|webp|gif|bmp) ;;
+        *) ext="jpg" ;;
+    esac
+    output_path="$cache_dir/$key.$ext"
+    failed_stamp="$cache_dir/$key.download-failed"
+    # Remove corrupt cached responses created by older attempts.
+    if [[ -e "$output_path" ]] && ! mopidy_is_image_file "$output_path"; then
+        rm -f "$output_path"
+    fi
+    if [[ ! -s "$output_path" ]]; then
+        now=$(date +%s)
+        failed_at=0
+        [[ -f "$failed_stamp" ]] && read -r failed_at < "$failed_stamp"
+        if [[ "$failed_at" =~ ^[0-9]+$ ]] && (( now - failed_at < 30 )); then
+            mopidy_cover_fallback
+            return 0
+        fi
+        tmp="$output_path.part.$$"
+        if curl -fsSL --connect-timeout 1 --max-time 4 "$image_url" -o "$tmp" 2>/dev/null && mopidy_is_image_file "$tmp"; then
+            mv -f "$tmp" "$output_path"
+            rm -f "$failed_stamp"
+        else
+            rm -f "$tmp"
+            date +%s > "$failed_stamp"
+            mopidy_cover_fallback
+            return 0
+        fi
+    fi
+    if mopidy_is_image_file "$output_path"; then
+        printf '%s\n' "$output_path"
+    else
+        rm -f "$output_path"
+        mopidy_cover_fallback
+    fi
+}
+
 mopidy_pause_toggle() {
     local state
     state=$(mopidy_rpc 'core.playback.get_state' | jq -r '.result // empty')
@@ -49,6 +236,7 @@ get_mopidy_player_metadata() {
     fi
 
     local rpc_data current trackTime current_album current_album_date current_artist current_length current_title
+    local current_track_uri current_album_uri cover_image
     local format_album time_left cls state
 
     rpc_data=$(curl -sS --connect-timeout 1 --max-time 2 \
@@ -72,6 +260,8 @@ get_mopidy_player_metadata() {
     current_artist=$(jq -r '.track.artists[0].name // empty' <<< "$current")
     current_length=$(jq -r '.track.length // 0' <<< "$current")
     current_title=$(jq -r '.track.name // empty' <<< "$current")
+    current_track_uri=$(jq -r '.track.uri // empty' <<< "$current")
+    current_album_uri=$(jq -r '.track.album.uri // empty' <<< "$current")
 
     format_album="$current_album_date"
     [[ -n "$current_album" ]] && format_album+=" - $current_album"
@@ -87,8 +277,8 @@ get_mopidy_player_metadata() {
     local status_icon="${icons[paused]}"
     [[ "$state" == "playing" ]] && status_icon="${icons[playing]}"
 
-    local cover_image="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/album_cover.png"
-    [[ -f "$cover_image" ]] || cover_image="$DEFAULT_IMG"
+    cover_image=$(mopidy_cover_for_track "$current_track_uri" "$current_album_uri")
+    [[ -s "$cover_image" ]] || cover_image="$DEFAULT_IMG"
 
     get_json \
         --first_line "$current_title" \

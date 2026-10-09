@@ -11,6 +11,201 @@ Column {
     width: parent ? parent.width : 0
     visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 2
 
+    function normalizedTopIconOrder() {
+        var allowed = ["stop", "shuffle", "repeat", "volume", "refresh", "openAdd", "clear"]
+        var raw = String(Config.mopidyTopIconOrder || "").split(",")
+        var out = []
+        for (var i = 0; i < raw.length; ++i) {
+            var id = String(raw[i] || "")
+            if (allowed.indexOf(id) >= 0 && out.indexOf(id) < 0) out.push(id)
+        }
+        for (var j = 0; j < allowed.length; ++j)
+            if (out.indexOf(allowed[j]) < 0) out.push(allowed[j])
+        return out
+    }
+
+    function topIconLabel(id) {
+        switch (id) {
+        case "stop": return "Стоп"
+        case "shuffle": return "Перемешать"
+        case "repeat": return "Повтор"
+        case "volume": return "Громкость"
+        case "refresh": return "Обновить"
+        case "openAdd": return "Открыть добавление"
+        case "clear": return "Очистить"
+        }
+        return id
+    }
+
+    Row {
+        width: parent.width
+        height: 30
+        spacing: 8
+        Text {
+            width: 220
+            text: "Скрывать верхнюю панель иконок"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsCheckBox {
+            id: hideTopPanelCheckBox
+            width: 58
+            height: 30
+            indicatorOnly: true
+            checked: Config.mopidyHideTopPanel
+            onClicked: { Config.mopidyHideTopPanel = checked; settings.save() }
+            Connections { target: Config; function onMopidyHideTopPanelChanged() { hideTopPanelCheckBox.checked = Config.mopidyHideTopPanel } }
+        }
+    }
+
+    Row {
+        width: parent.width
+        height: 30
+        spacing: 8
+        Text {
+            width: 220
+            text: "Высота области наведения"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsNumberField {
+            width: 88; height: 30
+            value: Config.mopidyTopPanelHoverHeight
+            minimum: 4; maximum: 24; step: 1; wheelStep: 1; decimals: 0
+            compact: true; fieldWidth: 88; fieldFontSize: 11
+            inputMethodHints: Qt.ImhDigitsOnly
+            targetObject: Config; targetProperty: "mopidyTopPanelHoverHeight"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        width: parent.width
+        height: 30
+        spacing: 8
+        Text {
+            width: 220
+            text: "Отступ сверху (Y)"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+        SettingsNumberField {
+            width: 88; height: 30
+            value: Config.mopidyTopPanelOffsetY
+            minimum: -24; maximum: 24; step: 1; wheelStep: 1; decimals: 0
+            compact: true; fieldWidth: 88; fieldFontSize: 11
+            inputMethodHints: Qt.ImhNone
+            targetObject: Config; targetProperty: "mopidyTopPanelOffsetY"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Text {
+        text: "Порядок верхней панели"
+        color: Config.settingsSubheading
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+        topPadding: 4
+    }
+
+    Text {
+        text: "Порядок применяется слева направо. Стрелки меняют только положение иконок, их настройки и действия не меняются."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(9)
+        wrapMode: Text.WordWrap
+        width: parent.width
+    }
+
+    Column {
+        id: orderColumn
+        width: parent.width
+        spacing: 4
+        property var orderIds: root.normalizedTopIconOrder()
+
+        function saveOrder(nextOrder) {
+            orderIds = nextOrder.slice(0)
+            Config.mopidyTopIconOrder = orderIds.join(",")
+            root.settings.save()
+        }
+
+        function moveItem(index, delta) {
+            var next = orderIds.slice(0)
+            var target = index + delta
+            if (target < 0 || target >= next.length) return
+            var item = next[index]
+            next.splice(index, 1)
+            next.splice(target, 0, item)
+            saveOrder(next)
+        }
+
+        Repeater {
+            model: parent.orderIds
+            delegate: Row {
+                width: parent.width
+                height: 28
+                spacing: 5
+
+                Text {
+                    width: 150
+                    height: 28
+                    text: root.topIconLabel(modelData)
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                SettingsButton {
+                    width: 32
+                    height: 28
+                    text: "↑"
+                    fontSize: 11
+                    enabled: index > 0
+                    fillOnHover: true
+                    backgroundColor: Config.settingsBackground
+                    hoverBackgroundColor: Config.baseColor
+                    textColor: Config.text
+                    hoverTextColor: Config.text
+                    onClicked: orderColumn.moveItem(index, -1)
+                }
+
+                SettingsButton {
+                    width: 32
+                    height: 28
+                    text: "↓"
+                    fontSize: 11
+                    enabled: index < orderColumn.orderIds.length - 1
+                    fillOnHover: true
+                    backgroundColor: Config.settingsBackground
+                    hoverBackgroundColor: Config.baseColor
+                    textColor: Config.text
+                    hoverTextColor: Config.text
+                    onClicked: orderColumn.moveItem(index, 1)
+                }
+            }
+        }
+
+        SettingsButton {
+            width: 125
+            height: 28
+            text: "По умолчанию"
+            fontSize: 10
+            fillOnHover: true
+            backgroundColor: Config.settingsBackground
+            hoverBackgroundColor: Config.baseColor
+            textColor: Config.text
+            hoverTextColor: Config.text
+            onClicked: orderColumn.saveOrder(["stop", "shuffle", "repeat", "volume", "refresh", "openAdd", "clear"])
+        }
+    }
+
     SettingsColorField {
         width: parent.width
         height: 30

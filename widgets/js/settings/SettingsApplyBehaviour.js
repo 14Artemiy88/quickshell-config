@@ -8,6 +8,20 @@ function apply(Config, o) {
             if (isFinite(as)) Config.animationSpeed = Math.max(0.25, Math.min(4.0, as))
         }
         if (o.animationEasing !== undefined) Config.animationEasing = String(o.animationEasing)
+        var allowedVisibilityStyles = ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+        var legacyAnimationStyle = o.animationVisibilityStyle !== undefined ? String(o.animationVisibilityStyle) : ""
+        if (allowedVisibilityStyles.indexOf(legacyAnimationStyle) < 0) legacyAnimationStyle = ""
+        var animationStyleKeys = [
+            "animationCalendarVisibilityStyle",
+            "animationMopidyVisibilityStyle",
+            "animationTimerVisibilityStyle",
+            "animationSettingsVisibilityStyle"
+        ]
+        for (var ask = 0; ask < animationStyleKeys.length; ++ask) {
+            var styleKey = animationStyleKeys[ask]
+            var styleValue = o[styleKey] !== undefined ? String(o[styleKey]) : legacyAnimationStyle
+            if (allowedVisibilityStyles.indexOf(styleValue) >= 0) Config[styleKey] = styleValue
+        }
         if (o.animationAppearanceEnabled !== undefined) Config.animationAppearanceEnabled = !!o.animationAppearanceEnabled
         if (o.animationMovementEnabled !== undefined) Config.animationMovementEnabled = !!o.animationMovementEnabled
         if (o.animationSizeEnabled !== undefined) Config.animationSizeEnabled = !!o.animationSizeEnabled

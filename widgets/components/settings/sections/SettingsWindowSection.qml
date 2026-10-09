@@ -481,4 +481,31 @@ Column {
                         }
                     }
 
+Text {
+    visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+    text: "Анимация появления/исчезновения"
+    color: Config.accent
+    font.family: Config.settingsFont
+    font.pixelSize: Config.settingsUiSize(13)
+}
+
+Row {
+    visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+    width: parent.width
+    height: 30
+    spacing: 8
+    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    SettingsComboBox {
+        id: settingsWindowAnimationVisibilityBox
+        width: 180; height: 30
+        property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+        model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+        currentIndex: Math.max(0, values.indexOf(Config.animationSettingsVisibilityStyle))
+        onItemChosen: function(index) { Config.animationSettingsVisibilityStyle = values[index]; settings.save() }
+        Connections { target: Config; function onAnimationSettingsVisibilityStyleChanged() { settingsWindowAnimationVisibilityBox.currentIndex = Math.max(0, settingsWindowAnimationVisibilityBox.values.indexOf(Config.animationSettingsVisibilityStyle)) } }
+        background: Rectangle { color: Config.settingsBackground; border.color: (settingsWindowAnimationVisibilityBox.activeFocus || settingsWindowAnimationVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+        contentItem: Text { text: settingsWindowAnimationVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+    }
+}
+
 }

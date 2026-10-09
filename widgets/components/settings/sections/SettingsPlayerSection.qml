@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: root
@@ -322,21 +323,29 @@ Column {
 
                 Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 18 - 56); height: 30 }
 
-                SettingsButton {
+                MoveArrowButton {
                     width: 26
                     height: 26
-                    text: "↑"
-                    enabled: index > 0
-                    tooltip: "Поднять выше"
+                    iconText: "↑"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index > 0
+                    toolTipText: "Поднять выше"
                     onClicked: root.movePlayerPriority(index, -1)
                 }
 
-                SettingsButton {
+                MoveArrowButton {
                     width: 26
                     height: 26
-                    text: "↓"
-                    enabled: index < playerPriorityModel.count - 1
-                    tooltip: "Опустить ниже"
+                    iconText: "↓"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index < playerPriorityModel.count - 1
+                    toolTipText: "Опустить ниже"
                     onClicked: root.movePlayerPriority(index, 1)
                 }
             }

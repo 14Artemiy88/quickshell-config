@@ -3,12 +3,16 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import "." as Widgets
+import "./primitives" as Primitives
 import ".."
 
 Widgets.Frame {
     id: root
     moduleName: "mopidy"
     moduleBackgroundColor: Config.mopidyBackground
+
+    property bool externalTopPanelHover: false
+    signal topPanelHideRequested()
 
     property bool queueAvailable: false
     property int currentTlid: -1
@@ -199,6 +203,19 @@ Widgets.Frame {
         addNoticeTimer.restart()
     }
 
+    function normalizedTopIconOrder() {
+        var allowed = ["stop", "shuffle", "repeat", "volume", "refresh", "openAdd", "clear"]
+        var raw = String(Config.mopidyTopIconOrder || "").split(",")
+        var out = []
+        for (var i = 0; i < raw.length; ++i) {
+            var id = String(raw[i] || "")
+            if (allowed.indexOf(id) >= 0 && out.indexOf(id) < 0) out.push(id)
+        }
+        for (var j = 0; j < allowed.length; ++j)
+            if (out.indexOf(allowed[j]) < 0) out.push(allowed[j])
+        return out
+    }
+
     readonly property var queueItems: {
         var source = root.tracks || []
         var items = []
@@ -244,18 +261,7 @@ Widgets.Frame {
 
         for (var si = 0; si < segments.length; ++si) {
             var segment = segments[si]
-            var remaining = segment.duration
-            if (root.currentQueueIndex >= segment.start && root.currentQueueIndex <= segment.end) {
-                remaining = 0
-                for (var ri = root.currentQueueIndex; ri <= segment.end; ++ri) {
-                    var rd = Number(source[ri] && source[ri].duration)
-                    if (!isFinite(rd) || rd < 0) rd = 0
-                    if (ri === root.currentQueueIndex)
-                        rd = Math.max(0, rd - Math.max(0, Number(root.currentPositionMs) || 0))
-                    remaining += rd
-                }
-            }
-            segment.remainingDuration = Math.max(0, remaining)
+            segment.remainingDuration = segment.duration
         }
 
         for (var j = 0; j < source.length; ++j) {
@@ -267,7 +273,8 @@ Widgets.Frame {
                     album: segmentData.album,
                     albumYear: segmentData.albumYear,
                     duration: segmentData.duration,
-                    remainingDuration: segmentData.remainingDuration,
+                    startIndex: segmentData.start,
+                    endIndex: segmentData.end,
                     tlids: segmentData.tlids.slice(0)
                 })
             }
@@ -480,6 +487,27 @@ Widgets.Frame {
         root.loadPlaylists()
     }
 
+    function resetToInitialScreen() {
+        root.searchOpen = false
+        root.addingToPlaylist = false
+        root.searchQuery = ""
+        root.searchResults = []
+        root.playlistDialogVisible = false
+        root.playlistDialogMode = "create"
+        root.playlistDialogInput = ""
+        root.playlistDialogError = ""
+        root.playlistManageUri = ""
+        root.playlistManageTitle = ""
+        root.playlistItems = []
+        root.playlistUri = ""
+        root.playlistTitle = ""
+        root.libraryMode = "browse"
+        root.browseStack = []
+        root.browseUri = ""
+        root.browseTitle = "Музыка"
+        root.openBrowseRoot()
+    }
+
     function switchPlaylist(uri, label) {
         if (!uri || playlistSwitchProcess.running) return
         root.playlistSwitchNotice = String(label || "плейлист")
@@ -637,9 +665,22 @@ Widgets.Frame {
     function albumDisplayDuration(itemData) {
         var duration = Number(itemData && itemData.duration)
         if (!isFinite(duration) || duration < 0) duration = 0
-        if (!Config.mopidyShowAlbumRemaining || !itemData || itemData.remainingDuration === undefined)
+        if (!Config.mopidyShowAlbumRemaining || !itemData || itemData.startIndex === undefined || itemData.endIndex === undefined)
             return duration
-        return Math.max(0, Number(itemData.remainingDuration) || 0)
+
+        var current = root.currentQueueIndex
+        if (current < itemData.startIndex || current > itemData.endIndex)
+            return duration
+
+        var remaining = 0
+        for (var i = current; i <= itemData.endIndex; ++i) {
+            var rd = Number(root.tracks[i] && root.tracks[i].duration)
+            if (!isFinite(rd) || rd < 0) rd = 0
+            if (i === current)
+                rd = Math.max(0, rd - Math.max(0, Number(root.currentPositionMs) || 0))
+            remaining += rd
+        }
+        return Math.max(0, remaining)
     }
 
     function formatDuration(value) {
@@ -1154,168 +1195,252 @@ Widgets.Frame {
         }
     }
 
+    MouseArea {
+        id: rootPointerArea
+        anchors.fill: parent
+        z: -100
+        acceptedButtons: Qt.NoButton
+        hoverEnabled: true
+
+        onPositionChanged: {
+            if (!Config.mopidyHideTopPanel || !root.externalTopPanelHover) return
+            if (mouseY > 24)
+                root.topPanelHideRequested()
+        }
+    }
+
     Column {
         anchors.fill: parent
         anchors.margins: 8
         spacing: 6
 
-        Row {
+        Item {
+            id: topPanelWrapper
             width: parent.width
-            height: 24
-            spacing: 6
+            // Keep the layout height at the hidden hotspot height so the
+            // expanding icon row overlays the content instead of pushing it.
+            height: Config.mopidyHideTopPanel ? Config.mopidyTopPanelOffsetY : (24 + Config.mopidyTopPanelOffsetY)
+            z: 100
+            clip: false
 
-            Item {
-                readonly property bool hasQueue: root.queueAvailable && root.tracks.length > 0
-                readonly property int compactIconCount: (Config.mopidyShowStopIcon && hasQueue ? 1 : 0) + (Config.mopidyShowShuffleIcon && hasQueue ? 1 : 0) + (Config.mopidyShowRepeatIcon && hasQueue ? 1 : 0) + (Config.mopidyShowRefreshIcon && hasQueue ? 1 : 0) + (Config.mopidyShowClearIcon && hasQueue ? 1 : 0) + (Config.mopidyShowOpenAddIcon && root.queueAvailable ? 1 : 0)
-                readonly property bool totalDurationVisible: Config.mopidyShowQueueTotalDuration && hasQueue
-                readonly property int visibleIconCount: compactIconCount + (Config.mopidyShowVolumeIcon && hasQueue ? 1 : 0) + (totalDurationVisible ? 1 : 0)
-                readonly property int volumeWidth: (Config.mopidyShowVolumeIcon && hasQueue) ? (Config.mopidyShowVolumePercent ? 58 : 22) : 0
-                readonly property int totalDurationWidth: totalDurationVisible ? 60 : 0
-                width: Math.max(0, parent.width - (compactIconCount * 22 + volumeWidth + totalDurationWidth + Math.max(0, visibleIconCount - 1) * 6))
-                height: 1
+            readonly property bool topPanelHoverOpen: root.externalTopPanelHover
+            readonly property bool topPanelRevealed: !Config.mopidyHideTopPanel || root.externalTopPanelHover
+
+            Rectangle {
+                id: topPanelBackground
+                x: 0
+                y: 0
+                width: parent.width
+                height: 24
+                visible: Config.mopidyHideTopPanel && topPanelWrapper.topPanelRevealed
+                color: Config.mopidyTopPanelBackground
+                z: 0
             }
 
             Item {
-                visible: Config.mopidyShowQueueTotalDuration && root.queueAvailable && root.tracks.length > 0
-                width: 60
-                height: parent.height
-                Text {
-                    width: parent.width
-                    height: parent.height
-                    x: Config.mopidyQueueDurationX
-                    y: Config.mopidyQueueDurationY
-                    text: Config.mopidyQueueDurationMode === "remaining" ? root.formatDuration(root.queueRemainingDuration) : root.formatDuration(root.queueTotalDuration)
-                    color: Config.mopidyQueueDurationColor
-                    font.family: Config.mopidyQueueDurationFont
-                    font.pixelSize: Config.mopidyQueueDurationFontSize
-                    horizontalAlignment: Text.AlignRight
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideNone
-                }
-            }
+                id: topPanelRow
+                width: parent.width
+                height: 24
+                visible: topPanelWrapper.topPanelRevealed
 
-            Widgets.MopidyHoverIcon {
-                width: 22; height: parent.height
-                iconText: Config.mopidyStopIcon; iconSize: Config.mopidyStopIconSize; iconX: Config.mopidyStopIconX; iconY: Config.mopidyStopIconY
-                visible: Config.mopidyShowStopIcon && root.queueAvailable && root.tracks.length > 0
-                baseColor: root.queueAvailable && !root.queueBusy ? Config.mopidyControlIconColor : Config.textDisabled
-                enabledState: root.queueAvailable && !root.queueBusy
-                onClicked: root.stopPlayback()
-            }
+                readonly property var normalizedTopIconOrder: root.normalizedTopIconOrder()
 
-            Widgets.MopidyHoverIcon {
-                width: 22; height: parent.height
-                iconText: Config.mopidyShuffleIcon; iconSize: Config.mopidyShuffleIconSize; iconX: Config.mopidyShuffleIconX; iconY: Config.mopidyShuffleIconY
-                visible: Config.mopidyShowShuffleIcon && root.queueAvailable && root.tracks.length > 0
-                baseColor: root.mopidyRandom && root.playbackPrefsAvailable ? Config.accent : (root.playbackPrefsAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
-                enabledState: root.playbackPrefsAvailable
-                onClicked: root.toggleRandom()
-            }
-
-            Widgets.MopidyHoverIcon {
-                id: repeatIconButton
-                width: 22; height: parent.height
-                iconText: Config.mopidyRepeatIcon; iconSize: Config.mopidyRepeatIconSize; iconX: Config.mopidyRepeatIconX; iconY: Config.mopidyRepeatIconY
-                visible: Config.mopidyShowRepeatIcon && root.queueAvailable && root.tracks.length > 0
-                baseColor: root.mopidyRepeat && root.playbackPrefsAvailable ? Config.accent : (root.playbackPrefsAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
-                enabledState: root.playbackPrefsAvailable
-                toolTipText: root.mopidySingle ? "Повтор одного" : (root.mopidyRepeat ? "Повтор всех" : "Повтор выключен")
-                onClicked: root.cycleRepeat()
-            }
-
-            Item {
-                id: volumeControl
-                width: Config.mopidyShowVolumePercent ? 58 : 22
-                height: parent.height
-                visible: Config.mopidyShowVolumeIcon && root.queueAvailable && root.tracks.length > 0
-
-                Rectangle {
-                    anchors.fill: parent
-                    z: 0
-                    radius: 4
-                    color: volumeControlMouse.containsMouse && Config.mopidyHoverMode === "background" ? Config.mopidyHoverColor : Config.transparent
-                    border.width: volumeControlMouse.containsMouse && Config.mopidyHoverMode === "frame" ? 1 : 0
-                    border.color: Config.mopidyHoverColor
+                function iconIsVisible(id) {
+                    if (id === "stop") return Config.mopidyShowStopIcon && root.queueAvailable && root.tracks.length > 0
+                    if (id === "shuffle") return Config.mopidyShowShuffleIcon && root.queueAvailable && root.tracks.length > 0
+                    if (id === "repeat") return Config.mopidyShowRepeatIcon && root.queueAvailable && root.tracks.length > 0
+                    if (id === "volume") return Config.mopidyShowVolumeIcon && root.queueAvailable && root.tracks.length > 0
+                    if (id === "refresh") return Config.mopidyShowRefreshIcon && root.queueAvailable && root.tracks.length > 0
+                    if (id === "openAdd") return Config.mopidyShowOpenAddIcon && root.queueAvailable
+                    if (id === "clear") return Config.mopidyShowClearIcon && root.queueAvailable && root.tracks.length > 0
+                    return false
                 }
 
-                Text {
-                    id: volumeIconText
-                    z: 1
-                    width: 22
-                    height: parent.height
-                    text: root.mopidyMuted ? Config.mopidyMutedIcon : Config.mopidyVolumeIcon
-                    color: root.hoverTextColor(volumeControlMouse.containsMouse, root.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
-                    font.family: Config.font
-                    font.pixelSize: root.mopidyMuted ? Config.mopidyMutedIconSize : Config.mopidyVolumeIconSize
-                    y: root.mopidyMuted ? Config.mopidyMutedIconY : Config.mopidyVolumeIconY
-                    transform: Translate { x: root.mopidyMuted ? Config.mopidyMutedIconX : Config.mopidyVolumeIconX }
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                function iconWidthFor(id) {
+                    return id === "volume" ? (Config.mopidyShowVolumePercent ? 58 : 22) : 22
                 }
 
-                Text {
-                    visible: Config.mopidyShowVolumePercent
-                    anchors.left: volumeIconText.right
-                    anchors.leftMargin: 2
-                    width: 32
-                    height: parent.height
-                    text: root.mopidyVolume >= 0 ? String(root.mopidyVolume) + "%" : "--"
-                    color: root.hoverTextColor(volumeControlMouse.containsMouse, root.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
-                    font.family: Config.mopidyDurationFont
-                    font.pixelSize: Config.mopidyDurationFontSize
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                MouseArea {
-                    id: volumeControlMouse
-                    anchors.fill: parent
-                    enabled: root.mixerAvailable && !root.queueBusy
-                    cursorShape: Qt.PointingHandCursor
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    hoverEnabled: true
-                    onClicked: function(mouse) {
-                        if (mouse.button === Qt.LeftButton)
-                            root.toggleMixerMute()
+                function totalIconWidth() {
+                    var width = 0
+                    var count = 0
+                    for (var i = 0; i < normalizedTopIconOrder.length; ++i) {
+                        var id = normalizedTopIconOrder[i]
+                        if (!iconIsVisible(id)) continue
+                        width += iconWidthFor(id)
+                        count += 1
                     }
-                    onWheel: function(wheel) {
-                        var step = Math.max(1, Number(Config.mopidyVolumeStep))
-                        root.adjustMixerVolume(wheel.angleDelta.y > 0 ? step : -step)
+                    return width + Math.max(0, count - 1) * 6
+                }
+
+                function iconXFor(id) {
+                    var x = parent.width - totalIconWidth()
+                    var gapCount = 0
+                    for (var i = 0; i < normalizedTopIconOrder.length; ++i) {
+                        var current = normalizedTopIconOrder[i]
+                        if (!iconIsVisible(current)) continue
+                        if (current === id) return x + gapCount * 6
+                        x += iconWidthFor(current)
+                        gapCount += 1
+                    }
+                    return x
+                }
+
+                readonly property real topIconStartX: parent.width - totalIconWidth()
+
+                Item {
+                    visible: Config.mopidyShowQueueTotalDuration && root.queueAvailable && root.tracks.length > 0
+                    width: 60
+                    height: parent.height
+                    x: topPanelRow.topIconStartX - (topPanelRow.totalIconWidth() > 0 ? 66 : 60)
+
+                    Text {
+                        width: parent.width
+                        height: parent.height
+                        x: Config.mopidyQueueDurationX
+                        y: Config.mopidyQueueDurationY
+                        text: Config.mopidyQueueDurationMode === "remaining" ? root.formatDuration(root.queueRemainingDuration) : root.formatDuration(root.queueTotalDuration)
+                        color: Config.mopidyQueueDurationColor
+                        font.family: Config.mopidyQueueDurationFont
+                        font.pixelSize: Config.mopidyQueueDurationFontSize
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideNone
                     }
                 }
-            }
 
-            Widgets.MopidyHoverIcon {
-                width: 22; height: parent.height
-                iconText: Config.mopidyRefreshIcon; iconSize: Config.mopidyRefreshIconSize; iconX: Config.mopidyRefreshIconX; iconY: Config.mopidyRefreshIconY
-                visible: Config.mopidyShowRefreshIcon && root.queueAvailable && root.tracks.length > 0
-                baseColor: Config.mopidyControlIconColor
-                enabledState: root.queueAvailable && !root.queueBusy
-                onClicked: root.refreshQueue()
-            }
+                Widgets.MopidyHoverIcon {
+                    x: topPanelRow.iconXFor("stop")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyStopIcon; iconSize: Config.mopidyStopIconSize; iconX: Config.mopidyStopIconX; iconY: Config.mopidyStopIconY
+                    visible: Config.mopidyShowStopIcon && root.queueAvailable && root.tracks.length > 0
+                    baseColor: root.queueAvailable && !root.queueBusy ? Config.mopidyControlIconColor : Config.textDisabled
+                    enabledState: root.queueAvailable && !root.queueBusy
+                    onClicked: root.stopPlayback()
+                }
 
-            Widgets.MopidyHoverIcon {
-                width: 22; height: parent.height
-                iconText: Config.mopidyOpenAddIcon; iconSize: Config.mopidyOpenAddIconSize; iconX: Config.mopidyOpenAddIconX; iconY: Config.mopidyOpenAddIconY
-                visible: Config.mopidyShowOpenAddIcon && root.queueAvailable
-                baseColor: root.searchOpen ? Config.accent : Config.mopidyControlIconColor
-                enabledState: root.queueAvailable && !root.queueBusy
-                onClicked: root.toggleSearch()
-            }
+                Widgets.MopidyHoverIcon {
+                    x: topPanelRow.iconXFor("shuffle")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyShuffleIcon; iconSize: Config.mopidyShuffleIconSize; iconX: Config.mopidyShuffleIconX; iconY: Config.mopidyShuffleIconY
+                    visible: Config.mopidyShowShuffleIcon && root.queueAvailable && root.tracks.length > 0
+                    baseColor: root.mopidyRandom && root.playbackPrefsAvailable ? Config.accent : (root.playbackPrefsAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
+                    enabledState: root.playbackPrefsAvailable
+                    onClicked: root.toggleRandom()
+                }
 
-            Widgets.MopidyHoverIcon {
-                width: 22; height: parent.height
-                iconText: Config.mopidyClearIcon; iconSize: Config.mopidyClearIconSize; iconX: Config.mopidyClearIconX; iconY: Config.mopidyClearIconY
-                visible: Config.mopidyShowClearIcon && root.queueAvailable && root.tracks.length > 0
-                baseColor: root.tracks.length && !root.queueBusy ? Config.mopidyControlIconColor : Config.textDisabled
-                enabledState: root.tracks.length > 0 && !root.queueBusy
-                onClicked: root.clearQueue()
+                Widgets.MopidyHoverIcon {
+                    id: repeatIconButton
+                    x: topPanelRow.iconXFor("repeat")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyRepeatIcon; iconSize: Config.mopidyRepeatIconSize; iconX: Config.mopidyRepeatIconX; iconY: Config.mopidyRepeatIconY
+                    visible: Config.mopidyShowRepeatIcon && root.queueAvailable && root.tracks.length > 0
+                    baseColor: root.mopidyRepeat && root.playbackPrefsAvailable ? Config.accent : (root.playbackPrefsAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
+                    enabledState: root.playbackPrefsAvailable
+                    toolTipText: root.mopidySingle ? "Повтор одного" : (root.mopidyRepeat ? "Повтор всех" : "Повтор выключен")
+                    onClicked: root.cycleRepeat()
+                }
+
+                Item {
+                    id: volumeControl
+                    x: topPanelRow.iconXFor("volume")
+                    width: Config.mopidyShowVolumePercent ? 58 : 22
+                    height: parent.height
+                    visible: Config.mopidyShowVolumeIcon && root.queueAvailable && root.tracks.length > 0
+
+                    Rectangle {
+                        anchors.fill: parent
+                        z: 0
+                        radius: 4
+                        color: volumeControlMouse.containsMouse && Config.mopidyHoverMode === "background" ? Config.mopidyHoverColor : Config.transparent
+                        border.width: volumeControlMouse.containsMouse && Config.mopidyHoverMode === "frame" ? 1 : 0
+                        border.color: Config.mopidyHoverColor
+                    }
+
+                    Text {
+                        id: volumeIconText
+                        z: 1
+                        width: 22
+                        height: parent.height
+                        text: root.mopidyMuted ? Config.mopidyMutedIcon : Config.mopidyVolumeIcon
+                        color: root.hoverTextColor(volumeControlMouse.containsMouse, root.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
+                        font.family: Config.font
+                        font.pixelSize: root.mopidyMuted ? Config.mopidyMutedIconSize : Config.mopidyVolumeIconSize
+                        y: root.mopidyMuted ? Config.mopidyMutedIconY : Config.mopidyVolumeIconY
+                        transform: Translate { x: root.mopidyMuted ? Config.mopidyMutedIconX : Config.mopidyVolumeIconX }
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Text {
+                        visible: Config.mopidyShowVolumePercent
+                        anchors.left: volumeIconText.right
+                        anchors.leftMargin: 2
+                        width: 32
+                        height: parent.height
+                        text: root.mopidyVolume >= 0 ? String(root.mopidyVolume) + "%" : "--"
+                        color: root.hoverTextColor(volumeControlMouse.containsMouse, root.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
+                        font.family: Config.mopidyDurationFont
+                        font.pixelSize: Config.mopidyDurationFontSize
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    MouseArea {
+                        id: volumeControlMouse
+                        anchors.fill: parent
+                        enabled: root.mixerAvailable && !root.queueBusy
+                        cursorShape: Qt.PointingHandCursor
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                        hoverEnabled: true
+                        onClicked: function(mouse) {
+                            if (mouse.button === Qt.LeftButton)
+                                root.toggleMixerMute()
+                        }
+                        onWheel: function(wheel) {
+                            var step = Math.max(1, Number(Config.mopidyVolumeStep))
+                            root.adjustMixerVolume(wheel.angleDelta.y > 0 ? step : -step)
+                        }
+                    }
+                }
+
+                Widgets.MopidyHoverIcon {
+                    x: topPanelRow.iconXFor("refresh")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyRefreshIcon; iconSize: Config.mopidyRefreshIconSize; iconX: Config.mopidyRefreshIconX; iconY: Config.mopidyRefreshIconY
+                    visible: Config.mopidyShowRefreshIcon && root.queueAvailable && root.tracks.length > 0
+                    baseColor: Config.mopidyControlIconColor
+                    enabledState: root.queueAvailable && !root.queueBusy
+                    onClicked: root.refreshQueue()
+                }
+
+                Widgets.MopidyHoverIcon {
+                    x: topPanelRow.iconXFor("openAdd")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyOpenAddIcon; iconSize: Config.mopidyOpenAddIconSize; iconX: Config.mopidyOpenAddIconX; iconY: Config.mopidyOpenAddIconY
+                    visible: Config.mopidyShowOpenAddIcon && root.queueAvailable
+                    baseColor: root.searchOpen ? Config.accent : Config.mopidyControlIconColor
+                    enabledState: root.queueAvailable && !root.queueBusy
+                    onClicked: root.toggleSearch()
+                }
+
+                Widgets.MopidyHoverIcon {
+                    x: topPanelRow.iconXFor("clear")
+                    width: 22; height: parent.height
+                    iconText: Config.mopidyClearIcon; iconSize: Config.mopidyClearIconSize; iconX: Config.mopidyClearIconX; iconY: Config.mopidyClearIconY
+                    visible: Config.mopidyShowClearIcon && root.queueAvailable && root.tracks.length > 0
+                    baseColor: root.tracks.length && !root.queueBusy ? Config.mopidyControlIconColor : Config.textDisabled
+                    enabledState: root.tracks.length > 0 && !root.queueBusy
+                    onClicked: root.clearQueue()
+                }
             }
         }
 
         Item {
             width: parent.width
-            height: Math.max(0, parent.height - 30)
+            // Fill all remaining vertical space after the top-panel wrapper.
+            // The wrapper height may be negative when Top offset Y is negative;
+            // account for that explicitly so it never creates an empty bottom gap.
+            height: Math.max(0, parent.height - topPanelWrapper.height - 6)
             clip: true
 
             Text {
@@ -1909,8 +2034,9 @@ Widgets.Frame {
                             }
 
                             Text {
+                                readonly property int rightControlGap: (Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon) ? 2 : (Config.mopidyShowPlaylistDeleteIcon ? 2 : 0)
                                 anchors.right: (Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon) ? playlistContentMoveButtons.left : (Config.mopidyShowPlaylistDeleteIcon ? playlistContentDeleteButton.left : parent.right)
-                                anchors.rightMargin: 5
+                                anchors.rightMargin: 1 + rightControlGap
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 38
                                 text: root.formatDuration(modelData.duration)
@@ -1930,7 +2056,7 @@ Widgets.Frame {
                                 height: parent.height
                             }
 
-                            Widgets.MopidyHoverIcon {
+                            Primitives.MoveArrowButton {
                                 id: playlistContentMoveUpIconButton
                                 z: 4
                                 width: 22
@@ -1941,11 +2067,13 @@ Widgets.Frame {
                                 iconSize: Config.mopidyMoveUpIconSize
                                 visible: index > 0 && Config.mopidyShowMoveUpIcon
                                 baseColor: Config.textMuted
-                                enabledState: visible && !root.playlistsBusy && !playlistContentMoveProcess.running
+                                hoverMode: Config.mopidyHoverMode
+                                hoverColor: Config.mopidyHoverColor
+                                interactionEnabled: visible && !root.playlistsBusy && !playlistContentMoveProcess.running
                                 onClicked: root.movePlaylistItem(index, index - 1, modelData.name)
                             }
 
-                            Widgets.MopidyHoverIcon {
+                            Primitives.MoveArrowButton {
                                 id: playlistContentMoveDownIconButton
                                 z: 4
                                 width: 22
@@ -1956,7 +2084,9 @@ Widgets.Frame {
                                 iconSize: Config.mopidyMoveDownIconSize
                                 visible: index < root.playlistItems.length - 1 && Config.mopidyShowMoveDownIcon
                                 baseColor: Config.textMuted
-                                enabledState: visible && !root.playlistsBusy && !playlistContentMoveProcess.running
+                                hoverMode: Config.mopidyHoverMode
+                                hoverColor: Config.mopidyHoverColor
+                                interactionEnabled: visible && !root.playlistsBusy && !playlistContentMoveProcess.running
                                 onClicked: root.movePlaylistItem(index, index + 1, modelData.name)
                             }
 
@@ -2018,16 +2148,42 @@ Widgets.Frame {
 
                 }
 
-                Text {
+                Rectangle {
+                    id: emptyPlaylistArea
                     width: parent.width
                     height: parent.height
+                    z: 50
                     visible: root.libraryMode === "playlistItems" && !root.playlistsBusy && root.playlistItems.length === 0
-                    text: "Плейлист пуст"
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    objectName: "mopidyEmptyPlaylistArea"
+                    MouseArea {
+                        id: emptyPlaylistClickArea
+                        anchors.fill: parent
+                        enabled: !root.playlistsBusy && !!root.playlistUri
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.openPlaylistAddMode()
+                    }
+                    color: root.hoverBackgroundColor(emptyPlaylistHover.containsMouse)
+                    border.width: root.hoverBorderWidth(emptyPlaylistHover.containsMouse)
+                    border.color: root.hoverBorderColor(emptyPlaylistHover.containsMouse)
+                    radius: 4
+
+                    Text {
+                        anchors.fill: parent
+                        text: "Плейлист пуст"
+                        color: root.hoverTextColor(emptyPlaylistHover.containsMouse, Config.textMuted)
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        enabled: false
+                    }
+
+                    HoverHandler {
+                        id: emptyPlaylistHover
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    }
                 }
 
                 Column {
@@ -2126,7 +2282,7 @@ Widgets.Frame {
                             Text {
                                 width: 45
                                 anchors.right: parent.right
-                                anchors.rightMargin: 5
+                                anchors.rightMargin: 1
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.formatDuration(modelData.duration)
                                 color: root.hoverTextColor(resultMouse.containsMouse, Config.textMuted)
@@ -2247,8 +2403,9 @@ Widgets.Frame {
 
                     Text {
                         id: albumDurationText
+                        width: 60
                         anchors.right: parent.right
-                        anchors.rightMargin: 5
+                        anchors.rightMargin: 1
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.formatDuration(root.albumDisplayDuration(itemData))
                         color: root.hoverTextColor(albumHovered, Config.accent)
@@ -2341,45 +2498,58 @@ Widgets.Frame {
                             }
                         }
 
-                        Text {
+                        Item {
                             width: trackRow.durationWidth
                             height: parent.height
-                            text: root.formatDuration(root.trackDisplayDuration(itemData.track))
-                            color: Number(itemData.track.tlid) === root.currentTlid ? Config.accent : root.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
-                            font.family: Config.mopidyDurationFont
-                            font.pixelSize: Config.mopidyDurationFontSize
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
                         }
                     }
 
-                    Widgets.MopidyHoverIcon {
+                    Text {
+                        id: trackDurationText
+                        z: 3
+                        width: trackRow.durationWidth
+                        height: 28
+                        x: trackRow.width - width - 5
+                        y: Math.round((trackRow.height - height) / 2)
+                        text: root.formatDuration(root.trackDisplayDuration(itemData.track))
+                        color: Number(itemData.track.tlid) === root.currentTlid ? Config.accent : root.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
+                        font.family: Config.mopidyDurationFont
+                        font.pixelSize: Config.mopidyDurationFontSize
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Primitives.MoveArrowButton {
                         id: queueMoveUpIconButton
                         z: 4
                         width: 22
                         height: 22
-                        x: trackRow.width - trackRow.actionWidth - 5 + Config.mopidyMoveUpIconX
+                        x: trackRow.width - trackRow.durationWidth - 27 + Config.mopidyMoveUpIconX
                         y: Math.round((trackRow.height - height) / 2) + Config.mopidyMoveUpIconY
                         iconText: itemData.queueIndex > 0 ? Config.mopidyMoveUpIcon : ""
                         iconSize: Config.mopidyMoveUpIconSize
                         visible: itemData.queueIndex > 0 && Config.mopidyShowMoveUpIcon
                         baseColor: Config.textMuted
-                        enabledState: visible && !root.queueBusy
+                        hoverMode: Config.mopidyHoverMode
+                        hoverColor: Config.mopidyHoverColor
+                        interactionEnabled: visible && !root.queueBusy
                         onClicked: root.moveTrack(Number(itemData.track.tlid), itemData.queueIndex - 1)
                     }
 
-                    Widgets.MopidyHoverIcon {
+                    Primitives.MoveArrowButton {
                         id: queueMoveDownIconButton
                         z: 4
                         width: 22
                         height: 22
-                        x: trackRow.width - 27 + Config.mopidyMoveDownIconX
+                        x: trackRow.width - trackRow.durationWidth - 5 + Config.mopidyMoveDownIconX
                         y: Math.round((trackRow.height - height) / 2) + Config.mopidyMoveDownIconY
                         iconText: itemData.queueIndex < root.tracks.length - 1 ? Config.mopidyMoveDownIcon : ""
                         iconSize: Config.mopidyMoveDownIconSize
                         visible: itemData.queueIndex < root.tracks.length - 1 && Config.mopidyShowMoveDownIcon
                         baseColor: Config.textMuted
-                        enabledState: visible && !root.queueBusy
+                        hoverMode: Config.mopidyHoverMode
+                        hoverColor: Config.mopidyHoverColor
+                        interactionEnabled: visible && !root.queueBusy
                         onClicked: root.moveTrack(Number(itemData.track.tlid), itemData.queueIndex + 1)
                     }
 

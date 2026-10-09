@@ -41,6 +41,7 @@ Widgets.Frame {
         }
 
         Text {
+            visible: Config.weatherShowComfort
             x: Config.weatherTempX + Config.weatherComfortOffsetX
             y: Config.weatherComfortY + Config.weatherComfortOffsetY
             width: Config.weatherTempWidth
@@ -48,6 +49,8 @@ Widgets.Frame {
             text: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
                   ? (root.weather.temperature?.comfort?.C ?? "") : ""
             color: Config.textMuted
+            style: Text.Outline
+            styleColor: Config.background
             font.family: Config.ledFont
             font.pixelSize: Config.weatherComfortFontSize
             lineHeight: Config.weatherComfortHeight

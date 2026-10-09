@@ -101,15 +101,15 @@ Row {
 }
 
 Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
-    text: "Анимации"
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    text: "Общие анимации"
     color: Config.accent
     font.family: Config.settingsFont
     font.pixelSize: Config.settingsUiSize(14)
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
     width: parent.width
     height: 30
     spacing: 8
@@ -125,7 +125,7 @@ Row {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
     width: parent.width
     height: 30
     spacing: 8
@@ -152,7 +152,7 @@ Row {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
     width: parent.width
     height: 30
     spacing: 8
@@ -168,8 +168,9 @@ Row {
     }
 }
 
+
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
     width: parent.width
     height: 60
     spacing: 8
@@ -234,7 +235,7 @@ Row {
 }
 
 Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
     text: "Единая скорость и длительности встроенных анимаций. 0 мс отключает конкретную анимацию."
     color: Config.textMuted
     font.family: Config.settingsFont
@@ -243,86 +244,11 @@ Text {
     width: parent.width
 }
 
-Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
-    width: parent.width
-    height: 30
-    spacing: 8
-    Text { width: 210; text: "Календарь: раскрытие (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-    SettingsNumberField {
-    id: animationCalendarSlideField
-    width: 100
-    height: 30
-    value: Config.animationCalendarSlideDuration
-    minimum: 0
-    maximum: 5000
-    step: 50
-    wheelStep: 50
-    decimals: 0
-    compact: true
-    fieldWidth: 100
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhDigitsOnly
-    targetObject: Config
-    targetProperty: "animationCalendarSlideDuration"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-}
 
-Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
-    width: parent.width
-    height: 30
-    spacing: 8
-    Text { width: 210; text: "Календарь: исчезновение (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-    SettingsNumberField {
-    id: animationCalendarFadeField
-    width: 100
-    height: 30
-    value: Config.animationCalendarFadeDuration
-    minimum: 0
-    maximum: 5000
-    step: 50
-    wheelStep: 50
-    decimals: 0
-    compact: true
-    fieldWidth: 100
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhDigitsOnly
-    targetObject: Config
-    targetProperty: "animationCalendarFadeDuration"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-}
 
-Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 3
-    width: parent.width
-    height: 30
-    spacing: 8
-    Text { width: 210; text: "Настройки таймера (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-    SettingsNumberField {
-    id: animationTimerOptionsField
-    width: 100
-    height: 30
-    value: Config.animationTimerOptionsDuration
-    minimum: 0
-    maximum: 5000
-    step: 50
-    wheelStep: 50
-    decimals: 0
-    compact: true
-    fieldWidth: 100
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhDigitsOnly
-    targetObject: Config
-    targetProperty: "animationTimerOptionsDuration"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-}
+
+
+
 
 Text {
     visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1

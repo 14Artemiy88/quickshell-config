@@ -29,6 +29,35 @@ Row {
 
     Text {
         width: 210
+        text: "Режим CAVA"
+        color: Config.text
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(11)
+        verticalAlignment: Text.AlignVCenter
+    }
+
+        SettingsComboBox {
+        id: cavaModeCombo
+        width: 100
+        height: 30
+        model: ["Обе половины", "Только верхние", "Только нижние"]
+        currentIndex: ["both", "top", "bottom"].indexOf(Config.cavaMode) >= 0 ? ["both", "top", "bottom"].indexOf(Config.cavaMode) : 0
+        onItemChosen: index => {
+            Config.cavaMode = ["both", "top", "bottom"][index]
+            settings.save()
+        }
+    }
+
+}
+
+Row {
+    visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+    width: parent.width
+    height: 30
+    spacing: 8
+
+    Text {
+        width: 210
         text: "Количество полос CAVA"
         color: Config.text
         font.family: Config.settingsFont

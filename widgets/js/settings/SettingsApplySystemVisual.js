@@ -62,6 +62,18 @@ function apply(Config, o) {
         if (o.calendarTitleFont !== undefined) Config.calendarTitleFont = String(o.calendarTitleFont)
         if (o.calendarWeekdayFont !== undefined) Config.calendarWeekdayFont = String(o.calendarWeekdayFont)
         if (o.calendarDayFont !== undefined) Config.calendarDayFont = String(o.calendarDayFont)
+        if (o.calendarNoteMarkerStyle !== undefined) {
+            var noteMarkerStyle = String(o.calendarNoteMarkerStyle)
+            Config.calendarNoteMarkerStyle = ["dot", "line", "ring", "note", "frame"].indexOf(noteMarkerStyle) >= 0 ? noteMarkerStyle : "dot"
+        }
+        if (o.calendarNoteMarkerPosition !== undefined) {
+            var noteMarkerPosition = String(o.calendarNoteMarkerPosition)
+            Config.calendarNoteMarkerPosition = ["topLeft", "topCenter", "topRight", "leftCenter", "rightCenter", "bottomLeft", "bottomCenter", "bottomRight"].indexOf(noteMarkerPosition) >= 0 ? noteMarkerPosition : "bottomCenter"
+        }
+        if (o.calendarNoteFrameColor !== undefined) {
+            var noteMarkerColor = String(o.calendarNoteFrameColor)
+            Config.calendarNoteFrameColor = /^#[0-9a-fA-F]{6,8}$/.test(noteMarkerColor) ? noteMarkerColor : "#00cccc"
+        }
         var calendarNumberFields = [
             ["calendarPreviousSize", 8, 64], ["calendarNextSize", 8, 64], ["calendarArrowY", -20, 20],
             ["calendarPreviousX", -20, 20], ["calendarNextX", -20, 20],

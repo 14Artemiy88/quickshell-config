@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "." as Widgets
 import ".."
+import "./primitives" as Primitives
 import Quickshell
 import Quickshell.Io
 
@@ -308,25 +309,26 @@ Widgets.Frame {
             Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
         }
 
-        Flickable {
-            id: timerButtons
+        Primitives.AnimatedVisibility {
+            id: timerButtonsVisibility
             z: 20
-            enabled: root.controlsMode === 1
             x: 8
             width: parent.width - 16
             height: 33
             anchors.verticalCenter: parent.verticalCenter
+            shown: root.controlsMode === 1
+            animationStyle: Config.animationTimerVisibilityStyle
+            duration: Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
+
+            Flickable {
+                id: timerButtons
+                anchors.fill: parent
+                enabled: true
             contentWidth: Math.max(width, 8 + Settings.timerPresets.length * 33 + Math.max(0, Settings.timerPresets.length - 1) * 7)
             contentHeight: 33
             clip: true
             interactive: contentWidth > width
             boundsBehavior: Flickable.StopAtBounds
-            opacity: root.controlsMode === 1 ? 1 : 0
-            transform: Translate {
-                x: root.controlsMode === 1 ? 0 : -18
-                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration, "movement"); easing.type: Config.easingType() } }
-            }
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration, "appearance"); easing.type: Config.easingType() } }
             HoverHandler {
                 enabled: root.controlsMode === 1
                 onHoveredChanged: if (!hovered && root.controlsMode === 1) root.controlsMode = 0
@@ -365,22 +367,23 @@ Widgets.Frame {
                 }
             }
         }
+        }
 
-        Item {
-            id: alarmButtons
+        Primitives.AnimatedVisibility {
+            id: alarmButtonsVisibility
             z: 20
-            enabled: root.controlsMode === 2
             x: 8
             width: parent.width - 16
             height: 33
             anchors.verticalCenter: parent.verticalCenter
-            opacity: root.controlsMode === 2 ? 1 : 0
-            transform: Translate {
-                x: root.controlsMode === 2 ? 0 : -18
-                Behavior on x { NumberAnimation { duration: Config.animationDuration(Config.timerButtonSlideDuration, "movement"); easing.type: Config.easingType() } }
-            }
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonFadeDuration, "appearance"); easing.type: Config.easingType() } }
+            shown: root.controlsMode === 2
+            animationStyle: Config.animationTimerVisibilityStyle
+            duration: Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
+            Item {
+                id: alarmButtons
+                anchors.fill: parent
+                enabled: true
             HoverHandler {
                 enabled: root.controlsMode === 2
                 onHoveredChanged: if (!hovered && root.controlsMode === 2) root.controlsMode = 0
@@ -500,6 +503,7 @@ Widgets.Frame {
                     }
                 }
             }
+        }
         }
     }
 

@@ -18,28 +18,74 @@ declare -A cover_cache
 
 
 
-find_cover() {
-    local album_dir="$1" parent_dir="${1%/*}" art found
+_find_cover_in_dir() {
+    # Search a single directory only; never recurse into other albums.
+    local dir="$1" art found name ext
     local -a names=(cover folder artwork front albumart album image logo)
-    local -a exts=(jpg jpeg png bmp)
+    local -a exts=(jpg jpeg png bmp webp gif avif)
 
-    # Проверка в текущем и родительском каталоге
-    for dir in "$album_dir" "$parent_dir"; do
-        for name in "${names[@]}"; do
-            for ext in "${exts[@]}"; do
-                art="$dir/$name.$ext"
-                [[ -f "$art" ]] && { printf '%s\n' "$art"; return 0; }
-            done
+    [[ -d "$dir" ]] || return 1
+
+    # Prefer conventional cover names over arbitrary images.
+    for name in "${names[@]}"; do
+        for ext in "${exts[@]}"; do
+            art="$dir/$name.$ext"
+            [[ -f "$art" ]] && { printf '%s\n' "$art"; return 0; }
         done
     done
 
-    # Fallback: find один раз для обоих каталогов
-    found=$(find "$album_dir" "$parent_dir" -maxdepth 2 -type f \( \
-        -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.bmp" \) \
+    # Legacy fallback for arbitrary image names, directly in this directory.
+    found=$(find "$dir" -maxdepth 1 -type f \
+        \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \
+           -o -iname "*.bmp" -o -iname "*.webp" -o -iname "*.gif" -o -iname "*.avif" \) \
         -print -quit 2>/dev/null)
 
     [[ -n "$found" ]] && { printf '%s\n' "$found"; return 0; }
     return 1
+}
+
+find_cover() {
+    # Search the track directory first. If the track is inside a conventional
+    # multi-disc folder (CD1, CD 2, Disc-1, Disk 2, etc.), also check exactly
+    # one level up for the album cover stored beside CD1/CD2. This intentionally
+    # avoids climbing through arbitrary folders where another album's art may
+    # be found before the current album's artwork.
+    local album_dir="$1" found dir_name parent
+    local disc_dir_re='^[cC][dD]([ ._-]*[0-9]+)?$|^[dD][iI][sS][cC][ ._-]*[0-9]+$|^[dD][iI][sS][kK][ ._-]*[0-9]+$'
+    [[ -d "$album_dir" ]] || return 1
+
+    found=$(_find_cover_in_dir "$album_dir") || true
+    if [[ -n "$found" ]]; then
+        printf '%s\n' "$found"
+        return 0
+    fi
+
+    dir_name="${album_dir##*/}"
+    if [[ "$dir_name" =~ $disc_dir_re ]]; then
+        parent="${album_dir%/*}"
+        [[ "$parent" == "$album_dir" ]] && parent="."
+        found=$(_find_cover_in_dir "$parent") || true
+        if [[ -n "$found" ]]; then
+            printf '%s\n' "$found"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+# Shared filesystem artwork lookup for every local-file backend.
+# Emits a real cover path or the transparent default image.
+get_cover_for_file() {
+    local file="$1" art=""
+    if [[ -f "$file" ]]; then
+        art=$(find_cover "${file%/*}") || true
+    fi
+    if [[ -n "$art" && -f "$art" ]]; then
+        printf '%s\n' "$art"
+    else
+        printf '%s\n' "$DEFAULT_IMG"
+    fi
 }
 
 escape_path() {
@@ -53,38 +99,17 @@ escape_path() {
 get_album_img() {
     local file="$1"
     local album_dir="${file%/*}"
-
-    # Используем кэшированное значение если доступно
-    if [[ -v cover_cache["$album_dir"] ]]; then
-        echo "${cover_cache["$album_dir"]}"
-        return
-    fi
-
-    # Для нелокальных треков - дефолтная обложка
-    if [[ ! -f "$file" ]]; then
-        local default_escaped
-        default_escaped=$(escape_path "$DEFAULT_IMG")
-        cover_cache["$album_dir"]="$default_escaped"
-        echo "$default_escaped"
-        return
-    fi
-
-    # Ищем обложку
     local art
-    art=$(find_cover "$album_dir")
 
-    # Кэшируем результат
-    if [[ -f "$art" ]]; then
-        local art_escaped
-        art_escaped=$(escape_path "$art")
-        cover_cache["$album_dir"]="$art_escaped"
-        echo "$art_escaped"
-    else
-        local default_escaped
-        default_escaped=$(escape_path "$DEFAULT_IMG")
-        cover_cache["$album_dir"]="$default_escaped"
-        echo "$default_escaped"
+    # Cache per album directory, including the no-cover result.
+    if [[ -v cover_cache["$album_dir"] ]]; then
+        printf '%s\n' "${cover_cache["$album_dir"]}"
+        return 0
     fi
+
+    art=$(get_cover_for_file "$file")
+    cover_cache["$album_dir"]="$art"
+    printf '%s\n' "$art"
 }
 
 get_image() {

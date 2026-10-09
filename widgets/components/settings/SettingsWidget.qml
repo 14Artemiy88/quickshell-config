@@ -159,265 +159,257 @@ Item {
         Connections { target: settings; function onResetUnavailable(message) { resetIndicator.text = message; resetPulse.restart() } }
 
         Row {
-            id: tabs
-            width: parent.width
-            height: 34
-            spacing: 6
-
-            Repeater {
-                model: ["Модули", "Цвета", "Настройки"]
-
-                delegate: SettingsTab {
-                    width: (tabs.width - 12) / 3
-                    selected: root.currentTab === index
-                    text: modelData
-                    onClicked: {
-                        root.clearSettingsFocus()
-                        root.currentTab = index
-                    }
-                }
-            }
-        }
-
-        Item {
-            id: otherSettingsArea
-            visible: root.currentTab === 2
+            id: settingsBody
             width: parent.width
             height: parent.height - y
-
-            Row {
-                anchors.fill: parent
-                spacing: 8
-
-                Column {
-                    id: otherTabs
-                    width: 128
-                    height: parent.height
-                    spacing: 5
-
-                    Repeater {
-                        model: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Настройки", "Mopidy"]
-
-                        delegate: SettingsSubTab {
-                            width: otherTabs.width
-                            selected: root.currentOtherTab === index
-                            text: modelData
-                            leftAligned: true
-                            horizontalPadding: 8
-                            onClicked: {
-                                root.clearSettingsFocus()
-                                root.currentOtherTab = index
-                            }
-                        }
-                    }
-                }
-
-                Flickable {
-            id: otherFlick
-            width: parent.width - otherTabs.width - 8
-            height: parent.height
-            contentWidth: Math.max(width, otherColumn.width)
-            contentHeight: otherColumn.height
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            flickableDirection: Flickable.VerticalFlick
-            interactive: contentHeight > height
-            MouseArea {
-                anchors.fill: parent
-                z: -1
-                acceptedButtons: Qt.LeftButton
-                onClicked: root.clearSettingsFocus()
-            }
-            ScrollBar.vertical: SettingsScrollBar { visible: otherFlick.contentHeight > otherFlick.height + 1 }
+            spacing: 8
 
             Column {
-                id: otherColumn
-                width: otherFlick.width - 12
-                spacing: 10
+                id: mainSettingsTabs
+                width: 128
+                height: parent.height
+                spacing: 5
 
-                Row {
-                    width: parent.width
-                    height: 30
-                    Text {
-                        width: parent.width - 38
-                        text: "НАСТРОЙКИ"
-                        color: Config.accent
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(15)
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    SettingsResetButton {
-                        tooltip: "Сбросить текущую вкладку"
-                        onClicked: {
-                            if (root.currentOtherTab === 0) { settings.resetGeneralSettings(); settings.resetAnimationSettings() }
-                            else if (root.currentOtherTab === 1) settings.resetTimerSettings()
-                            else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
-                            else if (root.currentOtherTab === 3) settings.resetWeatherSettings()
-                            else if (root.currentOtherTab === 4) settings.resetCavaSettings()
-                            else if (root.currentOtherTab === 5) settings.resetCpuSettings()
-                            else if (root.currentOtherTab === 6) settings.resetNetworkSettings()
-                            else if (root.currentOtherTab === 7) settings.resetVolumeSettings()
-                            else if (root.currentOtherTab === 8) settings.resetCalendarSettings()
-                            else if (root.currentOtherTab === 9) settings.resetSettingsWindow()
-                            else if (root.currentOtherTab === 10) settings.resetMopidySettings()
+                Repeater {
+                    model: ["Модули", "Темы", "Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Окно настроек", "Mopidy"]
+
+                    delegate: SettingsSubTab {
+                        width: mainSettingsTabs.width
+                        selected: {
+                            if (index === 0) return root.currentTab === 0
+                            if (index === 1) return root.currentTab === 1
+                            return root.currentTab === 2 && root.currentOtherTab === index - 2
                         }
-                    }
-                }
-
-                Row {
-                    visible: root.currentOtherSubTabs.length > 0
-                    width: parent.width
-                    height: 34
-                    spacing: 5
-
-                    Repeater {
-                        model: root.currentOtherSubTabs
-
-                        delegate: SettingsSubTab {
-                            width: (parent.width - (root.currentOtherSubTabs.length - 1) * 5) / root.currentOtherSubTabs.length
-                            selected: root.currentOtherSubTab === index
-                            text: modelData
-                            onClicked: {
-                                root.clearSettingsFocus()
-                                root.currentOtherSubTab = index
-                                otherFlick.contentY = 0
+                        text: modelData
+                        leftAligned: true
+                        horizontalPadding: 8
+                        onClicked: {
+                            root.clearSettingsFocus()
+                            if (index === 0) {
+                                root.currentTab = 0
+                            } else if (index === 1) {
+                                root.currentTab = 1
+                            } else {
+                                root.currentTab = 2
+                                root.currentOtherTab = index - 2
                             }
                         }
                     }
                 }
+            }
 
-                SettingsCalendarSection {
-                    id: calendarSectionSettingsSection
+            Item {
+                id: settingsContentArea
+                width: parent.width - mainSettingsTabs.width - 8
+                height: parent.height
+
+                SettingsModulesSection {
+                    id: modulesSectionSettingsSection
                     host: root
                     settings: root.settings
                 }
 
-                SettingsWeatherSection {
-                    id: weatherSectionSettingsSection
+                SettingsColorsSection {
+                    id: colorsSectionSettingsSection
                     host: root
                     settings: root.settings
                 }
 
-
-
-                SettingsGeneralSection {
-                    id: generalSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-
-                Text { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
-
-                SettingsNumberField {
-                    visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0
-                    label: "System Monitor (мс) — общие данные"
-                    value: Config.systemMonitorInterval
-                    minimum: 200
-                    maximum: 10000
-                    step: 100
-                    wheelStep: 100
-                    onValueEdited: value => { Config.systemMonitorInterval = value; settings.save() }
-                }
-                SettingsNumberField {
-                    visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
-                    label: "CPU (мс)"
-                    value: Config.cpuUpdateInterval
-                    minimum: 200
-                    maximum: 10000
-                    step: 100
-                    wheelStep: 100
-                    onValueEdited: value => { Config.cpuUpdateInterval = value; settings.save() }
-                }
-                SettingsNumberField {
-                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
-                    label: "Плеер (мс)"
-                    value: Config.playerUpdateInterval
-                    minimum: 50
-                    maximum: 5000
-                    step: 50
-                    wheelStep: 50
-                    onValueEdited: value => { Config.playerUpdateInterval = value; settings.save() }
-                }
-
-                SettingsPlayerSection {
-                    id: playerSectionSettingsSection
-                    visible: root.currentOtherTab === 2
+                Item {
+                    id: otherSettingsArea
+                    visible: root.currentTab === 2
                     width: parent.width
-                    host: root
-                    settings: root.settings
-                }
-                SettingsMopidySection {
-                    id: mopidySectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-                SettingsMopidyTimeSection {
-                    id: mopidyTimeSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-                SettingsMopidyIconsSection {
-                    id: mopidyIconsSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-                SettingsMopidyStatusSection {
-                    id: mopidyStatusSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-                SettingsCavaSection {
-                    id: cavaSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
-                SettingsCpuRamSection {
-                    id: cpuRamSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
+                    height: parent.height
 
-                SettingsNetworkSection {
-                    id: networkSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
+                    Flickable {
+                        id: otherFlick
+                        anchors.fill: parent
+                        contentWidth: Math.max(width, otherColumn.width)
+                        contentHeight: otherColumn.height
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickableDirection: Flickable.VerticalFlick
+                        interactive: contentHeight > height
+                        MouseArea {
+                            anchors.fill: parent
+                            z: -1
+                            acceptedButtons: Qt.LeftButton
+                            onClicked: root.clearSettingsFocus()
+                        }
+                        ScrollBar.vertical: SettingsScrollBar { visible: otherFlick.contentHeight > otherFlick.height + 1 }
 
-                SettingsVolumeSection {
-                    id: volumeSectionSettingsSection
-                    host: root
-                    settings: root.settings
-                }
+                        Column {
+                            id: otherColumn
+                            width: otherFlick.width - 12
+                            spacing: 10
 
-                SettingsTimersSection {
-                    id: timersSectionSettingsSection
-                    visible: root.currentOtherTab === 1
-                    width: parent.width
-                    host: root
-                    settings: root.settings
-                }
-                SettingsWindowSection {
-                    id: settingsWindowSectionSettingsSection
-                    host: root
-                    settings: root.settings
+                            Row {
+                                width: parent.width
+                                height: 30
+                                Text {
+                                    width: parent.width - 38
+                                    text: "НАСТРОЙКИ"
+                                    color: Config.accent
+                                    font.family: Config.settingsFont
+                                    font.pixelSize: Config.settingsUiSize(15)
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                                SettingsResetButton {
+                                    tooltip: "Сбросить текущую вкладку"
+                                    onClicked: {
+                                        if (root.currentOtherTab === 0) { settings.resetGeneralSettings(); settings.resetAnimationSettings() }
+                                        else if (root.currentOtherTab === 1) settings.resetTimerSettings()
+                                        else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
+                                        else if (root.currentOtherTab === 3) settings.resetWeatherSettings()
+                                        else if (root.currentOtherTab === 4) settings.resetCavaSettings()
+                                        else if (root.currentOtherTab === 5) settings.resetCpuSettings()
+                                        else if (root.currentOtherTab === 6) settings.resetNetworkSettings()
+                                        else if (root.currentOtherTab === 7) settings.resetVolumeSettings()
+                                        else if (root.currentOtherTab === 8) settings.resetCalendarSettings()
+                                        else if (root.currentOtherTab === 9) settings.resetSettingsWindow()
+                                        else if (root.currentOtherTab === 10) settings.resetMopidySettings()
+                                    }
+                                }
+                            }
+
+                            Row {
+                                visible: root.currentOtherSubTabs.length > 0
+                                width: parent.width
+                                height: 34
+                                spacing: 5
+
+                                Repeater {
+                                    model: root.currentOtherSubTabs
+
+                                    delegate: SettingsSubTab {
+                                        width: (parent.width - (root.currentOtherSubTabs.length - 1) * 5) / root.currentOtherSubTabs.length
+                                        selected: root.currentOtherSubTab === index
+                                        text: modelData
+                                        onClicked: {
+                                            root.clearSettingsFocus()
+                                            root.currentOtherSubTab = index
+                                            otherFlick.contentY = 0
+                                        }
+                                    }
+                                }
+                            }
+
+                            SettingsCalendarSection {
+                                id: calendarSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+
+                            SettingsWeatherSection {
+                                id: weatherSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+
+                            SettingsGeneralSection {
+                                id: generalSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+
+                            Text { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
+
+                            SettingsNumberField {
+                                visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0
+                                label: "System Monitor (мс) — общие данные"
+                                value: Config.systemMonitorInterval
+                                minimum: 200
+                                maximum: 10000
+                                step: 100
+                                wheelStep: 100
+                                onValueEdited: value => { Config.systemMonitorInterval = value; settings.save() }
+                            }
+                            SettingsNumberField {
+                                visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
+                                label: "CPU (мс)"
+                                value: Config.cpuUpdateInterval
+                                minimum: 200
+                                maximum: 10000
+                                step: 100
+                                wheelStep: 100
+                                onValueEdited: value => { Config.cpuUpdateInterval = value; settings.save() }
+                            }
+                            SettingsNumberField {
+                                visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
+                                label: "Плеер (мс)"
+                                value: Config.playerUpdateInterval
+                                minimum: 50
+                                maximum: 5000
+                                step: 50
+                                wheelStep: 50
+                                onValueEdited: value => { Config.playerUpdateInterval = value; settings.save() }
+                            }
+
+                            SettingsPlayerSection {
+                                id: playerSectionSettingsSection
+                                visible: root.currentOtherTab === 2
+                                width: parent.width
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsMopidySection {
+                                id: mopidySectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsMopidyTimeSection {
+                                id: mopidyTimeSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsMopidyIconsSection {
+                                id: mopidyIconsSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsMopidyStatusSection {
+                                id: mopidyStatusSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsCavaSection {
+                                id: cavaSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsCpuRamSection {
+                                id: cpuRamSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsNetworkSection {
+                                id: networkSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsVolumeSection {
+                                id: volumeSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsTimersSection {
+                                id: timersSectionSettingsSection
+                                visible: root.currentOtherTab === 1
+                                width: parent.width
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsWindowSection {
+                                id: settingsWindowSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                        }
+                    }
                 }
             }
         }
-            }
-        }
 
-        SettingsModulesSection {
-            id: modulesSectionSettingsSection
-            host: root
-            settings: root.settings
-        }
-
-        // -------------------- Colors --------------------
-        SettingsColorsSection {
-            id: colorsSectionSettingsSection
-            host: root
-            settings: root.settings
-        }
 }
 
 }

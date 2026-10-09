@@ -777,4 +777,49 @@ Column {
 }
             }
 
+Text {
+    text: "Анимация появления/исчезновения"
+    color: Config.accent
+    font.family: Config.settingsFont
+    font.pixelSize: Config.settingsUiSize(13)
+}
+
+Row {
+    width: parent.width
+    height: 30
+    spacing: 8
+    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    SettingsComboBox {
+        id: animationTimerVisibilityBox
+        width: 180
+        height: 30
+        property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+        model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+        currentIndex: Math.max(0, values.indexOf(Config.animationTimerVisibilityStyle))
+        onItemChosen: function(index) { Config.animationTimerVisibilityStyle = values[index]; settings.save() }
+        Connections {
+            target: Config
+            function onAnimationTimerVisibilityStyleChanged() { animationTimerVisibilityBox.currentIndex = Math.max(0, animationTimerVisibilityBox.values.indexOf(Config.animationTimerVisibilityStyle)) }
+        }
+        background: Rectangle { color: Config.settingsBackground; border.color: (animationTimerVisibilityBox.activeFocus || animationTimerVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+        contentItem: Text { text: animationTimerVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+    }
+}
+
+Row {
+    visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+    width: parent.width
+    height: 30
+    spacing: 8
+    Text { width: 210; text: "Анимация настроек (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    SettingsNumberField {
+        id: timerAnimationOptionsDurationField
+        width: 100; height: 30
+        value: Config.animationTimerOptionsDuration
+        minimum: 0; maximum: 5000; step: 50; wheelStep: 50; decimals: 0; compact: true
+        fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
+        targetObject: Config; targetProperty: "animationTimerOptionsDuration"; settingsObject: root.settings; saveOnEdit: true
+    }
+}
+
 }

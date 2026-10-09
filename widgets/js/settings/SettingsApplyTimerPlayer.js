@@ -61,6 +61,19 @@ function apply(Config, o, legacyTimerIconOrder) {
 
         // Mopidy module queue presentation
         if (o.mopidyShowTrackNumbers !== undefined) Config.mopidyShowTrackNumbers = !!o.mopidyShowTrackNumbers
+        if (o.mopidyTopIconOrder !== undefined) {
+            var rawTopIconOrder = String(o.mopidyTopIconOrder).split(",")
+            var allowedTopIconOrder = ["stop", "shuffle", "repeat", "volume", "refresh", "openAdd", "clear"]
+            var cleanedTopIconOrder = []
+            for (var tio = 0; tio < rawTopIconOrder.length; ++tio) {
+                var topIconId = String(rawTopIconOrder[tio] || "")
+                if (allowedTopIconOrder.indexOf(topIconId) >= 0 && cleanedTopIconOrder.indexOf(topIconId) < 0)
+                    cleanedTopIconOrder.push(topIconId)
+            }
+            for (var tai = 0; tai < allowedTopIconOrder.length; ++tai)
+                if (cleanedTopIconOrder.indexOf(allowedTopIconOrder[tai]) < 0) cleanedTopIconOrder.push(allowedTopIconOrder[tai])
+            Config.mopidyTopIconOrder = cleanedTopIconOrder.join(",")
+        }
         if (o.mopidyMoveUpIcon !== undefined) Config.mopidyMoveUpIcon = String(o.mopidyMoveUpIcon)
         if (o.mopidyMoveUpIconSize !== undefined) Config.mopidyMoveUpIconSize = Math.max(6, Math.min(64, Number(o.mopidyMoveUpIconSize) || Config.mopidyMoveUpIconSize))
         if (o.mopidyMoveUpIconX !== undefined) Config.mopidyMoveUpIconX = Math.max(-20, Math.min(20, Number(o.mopidyMoveUpIconX) || 0))
@@ -136,6 +149,10 @@ function apply(Config, o, legacyTimerIconOrder) {
             if (/^#[0-9a-fA-F]{6,8}$/.test(mopidyControlIconColor) || mopidyControlIconColor === "transparent")
                 Config.mopidyControlIconColor = mopidyControlIconColor
         }
+        if (o.mopidyHideTopPanel !== undefined) Config.mopidyHideTopPanel = !!o.mopidyHideTopPanel
+        if (o.mopidyTopPanelHoverHeight !== undefined) Config.mopidyTopPanelHoverHeight = Math.max(4, Math.min(24, Number(o.mopidyTopPanelHoverHeight) || Config.mopidyTopPanelHoverHeight))
+        if (o.mopidyTopPanelOffsetY !== undefined) Config.mopidyTopPanelOffsetY = Math.max(-24, Math.min(24, Number(o.mopidyTopPanelOffsetY) || 0))
+        if (o.mopidyTopPanelBackground !== undefined) Config.mopidyTopPanelBackground = String(o.mopidyTopPanelBackground)
         if (o.mopidyShowStopIcon !== undefined) Config.mopidyShowStopIcon = !!o.mopidyShowStopIcon
         if (o.mopidyShowRefreshIcon !== undefined) Config.mopidyShowRefreshIcon = !!o.mopidyShowRefreshIcon
         if (o.mopidyShowClearIcon !== undefined) Config.mopidyShowClearIcon = !!o.mopidyShowClearIcon
