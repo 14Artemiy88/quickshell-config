@@ -58,6 +58,10 @@ QtObject {
     property var profileList: []
     property string activeProfile: ""
     property int profilesRevision: 0
+    // Profiles store deltas relative to this immutable startup baseline.
+    property var profileDefaults: ({})
+    property string profileStorageFormat: "sparse-v1"
+    property bool profileMigrationPending: false
     property var customThemes: ({})
     property string activeTheme: "14 Theme"
     property var themeDraft: ({})
@@ -99,8 +103,16 @@ QtObject {
             running: true
             stdout: StdioCollector {
                 onStreamFinished: {
-                    try { root.applyObject(JSON.parse(this.text)) }
-                    catch (e) { root.loaded = true; root.changed() }
+                    try {
+                        root.applyObject(JSON.parse(this.text))
+                        if (root.profileMigrationPending) {
+                            root.profileMigrationPending = false
+                            Qt.callLater(function() { root.save() })
+                        }
+                    } catch (e) {
+                        root.loaded = true
+                        root.changed()
+                    }
                 }
             }
         }
@@ -119,7 +131,7 @@ QtObject {
                         if (writeProc.running)
                             return
                         writeProc.payload = JSON.stringify(
-                            SettingsPersistence.snapshotObject(root, Config)
+                            SettingsPersistence.payloadObject(root, Config)
                         )
                         writeProc.running = true
                     })
@@ -129,8 +141,10 @@ QtObject {
     }
 
     Component.onCompleted: {
-        loader = loaderComponent.createObject(root)
+        // Capture QML's actual initial defaults before loading user settings.
+        profileDefaults = SettingsProfiles.captureDefaults(root)
         writer = writerComponent.createObject(root)
+        loader = loaderComponent.createObject(root)
     }
 
     function geometryForLayout(moduleName) { return SettingsGeometry.geometryForLayout(root, moduleName) }
@@ -184,6 +198,8 @@ QtObject {
     function resetConfigKeys(names) { SettingsResets.resetConfigKeys(root, Config, names) }
 
     function activeProfileData() { return SettingsResets.activeProfileData(root) }
+
+    function expandedProfileData(name) { return SettingsProfiles.expandedProfileByName(root, name) }
 
     function applyConfigKeysFromProfile(profile, names) { SettingsResets.applyConfigKeysFromProfile(root, Config, profile, names) }
 

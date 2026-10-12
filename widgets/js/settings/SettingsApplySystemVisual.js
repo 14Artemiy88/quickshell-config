@@ -19,6 +19,18 @@ function apply(Config, o) {
         if (o.cpuBarDirection !== undefined) { var cbd = String(o.cpuBarDirection); Config.cpuBarDirection = ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"].indexOf(cbd) >= 0 ? cbd : "leftToRight" }
         if (o.cpuGraphMode !== undefined) { var cgm = String(o.cpuGraphMode); Config.cpuGraphMode = ["both", "top", "bottom"].indexOf(cgm) >= 0 ? cgm : "both" }
         if (o.cpuShowRam !== undefined) Config.cpuShowRam = !!o.cpuShowRam
+        if (o.topAppsShowHeaders !== undefined) Config.topAppsShowHeaders = !!o.topAppsShowHeaders
+        if (o.topAppsShowBars !== undefined) Config.topAppsShowBars = !!o.topAppsShowBars
+        if (o.topAppsFont !== undefined) Config.topAppsFont = String(o.topAppsFont).slice(0, 128)
+        // User-tuned Top Apps typography/layout: keep lower bounds that prevent invalid sizes, but no artificial upper bounds.
+        var topAppsNumberFields = [["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity], ["topAppsTopOffset", 0, Infinity]]
+        for (var taf = 0; taf < topAppsNumberFields.length; ++taf) {
+            var taname = topAppsNumberFields[taf][0]
+            if (o[taname] !== undefined) {
+                var tav = Number(o[taname])
+                if (isFinite(tav)) Config[taname] = Math.max(topAppsNumberFields[taf][1], Math.min(topAppsNumberFields[taf][2], Math.round(tav)))
+            }
+        }
 
         // Network display tuning
         var networkNumberFields = [

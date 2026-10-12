@@ -1,5 +1,6 @@
 import QtQuick
 import ".."
+import "primitives" as Primitives
 import Quickshell
 
 Item {
@@ -226,31 +227,27 @@ Item {
                     ["", "refresh"],
                     ["󰏤", "toggle_pause"]
                 ]
-                delegate: Item {
+                delegate: Primitives.HoverIconButton {
                     width: 18
                     height: 24
-                    Text {
-                        anchors.fill: parent
-                        text: modelData[0]
-                        color: root.selected && root.selected.color ? root.selected.color : Config.text
-                        font.pixelSize: 22
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (modelData[1] === "comment") {
-                                root.commentFile = root.selectedFile
-                                root.commentText = root.selected ? String(root.selected.comment || "") : ""
-                                root.commentMode = true
-                                Qt.callLater(function() {
-                                    commentInput.forceActiveFocus()
-                                    commentInput.selectAll()
-                                })
-                            } else {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", modelData[1], root.selectedFile])
-                            }
+                    iconText: modelData[0]
+                    iconSize: 22
+                    baseColor: root.selected && root.selected.color ? root.selected.color : Config.text
+                    iconFontFamily: Config.font
+                    // Preserve the popup's existing arrow cursor and no-hover styling.
+                    hoverMode: "none"
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: {
+                        if (modelData[1] === "comment") {
+                            root.commentFile = root.selectedFile
+                            root.commentText = root.selected ? String(root.selected.comment || "") : ""
+                            root.commentMode = true
+                            Qt.callLater(function() {
+                                commentInput.forceActiveFocus()
+                                commentInput.selectAll()
+                            })
+                        } else {
+                            Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", modelData[1], root.selectedFile])
                         }
                     }
                 }

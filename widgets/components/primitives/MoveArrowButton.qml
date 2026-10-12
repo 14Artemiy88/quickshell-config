@@ -1,7 +1,7 @@
 import QtQuick
-import QtQuick.Controls
 import ".."
 import "../.."
+import "." as Primitives
 
 Item {
     id: root
@@ -17,35 +17,18 @@ Item {
 
     implicitWidth: 22
     implicitHeight: 22
-    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isHovered: hoverButton.hovered
 
-    Rectangle {
+    Primitives.HoverIconButton {
+        id: hoverButton
         anchors.fill: parent
-        radius: 4
-        color: root.isHovered && root.hoverMode === "background" ? root.hoverColor : Config.transparent
-        border.width: root.isHovered && root.hoverMode === "frame" ? 1 : 0
-        border.color: root.hoverColor
-    }
-
-    Text {
-        anchors.fill: parent
-        text: root.iconText
-        color: root.isHovered && root.hoverMode === "text" ? root.hoverColor : root.baseColor
-        font.family: Config.font
-        font.pixelSize: root.iconSize
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-    }
-
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        enabled: root.interactionEnabled
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        iconText: root.iconText
+        iconSize: root.iconSize
+        baseColor: root.baseColor
+        hoverMode: root.hoverMode
+        hoverColor: root.hoverColor
+        toolTipText: root.toolTipText
+        interactionEnabled: root.interactionEnabled
         onClicked: root.clicked()
     }
-
-    ToolTip.visible: root.toolTipText.length > 0 && root.isHovered
-    ToolTip.text: root.toolTipText
 }

@@ -1,9 +1,9 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 import Quickshell
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: hourly ? "weatherHourly" : "weatherDaily"
     property var entries: []

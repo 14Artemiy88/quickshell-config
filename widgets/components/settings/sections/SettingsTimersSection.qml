@@ -202,8 +202,6 @@ Column {
             inputMethodHints: Qt.ImhDigitsOnly
             valueWriter: function(n) {
                 Config.timerFinishedImageMargin = n
-                Config.timerFinishedImageTopMargin = n
-                Config.timerFinishedImageBottomMargin = n
             }
             settingsObject: root.settings
             saveOnEdit: true

@@ -1,8 +1,8 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "time"
     width: 315

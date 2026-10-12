@@ -31,7 +31,7 @@ function apply(Config, o, legacyTimerIconOrder) {
         var playerNumberFields = [
             ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
             ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],
-            ["playerMetaLineSpacing", 0, 100], ["playerControlIconSize", 8, 64],
+            ["playerMetaLineSpacing", 0, 100],
             ["playerPlayingIconSize", 8, 64], ["playerPausedIconSize", 8, 64], ["playerNextIconSize", 8, 64],
             ["playerPlayingIconY", -100, 100], ["playerPausedIconY", -100, 100], ["playerNextIconY", -100, 100],
             ["playerMetadataXPadding", 0, 100], ["playerMetadataY", 0, 100], ["playerProgressY", 0, 100],
@@ -89,7 +89,6 @@ function apply(Config, o, legacyTimerIconOrder) {
             Config.mopidyShowMoveUpIcon = !!o.mopidyShowMoveButtons
             Config.mopidyShowMoveDownIcon = !!o.mopidyShowMoveButtons
         }
-        Config.mopidyShowMoveButtons = Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon
         if (o.mopidyGroupAlbums !== undefined) Config.mopidyGroupAlbums = !!o.mopidyGroupAlbums
         if (o.mopidyAlbumFont !== undefined) Config.mopidyAlbumFont = String(o.mopidyAlbumFont)
         if (o.mopidyAlbumFontSize !== undefined) Config.mopidyAlbumFontSize = Math.max(6, Math.min(40, Number(o.mopidyAlbumFontSize) || Config.mopidyAlbumFontSize))

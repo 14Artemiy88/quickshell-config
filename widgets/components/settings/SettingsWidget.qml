@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "../.."
 import "primitives"
 import "sections"
+import "sections/mopidy" as MopidySettings
 
 Item {
     id: root
@@ -67,7 +68,7 @@ Item {
         case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
         case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
         case 4: return ["Основные", "Полосы"]
-        case 5: return ["Общие", "График CPU"]
+        case 5: return ["Общие", "График CPU", "Top Apps"]
         case 6: return ["Обновления", "Сеть"]
         case 7: return ["Иконки", "Полосы", "Потоки", "Адаптивность"]
         case 8: return ["Общие"]
@@ -352,22 +353,22 @@ Item {
                                 host: root
                                 settings: root.settings
                             }
-                            SettingsMopidySection {
+                            MopidySettings.SettingsMopidySection {
                                 id: mopidySectionSettingsSection
                                 host: root
                                 settings: root.settings
                             }
-                            SettingsMopidyTimeSection {
+                            MopidySettings.SettingsMopidyTimeSection {
                                 id: mopidyTimeSectionSettingsSection
                                 host: root
                                 settings: root.settings
                             }
-                            SettingsMopidyIconsSection {
+                            MopidySettings.SettingsMopidyIconsSection {
                                 id: mopidyIconsSectionSettingsSection
                                 host: root
                                 settings: root.settings
                             }
-                            SettingsMopidyStatusSection {
+                            MopidySettings.SettingsMopidyStatusSection {
                                 id: mopidyStatusSectionSettingsSection
                                 host: root
                                 settings: root.settings

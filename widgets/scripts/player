@@ -1,7 +1,7 @@
 #!/bin/bash
 PLAYER_SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$PLAYER_SCRIPT_DIR/player.d/common.sh"
-source "$PLAYER_SCRIPT_DIR/player.d/backend_mopidy.sh"
+source "$PLAYER_SCRIPT_DIR/mopidy/player_backend.sh"
 source "$PLAYER_SCRIPT_DIR/player.d/backend_mpv.sh"
 source "$PLAYER_SCRIPT_DIR/player.d/backend_mpris.sh"
 source "$PLAYER_SCRIPT_DIR/player.d/backend_deadbeef.sh"

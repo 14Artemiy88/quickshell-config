@@ -2,7 +2,7 @@
 
 PLAYER_SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$PLAYER_SCRIPT_DIR/common.sh"
-source "$PLAYER_SCRIPT_DIR/backend_mopidy.sh"
+source "$PLAYER_SCRIPT_DIR/../mopidy/player_backend.sh"
 
 declare -r MPV_SOCKET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/mpvsocket"
 declare -A PLAYER_COMMANDS=(

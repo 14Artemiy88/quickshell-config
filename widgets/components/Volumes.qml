@@ -1,10 +1,10 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 import Quickshell
 import Quickshell.Io
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "volumes"
     width: 275
@@ -116,24 +116,25 @@ Widgets.Frame {
             width: parent.width
             height: Config.volumeMainRowHeight
 
-            Text {
+            Primitives.HoverButtonSurface {
                 id: mainVolumeIcon
                 width: Config.volumeMainIconWidth
-                text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon) : ((root.mainMuted || root.mainDisplayedValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon)
-                color: Config.text
-                font.pixelSize: Config.uiFontSize(16)
-                verticalAlignment: Text.AlignVCenter
+                height: parent.height
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    Quickshell.execDetached([Quickshell.shellDir + "/scripts/toggle_mute"])
+                    root.mainMuted = !root.mainMuted
+                    root.mainBackendMuted = root.mainMuted
+                    volumePoll.running = false
+                    volumePoll.running = true
+                }
 
-                MouseArea {
+                Text {
                     anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        Quickshell.execDetached([Quickshell.shellDir + "/scripts/toggle_mute"])
-                        root.mainMuted = !root.mainMuted
-                        root.mainBackendMuted = root.mainMuted
-                        volumePoll.running = false
-                        volumePoll.running = true
-                    }
+                    text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon) : ((root.mainMuted || root.mainDisplayedValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon)
+                    color: Config.text
+                    font.pixelSize: Config.uiFontSize(16)
+                    verticalAlignment: Text.AlignVCenter
                 }
             }
 

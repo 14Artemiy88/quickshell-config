@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls
+import "primitives" as Primitives
 import ".."
 
 Item {
@@ -26,27 +26,18 @@ Item {
             wrapMode: Text.WordWrap
         }
 
-        Button {
+        Primitives.StyledTextButton {
             id: refreshButton
             anchors.horizontalCenter: parent.horizontalCenter
             enabled: root.tokenMissing || (root.weatherService !== null && !root.retryLocked)
-            text: root.tokenMissing ? "⚙  Настроить погоду" : (root.retryLocked ? ("↻  Подожди " + weatherService.manualCooldownRemaining + "с") : "↻  Обновить")
-            font.family: Config.font
-            font.pixelSize: Config.uiFontSize(11)
-            contentItem: Text {
-                text: refreshButton.text
-                color: refreshButton.enabled ? Config.text : Config.textDisabled
-                font.family: Config.font
-                font.pixelSize: Config.uiFontSize(11)
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: refreshButton.enabled ? Config.background : Config.playerOverlay
-                border.color: Config.baseColor
-                border.width: 1
-                radius: Config.radius
-            }
+            text: root.tokenMissing ? "⚙  Настроить погоду" : (root.retryLocked ? ("↻  Подожди " + (root.weatherService ? root.weatherService.manualCooldownRemaining : 0) + "с") : "↻  Обновить")
+            textFontFamily: Config.font
+            textFontPixelSize: Config.uiFontSize(11)
+            textColor: enabled ? Config.text : Config.textDisabled
+            normalBackground: enabled ? Config.background : Config.playerOverlay
+            pressedBackground: Config.baseColor
+            outlineColor: Config.baseColor
+            cornerRadius: Config.radius
             onClicked: {
                 if (root.tokenMissing) {
                     root.settingsRequested()

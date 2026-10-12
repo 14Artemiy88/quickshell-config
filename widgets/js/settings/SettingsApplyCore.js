@@ -1,7 +1,9 @@
 .pragma library
 
+.import "SettingsSchema.js" as Schema
+
 function apply(owner, Config, o) {
-        if (o.weatherToken !== undefined) owner.weatherToken = String(o.weatherToken)
+        if (o.weatherToken !== undefined) owner.weatherToken = String(o.weatherToken).trim()
         if (o.font !== undefined) Config.font = String(o.font)
         if (o.fontSize !== undefined) {
             var fs = Number(o.fontSize)
@@ -45,15 +47,15 @@ function apply(owner, Config, o) {
         if (o.timerFinishedImagePath !== undefined) Config.timerFinishedImagePath = String(o.timerFinishedImagePath)
         if (o.timerFinishedBorderUsesTimerColor !== undefined) Config.timerFinishedBorderUsesTimerColor = !!o.timerFinishedBorderUsesTimerColor
         if (o.timerFinishedBackgroundUsesTimerColor !== undefined) Config.timerFinishedBackgroundUsesTimerColor = !!o.timerFinishedBackgroundUsesTimerColor
-        if (o.timerFinishedBackgroundColor !== undefined) Config.timerFinishedBackgroundColor = String(o.timerFinishedBackgroundColor)
+        if (o.timerFinishedBackgroundColor !== undefined) Config.timerFinishedBackgroundColor = Schema.normalizeSavedColor(o.timerFinishedBackgroundColor, "#4d000000")
         if (o.timerFinishedImageWidth !== undefined) { var tiw = Number(o.timerFinishedImageWidth); if (isFinite(tiw)) Config.timerFinishedImageWidth = Math.max(50, Math.min(1200, Math.round(tiw))) }
-        if (o.timerFinishedImageMargin !== undefined) { var tim = Number(o.timerFinishedImageMargin); if (isFinite(tim)) { tim = Math.max(0, Math.min(100, Math.round(tim))); Config.timerFinishedImageMargin = tim; Config.timerFinishedImageTopMargin = tim; Config.timerFinishedImageBottomMargin = tim } }
+        if (o.timerFinishedImageMargin !== undefined) { var tim = Number(o.timerFinishedImageMargin); if (isFinite(tim)) { tim = Math.max(0, Math.min(100, Math.round(tim))); Config.timerFinishedImageMargin = tim } }
         else {
             var legacyTim = o.timerFinishedImageTopMargin !== undefined ? Number(o.timerFinishedImageTopMargin) : (o.timerFinishedImageBottomMargin !== undefined ? Number(o.timerFinishedImageBottomMargin) : NaN)
-            if (isFinite(legacyTim)) { legacyTim = Math.max(0, Math.min(100, Math.round(legacyTim))); Config.timerFinishedImageMargin = legacyTim; Config.timerFinishedImageTopMargin = legacyTim; Config.timerFinishedImageBottomMargin = legacyTim }
+            if (isFinite(legacyTim)) { legacyTim = Math.max(0, Math.min(100, Math.round(legacyTim))); Config.timerFinishedImageMargin = legacyTim }
         }
         if (o.timerFinishedTitleUsesTimerColor !== undefined) Config.timerFinishedTitleUsesTimerColor = !!o.timerFinishedTitleUsesTimerColor
-        if (o.timerFinishedTitleColor !== undefined) Config.timerFinishedTitleColor = String(o.timerFinishedTitleColor)
+        if (o.timerFinishedTitleColor !== undefined) Config.timerFinishedTitleColor = Schema.normalizeSavedColor(o.timerFinishedTitleColor, "#ffffff")
         if (o.timerFinishedTitleFontSize !== undefined) { var ttfs = Number(o.timerFinishedTitleFontSize); if (isFinite(ttfs)) Config.timerFinishedTitleFontSize = Math.max(8, Math.min(72, Math.round(ttfs))) }
         if (o.timerFinishedTitleFont !== undefined) Config.timerFinishedTitleFont = String(o.timerFinishedTitleFont)
         if (o.timerFinishedTitleAlignment !== undefined) { var tta = Number(o.timerFinishedTitleAlignment); if (isFinite(tta)) Config.timerFinishedTitleAlignment = Math.max(0, Math.min(2, Math.round(tta))) }

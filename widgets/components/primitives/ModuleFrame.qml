@@ -1,5 +1,5 @@
 import QtQuick
-import ".."
+import "../.."
 
 Rectangle {
     property bool compact: false

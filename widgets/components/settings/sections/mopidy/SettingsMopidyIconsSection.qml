@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import "../primitives"
-import "../../.."
+import "../../primitives"
+import "../../../.."
 
 Column {
     id: root
@@ -400,7 +400,7 @@ Column {
         SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveUpIconY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveUpIconY"; settingsObject: root.settings; saveOnEdit: true }
         SettingsCheckBox {
             id: moveUpVisibilityCheckBox; width: 58; height: 30; indicatorOnly: true; checked: Config.mopidyShowMoveUpIcon
-            onClicked: { Config.mopidyShowMoveUpIcon = checked; Config.mopidyShowMoveButtons = Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon; settings.save() }
+            onClicked: { Config.mopidyShowMoveUpIcon = checked; settings.save() }
             Connections { target: Config; function onMopidyShowMoveUpIconChanged() { moveUpVisibilityCheckBox.checked = Config.mopidyShowMoveUpIcon } }
         }
     }
@@ -419,7 +419,7 @@ Column {
         SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveDownIconY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveDownIconY"; settingsObject: root.settings; saveOnEdit: true }
         SettingsCheckBox {
             id: moveDownVisibilityCheckBox; width: 58; height: 30; indicatorOnly: true; checked: Config.mopidyShowMoveDownIcon
-            onClicked: { Config.mopidyShowMoveDownIcon = checked; Config.mopidyShowMoveButtons = Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon; settings.save() }
+            onClicked: { Config.mopidyShowMoveDownIcon = checked; settings.save() }
             Connections { target: Config; function onMopidyShowMoveDownIconChanged() { moveDownVisibilityCheckBox.checked = Config.mopidyShowMoveDownIcon } }
         }
     }

@@ -1,12 +1,11 @@
 import QtQuick
 import QtQuick.Controls
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
-import "./primitives" as Primitives
 import Quickshell
 import Quickshell.Io
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "timer"
     width: 315
@@ -55,6 +54,40 @@ Widgets.Frame {
         const h = alarmTarget.getHours().toString().padStart(2, "0")
         const m = alarmTarget.getMinutes().toString().padStart(2, "0")
         return h + ":" + m
+    }
+
+    function scheduleAlarmTarget() {
+        const now = new Date()
+        const target = new Date(root.alarmTarget.getTime())
+        target.setSeconds(0, 0)
+        if (target.getTime() <= now.getTime())
+            target.setDate(target.getDate() + 1)
+        const hh = target.getHours().toString().padStart(2, "0")
+        const mm = target.getMinutes().toString().padStart(2, "0")
+        Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
+        root.alarmTargetAdjusted = false
+        root.alarmTarget = new Date()
+    }
+
+    function adjustAlarmTarget(unit, wheelEvent) {
+        const direction = wheelEvent.angleDelta.y > 0 ? 1 : -1
+        const multiplier = (wheelEvent.modifiers & Qt.ShiftModifier) ? 10 : 1
+        const target = new Date(root.alarmTarget.getTime())
+        if (unit === "hours")
+            target.setHours(target.getHours() + direction * multiplier)
+        else
+            target.setMinutes(target.getMinutes() + direction * multiplier)
+        target.setSeconds(0, 0)
+        root.alarmTarget = target
+        root.alarmTargetAdjusted = true
+        wheelEvent.accepted = true
+    }
+
+    function resetAlarmTargetMinutes() {
+        const target = new Date(root.alarmTarget.getTime())
+        target.setMinutes(0, 0, 0)
+        root.alarmTarget = target
+        root.alarmTargetAdjusted = true
     }
 
     function syncAlarmTargetClock() {
@@ -251,16 +284,7 @@ Widgets.Frame {
 
             onClicked: mouse => {
                 if (hoverZone !== 2) return
-                const now = new Date()
-                let target = new Date(root.alarmTarget.getTime())
-                target.setSeconds(0, 0)
-                if (target.getTime() <= now.getTime())
-                    target.setDate(target.getDate() + 1)
-                const hh = target.getHours().toString().padStart(2, "0")
-                const mm = target.getMinutes().toString().padStart(2, "0")
-                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
-                root.alarmTargetAdjusted = false
-                root.alarmTarget = new Date()
+                root.scheduleAlarmTarget()
             }
 
             onWheel: wheel => {
@@ -268,14 +292,7 @@ Widgets.Frame {
                     wheel.accepted = false
                     return
                 }
-                const direction = wheel.angleDelta.y > 0 ? 1 : -1
-                const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
-                const target = new Date(root.alarmTarget.getTime())
-                target.setMinutes(target.getMinutes() + direction * multiplier)
-                target.setSeconds(0, 0)
-                root.alarmTarget = target
-                root.alarmTargetAdjusted = true
-                wheel.accepted = true
+                root.adjustAlarmTarget("minutes", wheel)
             }
         }
 
@@ -338,30 +355,21 @@ Widgets.Frame {
                 anchors.verticalCenter: parent.verticalCenter
                 Repeater {
                     model: Settings.timerPresets
-                    delegate: Rectangle {
+                    delegate: TimerPresetButton {
                         width: 33
                         height: 33
-                        radius: 7
-                        color: Config.background
-                        border.color: Config.baseColor
-                        border.width: 1
-                        Text { anchors.centerIn: parent; text: modelData; color: Config.textDim }
-                        MouseArea {
-                            anchors.fill: parent
-                            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-                            onClicked: mouse => {
-                                if (mouse.button === Qt.MiddleButton) {
-                                    Settings.resetTimerPreset(index)
-                                    return
-                                }
+                        label: String(modelData)
+                        onButtonClicked: button => {
+                            if (button === Qt.MiddleButton) {
+                                Settings.resetTimerPreset(index)
+                                return
+                            }
+                            if (button === Qt.LeftButton)
                                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add", String(modelData)])
-                            }
-                            onWheel: wheel => {
-                                const direction = wheel.angleDelta.y > 0 ? 1 : -1
-                                const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
-                                Settings.adjustTimerPreset(index, direction * Config.timerWheelStep * multiplier)
-                                wheel.accepted = true
-                            }
+                        }
+                        onWheelAdjusted: (direction, accelerated) => {
+                            const multiplier = accelerated ? 10 : 1
+                            Settings.adjustTimerPreset(index, direction * Config.timerWheelStep * multiplier)
                         }
                     }
                 }
@@ -394,49 +402,19 @@ Widgets.Frame {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 5
 
-                Rectangle {
+                TimerAlarmTimeButton {
                     id: alarmHourBox
                     width: 33
                     height: 33
-                    radius: 7
-                    color: Config.background
-                    border.color: Config.baseColor
-                    border.width: 1
+                    displayText: root.alarmTarget.getHours().toString().padStart(2, "0")
+                    acceptedButtons: Qt.LeftButton
+                    wheelEnabled: true
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.alarmTarget.getHours().toString().padStart(2, "0")
-                        color: Config.textDim
-                        font.family: Config.settingsFont
-                        font.pixelSize: 11
+                    onButtonClicked: button => {
+                        if (button === Qt.LeftButton)
+                            root.scheduleAlarmTarget()
                     }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton
-                        onClicked: {
-                            const target = new Date(root.alarmTarget.getTime())
-                            target.setSeconds(0, 0)
-                            const now = new Date()
-                            if (target.getTime() <= now.getTime())
-                                target.setDate(target.getDate() + 1)
-                            const hh = target.getHours().toString().padStart(2, "0")
-                            const mm = target.getMinutes().toString().padStart(2, "0")
-                            Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
-                            root.alarmTargetAdjusted = false
-                            root.alarmTarget = new Date()
-                        }
-                        onWheel: wheel => {
-                            const direction = wheel.angleDelta.y > 0 ? 1 : -1
-                            const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
-                            const target = new Date(root.alarmTarget.getTime())
-                            target.setHours(target.getHours() + direction * multiplier)
-                            target.setSeconds(0, 0)
-                            root.alarmTarget = target
-                            root.alarmTargetAdjusted = true
-                            wheel.accepted = true
-                        }
-                    }
+                    onWheelRequested: wheelEvent => root.adjustAlarmTarget("hours", wheelEvent)
                 }
 
                 Text {
@@ -450,57 +428,23 @@ Widgets.Frame {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                Rectangle {
+                TimerAlarmTimeButton {
                     id: alarmMinuteBox
                     width: 33
                     height: 33
-                    radius: 7
-                    color: Config.background
-                    border.color: Config.baseColor
-                    border.width: 1
+                    displayText: root.alarmTarget.getMinutes().toString().padStart(2, "0")
+                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                    wheelEnabled: true
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.alarmTarget.getMinutes().toString().padStart(2, "0")
-                        color: Config.textDim
-                        font.family: Config.settingsFont
-                        font.pixelSize: 11
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-                        onClicked: mouse => {
-                            if (mouse.button === Qt.MiddleButton) {
-                                const target = new Date(root.alarmTarget.getTime())
-                                target.setMinutes(0, 0, 0)
-                                root.alarmTarget = target
-                                root.alarmTargetAdjusted = true
-                                return
-                            }
-
-                            const target = new Date(root.alarmTarget.getTime())
-                            target.setSeconds(0, 0)
-                            const now = new Date()
-                            if (target.getTime() <= now.getTime())
-                                target.setDate(target.getDate() + 1)
-                            const hh = target.getHours().toString().padStart(2, "0")
-                            const mm = target.getMinutes().toString().padStart(2, "0")
-                            Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
-                            root.alarmTargetAdjusted = false
-                            root.alarmTarget = new Date()
+                    onButtonClicked: button => {
+                        if (button === Qt.MiddleButton) {
+                            root.resetAlarmTargetMinutes()
+                            return
                         }
-                        onWheel: wheel => {
-                            const direction = wheel.angleDelta.y > 0 ? 1 : -1
-                            const multiplier = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
-                            const target = new Date(root.alarmTarget.getTime())
-                            target.setMinutes(target.getMinutes() + direction * multiplier)
-                            target.setSeconds(0, 0)
-                            root.alarmTarget = target
-                            root.alarmTargetAdjusted = true
-                            wheel.accepted = true
-                        }
+                        if (button === Qt.LeftButton)
+                            root.scheduleAlarmTarget()
                     }
+                    onWheelRequested: wheelEvent => root.adjustAlarmTarget("minutes", wheelEvent)
                 }
             }
         }

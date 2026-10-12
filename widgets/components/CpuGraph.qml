@@ -1,10 +1,10 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 import Quickshell
 import Quickshell.Io
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "cpuGraph"
     width: 315

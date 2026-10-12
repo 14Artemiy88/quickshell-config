@@ -1,11 +1,11 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "player"
     signal mopidyToggleRequested()
@@ -196,17 +196,21 @@ Widgets.Frame {
                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", backend])
         }
     }
-    Text {
-        x: Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap; y: Config.playerControlTopMargin + Config.playerNextIconY; width: Config.playerNextIconSize + 2; height: Config.playerNextIconSize + 2
-        text: Config.playerNextIcon
-        color: Config.text
-        font.pixelSize: Config.playerNextIconSize
+    Primitives.HoverIconButton {
+        x: Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap
+        y: Config.playerControlTopMargin + Config.playerNextIconY
+        width: Config.playerNextIconSize + 2
+        height: Config.playerNextIconSize + 2
+        iconText: Config.playerNextIcon
+        iconSize: Config.playerNextIconSize
+        baseColor: Config.text
+        iconFontFamily: Config.font
+        hoverMode: "none"
+        cursorShape: Qt.PointingHandCursor
         // Next is supported only by backends with an implemented next action.
         // Other player backends may be active but do not reliably handle this control.
         visible: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        MouseArea { anchors.fill: parent; onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""]) }
+        onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""])
     }
     property real pendingSeekPercent: -1
     property real pendingSeekDuration: -1

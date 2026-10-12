@@ -2,10 +2,10 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     id: root
     moduleName: "calendar"
     moduleBackgroundColor: Config.calendarBackground
@@ -131,25 +131,18 @@ Widgets.Frame {
                 height: 25
                 spacing: 4
 
-                Item {
+                Primitives.HoverIconButton {
                     width: 28
                     height: parent.height
-                    Text {
-                        x: Config.calendarPreviousX
-                        y: Config.calendarArrowY
-                        width: parent.width
-                        height: parent.height
-                        text: Config.calendarPreviousIcon
-                        color: Config.text
-                        font.family: Config.font
-                        font.pixelSize: Config.calendarPreviousSize
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.shiftMonth(-1)
-                    }
+                    iconText: Config.calendarPreviousIcon
+                    iconSize: Config.calendarPreviousSize
+                    iconX: Config.calendarPreviousX
+                    iconY: Config.calendarArrowY
+                    baseColor: Config.text
+                    iconFontFamily: Config.font
+                    hoverMode: "none"
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: root.shiftMonth(-1)
                 }
 
                 Text {
@@ -164,25 +157,18 @@ Widgets.Frame {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                Item {
+                Primitives.HoverIconButton {
                     width: 28
                     height: parent.height
-                    Text {
-                        x: Config.calendarNextX
-                        y: Config.calendarArrowY
-                        width: parent.width
-                        height: parent.height
-                        text: Config.calendarNextIcon
-                        color: Config.text
-                        font.family: Config.font
-                        font.pixelSize: Config.calendarNextSize
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.shiftMonth(1)
-                    }
+                    iconText: Config.calendarNextIcon
+                    iconSize: Config.calendarNextSize
+                    iconX: Config.calendarNextX
+                    iconY: Config.calendarArrowY
+                    baseColor: Config.text
+                    iconFontFamily: Config.font
+                    hoverMode: "none"
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: root.shiftMonth(1)
                 }
             }
             Row {
@@ -383,18 +369,16 @@ Widgets.Frame {
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
-                Text {
+                Primitives.HoverIconButton {
                     width: 30
                     height: parent.height
-                    text: "×"
-                    color: Config.text
-                    font.pixelSize: 20
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.closeNoteOverlay()
-                    }
+                    iconText: "×"
+                    iconSize: 20
+                    baseColor: Config.text
+                    iconFontFamily: "Sans Serif"
+                    hoverMode: "none"
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: root.closeNoteOverlay()
                 }
             }
 
@@ -430,71 +414,26 @@ Widgets.Frame {
                 height: 28
                 spacing: 6
                 visible: root.noteOverlayMode === "edit"
-                Button {
+                Primitives.StyledTextButton {
                     id: noteSaveButton
                     width: 100
                     height: parent.height
                     text: "Сохранить"
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    contentItem: Text {
-                        text: noteSaveButton.text
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: noteSaveButton.down ? Config.baseColor : Config.settingsBackground
-                        border.color: Config.baseColor
-                        radius: 4
-                    }
                     onClicked: root.saveCalendarNote()
                 }
-                Button {
+                Primitives.StyledTextButton {
                     id: noteDeleteButton
                     width: 82
                     height: parent.height
                     text: "Удалить"
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    contentItem: Text {
-                        text: noteDeleteButton.text
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: noteDeleteButton.down ? Config.baseColor : Config.settingsBackground
-                        border.color: Config.baseColor
-                        radius: 4
-                    }
                     onClicked: { root.noteDraft = ""; root.saveCalendarNote() }
                 }
                 Item { width: Math.max(0, parent.width - 100 - 82 - 64 - 18); height: 1 }
-                Button {
+                Primitives.StyledTextButton {
                     id: noteCancelButton
                     width: 64
                     height: parent.height
                     text: "Отмена"
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    contentItem: Text {
-                        text: noteCancelButton.text
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: noteCancelButton.down ? Config.baseColor : Config.settingsBackground
-                        border.color: Config.baseColor
-                        radius: 4
-                    }
                     onClicked: root.closeNoteOverlay()
                 }
             }
@@ -504,49 +443,19 @@ Widgets.Frame {
                 height: 28
                 spacing: 6
                 visible: root.noteOverlayMode === "view"
-                Button {
+                Primitives.StyledTextButton {
                     id: noteEditButton
                     width: 90
                     height: parent.height
                     text: "Изменить"
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    contentItem: Text {
-                        text: noteEditButton.text
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: noteEditButton.down ? Config.baseColor : Config.settingsBackground
-                        border.color: Config.baseColor
-                        radius: 4
-                    }
                     onClicked: root.openNoteEditor(root.noteDialogDate)
                 }
                 Item { width: Math.max(0, parent.width - 90 - 70 - 12); height: 1 }
-                Button {
+                Primitives.StyledTextButton {
                     id: noteCloseButton
                     width: 70
                     height: parent.height
                     text: "Закрыть"
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    contentItem: Text {
-                        text: noteCloseButton.text
-                        color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                    background: Rectangle {
-                        color: noteCloseButton.down ? Config.baseColor : Config.settingsBackground
-                        border.color: Config.baseColor
-                        radius: 4
-                    }
                     onClicked: root.closeNoteOverlay()
                 }
             }

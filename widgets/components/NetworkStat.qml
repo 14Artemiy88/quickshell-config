@@ -1,8 +1,8 @@
 import QtQuick
-import "." as Widgets
+import "primitives" as Primitives
 import ".."
 
-Widgets.Frame {
+Primitives.ModuleFrame {
     moduleName: "networkStat"
     width: 313
     height: 55

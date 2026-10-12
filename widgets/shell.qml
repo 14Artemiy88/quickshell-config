@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import "components"
+import "components/mopidy" as MopidyComponents
 import "components/settings"
 import "services"
 import "components/primitives" as Primitives
@@ -505,7 +506,7 @@ ShellRoot {
             shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible
             animationStyle: Config.animationMopidyVisibilityStyle
             duration: Config.animationDuration(280, "appearance")
-            Mopidy {
+            MopidyComponents.Mopidy {
                 id: mopidyWidget
                 anchors.fill: parent
                 externalTopPanelHover: shell.mopidyTopReveal

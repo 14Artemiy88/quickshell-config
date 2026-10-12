@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import "../primitives"
-import "../../.."
+import "../../primitives"
+import "../../../.."
 
 Column {
     id: root

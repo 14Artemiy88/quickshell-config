@@ -3,9 +3,9 @@ function snapshotObject(owner, config) {
         var modules = {}
         for (var i=0; i<owner.moduleNames.length; ++i) modules[owner.moduleNames[i]] = owner[owner.moduleNames[i]]
         var colors = {}
-        for (var j=0; j<owner.colorNames.length; ++j) colors[owner.colorNames[j]] = config[owner.colorNames[j]]
+        for (var j=0; j<owner.colorNames.length; ++j) colors[owner.colorNames[j]] = String(config[owner.colorNames[j]])
         return {
-            weatherToken: owner.weatherToken,
+            weatherToken: String(owner.weatherToken || "").trim(),
             font: config.font, fontSize: config.fontSize,
             settingsFont: config.settingsFont, settingsFontSize: config.settingsFontSize,
             settingsPadding: config.settingsPadding, settingsSpacing: config.settingsSpacing,
@@ -32,13 +32,13 @@ function snapshotObject(owner, config) {
             timerIcon: config.timerIcon, timerIconOrder: config.timerIconOrder, timerIconSize: config.timerIconSize, timerIconX: config.timerIconX, timerIconY: config.timerIconY,
             timerAlarmIcon: config.timerAlarmIcon, timerAlarmIconSize: config.timerAlarmIconSize, timerAlarmIconX: config.timerAlarmIconX, timerAlarmIconY: config.timerAlarmIconY,
             timerFinishedImageEnabled: config.timerFinishedImageEnabled, timerFinishedImagePath: config.timerFinishedImagePath,
-            timerFinishedBorderUsesTimerColor: config.timerFinishedBorderUsesTimerColor, timerFinishedBackgroundUsesTimerColor: config.timerFinishedBackgroundUsesTimerColor, timerFinishedBackgroundColor: config.timerFinishedBackgroundColor,
-            timerFinishedImageWidth: config.timerFinishedImageWidth, timerFinishedImageMargin: config.timerFinishedImageMargin, timerFinishedImageTopMargin: config.timerFinishedImageMargin, timerFinishedImageBottomMargin: config.timerFinishedImageMargin,
-            timerFinishedTitleUsesTimerColor: config.timerFinishedTitleUsesTimerColor, timerFinishedTitleColor: config.timerFinishedTitleColor, timerFinishedTitleFontSize: config.timerFinishedTitleFontSize, timerFinishedTitleFont: config.timerFinishedTitleFont, timerFinishedTitleAlignment: config.timerFinishedTitleAlignment,
+            timerFinishedBorderUsesTimerColor: config.timerFinishedBorderUsesTimerColor, timerFinishedBackgroundUsesTimerColor: config.timerFinishedBackgroundUsesTimerColor, timerFinishedBackgroundColor: String(config.timerFinishedBackgroundColor),
+            timerFinishedImageWidth: config.timerFinishedImageWidth, timerFinishedImageMargin: config.timerFinishedImageMargin,
+            timerFinishedTitleUsesTimerColor: config.timerFinishedTitleUsesTimerColor, timerFinishedTitleColor: String(config.timerFinishedTitleColor), timerFinishedTitleFontSize: config.timerFinishedTitleFontSize, timerFinishedTitleFont: config.timerFinishedTitleFont, timerFinishedTitleAlignment: config.timerFinishedTitleAlignment,
             playerSilenceFontSize: config.playerSilenceFontSize, playerSilenceLongFontSize: config.playerSilenceLongFontSize, playerMetaFontSize: config.playerMetaFontSize,
             playerTextOutlineEnabled: config.playerTextOutlineEnabled, playerTextOutlineColor: config.playerTextOutlineColor,
             playerMetaSecondaryFontSize: config.playerMetaSecondaryFontSize, playerMetaLineSpacing: config.playerMetaLineSpacing, playerBoldArtist: config.playerBoldArtist,
-            playerShowProgress: config.playerShowProgress, playerControlIconSize: config.playerControlIconSize, playerPlayingIconSize: config.playerPlayingIconSize, playerPausedIconSize: config.playerPausedIconSize, playerNextIconSize: config.playerNextIconSize, playerPlayingIconY: config.playerPlayingIconY, playerPausedIconY: config.playerPausedIconY, playerNextIconY: config.playerNextIconY, playerPlayingIcon: config.playerPlayingIcon, playerPausedIcon: config.playerPausedIcon, playerNextIcon: config.playerNextIcon,
+            playerShowProgress: config.playerShowProgress, playerPlayingIconSize: config.playerPlayingIconSize, playerPausedIconSize: config.playerPausedIconSize, playerNextIconSize: config.playerNextIconSize, playerPlayingIconY: config.playerPlayingIconY, playerPausedIconY: config.playerPausedIconY, playerNextIconY: config.playerNextIconY, playerPlayingIcon: config.playerPlayingIcon, playerPausedIcon: config.playerPausedIcon, playerNextIcon: config.playerNextIcon,
             playerBlurEnabled: config.playerBlurEnabled, playerBlurRadius: config.playerBlurRadius,
             playerMetadataXPadding: config.playerMetadataXPadding,
             playerMetadataY: config.playerMetadataY, playerProgressY: config.playerProgressY,
@@ -46,7 +46,7 @@ function snapshotObject(owner, config) {
             playerControlTopMargin: config.playerControlTopMargin, playerControlGap: config.playerControlGap,
             playerTimeFontSize: config.playerTimeFontSize, playerTimeFont: config.playerTimeFont, playerTimeY: config.playerTimeY, playerTimeRightPadding: config.playerTimeRightPadding, playerCoverOpacity: config.playerCoverOpacity,
             playerSilenceWidth: config.playerSilenceWidth, playerProgressTrackOffsetY: config.playerProgressTrackOffsetY, playerPriority: JSON.parse(JSON.stringify(config.playerPriority || [])),
-            mopidyShowTrackNumbers: config.mopidyShowTrackNumbers, mopidyTopIconOrder: config.mopidyTopIconOrder, mopidyShowMoveButtons: config.mopidyShowMoveButtons, mopidyMoveUpIcon: config.mopidyMoveUpIcon, mopidyMoveUpIconSize: config.mopidyMoveUpIconSize, mopidyMoveUpIconX: config.mopidyMoveUpIconX, mopidyMoveUpIconY: config.mopidyMoveUpIconY, mopidyShowMoveUpIcon: config.mopidyShowMoveUpIcon, mopidyMoveDownIcon: config.mopidyMoveDownIcon, mopidyMoveDownIconSize: config.mopidyMoveDownIconSize, mopidyMoveDownIconX: config.mopidyMoveDownIconX, mopidyMoveDownIconY: config.mopidyMoveDownIconY, mopidyShowMoveDownIcon: config.mopidyShowMoveDownIcon, mopidyGroupAlbums: config.mopidyGroupAlbums,
+            mopidyShowTrackNumbers: config.mopidyShowTrackNumbers, mopidyTopIconOrder: config.mopidyTopIconOrder, mopidyMoveUpIcon: config.mopidyMoveUpIcon, mopidyMoveUpIconSize: config.mopidyMoveUpIconSize, mopidyMoveUpIconX: config.mopidyMoveUpIconX, mopidyMoveUpIconY: config.mopidyMoveUpIconY, mopidyShowMoveUpIcon: config.mopidyShowMoveUpIcon, mopidyMoveDownIcon: config.mopidyMoveDownIcon, mopidyMoveDownIconSize: config.mopidyMoveDownIconSize, mopidyMoveDownIconX: config.mopidyMoveDownIconX, mopidyMoveDownIconY: config.mopidyMoveDownIconY, mopidyShowMoveDownIcon: config.mopidyShowMoveDownIcon, mopidyGroupAlbums: config.mopidyGroupAlbums,
             mopidyAlbumFont: config.mopidyAlbumFont, mopidyAlbumFontSize: config.mopidyAlbumFontSize, mopidyAlbumBold: config.mopidyAlbumBold, mopidyTrackFont: config.mopidyTrackFont, mopidyTrackFontSize: config.mopidyTrackFontSize, mopidyTrackRowHeight: config.mopidyTrackRowHeight, mopidyArtistFont: config.mopidyArtistFont, mopidyArtistFontSize: config.mopidyArtistFontSize, mopidyArtistBold: config.mopidyArtistBold, mopidyArtistItalic: config.mopidyArtistItalic, mopidyTrackArtistDisplayMode: config.mopidyTrackArtistDisplayMode, mopidyTrackArtistSeparator: config.mopidyTrackArtistSeparator, mopidyDurationFont: config.mopidyDurationFont, mopidyDurationFontSize: config.mopidyDurationFontSize, mopidyAlbumSeparator: config.mopidyAlbumSeparator,
             mopidyBackground: String(config.mopidyBackground), mopidyToggleWithPlayerRightClick: config.mopidyToggleWithPlayerRightClick, mopidyHideTopPanel: config.mopidyHideTopPanel, mopidyTopPanelHoverHeight: config.mopidyTopPanelHoverHeight, mopidyTopPanelOffsetY: config.mopidyTopPanelOffsetY, mopidyTopPanelBackground: config.mopidyTopPanelBackground, mopidyHoverMode: config.mopidyHoverMode, mopidyHoverColor: config.mopidyHoverColor,
             mopidyStopIcon: config.mopidyStopIcon, mopidyStopIconSize: config.mopidyStopIconSize, mopidyStopIconX: config.mopidyStopIconX, mopidyStopIconY: config.mopidyStopIconY,
@@ -81,36 +81,37 @@ function snapshotObject(owner, config) {
             weatherDailyHighTempX: config.weatherDailyHighTempX, weatherDailyHighTempY: config.weatherDailyHighTempY, weatherDailyHighTempFontSize: config.weatherDailyHighTempFontSize,
             weatherDailyLowTempX: config.weatherDailyLowTempX, weatherDailyLowTempY: config.weatherDailyLowTempY, weatherDailyLowTempFontSize: config.weatherDailyLowTempFontSize,
             cavaBars: config.cavaBars, cavaFramerate: config.cavaFramerate, cavaRowSpacing: config.cavaRowSpacing, cavaBarWidthRatio: config.cavaBarWidthRatio, cavaMode: config.cavaMode, cavaHideWhenSilent: config.cavaHideWhenSilent, frameBorderWidth: config.frameBorderWidth, frameRadius: config.frameRadius,
-            cpuBarThickness: config.cpuBarThickness, cpuBarWidth: config.cpuBarWidth, cpuRowHeight: config.cpuRowHeight, cpuRowSpacing: config.cpuRowSpacing, cpuLabelLeftPadding: config.cpuLabelLeftPadding, cpuBarLeftOffset: config.cpuBarLeftOffset, cpuBarRadius: config.cpuBarRadius, cpuBarDirection: config.cpuBarDirection, cpuGraphSegmentSlotWidth: config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: config.cpuGraphBarWidth, cpuGraphMode: config.cpuGraphMode, cpuShowRam: config.cpuShowRam,
+            cpuBarThickness: config.cpuBarThickness, cpuBarWidth: config.cpuBarWidth, cpuRowHeight: config.cpuRowHeight, cpuRowSpacing: config.cpuRowSpacing, cpuLabelLeftPadding: config.cpuLabelLeftPadding, cpuBarLeftOffset: config.cpuBarLeftOffset, cpuBarRadius: config.cpuBarRadius, cpuBarDirection: config.cpuBarDirection, cpuGraphSegmentSlotWidth: config.cpuGraphSegmentSlotWidth, cpuGraphBarWidth: config.cpuGraphBarWidth, cpuGraphMode: config.cpuGraphMode, cpuShowRam: config.cpuShowRam, topAppsShowHeaders: config.topAppsShowHeaders, topAppsShowBars: config.topAppsShowBars, topAppsFont: config.topAppsFont, topAppsFontSize: config.topAppsFontSize, topAppsRowSpacing: config.topAppsRowSpacing, topAppsTopOffset: config.topAppsTopOffset,
             networkShowUpload: config.networkShowUpload, networkShowDownload: config.networkShowDownload, networkRowHeight: config.networkRowHeight, networkRowSpacing: config.networkRowSpacing, networkIconSize: config.networkIconSize, networkValueFontSize: config.networkValueFontSize, networkRightPadding: config.networkRightPadding, networkHorizontalPadding: config.networkHorizontalPadding, networkIconLeftPadding: config.networkIconLeftPadding, networkIconColumnWidth: config.networkIconColumnWidth,
             volumeUpdateInterval: config.volumeUpdateInterval, volumeIcon: config.volumeIcon, volumeMutedIcon: config.volumeMutedIcon, volumeMainRowHeight: config.volumeMainRowHeight, volumeStreamRowHeight: config.volumeStreamRowHeight, volumeStreamSpacing: config.volumeStreamSpacing, volumeShowStreams: config.volumeShowStreams, volumeHorizontalPadding: config.volumeHorizontalPadding, volumeVerticalPadding: config.volumeVerticalPadding, volumeMainTrackWidth: config.volumeMainTrackWidth, volumeMainTrackHeight: config.volumeMainTrackHeight, volumeStreamTrackHeight: config.volumeStreamTrackHeight, volumeMainTrackOffsetY: config.volumeMainTrackOffsetY, volumeStreamTrackOffsetY: config.volumeStreamTrackOffsetY, volumeMainIconWidth: config.volumeMainIconWidth, volumeStreamLabelFontSize: config.volumeStreamLabelFontSize, volumeTrackRadius: config.volumeTrackRadius,
-            timerPresets: owner.timerPresetDefaults, timerPresetDefaults: owner.timerPresetDefaults, modules: modules, moduleFrames: owner.moduleFrames, moduleBackgrounds: owner.moduleBackgrounds, moduleMonitors: owner.moduleMonitors, geometry: owner.geometry, settingsGeometry: owner.settingsGeometry, settingsMonitorName: owner.settingsMonitorName, colors: colors, activeTheme: owner.activeTheme
+            timerPresetDefaults: owner.timerPresetDefaults, modules: modules, moduleFrames: owner.moduleFrames, moduleBackgrounds: owner.moduleBackgrounds, moduleMonitors: owner.moduleMonitors, geometry: owner.geometry, settingsGeometry: owner.settingsGeometry, settingsMonitorName: owner.settingsMonitorName, colors: colors, activeTheme: owner.activeTheme
         }
     
 }
 
+function payloadObject(owner, config) {
+    var payload = snapshotObject(owner, config)
+    payload.profiles = owner.profiles || {}
+    payload.profileStorageFormat = "sparse-v1"
+    payload.activeProfile = owner.activeProfile
+    payload.customThemes = owner.customThemes || {}
+    payload.activeTheme = owner.activeTheme
+    return payload
+}
+
 function save(owner, config) {
+    if (!owner.writer)
+        owner.writer = owner.writerComponent.createObject(owner)
 
-        if (!owner.writer)
-            owner.writer = owner.writerComponent.createObject(owner)
-
-        if (owner.writer.running) {
-            // The current writer already has a snapshot in flight.
-            // Only remember that another snapshot is required after it finishes;
-            // build the expensive JSON payload once, at that point.
-            owner.pendingWriteRequested = true
-            owner.saved()
-            return
-        }
-
-        var payloadObject = snapshotObject(owner, config)
-        payloadObject.profiles = owner.profiles
-        payloadObject.activeProfile = owner.activeProfile
-        payloadObject.customThemes = owner.customThemes
-        payloadObject.activeTheme = owner.activeTheme
-
-        owner.writer.payload = JSON.stringify(payloadObject)
-        owner.writer.running = true
+    if (owner.writer.running) {
+        // Defer one fresh snapshot until the in-flight write has completed.
+        owner.pendingWriteRequested = true
         owner.saved()
-    
+        return
+    }
+
+    owner.profileStorageFormat = "sparse-v1"
+    owner.writer.payload = JSON.stringify(payloadObject(owner, config))
+    owner.writer.running = true
+    owner.saved()
 }

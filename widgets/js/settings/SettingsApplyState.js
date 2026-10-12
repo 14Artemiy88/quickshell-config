@@ -1,5 +1,8 @@
 .pragma library
 
+.import "SettingsSchema.js" as Schema
+.import "SettingsProfiles.js" as Profiles
+
 function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames) {
         var presetSource = o.timerPresetDefaults instanceof Array ? o.timerPresetDefaults : o.timerPresets
         if (presetSource instanceof Array) {
@@ -56,11 +59,25 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         var colors = o.colors || {}
         for (var j=0; j<colorNames.length; ++j) {
             var name = colorNames[j]
-            if (colors[name] !== undefined) Config[name] = colors[name]
+            if (colors[name] !== undefined)
+                Config[name] = Schema.normalizeSavedColor(colors[name], String(Config[name]))
         }
         if (o.profiles !== undefined && o.profiles && typeof o.profiles === "object") {
-            owner.profiles = o.profiles
+            var sparseProfiles = String(o.profileStorageFormat || "") === Profiles.SPARSE_FORMAT
+            var normalizedProfiles = Schema.normalizeProfiles(o.profiles, sparseProfiles)
+            if (sparseProfiles) {
+                owner.profiles = normalizedProfiles
+                owner.profileStorageFormat = Profiles.SPARSE_FORMAT
+            } else {
+                // One-time migration: convert legacy full snapshots to sparse
+                // deltas against the defaults captured before settings load.
+                owner.profiles = Profiles.sparsifyProfiles(owner, normalizedProfiles)
+                owner.profileStorageFormat = Profiles.SPARSE_FORMAT
+                owner.profileMigrationPending = true
+            }
             owner.rebuildProfileList()
+        } else if (String(o.profileStorageFormat || "") === Profiles.SPARSE_FORMAT) {
+            owner.profileStorageFormat = Profiles.SPARSE_FORMAT
         }
         if (o.customThemes !== undefined && o.customThemes && typeof o.customThemes === "object")
             owner.customThemes = o.customThemes

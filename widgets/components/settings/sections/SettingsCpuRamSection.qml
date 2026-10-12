@@ -313,7 +313,114 @@ Column {
         SettingsCheckBox {
             width: 210; height: 30; text: "Показывать RAM"; checked: Config.cpuShowRam
             onToggled: { Config.cpuShowRam=checked; settings.save() }
-           
+        }
+    }
+
+    Text {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Top Apps — отображение"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(14)
+    }
+
+    Text {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        wrapMode: Text.WordWrap
+        text: "Настройки заголовков, полос и типографики списка процессов."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        SettingsCheckBox {
+            width: parent.width; height: 30
+            text: "Показывать заголовки CPU и памяти"
+            checked: Config.topAppsShowHeaders
+            onToggled: { Config.topAppsShowHeaders = checked; settings.save() }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        SettingsCheckBox {
+            width: parent.width; height: 30
+            text: "Показывать полосы нагрузки"
+            checked: Config.topAppsShowBars
+            onToggled: { Config.topAppsShowBars = checked; settings.save() }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text {
+            width: 210; text: "Шрифт списка (пусто — системный)"
+            color: Config.text; font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        SettingsTextField {
+            id: topAppsFontField
+            width: 180; height: 30
+            text: Config.topAppsFont
+            color: Config.text; font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "Системный шрифт"
+            activeFocusOnTab: true
+            onEditingFinished: {
+                Config.topAppsFont = text.trim().slice(0, 128)
+                text = Config.topAppsFont
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onTopAppsFontChanged() { topAppsFontField.text = Config.topAppsFont }
+            }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Размер шрифта списка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsFontSize
+            minimum: 1; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsFontSize"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Межстрочный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsRowSpacing
+            minimum: 0; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsRowSpacing"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Отступ от верхнего края"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsTopOffset
+            minimum: 0; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsTopOffset"
+            settingsObject: root.settings; saveOnEdit: true
         }
     }
 

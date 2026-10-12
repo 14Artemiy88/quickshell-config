@@ -113,8 +113,6 @@ QtObject {
     property int timerFinishedImageWidth: 280
     property int timerFinishedImageMargin: 10
     // Legacy aliases kept for settings/profile compatibility.
-    property int timerFinishedImageTopMargin: 10
-    property int timerFinishedImageBottomMargin: 10
     property bool timerFinishedTitleUsesTimerColor: true
     property color timerFinishedTitleColor: "#ffffff"
     property int timerFinishedTitleFontSize: 18
@@ -134,6 +132,13 @@ QtObject {
     property int cpuGraphBarWidth: 2
     property string cpuGraphMode: "both"
     property bool cpuShowRam: true
+    // Top Apps presentation
+    property bool topAppsShowHeaders: true
+    property bool topAppsShowBars: true
+    property string topAppsFont: "" // Empty means use the application font, preserving the previous default.
+    property int topAppsFontSize: 12
+    property int topAppsRowSpacing: 1
+    property int topAppsTopOffset: 3
 
     // Network display tuning
     property bool networkShowUpload: true
@@ -176,7 +181,6 @@ QtObject {
     property int playerMetaLineSpacing: 20
     property bool playerBoldArtist: true
     property bool playerShowProgress: true
-    property int playerControlIconSize: 22
     property int playerPlayingIconSize: 22
     property int playerPausedIconSize: 22
     property int playerNextIconSize: 22
@@ -211,7 +215,6 @@ QtObject {
     ])
     // Mopidy module queue presentation
     property bool mopidyShowTrackNumbers: true
-    property bool mopidyShowMoveButtons: true
     property string mopidyMoveUpIcon: "↑"
     property int mopidyMoveUpIconSize: 16
     property int mopidyMoveUpIconX: 0

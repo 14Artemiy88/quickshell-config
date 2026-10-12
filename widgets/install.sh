@@ -3,7 +3,7 @@ set -eu
 TARGET="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
 USER_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-widgets"
 USER_DATA="${XDG_DATA_HOME:-$HOME/.local/share}/quickshell-widgets"
-SOURCE_DIR=$(pwd)
+SOURCE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 mkdir -p "$TARGET" "$USER_CONFIG" "$USER_DATA"
 
 # Safely import compatible legacy data before installing code. Never overwrite
