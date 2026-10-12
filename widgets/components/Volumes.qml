@@ -19,6 +19,12 @@ Primitives.ModuleFrame {
     property bool mainHasPending: false
     property real mainPendingValue: mainDisplayedValue
     property double mainPendingUntil: 0
+    // Keep the requested mute state visible until the backend confirms it.
+    // Poll responses can race the async command and briefly report the old state.
+    property bool mainMuteHasPending: false
+    property bool mainPendingMuted: false
+    property double mainMutePendingUntil: 0
+    property bool mainMuteRefreshPending: false
     readonly property int streamCount: streamRepeater.count
     readonly property int effectiveStreamCount: Config.volumeShowStreams ? streamCount : 0
     readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
@@ -39,7 +45,8 @@ Primitives.ModuleFrame {
     function acceptBackendVolume(v, muted) {
         if (!isFinite(v)) return
         mainBackendValue = clampVolume(v)
-        if (muted !== undefined && isFinite(Number(muted)))
+        const hasMuteState = muted !== undefined && isFinite(Number(muted))
+        if (hasMuteState)
             mainBackendMuted = Number(muted) !== 0
         if (mainDragging) return
         if (mainHasPending) {
@@ -49,6 +56,18 @@ Primitives.ModuleFrame {
                 return
         }
         mainDisplayedValue = mainBackendValue
+        if (mainMuteHasPending) {
+            if (hasMuteState && mainBackendMuted === mainPendingMuted) {
+                mainMuteHasPending = false
+            } else if (Date.now() < mainMutePendingUntil) {
+                // Do not let an older poll undo the optimistic icon/track state.
+                mainMuted = mainPendingMuted
+                return
+            } else {
+                // Stop masking the backend if the requested state never arrived.
+                mainMuteHasPending = false
+            }
+        }
         mainMuted = mainBackendMuted
     }
 
@@ -58,14 +77,30 @@ Primitives.ModuleFrame {
         mainDragValue = next
         return next
     }
-    function applyMainVolume(v) {
+    function expectMainMuteState(muted) {
+        mainMuteHasPending = true
+        mainPendingMuted = Boolean(muted)
+        mainMutePendingUntil = Date.now() + 1800
+        mainMuted = mainPendingMuted
+    }
+
+    function applyMainVolume(v, unmuteIfMuted = false) {
         const next = Math.round(clampVolume(v))
+        const shouldUnmute = unmuteIfMuted && (mainMuted || mainBackendMuted)
         mainDragValue = next
         mainDisplayedValue = next
         mainPendingValue = next
         mainHasPending = true
         mainPendingUntil = Date.now() + 700
-        Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_volume", "main", String(next)])
+        if (shouldUnmute) {
+            // Optimistically reveal the chosen level, while ignoring stale mute
+            // state from a poll that races the set-volume + unmute command.
+            expectMainMuteState(false)
+            Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_volume", "main", String(next), "unmute"])
+            volumeMuteRefreshTimer.restart()
+        } else {
+            Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_volume", "main", String(next)])
+        }
     }
     function applyStreamVolume(id, v) {
         const next = Math.round(clampVolume(v))
@@ -81,7 +116,27 @@ Primitives.ModuleFrame {
                 const parts = this.text.trim().split(/\s+/)
                 root.acceptBackendVolume(Number(parts[0]), parts.length > 1 ? Number(parts[1]) : undefined)
                 volumePoll.running = false
+                if (root.mainMuteRefreshPending && Settings.volumes) {
+                    root.mainMuteRefreshPending = false
+                    volumeMuteRefreshTimer.restart()
+                }
             }
+        }
+    }
+
+    // Delay the confirmation poll until the explicit mute command has had a
+    // chance to reach the audio server. If another poll is still in flight,
+    // schedule one more after it completes rather than restarting it instantly.
+    Timer {
+        id: volumeMuteRefreshTimer
+        interval: 250
+        repeat: false
+        onTriggered: {
+            if (!Settings.volumes) return
+            if (volumePoll.running)
+                root.mainMuteRefreshPending = true
+            else
+                volumePoll.running = true
         }
     }
 
@@ -122,11 +177,11 @@ Primitives.ModuleFrame {
                 height: parent.height
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    Quickshell.execDetached([Quickshell.shellDir + "/scripts/toggle_mute"])
-                    root.mainMuted = !root.mainMuted
-                    root.mainBackendMuted = root.mainMuted
-                    volumePoll.running = false
-                    volumePoll.running = true
+                    const currentTarget = root.mainMuteHasPending ? root.mainPendingMuted : root.mainMuted
+                    const nextMuted = !currentTarget
+                    root.expectMainMuteState(nextMuted)
+                    Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_mute", nextMuted ? "1" : "0"])
+                    volumeMuteRefreshTimer.restart()
                 }
 
                 Text {
@@ -144,21 +199,16 @@ Primitives.ModuleFrame {
                 height: 32
                 property real shownValue: root.mainDragging ? root.mainDragValue : root.mainDisplayedValue
 
-                Rectangle {
-                    id: mainBackground
+                Primitives.ProgressTrack {
+                    id: mainProgressTrack
                     x: 0
                     y: (parent.height - Config.volumeMainTrackHeight) / 2 + Config.volumeMainTrackOffsetY
                     width: parent.width
                     height: Config.volumeMainTrackHeight
                     radius: Config.volumeTrackRadius
-                    color: Config.volumeTrack
-
-                    Rectangle {
-                        width: parent.width * root.clampVolume(parent.parent.shownValue) / 100
-                        height: parent.height
-                        radius: Config.volumeTrackRadius
-                        color: Config.volumeFill
-                    }
+                    value: root.mainMuted && !root.mainDragging ? 0 : root.clampVolume(mainTrack.shownValue)
+                    fillColor: Config.volumeFill
+                    trackColor: Config.volumeTrack
                 }
 
                 MouseArea {
@@ -174,13 +224,13 @@ Primitives.ModuleFrame {
                     }
                     onReleased: {
                         root.mainDragging = false
-                        root.applyMainVolume(root.mainDragValue)
+                        root.applyMainVolume(root.mainDragValue, true)
                     }
                     onWheel: wheel => {
                         const step = wheel.angleDelta.y > 0 ? 1 : -1
                         const next = root.clampVolume((root.mainDragging ? root.mainDragValue : root.mainDisplayedValue) + step)
                         root.mainDragging = false
-                        root.applyMainVolume(next)
+                        root.applyMainVolume(next, true)
                     }
                 }
             }
@@ -213,20 +263,15 @@ Primitives.ModuleFrame {
                     width: parent.width
                     height: root.effectiveStreamRowHeight
 
-                    Rectangle {
+                    Primitives.ProgressTrack {
                         x: 0
                         y: Math.max(0, (parent.height - Config.volumeStreamTrackHeight) / 2 + Config.volumeStreamTrackOffsetY)
                         width: parent.width
                         height: Config.volumeStreamTrackHeight
                         radius: Config.volumeTrackRadius
-                        color: Config.volumeTrack
-
-                        Rectangle {
-                            width: parent.width * root.clampVolume(streamColumn.dragging ? streamColumn.dragValue : streamColumn.backendValue) / 100
-                            height: parent.height
-                            radius: Config.volumeTrackRadius
-                            color: Config.volumeFill
-                        }
+                        value: root.clampVolume(streamColumn.dragging ? streamColumn.dragValue : streamColumn.backendValue)
+                        fillColor: Config.volumeFill
+                        trackColor: Config.volumeTrack
                     }
 
                     MouseArea {

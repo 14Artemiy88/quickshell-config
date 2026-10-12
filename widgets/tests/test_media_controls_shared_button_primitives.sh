@@ -20,8 +20,8 @@ grep -Fq '"next", root.player.player || ""' "$PLAYER"
 # The mute glyph uses the generic button surface, not its own MouseArea.
 grep -Fq 'Primitives.HoverButtonSurface {' "$VOLUMES"
 grep -Fq 'id: mainVolumeIcon' "$VOLUMES"
-grep -Fq 'Quickshell.shellDir + "/scripts/toggle_mute"' "$VOLUMES"
-grep -Fq 'root.mainBackendMuted = root.mainMuted' "$VOLUMES"
+grep -Fq 'Quickshell.shellDir + "/scripts/set_mute"' "$VOLUMES"
+grep -Fq 'root.expectMainMuteState(nextMuted)' "$VOLUMES"
 grep -Fq 'verticalAlignment: Text.AlignVCenter' "$VOLUMES"
 
 # Drag-sensitive main and stream volume controls must keep their specialized handlers.
@@ -81,8 +81,12 @@ if 'HoverButtonSurface {' not in mute_block:
     raise SystemExit('Volume mute button is not using the shared button surface')
 if 'MouseArea {' in mute_block:
     raise SystemExit('Volume mute button still has a local MouseArea')
-if 'toggle_mute' not in mute_block or 'volumePoll.running = true' not in mute_block:
-    raise SystemExit('Volume mute behaviour / polling refresh changed')
+if 'set_mute' not in mute_block or 'volumeMuteRefreshTimer.restart()' not in mute_block:
+    raise SystemExit('Volume mute behaviour / delayed confirmation poll changed')
+if 'volumePoll.running = false' in mute_block or 'root.mainBackendMuted = root.mainMuted' in mute_block:
+    raise SystemExit('Volume mute click must not restart polling immediately or fake backend-confirmed state')
+if 'mainMuteHasPending' not in volumes or 'mainMutePendingUntil' not in volumes or 'mainPendingMuted' not in volumes:
+    raise SystemExit('Volume mute pending state is missing')
 # There should be exactly two MouseAreas in Volumes: the main and stream sliders.
 if volumes.count('MouseArea {') != 2:
     raise SystemExit('Expected only the two specialized volume slider MouseAreas')

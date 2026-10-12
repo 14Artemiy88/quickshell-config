@@ -26,14 +26,13 @@ get_mpv_player_metadata() {
 
     title="${title//\"/}"
 
-    # Генерируем путь к изображению
-    local image_path="$IMG_PATH/${title}${IMG_SUFFIX}" ts
-
-    # Создаем превью если файла нет или старше 60 секунд
-    if [[ ! -f "$image_path" ]] || { read -r ts < <(stat -c %Y "$image_path" 2>/dev/null) && (( $(date +%s) - ts > 60 )); }; then
-        ffmpeg -ss "$position" -i "$path" -vframes 1 -y "$image_path" 2>/dev/null
-    fi
-    [[ -f "$image_path" ]] || image_path="$DEFAULT_IMG"
+    # Refresh the current video frame at most once per minute. Snapshot names
+    # are keyed by media path (not title) and versioned so QtQuick.Image sees
+    # a new URL after each refresh. On capture failure, the last valid frame is
+    # retained; with no previous frame, use the transparent fallback.
+    local image_path
+    image_path=$(get_mpv_snapshot "$path" "$position" false 60) || image_path=""
+    [[ -s "$image_path" ]] || image_path="$DEFAULT_IMG"
 
 
     get_json \

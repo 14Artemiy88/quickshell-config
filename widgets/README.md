@@ -1,6 +1,6 @@
 # quickshell-widgets
 
-**Версия проекта: v611** · Набор настольных виджетов и настроек для [Quickshell](https://quickshell.org/).
+**Версия проекта: v621** · Набор настольных виджетов и настроек для [Quickshell](https://quickshell.org/).
 
 [English below](#english)
 
@@ -11,7 +11,7 @@
 ## Структура исходников
 
 - `components/mopidy/` — основной модуль Mopidy и его QML-компоненты.
-- `components/primitives/` — общие примитивы рамок, кнопок и интерактивных иконок, используемые разными модулями.
+- `components/primitives/` — общие примитивы рамок, кнопок, интерактивных иконок, сегментных графиков и полос заполнения, используемые разными модулями.
 - `components/settings/sections/mopidy/` — отдельные секции настроек Mopidy.
 - `scripts/mopidy/` — скрипты Mopidy, включая интеграцию с медиаплеером.
 - `tests/` — общие автопроверки проекта; тесты не перемещаются внутрь модулей.
@@ -31,7 +31,7 @@
 
 ## Установка
 
-Требуется установленный Quickshell. Некоторые функции используют внешние программы и сервисы — например, CAVA, `playerctl`, `jq`, `curl`, PulseAudio/PipeWire-инструменты и запущенный Mopidy для соответствующих интеграций. Набор необходимых программ зависит от включённых модулей и используемых бэкендов.
+Требуется установленный Quickshell. Некоторые функции используют внешние программы и сервисы — например, CAVA, `playerctl`, `jq`, `curl`, `ffmpeg`, PulseAudio/PipeWire-инструменты и запущенный Mopidy для соответствующих интеграций. Набор необходимых программ зависит от включённых модулей и используемых бэкендов.
 
 Из корня проекта запустите установщик:
 
@@ -72,6 +72,73 @@ quickshell -c ~/.config/quickshell/desktop-shell
 ```
 
 Это статическая проверка проекта; она не заменяет проверку виджетов в реальном сеансе Quickshell.
+
+## v621 — устойчивый разбор аудиопотоков в System Monitor
+
+- `scripts/system_monitor.d/volumes.sh` распознаёт английские (`Sink Input #`, `Volume:`) и русские (`Вход аудиоприёмника №`, `Громкость:`) заголовки `pactl`. Список потоков больше не зависит только от языка вывода аудиосервера.
+- Формирование JSON для потоков переведено на `jq`, чтобы кавычки, обратные слеши и управляющие символы в названиях приложений не ломали ответ.
+- Добавлен `test_system_monitor_volume_parser.sh` с фиктивным `pactl`, проверяющий оба формата, сохранность ID/уровней и безопасное экранирование имён.
+
+## v620 — единый опрос CPU и RAM в виджете системных метрик
+
+- `CpuWidget.qml` теперь запускает один процесс `cpu_stats_once` для получения и загрузки CPU по ядрам, и процента занятой памяти, вместо двух отдельных процессов с отдельным таймерным циклом.
+- `cpu_stats_once` использует `MemTotal` и `MemAvailable` из `/proc/meminfo`, как прежний `mem_stats_once`, чтобы сохранить совместимую семантику процента используемой памяти и не различаться с ней из-за формулы `free`.
+- Обновления CPU и RAM применяются из одного JSON-ответа, поэтому оба набора значений относятся к одному циклу опроса. Интервал обновления и отрисовка горизонтальных/вертикальных индикаторов не менялись.
+- Добавлен `test_cpu_widget_single_poll.sh`, подключённый к `CHECK.sh`; он проверяет единственный `Process` в виджете и выполняет реальный smoke test JSON-ответа сборщика.
+
+## v619 — отдельный компонент элемента прогноза погоды
+
+- Повторяющаяся разметка каждого элемента почасового и дневного прогноза вынесена из `WeatherList.qml` в `components/WeatherForecastItem.qml`.
+- Новый компонент централизует дату/время, иконку погоды, высокую и низкую температуру и цветовую шкалу температуры. Параметры hourly/daily и существующие настройки `Config` передаются без изменения значений.
+- `WeatherList.qml` по-прежнему фильтрует будущие записи, ограничивает количество элементов, задаёт отступ сверху и показывает `WeatherPlaceholder`, когда данных нет. Логика получения данных и размеры модулей не менялись.
+- Добавлен `test_weather_forecast_item_component.sh`, подключённый к `CHECK.sh`; он проверяет оба режима прогноза, настройки геометрии/шрифтов и отсутствие дублирующей форматирующей логики в родителе.
+
+## v618 — стабилизация переключения mute
+
+- Кнопка mute задаёт явное целевое состояние через `scripts/set_mute` (`0`/`1`) вместо команды `toggle`, поэтому быстрые повторные клики не зависят от запаздывающего состояния аудиобэкенда.
+- Добавлено оптимистическое ожидающее состояние mute: устаревший ответ опроса не может сразу вернуть полоску/иконку к предыдущему состоянию. При подтверждении бэкендом ожидание снимается; по тайм-ауту интерфейс снова принимает фактическое состояние.
+- Убран мгновенный stop/start процесса опроса после клика. Подтверждающий опрос откладывается на 250 мс; если старый опрос ещё выполняется, следующий запуск планируется после его завершения.
+- Тот же механизм ожидания применяется при снятии mute через полосу громкости. Добавлен `test_volume_mute_toggle_stability.sh`, подключённый к `CHECK.sh`; он проверяет ожидающее состояние, отсутствие toggle-гонки и команды явного mute/unmute на мокнутом `wpctl`.
+
+## v617 — пустая полоса при mute и восстановление уровня кликом
+
+- Полоса основной громкости отображается пустой, когда выходное устройство заглушено; сохранённое значение громкости не сбрасывается.
+- Клик или перетаскивание по основной полосе при mute задаёт уровень по положению указателя и снимает mute. Колесо над этой полосой также применяет новый уровень и снимает mute.
+- Добавлена явная операция `set_main_mute`, а `scripts/set_volume main VALUE unmute` последовательно устанавливает уровень и снимает mute через wpctl, pactl или amixer. Это не использует переключение mute, поэтому не возникает гонки между независимыми командами.
+- Полосы отдельных аудиопотоков и кнопка mute остаются с прежним поведением. Добавлен `test_volume_mute_track_behavior.sh`, подключённый к `CHECK.sh`; тест проверяет пустую полосу при mute, обработчики клика/колеса и последовательность команд на мокнутом `wpctl`.
+
+## v616 — громкость использует общий ProgressTrack
+
+- Полосы основной громкости и отдельных аудиопотоков в `Volumes.qml` переведены на `components/primitives/ProgressTrack.qml`; повторяющаяся отрисовка фона и заполнения удалена.
+- Сохранены геометрия треков, `volumeMainTrackOffsetY`/`volumeStreamTrackOffsetY`, цвета и радиус, а также прежние области взаимодействия: перетаскивание, изменение значения при отпускании и прокрутка колёсиком.
+- Проверка `test_progress_track_primitive.sh` расширена: она теперь требует использования примитива в `Volumes.qml` и проверяет сохранность обоих `MouseArea` и их обработчиков.
+
+## v615 — общий примитив полосы заполнения
+
+- Добавлен `components/primitives/ProgressTrack.qml` для отрисовки фона и заполненной части полосы с ограничением значения от 0 до 100 и поддержкой четырёх направлений.
+- `MetricBar.qml` использует его для горизонтальных и вертикальных индикаторов CPU/RAM, а `TopApps.qml` — для относительных полос CPU/памяти. Геометрия, цвета и настройки существующих модулей сохранены.
+- Добавлен `test_progress_track_primitive.sh`, подключённый к `CHECK.sh`; тест проверяет направления заполнения, диапазон значения и использование общего рендерера вместо дублирующей отрисовки.
+
+## v614 — общий примитив сегментных графиков
+
+- Повторяющаяся отрисовка полос в `CpuGraph.qml` и `Cava.qml` вынесена в `components/primitives/SegmentBarGraph.qml`. Компонент поддерживает фиксированную или адаптивную ширину слота, абсолютную ширину/долю полосы и рост вверх или вниз.
+- `CpuGraph` и `Cava` по-прежнему управляют своими данными, режимами, частотой обновления и настройками. Сохранены режимы «обе половины», «только верхние» и «только нижние», цвета и геометрические параметры.
+- Добавлен `test_segment_bar_graph_primitive.sh`, подключённый к `CHECK.sh`; он проверяет все четыре области визуализации в каждом модуле и отсутствие дублирования `Repeater`/`Rectangle`-отрисовки.
+
+## v613 — общий компонент строк сетевой статистики
+
+- Повторяющаяся разметка строки загрузки и скачивания сети вынесена в `components/NetworkStatRow.qml`.
+- `NetworkStat.qml` теперь задаёт только тип строки, цвет, видимость и данные из SystemMonitor; общий компонент отвечает за колонки значка/значений, их выравнивание, отступы и шрифт.
+- Сохранены все существующие параметры конфигурации и отображение скорости/суммарного трафика для upload и download.
+- Добавлен `test_network_stat_row_component.sh`, включённый в `CHECK.sh`, для проверки общности разметки и сохранения привязок настроек.
+
+## v612 — надёжное обновление снимков mpv
+
+- Захват кадра mpv вынесен в общий механизм `scripts/player.d/common.sh`, который используется и при периодическом обновлении, и при паузе/перемотке.
+- Кадры сохраняются под версионированными именами, ключом для которых служит хеш пути к медиафайлу. Благодаря изменению URL QtQuick/Image загружает свежий кадр, а спецсимволы в заголовке не ломают путь к изображению.
+- Периодическое обновление по-прежнему выполняется не чаще одного раза в 60 секунд. При паузе и перемотке создаётся свежий снимок принудительно.
+- Снимок публикуется атомарно только после успешного создания ffmpeg; неудачная попытка не повреждает последний рабочий кадр. Захват ограничен 15 секундами, временные файлы удаляются, старые снимки очищаются, а повторные ошибки одного источника не приводят к запуску ffmpeg при каждом опросе UI.
+- Добавлен `test_mpv_snapshot_capture.sh`: проверяет периодическое обновление, принудительный снимок, изоляцию кэша для разных файлов и fallback при ошибке ffmpeg. Тест включён в `CHECK.sh`.
 
 ## v611 — ширина значений Top Apps
 
@@ -188,7 +255,7 @@ quickshell -c ~/.config/quickshell/desktop-shell
 
 ### Installation
 
-Quickshell is required. Some features rely on external tools or services, such as CAVA, `playerctl`, `jq`, `curl`, PulseAudio/PipeWire utilities, and a running Mopidy service for the relevant integrations. Exact requirements depend on enabled modules and backends.
+Quickshell is required. Some features rely on external tools or services, such as CAVA, `playerctl`, `jq`, `curl`, `ffmpeg`, PulseAudio/PipeWire utilities, and a running Mopidy service for the relevant integrations. Exact requirements depend on enabled modules and backends.
 
 Run the installer from the project root:
 
@@ -222,6 +289,67 @@ Run the project checks from its root directory:
 ```
 
 This is a static project check and does not replace runtime testing in a live Quickshell session.
+
+### v620 — single CPU/RAM sampling process
+
+- `CpuWidget.qml` now uses one `cpu_stats_once` process to collect per-core CPU and memory-use percentages instead of two separate processes and polling cycles.
+- `cpu_stats_once` reads `MemTotal` and `MemAvailable` from `/proc/meminfo`, matching the previous `mem_stats_once` calculation so the reported memory percentage does not change merely because the collection path changed.
+- CPU and RAM are applied from the same JSON response; the polling interval and horizontal/vertical meter rendering remain unchanged.
+- Added `test_cpu_widget_single_poll.sh` to `CHECK.sh`; it checks that the widget owns one process and smoke-tests the collector's JSON output.
+
+### v619 — standalone weather forecast item
+
+- Extracted the repeated item delegate for hourly and daily forecasts from `WeatherList.qml` into `components/WeatherForecastItem.qml`.
+- The component now owns date/time, weather icon, high/low temperature text and the temperature color scale. Hourly/daily modes and existing `Config` geometry/font bindings remain unchanged.
+- `WeatherList.qml` still filters future entries, limits the item count, applies top padding and displays `WeatherPlaceholder` when no data is available. Data acquisition and module dimensions were not changed.
+- Added `test_weather_forecast_item_component.sh` to `CHECK.sh`; it checks both forecast modes, layout/font bindings and removal of duplicated formatting logic from the parent.
+
+### v618 — stable mute toggling
+
+- The mute button now sets an explicit target state through `scripts/set_mute` (`0`/`1`) instead of toggling the backend state, so rapid clicks do not depend on stale audio-backend observations.
+- Added an optimistic pending mute state: stale polling responses cannot immediately revert the icon/track. The pending state clears when the backend confirms it, or times out to let the UI accept the actual backend state.
+- Removed the immediate stop/start of the poll process on icon click. A confirmation poll is delayed by 250 ms; if a poll is still running, another poll is scheduled after it completes.
+- The same pending-state guard is used when unmuting via the volume track. Added `test_volume_mute_toggle_stability.sh` to `CHECK.sh`, checking the pending-state guard, absence of toggle races, and explicit mute/unmute commands with a mocked `wpctl`.
+
+### v617 — empty muted track and click-to-unmute
+
+- The main output volume track renders empty while muted without clearing the stored volume value.
+- Clicking or dragging the main track while muted sets the level from the pointer position and unmutes the sink. The mouse wheel over the main track also applies the adjusted level and unmutes.
+- Added an explicit `set_main_mute` operation; `scripts/set_volume main VALUE unmute` sets the level and unmutes sequentially through wpctl, pactl or amixer, avoiding races from separate toggle commands.
+- Per-stream volume tracks and the mute icon keep their existing behavior. Added `test_volume_mute_track_behavior.sh` to `CHECK.sh`, covering muted rendering, click/wheel handlers and command order with a mocked `wpctl`.
+
+### v616 — volume bars use shared ProgressTrack
+
+- The main volume and per-stream volume bars in `Volumes.qml` now use `components/primitives/ProgressTrack.qml`; duplicate track/fill drawing was removed.
+- Preserved track geometry, `volumeMainTrackOffsetY`/`volumeStreamTrackOffsetY`, colors and radius, along with existing interaction areas for dragging, applying values on release, and mouse-wheel adjustments.
+- Expanded `test_progress_track_primitive.sh` to require the shared primitive in `Volumes.qml` and verify both `MouseArea` handlers remain in place.
+
+### v615 — shared progress track primitive
+
+- Added `components/primitives/ProgressTrack.qml` to render track/fill pairs with values clamped to 0–100 and support for all four fill directions.
+- `MetricBar.qml` now uses it for horizontal and vertical CPU/RAM gauges, and `TopApps.qml` uses it for relative CPU/memory bars. Existing geometry, colors and settings are preserved.
+- Added `test_progress_track_primitive.sh` to `CHECK.sh`; it checks fill directions, value clamping and adoption of the shared renderer in place of duplicate drawing.
+
+### v614 — shared segment bar graph primitive
+
+- Extracted repeated bar rendering from `CpuGraph.qml` and `Cava.qml` into `components/primitives/SegmentBarGraph.qml`. It supports fixed or adaptive slots, absolute or proportional bar width, and bars growing upward or downward.
+- `CpuGraph` and `Cava` retain their own data sources, display modes, update rates and configuration. Mirrored, upper-only and lower-only modes, colors and geometry settings are preserved.
+- Added `test_segment_bar_graph_primitive.sh` to `CHECK.sh`; it verifies all four display regions in both modules use the shared renderer and do not duplicate `Repeater`/`Rectangle` drawing.
+
+### v613 — shared network statistics row
+
+- Extracted the repeated upload/download row layout into `components/NetworkStatRow.qml`.
+- `NetworkStat.qml` now supplies only row-specific icon, color, visibility and SystemMonitor data; the shared component owns icon/value columns, alignment, padding and typography.
+- Preserved existing Config bindings and upload/download speed and total traffic values.
+- Added `test_network_stat_row_component.sh` to `CHECK.sh` to validate shared layout and retained settings bindings.
+
+### v612 — reliable mpv frame snapshots
+
+- Centralized mpv frame capture in `scripts/player.d/common.sh`; both periodic refreshes and pause/seek actions now use the same implementation.
+- Snapshots use versioned filenames keyed by a hash of the media path. The changed URL lets QtQuick/Image load each refreshed frame, and media titles with special characters no longer affect the filename.
+- Periodic refresh remains capped at once every 60 seconds; pause and seek force a fresh frame.
+- Frames are atomically published only after ffmpeg succeeds. Failed capture leaves the last valid frame intact; ffmpeg is time-limited to 15 seconds, temporary files are removed, old snapshots are cleaned up, and repeated failures for the same source are throttled rather than retried on every UI poll.
+- Added `test_mpv_snapshot_capture.sh` for periodic expiry, forced capture, per-source cache isolation and ffmpeg-failure fallback; wired it into `CHECK.sh`.
 
 ### v611 — Top Apps value column sizing
 

@@ -80,14 +80,6 @@ Primitives.ModuleFrame {
         function onCavaHideWhenSilentChanged() { root.updateSignalState(root.values) }
     }
 
-    function barWidthForSlot(slotWidth) {
-        return Math.max(1, Math.round(slotWidth * Config.cavaBarWidthRatio))
-    }
-
-    function barHeightFor(percent, availableHeight) {
-        return Math.max(1, Math.min(availableHeight, Number(percent || 0) * availableHeight / 100))
-    }
-
     Item {
         anchors.fill: parent
         visible: !Config.cavaHideWhenSilent || root.soundActive
@@ -101,24 +93,14 @@ Primitives.ModuleFrame {
                 width: parent.width
                 height: parent.height / 2
 
-                Row {
+                Primitives.SegmentBarGraph {
                     anchors.fill: parent
+                    values: root.values
+                    barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
-                    Repeater {
-                        model: Config.cavaBars
-                        delegate: Item {
-                            width: root.values.length > 0 ? (parent.width - (root.values.length - 1) * Config.cavaRowSpacing) / root.values.length : 0
-                            height: parent.height
-
-                            Rectangle {
-                                width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.bottom: parent.bottom
-                                height: root.barHeightFor(root.values[index], parent.height)
-                                color: Config.baseColor
-                            }
-                        }
-                    }
+                    barWidthRatio: Config.cavaBarWidthRatio
+                    barColor: Config.baseColor
+                    direction: "up"
                 }
             }
 
@@ -127,24 +109,14 @@ Primitives.ModuleFrame {
                 width: parent.width
                 height: parent.height / 2
 
-                Row {
+                Primitives.SegmentBarGraph {
                     anchors.fill: parent
+                    values: root.values
+                    barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
-                    Repeater {
-                        model: Config.cavaBars
-                        delegate: Item {
-                            width: root.values.length > 0 ? (parent.width - (root.values.length - 1) * Config.cavaRowSpacing) / root.values.length : 0
-                            height: parent.height
-
-                            Rectangle {
-                                width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.top: parent.top
-                                height: root.barHeightFor(root.values[index], parent.height)
-                                color: Config.baseColor
-                            }
-                        }
-                    }
+                    barWidthRatio: Config.cavaBarWidthRatio
+                    barColor: Config.baseColor
+                    direction: "down"
                 }
             }
         }
@@ -154,24 +126,14 @@ Primitives.ModuleFrame {
             visible: Config.cavaMode === "top"
             anchors.fill: parent
 
-            Row {
+            Primitives.SegmentBarGraph {
                 anchors.fill: parent
+                values: root.values
+                barCount: Config.cavaBars
                 spacing: Config.cavaRowSpacing
-                Repeater {
-                    model: Config.cavaBars
-                    delegate: Item {
-                        width: root.values.length > 0 ? (parent.width - (root.values.length - 1) * Config.cavaRowSpacing) / root.values.length : 0
-                        height: parent.height
-
-                        Rectangle {
-                            width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            height: root.barHeightFor(root.values[index], parent.height)
-                            color: Config.baseColor
-                        }
-                    }
-                }
+                barWidthRatio: Config.cavaBarWidthRatio
+                barColor: Config.baseColor
+                direction: "up"
             }
         }
 
@@ -180,24 +142,14 @@ Primitives.ModuleFrame {
             visible: Config.cavaMode === "bottom"
             anchors.fill: parent
 
-            Row {
+            Primitives.SegmentBarGraph {
                 anchors.fill: parent
+                values: root.values
+                barCount: Config.cavaBars
                 spacing: Config.cavaRowSpacing
-                Repeater {
-                    model: Config.cavaBars
-                    delegate: Item {
-                        width: root.values.length > 0 ? (parent.width - (root.values.length - 1) * Config.cavaRowSpacing) / root.values.length : 0
-                        height: parent.height
-
-                        Rectangle {
-                            width: Math.max(1, Math.round(parent.width * Config.cavaBarWidthRatio))
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: parent.top
-                            height: root.barHeightFor(root.values[index], parent.height)
-                            color: Config.baseColor
-                        }
-                    }
-                }
+                barWidthRatio: Config.cavaBarWidthRatio
+                barColor: Config.baseColor
+                direction: "down"
             }
         }
     }

@@ -16,8 +16,112 @@ declare -A icons=(
 
 declare -A cover_cache
 
+# mpv frame snapshots use source-keyed, versioned filenames. A unique filename
+# for every successful capture is important because QtQuick.Image may cache a
+# local image by URL and otherwise keep showing an old frame after its file is
+# overwritten. Only a small time window of snapshots is retained per source.
+mpv_snapshot_key() {
+    local source_path="${1:-}"
+    [[ -n "$source_path" ]] || return 1
+    printf '%s' "$source_path" | sha256sum | awk '{print substr($1, 1, 24)}'
+}
 
+mpv_latest_snapshot_for_key() {
+    local key="${1:-}" latest=""
+    [[ -n "$key" && -d "$IMG_PATH" ]] || return 1
+    latest=$(find "$IMG_PATH" -maxdepth 1 -type f -name "mpv-${key}-*.png" \
+        -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1) || true
+    [[ -n "$latest" ]] || return 1
+    printf '%s\n' "${latest#* }"
+}
 
+create_mpv_snapshot() {
+    local source_path="${1:-}" position="${2:-}" key stamp temp_path final_path
+    [[ -n "$source_path" && "$position" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+    command -v ffmpeg >/dev/null 2>&1 || return 1
+    command -v timeout >/dev/null 2>&1 || return 1
+    mkdir -p "$IMG_PATH" 2>/dev/null || return 1
+
+    key=$(mpv_snapshot_key "$source_path") || return 1
+    stamp=$(date +%s%N 2>/dev/null)
+    [[ "$stamp" =~ ^[0-9]+$ ]] || stamp="$(date +%s)-$$-$RANDOM"
+    # Keep .png as the final suffix so ffmpeg can reliably infer the encoder.
+    temp_path="$IMG_PATH/.mpv-${key}-${stamp}.tmp.png"
+    final_path="$IMG_PATH/mpv-${key}-${stamp}.png"
+
+    # Decode at most 15s and publish atomically: a failed/partial capture must
+    # never replace the last known-good frame.
+    if timeout 15s ffmpeg -nostdin -hide_banner -loglevel error \
+        -ss "$position" -i "$source_path" -frames:v 1 -y "$temp_path" \
+        </dev/null >/dev/null 2>&1 && [[ -s "$temp_path" ]]; then
+        if mv -f -- "$temp_path" "$final_path"; then
+            # Keep enough recent snapshots for asynchronous QML reads while
+            # preventing an indefinitely growing cache during long playback.
+            find "$IMG_PATH" -maxdepth 1 -type f \
+                -name "mpv-${key}-*.png" -mmin +10 -delete 2>/dev/null || true
+            printf '%s\n' "$final_path"
+            return 0
+        fi
+    fi
+
+    rm -f -- "$temp_path" 2>/dev/null || true
+    return 1
+}
+
+get_mpv_snapshot() {
+    local source_path="${1:-}" position="${2:-}" force="${3:-false}" ttl="${4:-60}"
+    local key latest="" modified now captured="" attempt_path attempt_modified
+    [[ -n "$source_path" && "$position" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+    key=$(mpv_snapshot_key "$source_path") || return 1
+    latest=$(mpv_latest_snapshot_for_key "$key") || latest=""
+    attempt_path="$IMG_PATH/.mpv-${key}.attempt"
+
+    if [[ "$force" != "true" ]]; then
+        if [[ -n "$latest" && -s "$latest" ]]; then
+            modified=$(stat -c %Y -- "$latest" 2>/dev/null || printf '0')
+            now=$(date +%s)
+            if [[ "$modified" =~ ^[0-9]+$ ]] && (( now - modified < ttl )); then
+                printf '%s\n' "$latest"
+                return 0
+            fi
+        fi
+
+        # Avoid launching a potentially expensive ffmpeg process on every UI
+        # poll when a source cannot be decoded. A failed attempt is retried
+        # after the same interval as a normal frame refresh.
+        if [[ -f "$attempt_path" ]]; then
+            attempt_modified=$(stat -c %Y -- "$attempt_path" 2>/dev/null || printf '0')
+            now=$(date +%s)
+            if [[ "$attempt_modified" =~ ^[0-9]+$ ]] && (( now - attempt_modified < ttl )); then
+                if [[ -n "$latest" && -s "$latest" ]]; then
+                    printf '%s\n' "$latest"
+                    return 0
+                fi
+                return 1
+            fi
+        fi
+    fi
+
+    captured=$(create_mpv_snapshot "$source_path" "$position") || captured=""
+    if [[ -n "$captured" && -s "$captured" ]]; then
+        rm -f -- "$attempt_path" 2>/dev/null || true
+        printf '%s\n' "$captured"
+        return 0
+    fi
+
+    # Record failures too, so a broken/unsupported stream is not retried on
+    # every metadata-poll cycle. This marker is separate from snapshot mtime.
+    mkdir -p "$IMG_PATH" 2>/dev/null || true
+    date +%s > "$attempt_path" 2>/dev/null || true
+
+    # If ffmpeg temporarily fails (unsupported stream, transient network issue,
+    # etc.), keep the last valid frame instead of returning a broken file path.
+    if [[ -n "$latest" && -s "$latest" ]]; then
+        printf '%s\n' "$latest"
+        return 0
+    fi
+    return 1
+}
 _find_cover_in_dir() {
     # Search a single directory only; never recurse into other albums.
     local dir="$1" art found name ext

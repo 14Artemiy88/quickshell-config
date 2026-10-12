@@ -9,7 +9,7 @@ Primitives.ModuleFrame {
     moduleName: "cpu"
     width: 315
     height: 215
-    property var stats: ({ cpu: [] })
+    property var stats: ({ cpu: [], ram: 0 })
     property real ramValue: 0
     property var colors: [Config.cpu1, Config.cpu2, Config.cpu3, Config.cpu4, Config.cpu5, Config.cpu6, Config.cpu7, Config.cpu8]
 
@@ -21,25 +21,16 @@ Primitives.ModuleFrame {
             onStreamFinished: {
                 try {
                     var parsed = JSON.parse(this.text.trim())
-                    if (parsed && parsed.cpu) root.stats = parsed
+                    if (parsed && Array.isArray(parsed.cpu)) {
+                        root.stats = parsed
+                        var ram = Number(parsed.ram)
+                        if (isFinite(ram))
+                            root.ramValue = Math.max(0, Math.min(100, ram))
+                    }
                 } catch (e) {
                     console.warn("cpu_stats:", e, this.text)
                 }
                 cpuProc.running = false
-            }
-        }
-    }
-
-    Process {
-        id: memProc
-        command: ["bash", Quickshell.shellDir + "/scripts/mem_stats_once"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                var v = Number(this.text.trim())
-                if (isFinite(v))
-                    root.ramValue = Math.max(0, Math.min(100, v))
-                memProc.running = false
             }
         }
     }
@@ -52,8 +43,6 @@ Primitives.ModuleFrame {
         onTriggered: {
             if (!cpuProc.running)
                 cpuProc.running = true
-            if (!memProc.running)
-                memProc.running = true
         }
     }
 

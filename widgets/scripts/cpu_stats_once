@@ -26,5 +26,16 @@ for i in "${!after[@]}"; do
   out+="$pct"
 done
 out+="]"
-ram=$(free | awk '/^Mem:/ { if ($2 > 0) printf "%.0f", $3/$2*100; else print 0 }')
+ram=$(awk '
+/^MemTotal:/ { total=$2 }
+/^MemAvailable:/ { avail=$2 }
+END {
+  if (total > 0) {
+    used=total-avail
+    pct=used*100/total
+    printf "%.0f", pct
+  } else {
+    print 0
+  }
+}' /proc/meminfo)
 printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"

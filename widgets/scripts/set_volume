@@ -14,6 +14,11 @@ fi
 case "$mode" in
     main)
         set_main_volume "$value"
+        case "${3:-}" in
+            "") ;;
+            unmute) set_main_mute 0 ;;
+            *) exit 2 ;;
+        esac
         ;;
     stream)
         id="${3:-}"

@@ -23,15 +23,17 @@ get_mpv_properties() {
     printf "%s\n" "${commands[@]}" | socat - "$MPV_SOCKET" | jq -r '.data'
 }
 
-# Функция для создания изображения
+# Capture a fresh mpv frame on pause/seek. Uses the same source-keyed cache
+# as the metadata backend, but forces a new versioned image so the player view
+# changes immediately instead of reusing QtQuick's cached URL.
 create_image() {
     local title="$1"
     local path="$2"
     local position="$3"
-    local image_path="$IMG_PATH/$title$IMG_SUFFIX"
+    local image_path=""
 
-    rm -f "$image_path" 2>/dev/null
-    ffmpeg -ss "$position" -i "$path" -vframes 1 -y "$image_path" 2>/dev/null
+    image_path=$(get_mpv_snapshot "$path" "$position" true 0) || image_path=""
+    [[ -n "$image_path" && -s "$image_path" ]]
 }
 
 # Основная функция паузы

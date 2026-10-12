@@ -121,17 +121,12 @@ Item {
                                         height: 6
                                         anchors.verticalCenter: parent.verticalCenter
 
-                                        Rectangle {
+                                        Primitives.ProgressTrack {
                                             anchors.fill: parent
+                                            value: appRow.relativeUsage * 100
                                             radius: 3
-                                            color: sectionFrame.section.trackColor
-                                        }
-
-                                        Rectangle {
-                                            width: parent.width * appRow.relativeUsage
-                                            height: parent.height
-                                            radius: 3
-                                            color: sectionFrame.section.fillColor
+                                            fillColor: sectionFrame.section.fillColor
+                                            trackColor: sectionFrame.section.trackColor
                                         }
                                     }
 

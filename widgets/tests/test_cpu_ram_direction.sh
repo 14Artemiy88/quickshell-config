@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 fail() { echo "CPU/RAM direction: FAIL: $*" >&2; exit 1; }
 
-for f in Config.qml js/settings/SettingsDefaults.js js/settings/SettingsPersistence.js js/settings/SettingsApplySystemVisual.js js/settings/SettingsResets.js components/MetricBar.qml components/CpuWidget.qml components/settings/sections/SettingsCpuRamSection.qml; do
+for f in Config.qml js/settings/SettingsDefaults.js js/settings/SettingsPersistence.js js/settings/SettingsApplySystemVisual.js js/settings/SettingsResets.js components/MetricBar.qml components/primitives/ProgressTrack.qml components/CpuWidget.qml components/settings/sections/SettingsCpuRamSection.qml; do
     test -f "$ROOT/$f" || fail "missing $f"
 done
 
@@ -12,8 +12,8 @@ grep -Fq 'cpuBarDirection: "leftToRight"' "$ROOT/js/settings/SettingsDefaults.js
 grep -Fq 'cpuBarDirection: config.cpuBarDirection' "$ROOT/js/settings/SettingsPersistence.js" || fail "direction not persisted"
 grep -Fq 'Config.cpuBarDirection = ["leftToRight", "rightToLeft", "topToBottom", "bottomToTop"].indexOf(cbd) >= 0 ? cbd : "leftToRight"' "$ROOT/js/settings/SettingsApplySystemVisual.js" || fail "direction not loaded/validated"
 grep -Fq '"cpuBarDirection"' "$ROOT/js/settings/SettingsResets.js" || fail "direction not in resets/profile application"
-grep -Fq 'root.direction === "rightToLeft"' "$ROOT/components/MetricBar.qml" || fail "right-to-left renderer missing"
-grep -Fq 'root.direction === "bottomToTop"' "$ROOT/components/MetricBar.qml" || fail "bottom-to-top renderer missing"
+grep -Fq 'root.direction === "rightToLeft"' "$ROOT/components/primitives/ProgressTrack.qml" || fail "right-to-left renderer missing"
+grep -Fq 'root.direction === "bottomToTop"' "$ROOT/components/primitives/ProgressTrack.qml" || fail "bottom-to-top renderer missing"
 grep -Fq 'Config.cpuBarDirection === "topToBottom"' "$ROOT/components/CpuWidget.qml" || fail "vertical layout missing"
 grep -Fq 'Направление заполнения полос' "$ROOT/components/settings/sections/SettingsCpuRamSection.qml" || fail "direction setting UI missing"
 node - "$ROOT" <<'NODE'

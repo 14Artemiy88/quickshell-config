@@ -36,6 +36,25 @@ set_main_volume() {
     fi
 }
 
+set_main_mute() {
+    local muted="${1:-}"
+    [[ "$muted" == "0" || "$muted" == "1" ]] || return 2
+
+    if command -v wpctl >/dev/null 2>&1; then
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ "$muted"
+    elif command -v pactl >/dev/null 2>&1; then
+        pactl set-sink-mute @DEFAULT_SINK@ "$muted"
+    elif command -v amixer >/dev/null 2>&1; then
+        if [[ "$muted" == "1" ]]; then
+            amixer -D pulse sset Master mute >/dev/null
+        else
+            amixer -D pulse sset Master unmute >/dev/null
+        fi
+    else
+        return 127
+    fi
+}
+
 toggle_main_mute() {
     if command -v wpctl >/dev/null 2>&1; then
         wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
