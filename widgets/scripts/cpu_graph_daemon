@@ -1,46 +1,59 @@
 #!/bin/bash
-source "$(dirname "$0")/env"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 
-STATE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-cpu-graph"
+STATE="${CPU_GRAPH_STATE:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-cpu-graph}"
+PROC_STAT="${CPU_GRAPH_PROC_STAT:-/proc/stat}"
+INTERVAL="${CPU_GRAPH_INTERVAL:-1}"
 LINES=51
 
-prev_user=0 prev_nice=0 prev_system=0 prev_idle=0
+prev_busy=0 prev_total=0
 has_prev=0
 hist=""
 
+# State v2 stores exactly the shared helper's busy/total counters. When an old
+# four-counter state is encountered, preserve valid history but take a fresh
+# baseline to avoid a false spike from incompatible counters.
 if [[ -f "$STATE" ]]; then
-    read -r line1 < "$STATE"
-    line2=$(tail -1 "$STATE" 2>/dev/null)
-    read -r prev_user prev_nice prev_system prev_idle <<< "$line1"
-    hist="$line2"
-    has_prev=1
+    IFS=' ' read -r state_version state_busy state_total < "$STATE" || true
+    hist=$(sed -n '2p' "$STATE" 2>/dev/null || true)
+    if [[ "${state_version:-}" == "v2" && "${state_busy:-}" =~ ^[0-9]+$ && "${state_total:-}" =~ ^[0-9]+$ ]] && \
+       (( 10#$state_total > 0 && 10#$state_busy <= 10#$state_total )); then
+        prev_busy="$state_busy"
+        prev_total="$state_total"
+        has_prev=1
+    fi
+fi
+
+# History must contain exactly 51 integer samples in [0,100]. A partial write
+# or old malformed state is ignored instead of poisoning the graph forever.
+if [[ "$hist" =~ ^[0-9]+(,[0-9]+){50}$ ]] && \
+   awk -F, '{ for (i=1; i<=NF; i++) if ($i < 0 || $i > 100) exit 1 }' <<< "$hist"; then
+    :
+else
+    hist=""
 fi
 
 while true; do
-    user=0 nice=0 idle=0
-    while IFS= read -r line; do
-        case "$line" in
-            cpu\ *)
-                read -r _ user nice system idle _ <<< "$line"
-                user="${user:-0}"; nice="${nice:-0}"; system="${system:-0}"; idle="${idle:-0}"
-                break
-                ;;
-        esac
-    done < /proc/stat
-
-    u=$((user + nice + system))
-    t=$((u + idle))
+    counters=$(cpu_read_aggregate_counters "$PROC_STAT" 2>/dev/null || true)
+    read -r busy total <<< "$counters"
+    if [[ ! "${busy:-}" =~ ^[0-9]+$ || ! "${total:-}" =~ ^[0-9]+$ ]]; then
+        # A transiently unreadable /proc/stat sample is not a real zero-load
+        # sample. Preserve both the graph history and the last valid baseline;
+        # the next valid delta will naturally cover the longer elapsed interval.
+        if [[ -z "$hist" ]]; then
+            hist="0"
+            for ((i=2; i<=LINES; i++)); do hist="$hist,0"; done
+        fi
+        printf '[%s]\n' "$hist"
+        sleep "$INTERVAL"
+        continue
+    fi
+    has_valid_counters=1
 
     pct=0
     if (( has_prev )); then
-        u1=$((prev_user + prev_nice + prev_system))
-        t1=$((u1 + prev_idle))
-        dt=$((t - t1))
-        if (( dt > 0 )); then
-            du=$((u - u1))
-            (( du < 0 )) && du=0
-            pct=$((du * 100 / dt))
-        fi
+        pct=$(cpu_usage_percent "$prev_busy" "$prev_total" "$busy" "$total")
     fi
 
     if [[ -z "$hist" ]]; then
@@ -49,16 +62,26 @@ while true; do
     fi
     hist="${hist#*,},$pct"
 
-    printf '%s %s %s %s\n' "$user" "$nice" "$system" "$idle" > "$STATE"
-    printf '%s\n' "$hist" >> "$STATE"
+    # Publish the state as a single atomic replacement so a restarting daemon
+    # never observes a truncated first line or a history line from another tick.
+    state_dir="$(dirname -- "$STATE")"
+    if mkdir -p "$state_dir" 2>/dev/null; then
+        state_tmp=$(mktemp "${STATE}.tmp.XXXXXX" 2>/dev/null || true)
+        if [[ -n "$state_tmp" ]]; then
+            if printf 'v2 %s %s\n%s\n' "$busy" "$total" "$hist" > "$state_tmp" && \
+               chmod 600 "$state_tmp" 2>/dev/null && mv -f -- "$state_tmp" "$STATE"; then
+                :
+            else
+                rm -f -- "$state_tmp" 2>/dev/null || true
+            fi
+        fi
+    fi
 
     printf '[%s]\n' "$hist"
 
-    prev_user=$user
-    prev_nice=$nice
-    prev_system=$system
-    prev_idle=$idle
-    has_prev=1
+    prev_busy=$busy
+    prev_total=$total
+    has_prev=$has_valid_counters
 
-    sleep 1
+    sleep "$INTERVAL"
 done

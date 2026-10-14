@@ -118,15 +118,26 @@ ShellRoot {
 }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
-        moduleName: "topApps"
+        moduleName: "topAppsCpu"
         layoutEditMode: shell.layoutEditMode
-        visible: Settings.topApps
-        offsetX: Settings.geometryForLayout("topApps")[0]
-        offsetY: Settings.geometryForLayout("topApps")[1]
-        contentWidth: Settings.geometry.topApps[2]
-        contentHeight: Settings.geometry.topApps[3]
-        TopApps { anchors.fill: parent; monitor: monitor }
-}
+        visible: Settings.topAppsCpu
+        offsetX: Settings.geometryForLayout("topAppsCpu")[0]
+        offsetY: Settings.geometryForLayout("topAppsCpu")[1]
+        contentWidth: Settings.geometry.topAppsCpu[2]
+        contentHeight: Settings.geometry.topAppsCpu[3]
+        TopApps { anchors.fill: parent; monitor: monitor; sectionType: "cpu" }
+    }
+    WidgetWindow {
+        layoutEditor: moduleLayoutEditorWindow
+        moduleName: "topAppsRam"
+        layoutEditMode: shell.layoutEditMode
+        visible: Settings.topAppsRam
+        offsetX: Settings.geometryForLayout("topAppsRam")[0]
+        offsetY: Settings.geometryForLayout("topAppsRam")[1]
+        contentWidth: Settings.geometry.topAppsRam[2]
+        contentHeight: Settings.geometry.topAppsRam[3]
+        TopApps { anchors.fill: parent; monitor: monitor; sectionType: "ram" }
+    }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "networkStat"
@@ -433,7 +444,10 @@ ShellRoot {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "calendar"
         layoutEditMode: shell.layoutEditMode
-        visible: Settings.calendar
+        // Keep the top-layer window alive while the calendar is open, animating,
+        // or being positioned. Once hidden, remove the empty surface so it cannot
+        // intercept pointer input intended for normal application windows.
+        visible: Settings.calendar && (shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode)
         offsetX: Settings.geometryForLayout("calendar")[0]
         offsetY: Settings.geometryForLayout("calendar")[1]
         contentWidth: Settings.geometry.calendar[2]
@@ -481,8 +495,10 @@ ShellRoot {
             anchors.margins: 0
             onMopidyToggleRequested: {
                 if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick) {
-                    if (shell.mopidyVisible)
+                    if (shell.mopidyVisible) {
                         mopidyWidget.resetToInitialScreen()
+                        shell.mopidyTopReveal = false
+                    }
                     shell.mopidyVisible = !shell.mopidyVisible
                 }
             }
@@ -493,7 +509,10 @@ ShellRoot {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "mopidy"
         layoutEditMode: shell.layoutEditMode
-        visible: Settings.mopidy
+        // When Mopidy is toggled closed, remove its transparent window surface
+        // after the hide animation so it cannot intercept desktop pointer input.
+        // Keep it alive while animating or editing the layout.
+        visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode)
         offsetX: Settings.geometryForLayout("mopidy")[0]
         offsetY: Settings.geometryForLayout("mopidy")[1]
         contentWidth: Settings.geometry.mopidy[2]
@@ -515,7 +534,9 @@ ShellRoot {
     }
     PanelWindow {
         id: mopidyTopHoverWindow
-        visible: Settings.mopidy && Config.mopidyHideTopPanel && !shell.mopidyTopReveal
+        // The invisible hover strip is only needed while the Mopidy module itself
+        // is available; otherwise it would remain an input-blocking surface too.
+        visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible) && Config.mopidyHideTopPanel && !shell.mopidyTopReveal
         screen: mopidyWindow.screen
         implicitWidth: Settings.geometry.mopidy[2]
         implicitHeight: Config.mopidyTopPanelHoverHeight
@@ -555,8 +576,10 @@ ShellRoot {
             }
             onMopidyToggleRequested: {
                 if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick) {
-                    if (shell.mopidyVisible)
+                    if (shell.mopidyVisible) {
                         mopidyWidget.resetToInitialScreen()
+                        shell.mopidyTopReveal = false
+                    }
                     shell.mopidyVisible = !shell.mopidyVisible
                 }
             }

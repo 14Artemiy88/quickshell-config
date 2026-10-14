@@ -14,9 +14,27 @@ Primitives.ModuleFrame {
     property string statusMessage: weatherService ? weatherService.nowStatusMessage : "Погода недоступна"
     signal settingsRequested()
 
-    function windAngle(scale) {
-        const n = Number(scale || 0)
-        return n > 0 ? ((n - 1) * 45 - 45) : 0
+    function windDirectionKey(scale) {
+        const n = Math.round(Number(scale || 0))
+        switch (n) {
+        case 1: return "N"
+        case 2: return "NE"
+        case 3: return "E"
+        case 4: return "SE"
+        case 5: return "S"
+        case 6: return "SW"
+        case 7: return "W"
+        case 8: return "NW"
+        default: return "Calm"
+        }
+    }
+
+    function windIcon(scale) {
+        return Config["weatherWind" + windDirectionKey(scale) + "Icon"] || ""
+    }
+
+    function windFont(scale) {
+        return Config["weatherWind" + windDirectionKey(scale) + "Font"] || Config.font
     }
 
     Item {
@@ -91,14 +109,12 @@ Primitives.ModuleFrame {
                 y: Config.weatherArrowYOffset
                 width: Config.weatherWindArrowWidth
                 height: Config.weatherWindArrowHeight
-                text: root.weather.wind?.direction?.scale_8 > 0 ? Config.weatherWindIcon : ""
+                text: root.windIcon(root.weather.wind?.direction?.scale_8)
                 color: Config.text
-                font.family: Config.font
+                font.family: root.windFont(root.weather.wind?.direction?.scale_8)
                 font.pixelSize: Config.weatherArrowSize
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
-                transformOrigin: Item.Center
-                rotation: root.windAngle(root.weather.wind?.direction?.scale_8)
             }
 
             Text {

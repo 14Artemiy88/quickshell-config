@@ -2,6 +2,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 fail() { echo "Top Apps process grouping: FAIL: $*" >&2; exit 1; }
+test_runtime_dir="$(mktemp -d)"
+trap 'rm -rf "$test_runtime_dir"' EXIT
+export XDG_RUNTIME_DIR="$test_runtime_dir"
 source_script="$ROOT/scripts/system_monitor.d/top_apps.sh"
 [[ -f "$source_script" ]] || fail "top_apps.sh is missing"
 # Deterministic fixture: Zen and Firefox helpers should be attributed to their own browser groups.
@@ -50,4 +53,16 @@ printf '%s\n' "$live" | jq -e '
   (.mem | type == "array" and length <= 5 and all(.[]; (.processCount|type)=="number" and .processCount >= 1 and (.ratio|type)=="number" and .ratio >= 0 and .ratio <= 1))
 ' >/dev/null || fail "live producer JSON does not contain valid aggregate metadata"
 
-echo "Top Apps process grouping and browser attribution: OK"
+# GoLand should include live Go toolchain descendants (notably compile/link)
+# in its own row, rather than inflating the generic System/other remainder.
+goland_fixture=$'goland\t4.0000\t1000\t901\t1\ngo\t10.0000\t2000\t902\t901\ncompile\t22.0000\t3000\t903\t902\nlink\t5.0000\t500\t904\t902\nasm\t3.0000\t600\t905\t902\nunrelated\t40.0000\t600\t906\t1\ncompile\t7.0000\t700\t907\t906'
+goland_groups="$(printf '%s\n' "$goland_fixture" | aggregate_process_rows cpu)"
+goland_row="$(printf '%s\n' "$goland_groups" | awk -F '\t' '$1 == "goland" { print; exit }')"
+[[ -n "$goland_row" ]] || fail "GoLand aggregate is missing"
+IFS=$'\t' read -r name total count pid <<< "$goland_row"
+[[ "$total" == "44.0000" && "$count" == "5" ]] || fail "GoLand should include root plus go/compile/link/asm descendants (expected 44.0000 across 5 processes, got $total across $count)"
+compile_row="$(printf '%s\n' "$goland_groups" | awk -F '\t' '$1 == "compile" { print; exit }')"
+IFS=$'\t' read -r name total count pid <<< "$compile_row"
+[[ "$total" == "7.0000" && "$count" == "1" ]] || fail "unrelated compile process should not be attributed to GoLand (got $total across $count)"
+
+echo "Top Apps process grouping and browser/GoLand attribution: OK"

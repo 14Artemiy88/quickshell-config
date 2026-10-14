@@ -40,6 +40,8 @@ QtObject {
     property int calendarDayFontSize: 14
     property int calendarDayY: 0
     property string calendarDayFont: "JetBrainsMono Nerd Font"
+    property bool calendarPastDaysColorEnabled: false
+    property string calendarPastDaysColor: "#888888"
     property string calendarNoteMarkerStyle: "dot"
     property string calendarNoteMarkerPosition: "bottomCenter"
     property color calendarNoteFrameColor: "#00cccc"
@@ -90,6 +92,7 @@ QtObject {
     property int timerCommentWidth: 90
     property int timerCommentMaxLength: 10
     property int timerCommentGap: 14
+    property bool timerCommentAlignFurthest: false
     property int timerRowSpacing: 0
     property int timerRowTopMargin: 10
     property int timerRowRightMargin: 10
@@ -135,6 +138,8 @@ QtObject {
     // Top Apps presentation
     property bool topAppsShowHeaders: true
     property bool topAppsShowBars: true
+    property bool topAppsShowSystemRemainder: true
+    property string topAppsSystemRemainderLabel: "Система/прочее"
     property string topAppsFont: "" // Empty means use the application font, preserving the previous default.
     property int topAppsFontSize: 12
     property int topAppsRowSpacing: 1
@@ -352,6 +357,25 @@ QtObject {
     property int weatherWindColumnWidth: 120
     property int weatherWindArrowWidth: 17
     property string weatherWindIcon: "\uF124"
+    // Direction-specific wind glyphs avoid glyph-bearing shifts caused by rotating one asymmetric icon.
+    property string weatherWindCalmIcon: ""
+    property string weatherWindCalmFont: "JetBrainsMono Nerd Font"
+    property string weatherWindNIcon: "↑"
+    property string weatherWindNFont: "JetBrainsMono Nerd Font"
+    property string weatherWindNEIcon: "↗"
+    property string weatherWindNEFont: "JetBrainsMono Nerd Font"
+    property string weatherWindEIcon: "→"
+    property string weatherWindEFont: "JetBrainsMono Nerd Font"
+    property string weatherWindSEIcon: "↘"
+    property string weatherWindSEFont: "JetBrainsMono Nerd Font"
+    property string weatherWindSIcon: "↓"
+    property string weatherWindSFont: "JetBrainsMono Nerd Font"
+    property string weatherWindSWIcon: "↙"
+    property string weatherWindSWFont: "JetBrainsMono Nerd Font"
+    property string weatherWindWIcon: "←"
+    property string weatherWindWFont: "JetBrainsMono Nerd Font"
+    property string weatherWindNWIcon: "↖"
+    property string weatherWindNWFont: "JetBrainsMono Nerd Font"
     property int weatherWindArrowHeight: 35
     property int weatherWindSpeedX: 36
     property int weatherWindSpeedY: 4

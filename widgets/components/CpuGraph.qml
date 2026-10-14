@@ -3,6 +3,7 @@ import "primitives" as Primitives
 import ".."
 import Quickshell
 import Quickshell.Io
+import "../js/cpuGraphData.js" as CpuGraphData
 
 Primitives.ModuleFrame {
     id: root
@@ -18,7 +19,12 @@ Primitives.ModuleFrame {
         running: Settings.loaded && Settings.cpuGraph
         stdout: SplitParser {
             onRead: line => {
-                try { root.values = JSON.parse(line.trim()) } catch (e) {}
+                try {
+                    var parsed = JSON.parse(line.trim())
+                    var normalized = CpuGraphData.normalizeHistory(parsed, 51)
+                    if (normalized !== null)
+                        root.values = normalized
+                } catch (e) {}
             }
         }
     }

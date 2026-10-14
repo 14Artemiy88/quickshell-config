@@ -54,6 +54,15 @@ function apply(Config, o) {
             }
         }
         if (o.weatherWindIcon !== undefined) Config.weatherWindIcon = String(o.weatherWindIcon)
+        // Direction-specific glyphs and font families; legacy weatherWindIcon remains readable.
+        var weatherWindDirectionKeys = ["Calm", "N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        for (var wi = 0; wi < weatherWindDirectionKeys.length; ++wi) {
+            var weatherWindDirectionKey = weatherWindDirectionKeys[wi]
+            var weatherWindIconKey = "weatherWind" + weatherWindDirectionKey + "Icon"
+            var weatherWindFontKey = "weatherWind" + weatherWindDirectionKey + "Font"
+            if (o[weatherWindIconKey] !== undefined) Config[weatherWindIconKey] = String(o[weatherWindIconKey]).slice(0, 16)
+            if (o[weatherWindFontKey] !== undefined) Config[weatherWindFontKey] = String(o[weatherWindFontKey]).trim().slice(0, 128)
+        }
         if (o.weatherShowComfort !== undefined) Config.weatherShowComfort = !!o.weatherShowComfort
 
         Config.weatherDailyCount = Math.max(1, Math.min(4, Config.weatherDailyCount))

@@ -22,9 +22,41 @@ function normalizeSavedColor(value, fallback) {
     return fallback
 }
 
+function migrateLegacyTopAppsMap(source) {
+    if (!source || typeof source !== "object") return source
+    var result = source
+    if (result.topApps !== undefined) {
+        if (result.topAppsCpu === undefined) result.topAppsCpu = result.topApps
+        if (result.topAppsRam === undefined) result.topAppsRam = result.topApps
+        delete result.topApps
+    }
+    return result
+}
+
+function splitLegacyTopAppsGeometry(geometry) {
+    var x = Number(geometry[0]) || 0
+    var y = Number(geometry[1]) || 0
+    var width = Math.max(1, Number(geometry[2]) || 315)
+    var totalHeight = Math.max(7, Number(geometry[3]) || 198)
+    var gap = 5
+    var sectionHeight = Math.max(1, Math.floor((totalHeight - gap) / 2))
+    return [[x, y, width, sectionHeight], [x, y + sectionHeight + gap, width, sectionHeight]]
+}
+
 function normalizeProfile(profile, isSparse) {
     if (!profile || typeof profile !== "object") return null
     var p = JSON.parse(JSON.stringify(profile))
+
+    p.modules = migrateLegacyTopAppsMap(p.modules)
+    p.moduleFrames = migrateLegacyTopAppsMap(p.moduleFrames)
+    p.moduleBackgrounds = migrateLegacyTopAppsMap(p.moduleBackgrounds)
+    p.moduleMonitors = migrateLegacyTopAppsMap(p.moduleMonitors)
+    if (p.geometry && p.geometry.topApps && p.geometry.topApps.length === 4) {
+        var splitTopApps = splitLegacyTopAppsGeometry(p.geometry.topApps)
+        if (!p.geometry.topAppsCpu) p.geometry.topAppsCpu = splitTopApps[0]
+        if (!p.geometry.topAppsRam) p.geometry.topAppsRam = splitTopApps[1]
+        delete p.geometry.topApps
+    }
 
     // Migrate old separate finished-image margins to the current shared field.
     if (p.timerFinishedImageMargin === undefined) {

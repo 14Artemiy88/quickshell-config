@@ -2,7 +2,10 @@
 
 get_volumes() {
     local num vol name
-    local -a items=()
+    # Preserve arbitrary user-facing names safely as separate argv entries.
+    # Encode the whole sink-input list in one jq call below instead of starting
+    # one jq process per row and then another jq process to combine the array.
+    local -a fields=()
 
     # pactl's human-readable headings may be localized. Accept the common
     # English and Russian forms while preserving arbitrary stream names via
@@ -10,7 +13,7 @@ get_volumes() {
     while IFS= read -r -d '' num && IFS= read -r -d '' vol && IFS= read -r -d '' name; do
         [[ "$num" =~ ^[0-9]+$ && "$vol" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
         # jq handles quotes, backslashes and control characters in names.
-        items+=("$(jq -cn --arg num "$num" --arg value "$vol" --arg name "$name" '{num:$num,value:$value,name:$name}')")
+        fields+=("$num" "$vol" "$name")
     done < <(pactl list sink-inputs 2>/dev/null | awk '
         function extract_media_name(line, pos, i, c, result, escaped) {
             pos = index(line, "media.name = \"")
@@ -71,9 +74,16 @@ get_volumes() {
         END { emit_record() }
     ')
 
-    if ((${#items[@]} > 0)); then
-        printf '%s\n' "${items[@]}" | jq -s '.'
-    else
+    # `--args` passes each parsed field as a separate JSON-safe string, so
+    # quotes, backslashes, whitespace and Unicode names do not need custom
+    # escaping or tab-delimited transport. Empty input naturally becomes [].
+    if ((${#fields[@]} == 0)); then
         printf '[]'
+        return 0
     fi
+    jq -cn --args '
+        $ARGS.positional as $fields |
+        [range(0; (($fields | length) / 3)) as $i |
+            {num:$fields[$i * 3], value:$fields[$i * 3 + 1], name:$fields[$i * 3 + 2]}]
+    ' -- "${fields[@]}"
 }

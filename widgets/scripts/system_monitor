@@ -9,22 +9,36 @@ source "$(dirname "$0")/system_monitor.d/network_connections.sh"
 STATE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net"
 CACHE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache"
 CACHE_NET_TIME="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache_time"
-TMPD=$(mktemp -d)
-trap 'rm -rf "$TMPD"' EXIT
+TMPD=$(mktemp -d 2>/dev/null) || TMPD=""
+if [[ -z "$TMPD" || ! -d "$TMPD" ]]; then
+    # This is an emergency fallback; a private temp directory is preferred.
+    TMPD="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/quickshell-system-monitor-$$"
+    (umask 077 && mkdir "$TMPD") 2>/dev/null || {
+        printf '{"top_apps":{"cpu":[],"mem":[]},"net_stat":{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s"},"volumes":[],"network":[]}\n'
+        exit 0
+    }
+fi
+trap 'rm -rf -- "$TMPD"' EXIT
 
 WANT_TOP_APPS="${1:-1}"
 WANT_NET_STAT="${2:-1}"
 WANT_VOLUMES="${3:-1}"
 WANT_NETWORK="${4:-1}"
+# Optional split-module flags. Older callers passing only the original four
+# arguments retain the previous behavior and request both Top Apps sections.
+WANT_TOP_APPS_CPU="${5:-1}"
+WANT_TOP_APPS_RAM="${6:-1}"
+WANT_TOP_APPS_SYSTEM_REMAINDER="${7:-1}"
+TOP_APPS_SYSTEM_REMAINDER_LABEL="${8:-Система/прочее}"
 
 if [[ "$WANT_NET_STAT" == "1" ]]; then
     get_network_stat "$STATE_NET" > "$TMPD/net" &
 else
-    printf '{"down":"0 B","up":"0 B","speed_down":"0 B","speed_up":"0 B"}' > "$TMPD/net"
+    printf '{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s"}' > "$TMPD/net"
 fi
 
 if [[ "$WANT_TOP_APPS" == "1" ]]; then
-    get_top_apps > "$TMPD/top" &
+    get_top_apps "$WANT_TOP_APPS_CPU" "$WANT_TOP_APPS_RAM" "$WANT_TOP_APPS_SYSTEM_REMAINDER" "$TOP_APPS_SYSTEM_REMAINDER_LABEL" > "$TMPD/top" &
 else
     printf '{"cpu":[],"mem":[]}' > "$TMPD/top"
 fi
@@ -40,11 +54,8 @@ if [[ "$WANT_NETWORK" == "1" ]]; then
 else
     printf '[]' > "$TMPD/netw"
 fi
-wait
+wait || true
 
-jq -n \
-    --argjson top_apps "$(cat "$TMPD/top")" \
-    --argjson net_stat "$(cat "$TMPD/net")" \
-    --argjson volumes "$(cat "$TMPD/vol")" \
-    --argjson network "$(cat "$TMPD/netw")" \
-    '{top_apps:$top_apps,net_stat:$net_stat,volumes:$volumes,network:$network}'
+# Parse and validate every collector independently in a single jq process.
+# Invalid/missing sections fall back locally; healthy sections are preserved.
+system_monitor_assemble_payload "$TMPD/top" "$TMPD/net" "$TMPD/vol" "$TMPD/netw"

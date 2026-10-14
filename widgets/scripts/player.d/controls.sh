@@ -50,8 +50,8 @@ pause() {
             mapfile -t props < <(get_mpv_properties "media-title" "path" "time-pos")
             [[ ${#props[@]} -lt 3 ]] && exit 0
 
-            title="${props[0]//\"/}"
-            path="${props[1]//\"/}"
+            title="${props[0]}"
+            path="${props[1]}"
             position="${props[2]%%.*}"
 
             create_image "$title" "$path" "$position"
@@ -106,8 +106,8 @@ position() {
         [[ ${#props[@]} -lt 3 ]] && exit 0
 
         duration="${props[0]//\"/}"
-        title="${props[1]//\"/}"
-        path="${props[2]//\"/}"
+        title="${props[1]}"
+        path="${props[2]}"
 
         pos_seconds=$(awk -v p="$pos_percent" -v d="$duration" 'BEGIN {print d * p / 100}')
         create_image "$title" "$path" "$pos_seconds"

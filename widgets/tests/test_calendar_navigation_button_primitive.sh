@@ -12,6 +12,7 @@ done
 # The two month-navigation controls must use the common icon button primitive.
 grep -Fq 'property int cursorShape: Qt.PointingHandCursor' "$ICON_BUTTON"
 grep -Fq 'cursorShape: root.cursorShape' "$ICON_BUTTON"
+grep -Fq 'color: root.hovered && root.hoverMode === "text" ? root.hoverColor : root.baseColor' "$ICON_BUTTON"
 grep -Fq 'Primitives.HoverIconButton {' "$CALENDAR"
 grep -Fq 'iconText: Config.calendarPreviousIcon' "$CALENDAR"
 grep -Fq 'iconText: Config.calendarNextIcon' "$CALENDAR"
@@ -21,7 +22,9 @@ grep -Fq 'iconX: Config.calendarPreviousX' "$CALENDAR"
 grep -Fq 'iconX: Config.calendarNextX' "$CALENDAR"
 grep -Fq 'iconY: Config.calendarArrowY' "$CALENDAR"
 grep -Fq 'iconFontFamily: Config.font' "$CALENDAR"
-grep -Fq 'cursorShape: Qt.ArrowCursor' "$CALENDAR"
+grep -Fq 'cursorShape: Qt.PointingHandCursor' "$CALENDAR"
+grep -Fq 'hoverMode: "text"' "$CALENDAR"
+grep -Fq 'hoverColor: Config.accent' "$CALENDAR"
 grep -Fq 'onClicked: root.shiftMonth(-1)' "$CALENDAR"
 grep -Fq 'onClicked: root.shiftMonth(1)' "$CALENDAR"
 
@@ -66,14 +69,16 @@ if nav.count('Primitives.HoverIconButton {') != 2:
     raise SystemExit('Expected exactly two shared icon buttons in the calendar navigation row')
 if 'MouseArea {' in nav:
     raise SystemExit('Month navigation still has its own MouseArea')
-if nav.count('cursorShape: Qt.ArrowCursor') != 2:
-    raise SystemExit('Month navigation must preserve its normal arrow cursor')
+if nav.count('cursorShape: Qt.PointingHandCursor') != 2:
+    raise SystemExit('Month navigation must use a pointing-hand cursor')
+if nav.count('hoverMode: "text"') != 2 or nav.count('hoverColor: Config.accent') != 2:
+    raise SystemExit('Month navigation buttons must highlight their icons in the accent color on hover')
 if 'onClicked: root.shiftMonth(-1)' not in nav or 'onClicked: root.shiftMonth(1)' not in nav:
     raise SystemExit('Month navigation click routing changed')
 check=Path(sys.argv[3]).read_text(encoding='utf-8')
 if 'test_calendar_navigation_button_primitive.sh' not in check:
     raise SystemExit('Calendar navigation test is not wired into CHECK.sh')
-print('Calendar month navigation uses shared icon buttons; settings and click routes preserved: OK')
+print('Calendar month navigation uses shared icon buttons with accent hover; click routes preserved: OK')
 PYCODE
 
-echo 'Calendar previous/next month buttons use HoverIconButton: OK'
+echo 'Calendar previous/next month buttons use HoverIconButton with hover feedback: OK'

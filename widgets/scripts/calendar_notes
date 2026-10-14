@@ -4,10 +4,37 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env"
 CFG_DIR="$QS_DATA_DIR"
 FILE="$CFG_DIR/calendar-notes.json"
+LOCK="$CFG_DIR/.calendar-notes.lock"
 mkdir -p "$CFG_DIR"
-[[ -f "$FILE" ]] || printf '{}\n' > "$FILE"
+
+# Reads and read-modify-write updates share one stable lock. Without it, two
+# concurrent edits to different dates can both read the same old JSON object
+# and the later atomic rename silently loses the earlier edit.
+command -v flock >/dev/null 2>&1 || {
+  printf 'calendar_notes: flock is required for safe note updates\n' >&2
+  exit 1
+}
+exec {lock_fd}>"$LOCK"
+flock -x "$lock_fd"
+
 : > "$CFG_DIR/.migration-calendar-notes-v1"
 chmod 600 "$CFG_DIR/.migration-calendar-notes-v1" 2>/dev/null || true
+
+# Initialize the data file atomically and with private permissions. The lock
+# prevents concurrent calendar_notes invocations from racing this creation.
+if [[ ! -f "$FILE" ]]; then
+  init_tmp="$(mktemp "$CFG_DIR/.calendar-notes-init.XXXXXX")"
+  if ! printf '{}\n' > "$init_tmp"; then
+    rm -f -- "$init_tmp"
+    exit 1
+  fi
+  chmod 600 "$init_tmp" 2>/dev/null || true
+  if ! mv -n -- "$init_tmp" "$FILE"; then
+    rm -f -- "$init_tmp"
+    exit 1
+  fi
+  rm -f -- "$init_tmp"
+fi
 
 case "${1:-get}" in
   get)
@@ -20,14 +47,23 @@ case "${1:-get}" in
       echo "Invalid date key; expected YYYY-MM-DD" >&2
       exit 2
     fi
+    if ! jq -e 'type == "object"' "$FILE" >/dev/null 2>&1; then
+      printf 'calendar_notes: existing calendar notes file is not a valid JSON object; refusing to overwrite it\n' >&2
+      exit 1
+    fi
     tmp="$(mktemp "$CFG_DIR/.calendar-notes.XXXXXX")"
-    trap 'rm -f "$tmp"' EXIT
+    cleanup_calendar_notes_tmp() {
+      [[ -z "${tmp:-}" ]] || rm -f -- "$tmp"
+    }
+    trap cleanup_calendar_notes_tmp EXIT
     if [[ -z "$(printf '%s' "$value" | tr -d '[:space:]')" ]]; then
       jq --arg key "$key" 'del(.[$key])' "$FILE" > "$tmp"
     else
       jq --arg key "$key" --arg value "$value" '.[$key] = $value' "$FILE" > "$tmp"
     fi
-    mv "$tmp" "$FILE"
+    chmod 600 "$tmp" 2>/dev/null || true
+    mv -f -- "$tmp" "$FILE"
+    tmp=""
     trap - EXIT
     ;;
   *)

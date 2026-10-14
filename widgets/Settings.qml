@@ -23,7 +23,8 @@ QtObject {
     property bool time: true
     property bool cpu: true
     property bool cpuGraph: true
-    property bool topApps: true
+    property bool topAppsCpu: true
+    property bool topAppsRam: true
     property bool networkStat: true
     property bool weatherNow: true
     property bool weatherHourly: true
@@ -35,16 +36,16 @@ QtObject {
     property bool cava: true
     property bool networks: true
     property bool calendar: true
-    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
     property var moduleMonitors: ({})
-    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topApps:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
 
     property var geometry: ({
         time: [3,5,315,55], cpu: [5,65,315,170], cpuGraph: [5,235,315,82],
-        topApps: [5,322,315,198], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
+        topAppsCpu: [5,322,315,96], topAppsRam: [5,423,315,96], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
         weatherHourly: [3,665,335,125], weatherDaily: [3,795,325,125], timer: [3,930,315,145],
         timerOptions: [325,888,90,95], calendar: [5,65,315,285], volumes: [331,72,275,210],
         player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180]

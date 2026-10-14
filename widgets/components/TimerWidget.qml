@@ -451,6 +451,15 @@ Primitives.ModuleFrame {
         }
     }
 
+    readonly property int widestTimerTextWidth: {
+        var maxWidth = 0
+        for (var i = 0; i < timerWidthMeasurer.count; ++i) {
+            var measured = timerWidthMeasurer.itemAt(i)
+            if (measured) maxWidth = Math.max(maxWidth, measured.measuredWidth)
+        }
+        return maxWidth
+    }
+
     Item {
         id: timerList
         x: 0
@@ -458,6 +467,29 @@ Primitives.ModuleFrame {
         width: parent.width
         height: parent.height
         clip: true
+
+        // Keep metrics delegates separate from the visible rows so the optional
+        // alignment can use the widest countdown without changing timer ordering.
+        Repeater {
+            id: timerWidthMeasurer
+            model: timerModel
+            delegate: Item {
+                id: measuredTimerItem
+                visible: false
+                width: 0
+                height: 0
+                property var timerData: model
+                property string displayText: String(timerData.sign || "") + String(timerData.timer || "")
+                property int displaySize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
+                property int measuredWidth: Math.ceil(measuredTextMetrics.advanceWidth) + 2
+                TextMetrics {
+                    id: measuredTextMetrics
+                    font.family: Config.ledFont
+                    font.pixelSize: measuredTimerItem.displaySize
+                    text: measuredTimerItem.displayText
+                }
+            }
+        }
 
         Column {
             anchors.right: parent.right
@@ -497,13 +529,25 @@ Primitives.ModuleFrame {
 
                         Item {
                             id: timerDisplay
-                            width: 100
+                            // Size the countdown column to the rendered text instead of
+                            // reserving a fixed 100 px. This keeps the comment gap visually
+                            // constant for both short and long countdown values.
+                            width: Config.timerCommentAlignFurthest && root.widestTimerTextWidth > 0
+                                ? root.widestTimerTextWidth
+                                : Math.ceil(textMetrics.advanceWidth) + 2
                             height: parent.height
                             property string displayText: (timerData.sign || "") + (timerData.timer || "")
                             property color outlineColor: timerData.color || Config.text
                             property int displaySize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
                             property var outlineOffsets: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
                             property bool hasSign: String(timerData.sign || "") !== ""
+
+                            TextMetrics {
+                                id: textMetrics
+                                font.family: Config.ledFont
+                                font.pixelSize: timerDisplay.displaySize
+                                text: timerDisplay.displayText
+                            }
 
                             Repeater {
                                 model: timerDisplay.hasSign ? timerDisplay.outlineOffsets.length : 0

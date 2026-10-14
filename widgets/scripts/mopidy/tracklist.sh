@@ -15,7 +15,7 @@ rpc() {
 }
 
 get_queue() {
-    local response current_tlid
+    local response
     response=$(curl -sS --connect-timeout 1 --max-time 2 \
         -H 'Content-Type: application/json' \
         -d '[
@@ -28,16 +28,29 @@ get_queue() {
         return 0
     }
 
-    current_tlid=$(jq -r '.[] | select(.id == 2) | .result.tlid // empty' <<< "$response")
-    position_ms=$(jq -r '.[] | select(.id == 3) | .result // 0' <<< "$response")
-    [[ "$position_ms" =~ ^[0-9]+$ ]] || position_ms=0
+    # The batch response already contains tracklist, current track and playback
+    # position. Extract and normalize all three in one jq process instead of
+    # parsing it twice for scalar fields and once again for the final payload.
+    jq -c '
+        def nonnegative_int_or_zero:
+            if type == "number" then
+                if . >= 0 and floor == . then . else 0 end
+            elif type == "string" and test("^[0-9]+$") then tonumber
+            else 0 end;
 
-    jq -c --arg current "$current_tlid" --argjson position_ms "$position_ms" '
-        {
+        . as $batch
+        | ([$batch[] | select(.id == 2) | .result.tlid?][0] // null) as $current_tlid
+        | ([$batch[] | select(.id == 3) | .result?][0] // 0 | nonnegative_int_or_zero) as $position_ms
+        | {
             ok: true,
-            current_tlid: (if $current == "" then null else ($current | tonumber) end),
+            current_tlid: (
+                if $current_tlid == null then null
+                elif ($current_tlid | type) == "number" then $current_tlid
+                elif ($current_tlid | type) == "string" and ($current_tlid | test("^[0-9]+$")) then ($current_tlid | tonumber)
+                else null end
+            ),
             position_ms: $position_ms,
-            tracks: ([.[] | select(.id == 1) | .result[]? | {
+            tracks: ([$batch[] | select(.id == 1) | .result[]? | {
                 tlid: .tlid,
                 name: (.track.name // "Без названия"),
                 artist: ([.track.artists[]?.name] | join(", ")),

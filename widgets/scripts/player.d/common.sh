@@ -21,18 +21,74 @@ declare -A cover_cache
 # local image by URL and otherwise keep showing an old frame after its file is
 # overwritten. Only a small time window of snapshots is retained per source.
 mpv_snapshot_key() {
-    local source_path="${1:-}"
+    local source_path="${1:-}" digest=""
     [[ -n "$source_path" ]] || return 1
-    printf '%s' "$source_path" | sha256sum | awk '{print substr($1, 1, 24)}'
+    # sha256sum already emits its digest as the first whitespace-delimited
+    # field. Extracting that field with Bash avoids starting a second process
+    # on every Player poll.
+    digest=$(printf '%s' "$source_path" | sha256sum) || return 1
+    digest="${digest%% *}"
+    [[ "$digest" =~ ^[0-9a-f]{64}$ ]] || return 1
+    printf '%.24s\n' "$digest"
+}
+
+mpv_store_latest_snapshot_for_key() {
+    local key="${1:-}" snapshot_name="${2:-}" pointer tmp
+    [[ "$key" =~ ^[0-9a-f]{24}$ && -d "$IMG_PATH" ]] || return 1
+    pointer="$IMG_PATH/.mpv-${key}.latest"
+    if [[ -z "$snapshot_name" ]]; then
+        snapshot_name="-"
+    elif [[ ! "$snapshot_name" =~ ^mpv-${key}-[0-9]+(-[0-9]+)*\.png$ ]]; then
+        return 1
+    fi
+    tmp="$pointer.$$.${RANDOM}.tmp"
+    if ! printf '%s\n' "$snapshot_name" > "$tmp"; then
+        rm -f -- "$tmp" 2>/dev/null || true
+        return 1
+    fi
+    mv -f -- "$tmp" "$pointer" || {
+        rm -f -- "$tmp" 2>/dev/null || true
+        return 1
+    }
 }
 
 mpv_latest_snapshot_for_key() {
-    local key="${1:-}" latest=""
-    [[ -n "$key" && -d "$IMG_PATH" ]] || return 1
+    local key="${1:-}" latest="" snapshot_name="" pointer=""
+    [[ "$key" =~ ^[0-9a-f]{24}$ && -d "$IMG_PATH" ]] || return 1
+    pointer="$IMG_PATH/.mpv-${key}.latest"
+
+    # The sidecar is atomically updated when a snapshot is published. A regular
+    # cache hit now requires only a Bash read and a file existence check instead
+    # of launching find, sort and head on every short Player poll.
+    if [[ -f "$pointer" ]]; then
+        IFS= read -r snapshot_name < "$pointer" || snapshot_name=""
+        if [[ "$snapshot_name" == "-" ]]; then
+            return 1
+        fi
+        if [[ "$snapshot_name" =~ ^mpv-${key}-[0-9]+(-[0-9]+)*\.png$ && -s "$IMG_PATH/$snapshot_name" ]]; then
+            printf '%s\n' "$IMG_PATH/$snapshot_name"
+            return 0
+        fi
+    fi
+
+    # One-time migration/fallback for snapshots created by older versions, or
+    # recovery if an indexed file was externally removed.
     latest=$(find "$IMG_PATH" -maxdepth 1 -type f -name "mpv-${key}-*.png" \
         -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1) || true
-    [[ -n "$latest" ]] || return 1
-    printf '%s\n' "${latest#* }"
+    if [[ -n "$latest" ]]; then
+        latest="${latest#* }"
+        snapshot_name="${latest##*/}"
+        if [[ "$snapshot_name" =~ ^mpv-${key}-[0-9]+(-[0-9]+)*\.png$ && -s "$latest" ]]; then
+            mpv_store_latest_snapshot_for_key "$key" "$snapshot_name" || true
+            printf '%s\n' "$latest"
+            return 0
+        fi
+    fi
+
+    # Remember a clean miss as well. Failed/unsupported sources should not
+    # relaunch a find/sort/head pipeline on every poll while retry is throttled.
+    mpv_store_latest_snapshot_for_key "$key" "" || true
+    return 1
 }
 
 create_mpv_snapshot() {
@@ -59,6 +115,7 @@ create_mpv_snapshot() {
             # preventing an indefinitely growing cache during long playback.
             find "$IMG_PATH" -maxdepth 1 -type f \
                 -name "mpv-${key}-*.png" -mmin +10 -delete 2>/dev/null || true
+            mpv_store_latest_snapshot_for_key "$key" "${final_path##*/}" || true
             printf '%s\n' "$final_path"
             return 0
         fi
@@ -79,7 +136,12 @@ get_mpv_snapshot() {
     if [[ "$force" != "true" ]]; then
         if [[ -n "$latest" && -s "$latest" ]]; then
             modified=$(stat -c %Y -- "$latest" 2>/dev/null || printf '0')
-            now=$(date +%s)
+            # Bash's printf time conversion is a builtin. Avoid starting a
+            # separate date process on every Player poll; keep date as a
+            # compatibility fallback for older Bash versions.
+            if ! printf -v now '%(%s)T' -1 2>/dev/null; then
+                now=$(date +%s)
+            fi
             if [[ "$modified" =~ ^[0-9]+$ ]] && (( now - modified < ttl )); then
                 printf '%s\n' "$latest"
                 return 0
@@ -91,7 +153,9 @@ get_mpv_snapshot() {
         # after the same interval as a normal frame refresh.
         if [[ -f "$attempt_path" ]]; then
             attempt_modified=$(stat -c %Y -- "$attempt_path" 2>/dev/null || printf '0')
-            now=$(date +%s)
+            if ! printf -v now '%(%s)T' -1 2>/dev/null; then
+                now=$(date +%s)
+            fi
             if [[ "$attempt_modified" =~ ^[0-9]+$ ]] && (( now - attempt_modified < ttl )); then
                 if [[ -n "$latest" && -s "$latest" ]]; then
                     printf '%s\n' "$latest"
@@ -217,27 +281,143 @@ get_album_img() {
 }
 
 get_image() {
-    local img_url="$1" image_path
+    local img_url="${1:-}" requested_player="${2:-}" image_path key tmp_path converted_path attempt_path lock_path lock_fd
+    local attempt_modified now curl_output
 
-    # Возвращаем дефолтное изображение, если URL пустой
+    # Some backends can omit artUrl even when playerctl has it. When the caller
+    # already selected an MPRIS backend, query that exact player: an unqualified
+    # playerctl request can return artwork from a different active player and
+    # mix covers when, for example, Spotify and a browser play simultaneously.
     if [[ -z "$img_url" ]]; then
-        img_url=$(playerctl metadata -f '{{ mpris:artUrl }}' 2>/dev/null)
-        [[ -z "$img_url" ]] && { printf '%s\n' "$DEFAULT_IMG"; return; }
-        printf '%s\n' "${img_url#file://}"
-        return
+        if [[ -n "$requested_player" ]]; then
+            img_url=$(playerctl -p "$requested_player" metadata -f '{{ mpris:artUrl }}' 2>/dev/null) || img_url=""
+        else
+            # Keep the legacy unqualified lookup for callers that do not know a
+            # backend, but all MPRIS metadata calls pass their selected player.
+            img_url=$(playerctl metadata -f '{{ mpris:artUrl }}' 2>/dev/null) || img_url=""
+        fi
+        [[ -n "$img_url" ]] || { printf '%s\n' "$DEFAULT_IMG"; return 0; }
     fi
 
-    # Извлекаем имя файла из URL
-    image_path="$IMG_PATH/${img_url##*/}"
-    image_path="${image_path%.*}$IMG_SUFFIX"
+    # Only accept the URL schemes this helper is expected to load. MPRIS art
+    # commonly uses http(s) or a local file URI; don't let arbitrary schemes
+    # reach curl.
+    case "$img_url" in
+        http://*|https://*|file://*) ;;
+        *) printf '%s\n' "$DEFAULT_IMG"; return 0 ;;
+    esac
 
-    # Загружаем только если файл не существует
-    if [[ ! -f "$image_path" ]]; then
-        curl -s -o "$image_path" "$img_url" 2>/dev/null
-        mogrify -format png "$image_path" 2>/dev/null
+    mkdir -p "$IMG_PATH" 2>/dev/null || {
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    }
+
+    # Hash the full URL rather than using only its basename: different albums
+    # frequently publish images named cover.jpg, and query strings may contain
+    # distinct artwork versions or tokens.
+    local url_digest=""
+    url_digest=$(printf '%s' "$img_url" | sha256sum) || {
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    }
+    url_digest="${url_digest%% *}"
+    [[ "$url_digest" =~ ^[0-9a-f]{64}$ ]] || {
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    }
+    key="${url_digest:0:32}"
+    image_path="$IMG_PATH/mpris-art-${key}.png"
+    attempt_path="$IMG_PATH/.mpris-art-${key}.attempt"
+    lock_path="$IMG_PATH/.mpris-art-${key}.lock"
+
+    if [[ -s "$image_path" ]]; then
+        printf '%s\n' "$image_path"
+        return 0
     fi
 
-    printf '%s\n' "$image_path"
+    # Multiple Player backends/polls can resolve the same URL simultaneously.
+    # Use a non-blocking per-URL lock so only one process performs curl and
+    # ImageMagick work. Other callers never wait behind a slow art host.
+    if ! command -v flock >/dev/null 2>&1 || ! exec {lock_fd}>"$lock_path"; then
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    fi
+    if ! flock -n "$lock_fd"; then
+        exec {lock_fd}>&-
+        # The other caller may have finished between the initial cache check
+        # and lock attempt; use its completed image if it is already published.
+        if [[ -s "$image_path" ]]; then
+            printf '%s\n' "$image_path"
+        else
+            printf '%s\n' "$DEFAULT_IMG"
+        fi
+        return 0
+    fi
+    # Refresh the lock's mtime while held; the small per-URL lock file is kept
+    # to avoid unsafe unlink/recreate races between concurrent processes.
+    touch "$lock_path" 2>/dev/null || true
+
+    # Recheck the cache after acquiring the lock. Another caller could have
+    # published the image immediately before this caller acquired it.
+    if [[ -s "$image_path" ]]; then
+        flock -u "$lock_fd" 2>/dev/null || true
+        exec {lock_fd}>&-
+        printf '%s\n' "$image_path"
+        return 0
+    fi
+
+    # Rate-limit failures only after serializing callers for this URL.
+    if [[ -f "$attempt_path" ]]; then
+        attempt_modified=$(stat -c %Y -- "$attempt_path" 2>/dev/null || printf '0')
+        now=$(date +%s)
+        if [[ "$attempt_modified" =~ ^[0-9]+$ ]] && (( now - attempt_modified < 60 )); then
+            flock -u "$lock_fd" 2>/dev/null || true
+            exec {lock_fd}>&-
+            printf '%s\n' "$DEFAULT_IMG"
+            return 0
+        fi
+    fi
+
+    tmp_path=$(mktemp "$IMG_PATH/.mpris-art-${key}.XXXXXX.download") || {
+        date +%s > "$attempt_path" 2>/dev/null || true
+        flock -u "$lock_fd" 2>/dev/null || true
+        exec {lock_fd}>&-
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    }
+    # Mark the start as well, so an interrupted download is throttled too.
+    date +%s > "$attempt_path" 2>/dev/null || true
+
+    # A timeout is important here: this function runs while producing player
+    # metadata and a slow cover host must not stall the whole player poll.
+    if timeout 5s curl --proto '=http,https,file' -fLsS \
+        --connect-timeout 2 --max-time 4 \
+        --output "$tmp_path" "$img_url" 2>/dev/null && [[ -s "$tmp_path" ]] &&
+        command -v mogrify >/dev/null 2>&1; then
+        # The temporary input has no image suffix; ImageMagick writes a separate
+        # PNG next to it, which can be atomically published under the final URL key.
+        if mogrify -format png "$tmp_path" >/dev/null 2>&1; then
+            converted_path="${tmp_path%.*}.png"
+            if [[ -s "$converted_path" ]] && mv -f -- "$converted_path" "$image_path"; then
+                rm -f -- "$tmp_path" "$attempt_path" 2>/dev/null || true
+                flock -u "$lock_fd" 2>/dev/null || true
+                exec {lock_fd}>&-
+                # Reap old lock/attempt metadata occasionally without touching
+                # current entries; a held lock has a freshly updated mtime.
+                find "$IMG_PATH" -maxdepth 1 -type f -name '.mpris-art-*.lock' -mmin +1440 -delete 2>/dev/null || true
+                printf '%s\n' "$image_path"
+                return 0
+            fi
+        fi
+    fi
+
+    rm -f -- "$tmp_path" "${tmp_path%.*}.png" 2>/dev/null || true
+    # Keep a recent failure timestamp so the next polling cycle returns quickly.
+    date +%s > "$attempt_path" 2>/dev/null || true
+    flock -u "$lock_fd" 2>/dev/null || true
+    exec {lock_fd}>&-
+    printf '%s\n' "$DEFAULT_IMG"
+    return 0
 }
 
 # Форматирование времени
@@ -271,10 +451,15 @@ get_json() {
         esac
     done
 
-    # Рассчет позиции в процентах
-    local position_percent=0
-    if [[ $dur_ms -gt 0 ]]; then
+    # Calculate progress only when both values form a usable range. Keep
+    # position empty for metadata-only/live items without a known duration;
+    # Player.qml already treats an empty position as zero for layout, while the
+    # payload no longer falsely claims a real 0% measurement.
+    local position_percent=""
+    if [[ "$pos_ms" =~ ^[0-9]+$ && "$dur_ms" =~ ^[0-9]+$ ]] && (( dur_ms > 0 )); then
         position_percent=$(( (pos_ms * 100) / dur_ms ))
+        (( position_percent < 0 )) && position_percent=0
+        (( position_percent > 100 )) && position_percent=100
     fi
 
     # Безопасная генерация JSON с помощью jq

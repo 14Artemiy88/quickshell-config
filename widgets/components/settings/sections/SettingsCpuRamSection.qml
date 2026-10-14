@@ -359,6 +359,47 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
+        SettingsCheckBox {
+            width: parent.width; height: 30
+            text: "Показывать строку «Система/прочее»"
+            checked: Config.topAppsShowSystemRemainder
+            onToggled: { Config.topAppsShowSystemRemainder = checked; settings.save() }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text {
+            width: 210; text: "Название строки остатка"
+            color: Config.text; font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        SettingsTextField {
+            id: topAppsSystemRemainderLabelField
+            width: 180; height: 30
+            enabled: Config.topAppsShowSystemRemainder
+            text: Config.topAppsSystemRemainderLabel
+            color: Config.text; font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "Система/прочее"
+            activeFocusOnTab: true
+            onEditingFinished: {
+                Config.topAppsSystemRemainderLabel = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64) || "Система/прочее"
+                text = Config.topAppsSystemRemainderLabel
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onTopAppsSystemRemainderLabelChanged() { topAppsSystemRemainderLabelField.text = Config.topAppsSystemRemainderLabel }
+            }
+        }
+    }
+
+    Row {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
         Text {
             width: 210; text: "Шрифт списка (пусто — системный)"
             color: Config.text; font.family: Config.settingsFont

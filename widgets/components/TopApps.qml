@@ -5,21 +5,26 @@ import "primitives" as Primitives
 Item {
     id: root
     width: 315
-    height: 198
+    height: 96
     property var monitor
+    // One UI instance now represents one independently positionable section.
+    // The System Monitor service remains shared and publishes both data sets.
+    property string sectionType: "cpu" // "cpu" or "ram"
     readonly property var cpuEntries: root.monitor?.data?.top_apps?.cpu ?? []
     readonly property var memoryEntries: root.monitor?.data?.top_apps?.mem ?? []
+    readonly property var sectionEntries: sectionType === "ram" ? memoryEntries : cpuEntries
+    readonly property string sectionTitle: sectionType === "ram" ? "ПАМЯТЬ" : "CPU"
+    readonly property color sectionFillColor: sectionType === "ram" ? Config.ram : Config.accent
+    readonly property color sectionTrackColor: sectionType === "ram" ? Config.ramTrack : Config.metricTrack
+    readonly property string sectionModuleName: sectionType === "ram" ? "topAppsRam" : "topAppsCpu"
     readonly property string displayFontFamily: String(Config.topAppsFont || "").trim() !== ""
                                                   ? String(Config.topAppsFont).trim()
                                                   : Qt.application.font.family
     readonly property int displayFontSize: Math.max(1, Math.round(Number(Config.topAppsFontSize) * (Number(Config.fontSize) > 0 ? Number(Config.fontSize) : 12) / 12))
     readonly property int displayRowHeight: Math.max(1, displayFontSize + 2)
-    readonly property int sectionGap: 5
 
-    // Reserve enough width for the longest value in each section so larger RAM
-    // values (for example "1001.1 Mb") remain fully readable. Values contain
-    // digits, decimal punctuation and a short unit, so this deliberately uses
-    // a conservative per-character estimate based on the configured font size.
+    // Reserve enough width for the longest value so larger RAM values
+    // (for example "1001.1 Mb") remain fully readable.
     function valueColumnWidth(entries) {
         let maxLength = 1
         if (entries) {
@@ -32,117 +37,103 @@ Item {
         return Math.max(72, Math.ceil(maxLength * root.displayFontSize * 0.68 + 8))
     }
 
-    Column {
+    Primitives.ModuleFrame {
+        id: moduleFrame
         anchors.fill: parent
-        spacing: root.sectionGap
+        moduleName: root.sectionModuleName
 
-        Repeater {
-            model: [
-                { title: "CPU", entries: root.cpuEntries, fillColor: Config.accent, trackColor: Config.metricTrack },
-                { title: "ПАМЯТЬ", entries: root.memoryEntries, fillColor: Config.ram, trackColor: Config.ramTrack }
-            ]
+        Item {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            anchors.topMargin: Math.min(Math.max(0, Config.topAppsTopOffset), Math.max(0, parent.height - 6))
+            anchors.bottomMargin: 3
+            clip: true
 
-            delegate: Primitives.ModuleFrame {
-                id: sectionFrame
-                property var section: modelData
-                moduleName: "topApps"
-                width: parent.width
-                height: Math.max(0, (root.height - root.sectionGap) / 2)
+            Column {
+                anchors.fill: parent
+                spacing: 0
 
+                // Keep the header row completely collapsed and clipped when disabled,
+                // so hidden text cannot paint outside a zero-height row or shift the list.
                 Item {
-                    anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
-                    anchors.topMargin: Math.min(Math.max(0, Config.topAppsTopOffset), Math.max(0, parent.height - 6))
-                    anchors.bottomMargin: 3
+                    width: parent.width
+                    height: Config.topAppsShowHeaders ? 12 : 0
                     clip: true
 
-                    Column {
+                    Row {
                         anchors.fill: parent
-                        spacing: 0
+                        spacing: 5
 
-                        // Keep the header row completely collapsed and clipped when disabled,
-                        // so hidden text cannot paint outside a zero-height row or shift the list.
-                        Item {
-                            width: parent.width
-                            height: Config.topAppsShowHeaders ? 12 : 0
-                            clip: true
-
-                            Row {
-                                anchors.fill: parent
-                                spacing: 5
-
-                                Text {
-                                    text: sectionFrame.section.title
-                                    color: sectionFrame.section.fillColor
-                                    font.family: root.displayFontFamily
-                                    font.pixelSize: Config.uiFontSize(10)
-                                    font.bold: true
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-
-                                Text {
-                                    text: "ТОП ПРОЦЕССОВ"
-                                    color: Config.textMuted
-                                    font.family: root.displayFontFamily
-                                    font.pixelSize: Config.uiFontSize(9)
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                            }
+                        Text {
+                            text: root.sectionTitle
+                            color: root.sectionFillColor
+                            font.family: root.displayFontFamily
+                            font.pixelSize: Config.uiFontSize(10)
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
                         }
 
-                        Column {
+                        Text {
+                            text: root.sectionType === "ram" ? "ТОП ПРОЦЕССОВ" : "ДОЛЯ ОТ ВСЕГО CPU"
+                            color: Config.textMuted
+                            font.family: root.displayFontFamily
+                            font.pixelSize: Config.uiFontSize(9)
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: Config.topAppsRowSpacing
+
+                    Repeater {
+                        model: root.sectionEntries
+
+                        delegate: Row {
+                            id: appRow
+                            property real relativeUsage: Math.max(0, Math.min(1, Number(modelData.ratio ?? 0)))
                             width: parent.width
-                            spacing: Config.topAppsRowSpacing
+                            height: root.displayRowHeight
+                            spacing: 5
 
-                            Repeater {
-                                model: sectionFrame.section.entries
+                            Text {
+                                width: Config.topAppsShowBars ? 98 : Math.max(40, parent.width - root.valueColumnWidth(root.sectionEntries) - 2 * appRow.spacing)
+                                text: modelData.name ?? ""
+                                color: Config.text
+                                font.family: root.displayFontFamily
+                                font.pixelSize: root.displayFontSize
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
 
-                                delegate: Row {
-                                    id: appRow
-                                    property real relativeUsage: Math.max(0, Math.min(1, Number(modelData.ratio ?? 0)))
-                                    width: parent.width
-                                    height: root.displayRowHeight
-                                    spacing: 5
+                            Item {
+                                visible: Config.topAppsShowBars
+                                width: Config.topAppsShowBars ? Math.max(0, parent.width - 98 - 5 - root.valueColumnWidth(root.sectionEntries) - 5) : 0
+                                height: 6
+                                anchors.verticalCenter: parent.verticalCenter
 
-                                    Text {
-                                        width: Config.topAppsShowBars ? 98 : Math.max(40, parent.width - root.valueColumnWidth(sectionFrame.section.entries) - 2 * appRow.spacing)
-                                        text: modelData.name ?? ""
-                                        color: Config.text
-                                        font.family: root.displayFontFamily
-                                        font.pixelSize: root.displayFontSize
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Item {
-                                        visible: Config.topAppsShowBars
-                                        width: Config.topAppsShowBars ? Math.max(0, parent.width - 98 - 5 - root.valueColumnWidth(sectionFrame.section.entries) - 5) : 0
-                                        height: 6
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Primitives.ProgressTrack {
-                                            anchors.fill: parent
-                                            value: appRow.relativeUsage * 100
-                                            radius: 3
-                                            fillColor: sectionFrame.section.fillColor
-                                            trackColor: sectionFrame.section.trackColor
-                                        }
-                                    }
-
-                                    Text {
-                                        width: root.valueColumnWidth(sectionFrame.section.entries)
-                                        text: modelData.value ?? ""
-                                        color: Config.text
-                                        font.family: root.displayFontFamily
-                                        font.pixelSize: root.displayFontSize
-                                        horizontalAlignment: Text.AlignRight
-                                        verticalAlignment: Text.AlignVCenter
-                                        // The column above is sized for all values in this section;
-                                        // don't replace leading digits with an ellipsis.
-                                        elide: Text.ElideNone
-                                    }
+                                Primitives.ProgressTrack {
+                                    anchors.fill: parent
+                                    value: appRow.relativeUsage * 100
+                                    radius: 3
+                                    fillColor: root.sectionFillColor
+                                    trackColor: root.sectionTrackColor
                                 }
+                            }
+
+                            Text {
+                                width: root.valueColumnWidth(root.sectionEntries)
+                                text: modelData.value ?? ""
+                                color: Config.text
+                                font.family: root.displayFontFamily
+                                font.pixelSize: root.displayFontSize
+                                horizontalAlignment: Text.AlignRight
+                                verticalAlignment: Text.AlignVCenter
+                                // The column above is sized for all values in this section;
+                                // don't replace leading digits with an ellipsis.
+                                elide: Text.ElideNone
                             }
                         }
                     }

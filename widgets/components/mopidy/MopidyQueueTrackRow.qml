@@ -54,7 +54,7 @@ Rectangle {
                         ? controller.formatOneLineTrack(artistName, trackName)
                         : trackName
                 }
-                textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.RichText : Text.PlainText
+                textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.StyledText : Text.PlainText
                 color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.text)
                 font.family: Config.mopidyTrackFont
                 font.pixelSize: Config.mopidyTrackFontSize

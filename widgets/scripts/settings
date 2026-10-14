@@ -1,25 +1,67 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "$0")/env"
 CFG_DIR="$QS_CONFIG_DIR"
 CFG="$CFG_DIR/settings.json"
+LOCK="$CFG_DIR/.settings.lock"
 mkdir -p "$CFG_DIR"
-DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topApps":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
-[[ -f "$CFG" ]] || printf '%s\n' "$DEFAULT" > "$CFG"
-: > "$CFG_DIR/.migration-settings-v1"
-chmod 600 "$CFG_DIR/.migration-settings-v1" 2>/dev/null || true
+DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
+
+# Serialize read-modify-write operations and publish complete JSON atomically.
+# The lock is kept next to the target so all writes happen on one filesystem.
+exec {settings_lock_fd}>"$LOCK"
+if ! command -v flock >/dev/null 2>&1; then
+    printf 'settings: flock is required for safe settings updates\n' >&2
+    exit 1
+fi
+flock -x "$settings_lock_fd"
+
+tmp=''
+cleanup() {
+    [[ -z "$tmp" ]] || rm -f -- "$tmp"
+}
+trap cleanup EXIT
+
+new_temp() {
+    tmp=$(mktemp "$CFG_DIR/.settings.json.XXXXXX")
+    chmod 600 "$tmp"
+}
+
+publish_temp() {
+    local target="$1"
+    mv -f -- "$tmp" "$target"
+    tmp=''
+}
+
+if [[ ! -f "$CFG" ]]; then
+    new_temp
+    printf '%s\n' "$DEFAULT" > "$tmp"
+    jq -e 'type == "object"' "$tmp" >/dev/null
+    publish_temp "$CFG"
+fi
+
 case "${1:-get}" in
-  get) cat "$CFG" ;;
+  get)
+    cat "$CFG"
+    ;;
   set-json)
     json="${2:-$DEFAULT}"
-    printf '%s\n' "$json" | jq -e . >/dev/null
-    printf '%s\n' "$json" > "$CFG"
+    # Validate the payload before touching the current settings file.
+    printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
+    new_temp
+    printf '%s\n' "$json" > "$tmp"
+    jq -e 'type == "object"' "$tmp" >/dev/null
+    publish_temp "$CFG"
     ;;
   token)
     token="${2:-}"
-    tmp=$(mktemp)
+    new_temp
     jq --arg t "$token" '.weatherToken=$t' "$CFG" > "$tmp"
-    mv "$tmp" "$CFG"
+    jq -e 'type == "object"' "$tmp" >/dev/null
+    publish_temp "$CFG"
     ;;
-  *) echo "Usage: $0 {get|set-json|token}" >&2; exit 1 ;;
+  *)
+    echo "Usage: $0 {get|set-json|token}" >&2
+    exit 1
+    ;;
 esac

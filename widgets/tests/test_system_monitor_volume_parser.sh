@@ -6,6 +6,16 @@ fail() { echo "System monitor volume parser: FAIL: $*" >&2; exit 1; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+REAL_JQ="$(command -v jq)"
+JQ_CALL_COUNT="$TMP/jq-calls"
+export REAL_JQ JQ_CALL_COUNT
+cat > "$TMP/jq" <<'MOCK_JQ'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'call\n' >> "$JQ_CALL_COUNT"
+exec "$REAL_JQ" "$@"
+MOCK_JQ
+chmod +x "$TMP/jq"
 cat > "$TMP/pactl" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -28,7 +38,9 @@ Sink Input #87
     Volume: front-left: 32768 / 50% / -18.06 dB, front-right: 32768 / 50% / -18.06 dB
 EOF_EN
 PACTL_FIXTURE="$TMP/pactl-english.txt"; export PACTL_FIXTURE
+: > "$JQ_CALL_COUNT"
 english="$(get_volumes)"
+[[ "$(wc -l < "$JQ_CALL_COUNT")" -eq 1 ]] || fail "two sink inputs should be encoded in one jq invocation"
 printf '%s\n' "$english" | jq -e '
   length == 2 and
   .[0].num == "42" and .[0].value == "100" and .[0].name == "Browser \"Music\" \\ Stream" and
@@ -47,7 +59,9 @@ cat > "$TMP/pactl-russian.txt" <<'EOF_RU'
     Громкость: фронт-левый: 32768 / 22% / -18.06 дБ, фронт-правый: 32768 / 22% / -18.06 дБ
 EOF_RU
 PACTL_FIXTURE="$TMP/pactl-russian.txt"; export PACTL_FIXTURE
+: > "$JQ_CALL_COUNT"
 russian="$(get_volumes)"
+[[ "$(wc -l < "$JQ_CALL_COUNT")" -eq 1 ]] || fail "Russian sink inputs should be encoded in one jq invocation"
 printf '%s\n' "$russian" | jq -e '
   length == 2 and
   .[0].num == "13" and .[0].value == "75" and .[0].name == "Браузер и музыка" and
@@ -56,7 +70,9 @@ printf '%s\n' "$russian" | jq -e '
 
 : > "$TMP/pactl-empty.txt"
 PACTL_FIXTURE="$TMP/pactl-empty.txt"; export PACTL_FIXTURE
+: > "$JQ_CALL_COUNT"
 empty="$(get_volumes)"
 [[ "$empty" == '[]' ]] || fail "empty sink-input output should return [], got: $empty"
+[[ ! -s "$JQ_CALL_COUNT" ]] || fail "empty sink-input output should not start jq"
 
 echo "System monitor volume parser locale and JSON escaping: OK"

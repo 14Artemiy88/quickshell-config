@@ -295,6 +295,55 @@ Row {
 }
 
 Text {
+    text: "Прошедшие дни"
+    color: Config.accent
+    font.family: Config.settingsFont
+    font.pixelSize: Config.settingsUiSize(13)
+}
+
+Row {
+    width: parent.width
+    height: 30
+    spacing: 8
+    SettingsCheckBox {
+        id: pastDaysColorCheck
+        width: parent.width
+        height: 30
+        text: "Выделять прошедшие дни и их заметки другим цветом"
+        checked: Config.calendarPastDaysColorEnabled
+        onToggled: {
+            Config.calendarPastDaysColorEnabled = checked
+            settings.save()
+        }
+        Connections {
+            target: Config
+            function onCalendarPastDaysColorEnabledChanged() {
+                pastDaysColorCheck.checked = Config.calendarPastDaysColorEnabled
+            }
+        }
+    }
+}
+
+Row {
+    width: parent.width
+    height: 30
+    spacing: 8
+    SettingsColorField {
+        width: parent.width
+        label: "Цвет прошедших дней и меток заметок"
+        value: String(Config.calendarPastDaysColor)
+        targetObject: Config
+        targetProperty: "calendarPastDaysColor"
+        settingsObject: settings
+        saveOnEdit: true
+        allowAlpha: false
+        allowTransparent: false
+        fieldWidth: 120
+        compact: false
+    }
+}
+
+Text {
     text: "Метки заметок"
     color: Config.accent
     font.family: Config.settingsFont

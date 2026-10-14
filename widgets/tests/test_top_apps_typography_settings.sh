@@ -42,7 +42,8 @@ grep -Fq 'spacing: Config.topAppsRowSpacing' "$ui" || fail "configurable row spa
 grep -Fq 'readonly property int displayRowHeight: Math.max(1, displayFontSize + 2)' "$ui" || fail "row height does not follow configured font size"
 grep -Fq 'height: root.displayRowHeight' "$ui" || fail "rows do not use the calculated row height"
 
-grep -Fq '"topAppsShowHeaders", "topAppsShowBars", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "Top Apps module reset does not restore typography"
-grep -Fq '"cpuShowRam", "topAppsShowHeaders", "topAppsShowBars", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "CPU/RAM reset does not restore the Top Apps top offset"
+grep -Fq 'moduleName === "topAppsCpu" || moduleName === "topAppsRam"' "$resets" || fail "Top Apps CPU/RAM module reset branch is missing"
+grep -Fq '"topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "Top Apps module reset does not restore typography"
+grep -Fq '"cpuShowRam", "topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "CPU/RAM reset does not restore the Top Apps top offset"
 
 echo "Top Apps typography settings: OK"

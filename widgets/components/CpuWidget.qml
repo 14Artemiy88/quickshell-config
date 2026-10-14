@@ -15,7 +15,11 @@ Primitives.ModuleFrame {
 
     Process {
         id: cpuProc
-        command: ["bash", Quickshell.shellDir + "/scripts/cpu_stats_once"]
+        command: [
+            "bash",
+            Quickshell.shellDir + "/scripts/cpu_stats_once",
+            String(Math.max(50, Math.min(250, Math.floor(Number(Config.cpuUpdateInterval || 1000) / 2))))
+        ]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {

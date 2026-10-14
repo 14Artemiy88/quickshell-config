@@ -3,6 +3,26 @@
 .import "SettingsSchema.js" as Schema
 .import "SettingsProfiles.js" as Profiles
 
+function migrateLegacyTopAppsMap(source) {
+    var result = Object.assign({}, source || {})
+    if (result.topApps !== undefined) {
+        if (result.topAppsCpu === undefined) result.topAppsCpu = result.topApps
+        if (result.topAppsRam === undefined) result.topAppsRam = result.topApps
+        delete result.topApps
+    }
+    return result
+}
+
+function splitLegacyTopAppsGeometry(geometry) {
+    var x = Number(geometry[0]) || 0
+    var y = Number(geometry[1]) || 0
+    var width = Math.max(1, Number(geometry[2]) || 315)
+    var totalHeight = Math.max(7, Number(geometry[3]) || 198)
+    var gap = 5
+    var sectionHeight = Math.max(1, Math.floor((totalHeight - gap) / 2))
+    return [[x, y, width, sectionHeight], [x, y + sectionHeight + gap, width, sectionHeight]]
+}
+
 function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames) {
         var presetSource = o.timerPresetDefaults instanceof Array ? o.timerPresetDefaults : o.timerPresets
         if (presetSource instanceof Array) {
@@ -14,18 +34,18 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
             owner.timerPresetDefaults = presets
             owner.timerPresets = presets.slice()
         }
-        var modules = o.modules || {}
+        var modules = migrateLegacyTopAppsMap(o.modules || {})
         for (var i=0; i<moduleNames.length; ++i) if (modules[moduleNames[i]] !== undefined) owner[moduleNames[i]] = !!modules[moduleNames[i]]
         var frames = Object.assign({}, defaultModuleFrames)
-        var savedFrames = o.moduleFrames || {}
+        var savedFrames = migrateLegacyTopAppsMap(o.moduleFrames || {})
         for (var fi=0; fi<moduleNames.length; ++fi) if (savedFrames[moduleNames[fi]] !== undefined) frames[moduleNames[fi]] = !!savedFrames[moduleNames[fi]]
         owner.moduleFrames = frames
         var backgrounds = Object.assign({}, defaultModuleBackgrounds)
-        var savedBackgrounds = o.moduleBackgrounds || {}
+        var savedBackgrounds = migrateLegacyTopAppsMap(o.moduleBackgrounds || {})
         for (var bi=0; bi<moduleNames.length; ++bi) if (savedBackgrounds[moduleNames[bi]] !== undefined) backgrounds[moduleNames[bi]] = !!savedBackgrounds[moduleNames[bi]]
         owner.moduleBackgrounds = backgrounds
         var monitors = {}
-        var savedMonitors = o.moduleMonitors || {}
+        var savedMonitors = migrateLegacyTopAppsMap(o.moduleMonitors || {})
         for (var mi=0; mi<moduleNames.length; ++mi) {
             var monitorValue = savedMonitors[moduleNames[mi]]
             if (monitorValue !== undefined && String(monitorValue).trim() !== "")
@@ -35,6 +55,15 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         if (o.geometry) {
             var g = Object.assign({}, owner.geometry)
             for (var k in o.geometry) if (o.geometry[k] && o.geometry[k].length === 4) g[k] = o.geometry[k].map(Number)
+
+            // Split the legacy combined Top Apps window into independently movable CPU/RAM windows.
+            var legacyTopAppsGeometry = o.geometry.topApps
+            if (legacyTopAppsGeometry && legacyTopAppsGeometry.length === 4) {
+                var splitTopApps = splitLegacyTopAppsGeometry(legacyTopAppsGeometry)
+                if (!o.geometry.topAppsCpu) g.topAppsCpu = splitTopApps[0]
+                if (!o.geometry.topAppsRam) g.topAppsRam = splitTopApps[1]
+            }
+            delete g.topApps
 
             // v408 placed Mopidy over the default Networks surface, so its input
             // could be intercepted even though the module was visibly rendered.

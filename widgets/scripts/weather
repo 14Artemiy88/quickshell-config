@@ -12,23 +12,91 @@ get_weather() {
     local endpoint_type="$2"
     local params="$3"
     local force="${4:-false}"
-    local cache_file
+    local cache_file lock_file attempt_file token cached_payload=""
+
     cache_file=$(weather_cache_file "$cache_name" "$params")
+    lock_file="${cache_file}.lock"
+    attempt_file="${cache_file}.attempt"
 
-    local token
-    token=$(weather_require_token) || return 1
-
+    # Fast path for an ordinary poll. A fresh usable cache does not require
+    # reading the API token at all, and should remain available if the token
+    # is temporarily missing or the settings file cannot be parsed.
+    # Cache writes use atomic rename, so this
+    # unlocked read sees either the old complete JSON or the new complete JSON.
     if [[ "$force" != "true" ]] && weather_cache_valid "$cache_file"; then
-        weather_cache_read "$cache_file"
-        return 0
+        cached_payload=$(weather_cache_read_usable "$cache_file") && {
+            printf '%s\n' "$cached_payload"
+            return 0
+        }
     fi
 
-    local payload
-    payload=$(weather_gismeteo_fetch "$token" "$endpoint_type" "$params") || return 1
-    [[ -n "$payload" ]] || return 1
+    command -v flock >/dev/null 2>&1 || {
+        echo "weather: flock is required to serialize refreshes safely" >&2
+        cached_payload=$(weather_cache_read_usable "$cache_file") && {
+            printf '%s\n' "$cached_payload"
+            return 0
+        }
+        return 1
+    }
 
-    weather_cache_write "$cache_file" "$payload" || return 1
-    printf '%s\n' "$payload"
+    # A per-cache lock coalesces concurrent polls for the same endpoint. The
+    # second caller rechecks the cache after the first refresh finishes, rather
+    # than starting another curl process with a stale pre-lock decision.
+    (
+        exec 9>"$lock_file" || exit 1
+        chmod 600 "$lock_file" 2>/dev/null || true
+        flock -x 9 || exit 1
+
+        local now payload=""
+        if [[ "$force" != "true" ]] && weather_cache_valid "$cache_file"; then
+            cached_payload=$(weather_cache_read_usable "$cache_file") && {
+                printf '%s\n' "$cached_payload"
+                exit 0
+            }
+        fi
+
+        now=$(date +%s) || exit 1
+        # On network/API failures, serve the last usable payload and suppress
+        # automatic retries briefly. Explicit forced refreshes bypass this
+        # cooldown, so a user can always request a new attempt.
+        if [[ "$force" != "true" ]] && weather_attempt_recent "$attempt_file" "$now"; then
+            cached_payload=$(weather_cache_read_usable "$cache_file") && {
+                printf '%s\n' "$cached_payload"
+                exit 0
+            }
+            # Don't serve corrupt/empty cache data. Keep the failure cooldown
+            # to avoid repeated network storms even when no fallback exists.
+            exit 1
+        fi
+
+        # Resolve the token only when a network refresh is actually needed.
+        # If it is unavailable, serve a usable stale cache instead of dropping
+        # weather data that was already fetched successfully.
+        token=$(weather_require_token) || {
+            cached_payload=$(weather_cache_read_usable "$cache_file") && {
+                printf '%s\n' "$cached_payload"
+                exit 0
+            }
+            exit 1
+        }
+
+        weather_mark_attempt "$attempt_file" "$now" || true
+        payload=$(weather_gismeteo_fetch "$token" "$endpoint_type" "$params") || payload=""
+        if [[ -z "$payload" ]] || ! weather_payload_usable "$payload"; then
+            cached_payload=$(weather_cache_read_usable "$cache_file") || exit 1
+            printf '%s\n' "$cached_payload"
+            exit 0
+        fi
+
+        # A valid fresh response remains useful even if the cache cannot be
+        # written. The cooldown marker is removed after a successful response.
+        rm -f -- "$attempt_file" 2>/dev/null || true
+        weather_cache_write "$cache_file" "$payload" || {
+            printf '%s\n' "$payload"
+            exit 0
+        }
+        printf '%s\n' "$payload"
+    )
 }
 
 case "${1:-}" in

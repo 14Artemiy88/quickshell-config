@@ -1,26 +1,30 @@
 #!/bin/bash
-prev=()
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/cpu_stats.d/common.sh"
+prev_snapshot=""
 while :; do
-  declare -a cur
-  while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
-    [[ "$cpu" =~ ^cpu[0-9]+$ ]] || continue
-    total=$((user+nice+system+idle+iowait+irq+softirq+steal+guest+guest_nice))
-    busy=$((user+nice+system))
-    cur+=("$busy $total")
-  done < /proc/stat
-  if ((${#prev[@]})); then
-    out="["
-    for i in "${!cur[@]}"; do
-      read -r b t <<<"${cur[i]}"
-      read -r pb pt <<<"${prev[i]:-0 0}"
-      dt=$((t-pt)); db=$((b-pb)); ((dt<=0)) && dt=1; ((db<0)) && db=0
-      pct=$((db*100/dt))
-      ((i>0)) && out+=","; out+="$pct"
-    done
-    out+="]"
-    ram=$(free | awk '/^Mem:/ {printf "%.0f", $3/$2*100}')
-    printf '{"cpu":%s,"ram":%s}\n' "$out" "$ram"
+  cur_snapshot="$(cpu_read_counters_with_ids /proc/stat 2>/dev/null || true)"
+  # Ignore a failed/empty read without discarding a valid baseline. This keeps
+  # a transient /proc/stat read error from turning every core into a new core.
+  if [[ -z "$cur_snapshot" ]]; then
+    sleep 1
+    continue
   fi
-  prev=("${cur[@]}")
+
+  if [[ -n "$prev_snapshot" ]]; then
+    pct_snapshot="$(cpu_usage_snapshot_percentages "$prev_snapshot" "$cur_snapshot")"
+    out="["
+    first=1
+    while read -r cpu pct; do
+      [[ "${cpu:-}" =~ ^cpu[0-9]+$ && "${pct:-}" =~ ^[0-9]+$ ]] || continue
+      (( first )) || out+=","; first=0
+      out+="$pct"
+    done <<< "$pct_snapshot"
+    out+="]"
+    ram="$(mem_usage_percent /proc/meminfo)"
+    printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"
+  fi
+
+  prev_snapshot="$cur_snapshot"
   sleep 1
 done

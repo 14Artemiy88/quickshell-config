@@ -2,19 +2,21 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 fail() { echo "Top Apps Plasma-style view: FAIL: $*" >&2; exit 1; }
+test_runtime_dir="$(mktemp -d)"
+trap 'rm -rf "$test_runtime_dir"' EXIT
+export XDG_RUNTIME_DIR="$test_runtime_dir"
 
 ui="$ROOT/components/TopApps.qml"
 source_script="$ROOT/scripts/system_monitor.d/top_apps.sh"
 [[ -f "$ui" ]] || fail "TopApps.qml is missing"
 [[ -f "$source_script" ]] || fail "top_apps.sh is missing"
 
-grep -Fq 'title: "CPU"' "$ui" || fail "CPU section heading is missing"
-grep -Fq 'title: "ПАМЯТЬ"' "$ui" || fail "memory section heading is missing"
-grep -Fq 'model: sectionFrame.section.entries' "$ui" || fail "section entries are not rendered"
+grep -Fq 'readonly property string sectionTitle: sectionType === "ram" ? "ПАМЯТЬ" : "CPU"' "$ui" || fail "single-section heading selection is missing"
+grep -Fq 'text: root.sectionType === "ram" ? "ТОП ПРОЦЕССОВ" : "ДОЛЯ ОТ ВСЕГО CPU"' "$ui" || fail "CPU total-capacity percentage legend is missing"
+grep -Fq 'model: root.sectionEntries' "$ui" || fail "section entries are not rendered"
 grep -Fq 'modelData.ratio' "$ui" || fail "relative usage bar is missing"
-grep -Fq 'Config.ram' "$ui" || fail "memory section color is missing"
-grep -Fq 'Config.accent' "$ui" || fail "CPU section color is missing"
-grep -Fq 'moduleName: "topApps"' "$ui" || fail "module frame/settings integration is missing"
+grep -Fq 'sectionType === "ram" ? Config.ram : Config.accent' "$ui" || fail "CPU/RAM-specific section color is missing"
+grep -Fq 'moduleName: root.sectionModuleName' "$ui" || fail "module frame/settings integration is missing"
 
 # Exercise the real data producer: it must work without bc, emit valid JSON,
 # preserve name/value/pid, include a numeric 0..1 ratio and cap each list at 5.

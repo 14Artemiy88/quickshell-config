@@ -332,20 +332,38 @@ get_mopidy_player_metadata() {
         ]' \
         "$MOPIDY_RPC_URL" 2>/dev/null)
 
-    state=$(jq -r '.[] | select(.id == 1) | .result // empty' <<< "$rpc_data")
+    # Parse the batched JSON-RPC response and all current-track fields in a
+    # single jq process. NUL delimiters preserve embedded newlines in metadata,
+    # unlike line-delimited output, while Bash variables keep the original text.
+    local -a metadata_fields=()
+    mapfile -d '' -t metadata_fields < <(jq -jr '
+        . as $responses
+        | [
+            (first($responses[] | select(.id == 1) | .result) // ""),
+            ((first($responses[] | select(.id == 2) | .result) | type) == "object"),
+            (first($responses[] | select(.id == 3) | .result) // 0),
+            (first($responses[] | select(.id == 2) | .result.track.album.name) // ""),
+            (first($responses[] | select(.id == 2) | .result.track.album.date) // ""),
+            (first($responses[] | select(.id == 2) | .result.track.artists[0].name) // ""),
+            (first($responses[] | select(.id == 2) | .result.track.length) // 0),
+            (first($responses[] | select(.id == 2) | .result.track.name) // ""),
+            (first($responses[] | select(.id == 2) | .result.track.uri) // ""),
+            (first($responses[] | select(.id == 2) | .result.track.album.uri) // "")
+          ]
+        | .[] | (if . == null then "" else tostring end), "\u0000"
+    ' <<< "$rpc_data")
+    [[ ${#metadata_fields[@]} -eq 10 ]] || return
+    state="${metadata_fields[0]}"
     [[ "$state" == "playing" || "$state" == "paused" ]] || return
-
-    current=$(jq -c '.[] | select(.id == 2) | .result // empty' <<< "$rpc_data")
-    trackTime=$(jq -r '.[] | select(.id == 3) | .result // 0' <<< "$rpc_data")
-    [[ -n "$current" && "$current" != "null" ]] || return
-
-    current_album=$(jq -r '.track.album.name // empty' <<< "$current")
-    current_album_date=$(jq -r '.track.album.date // empty' <<< "$current")
-    current_artist=$(jq -r '.track.artists[0].name // empty' <<< "$current")
-    current_length=$(jq -r '.track.length // 0' <<< "$current")
-    current_title=$(jq -r '.track.name // empty' <<< "$current")
-    current_track_uri=$(jq -r '.track.uri // empty' <<< "$current")
-    current_album_uri=$(jq -r '.track.album.uri // empty' <<< "$current")
+    [[ "${metadata_fields[1]}" == "true" ]] || return
+    trackTime="${metadata_fields[2]}"
+    current_album="${metadata_fields[3]}"
+    current_album_date="${metadata_fields[4]}"
+    current_artist="${metadata_fields[5]}"
+    current_length="${metadata_fields[6]}"
+    current_title="${metadata_fields[7]}"
+    current_track_uri="${metadata_fields[8]}"
+    current_album_uri="${metadata_fields[9]}"
 
     format_album="$current_album_date"
     [[ -n "$current_album" ]] && format_album+=" - $current_album"

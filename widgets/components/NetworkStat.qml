@@ -22,7 +22,7 @@ Primitives.ModuleFrame {
             width: parent.width
             glyph: ""
             accentColor: Config.networkUpload
-            valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")
+            valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")
         }
 
         NetworkStatRow {
@@ -30,7 +30,7 @@ Primitives.ModuleFrame {
             width: parent.width
             glyph: ""
             accentColor: Config.networkDownload
-            valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")
+            valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")
         }
     }
 }

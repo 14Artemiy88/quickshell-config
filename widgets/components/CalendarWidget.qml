@@ -34,6 +34,30 @@ Primitives.ModuleFrame {
         return !!key && !!root.calendarNotes && String(root.calendarNotes[key] || "").trim().length > 0
     }
 
+    function currentDateKey() {
+        const today = new Date()
+        return String(today.getFullYear()) + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0")
+    }
+
+    function isPastDateKey(key) {
+        const value = String(key || "")
+        return /^\d{4}-\d{2}-\d{2}$/.test(value) && value < root.currentDateKey()
+    }
+
+    function calendarDayColor(key, day) {
+        if (day < 1 || day > root.daysInMonth()) return Config.text
+        if (String(key || "") === root.currentDateKey()) return Config.accent
+        if (Config.calendarPastDaysColorEnabled && root.isPastDateKey(key))
+            return Config.calendarPastDaysColor
+        return Config.text
+    }
+
+    function noteMarkerColor(key, fallbackColor) {
+        if (Config.calendarPastDaysColorEnabled && root.isPastDateKey(key))
+            return Config.calendarPastDaysColor
+        return fallbackColor
+    }
+
     function setCalendarNotesFromJson(raw) {
         try {
             const parsed = JSON.parse(String(raw || "{}").trim() || "{}")
@@ -140,8 +164,9 @@ Primitives.ModuleFrame {
                     iconY: Config.calendarArrowY
                     baseColor: Config.text
                     iconFontFamily: Config.font
-                    hoverMode: "none"
-                    cursorShape: Qt.ArrowCursor
+                    hoverMode: "text"
+                    hoverColor: Config.accent
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.shiftMonth(-1)
                 }
 
@@ -166,8 +191,9 @@ Primitives.ModuleFrame {
                     iconY: Config.calendarArrowY
                     baseColor: Config.text
                     iconFontFamily: Config.font
-                    hoverMode: "none"
-                    cursorShape: Qt.ArrowCursor
+                    hoverMode: "text"
+                    hoverColor: Config.accent
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: root.shiftMonth(1)
                 }
             }
@@ -212,7 +238,9 @@ Primitives.ModuleFrame {
                             height: parent.height
                             y: Config.calendarDayY
                             text: parent.day >= 1 && parent.day <= root.daysInMonth() ? parent.day : ""
-                            color: parent.day === new Date().getDate() && root.month === new Date().getMonth() && root.year === new Date().getFullYear() ? Config.accent : Config.text
+                            color: dayMouse.containsMouse && parent.day >= 1 && parent.day <= root.daysInMonth()
+                                ? Config.accent
+                                : root.calendarDayColor(parent.dateKey, parent.day)
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: Config.calendarDayFontSize
@@ -236,7 +264,7 @@ Primitives.ModuleFrame {
                             x: (parent.width - width) / 2 + 2
                             y: Config.calendarDayY + (parent.height - Config.calendarDayFontSize) / 2 - 3
                             color: "transparent"
-                            border.color: Config.calendarNoteFrameColor
+                            border.color: root.noteMarkerColor(parent.dateKey, Config.calendarNoteFrameColor)
                             border.width: 1
                             radius: 3
                         }
@@ -245,6 +273,8 @@ Primitives.ModuleFrame {
                             id: noteMarker
                             property string markerStyle: Config.calendarNoteMarkerStyle
                             property string markerPosition: Config.calendarNoteMarkerPosition
+                            property string dateKey: parent.dateKey
+                            property color markerColor: root.noteMarkerColor(dateKey, Config.accent)
                             property real glyphWidth: Math.max(1, noteDayMetrics.advanceWidth)
                             property real glyphLeft: (parent.width - glyphWidth) / 2
                             property real glyphRight: glyphLeft + glyphWidth
@@ -283,8 +313,8 @@ Primitives.ModuleFrame {
                                       : noteMarker.markerStyle === "ring" ? width / 2
                                       : noteMarker.markerStyle === "line" && !noteMarker.sideCenter ? 1
                                       : 0
-                                color: noteMarker.markerStyle === "ring" ? Config.transparent : Config.accent
-                                border.color: noteMarker.markerStyle === "ring" ? Config.accent : Config.transparent
+                                color: noteMarker.markerStyle === "ring" ? Config.transparent : noteMarker.markerColor
+                                border.color: noteMarker.markerStyle === "ring" ? noteMarker.markerColor : Config.transparent
                                 border.width: noteMarker.markerStyle === "ring" ? 1 : 0
                             }
 
@@ -292,7 +322,7 @@ Primitives.ModuleFrame {
                                 anchors.fill: parent
                                 visible: noteMarker.markerStyle === "note"
                                 text: "✎"
-                                color: Config.accent
+                                color: noteMarker.markerColor
                                 font.family: "Sans Serif"
                                 font.pixelSize: 10
                                 horizontalAlignment: Text.AlignHCenter

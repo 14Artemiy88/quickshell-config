@@ -21,6 +21,8 @@ function apply(Config, o) {
         if (o.cpuShowRam !== undefined) Config.cpuShowRam = !!o.cpuShowRam
         if (o.topAppsShowHeaders !== undefined) Config.topAppsShowHeaders = !!o.topAppsShowHeaders
         if (o.topAppsShowBars !== undefined) Config.topAppsShowBars = !!o.topAppsShowBars
+        if (o.topAppsShowSystemRemainder !== undefined) Config.topAppsShowSystemRemainder = !!o.topAppsShowSystemRemainder
+        if (o.topAppsSystemRemainderLabel !== undefined) { var remainderLabel = String(o.topAppsSystemRemainderLabel).replace(/[\r\n\t]/g, " ").trim().slice(0, 64); Config.topAppsSystemRemainderLabel = remainderLabel || "Система/прочее" }
         if (o.topAppsFont !== undefined) Config.topAppsFont = String(o.topAppsFont).slice(0, 128)
         // User-tuned Top Apps typography/layout: keep lower bounds that prevent invalid sizes, but no artificial upper bounds.
         var topAppsNumberFields = [["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity], ["topAppsTopOffset", 0, Infinity]]
@@ -76,6 +78,11 @@ function apply(Config, o) {
         if (o.calendarTitleFont !== undefined) Config.calendarTitleFont = String(o.calendarTitleFont)
         if (o.calendarWeekdayFont !== undefined) Config.calendarWeekdayFont = String(o.calendarWeekdayFont)
         if (o.calendarDayFont !== undefined) Config.calendarDayFont = String(o.calendarDayFont)
+        if (o.calendarPastDaysColorEnabled !== undefined) Config.calendarPastDaysColorEnabled = !!o.calendarPastDaysColorEnabled
+        if (o.calendarPastDaysColor !== undefined) {
+            var pastDaysColor = String(o.calendarPastDaysColor)
+            Config.calendarPastDaysColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(pastDaysColor) ? pastDaysColor : "#888888"
+        }
         if (o.calendarNoteMarkerStyle !== undefined) {
             var noteMarkerStyle = String(o.calendarNoteMarkerStyle)
             Config.calendarNoteMarkerStyle = ["dot", "line", "ring", "note", "frame"].indexOf(noteMarkerStyle) >= 0 ? noteMarkerStyle : "dot"

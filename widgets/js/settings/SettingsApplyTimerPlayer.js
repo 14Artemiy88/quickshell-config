@@ -18,6 +18,7 @@ function apply(Config, o, legacyTimerIconOrder) {
                 if (isFinite(tv)) Config[tname] = Math.max(timerNumberFields[tf][1], Math.min(timerNumberFields[tf][2], Math.round(tv)))
             }
         }
+        if (o.timerCommentAlignFurthest !== undefined) Config.timerCommentAlignFurthest = !!o.timerCommentAlignFurthest
         if (legacyTimerIconOrder && o.timerIconX !== undefined && o.timerAlarmIconX !== undefined) {
             var legacyTimerX = Number(o.timerIconX)
             var legacyAlarmX = Number(o.timerAlarmIconX)

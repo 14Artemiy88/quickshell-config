@@ -634,6 +634,18 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
         width: parent.width
+        height: 30
+        SettingsCheckBox {
+            width: parent.width
+            height: 30
+            text: "Выравнивать комментарии по самому длинному таймеру"
+            checked: Config.timerCommentAlignFurthest
+            onToggled: { Config.timerCommentAlignFurthest = checked; root.settings.save() }
+        }
+    }
+    Row {
+        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+        width: parent.width
         height: 24
         spacing: 8
         Item { width: 210; height: 24 }

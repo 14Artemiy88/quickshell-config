@@ -13,6 +13,13 @@ grep -Fq 'property var controller' "$ALBUM"
 grep -Fq 'property bool stickyHeader: false' "$ALBUM"
 grep -Fq 'controller.removeAlbum(itemData.tlids)' "$ALBUM"
 grep -Fq 'property var controller' "$TRACK"
+# RichText disables Text.elide in Qt Quick; StyledText preserves basic artist markup and supports elision.
+grep -Fq 'textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.StyledText : Text.PlainText' "$TRACK"
+grep -Fq 'elide: Text.ElideRight' "$TRACK"
+if grep -Fq 'Text.RichText' "$TRACK"; then
+    echo 'Mopidy queue title uses RichText, which disables eliding' >&2
+    exit 1
+fi
 grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex - 1)' "$TRACK"
 grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex + 1)' "$TRACK"
 grep -Fq 'controller.removeTrack(Number(itemData.track.tlid))' "$TRACK"

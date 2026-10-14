@@ -12,7 +12,23 @@ export XDG_STATE_HOME="$TMP_DIR/state"
 export XDG_CACHE_HOME="$TMP_DIR/cache"
 export FFMPEG_LOG="$TMP_DIR/ffmpeg.log"
 export FFMPEG_FAIL=0
+export SNAPSHOT_SCAN_LOG="$TMP_DIR/snapshot-scan.log"
+: > "$SNAPSHOT_SCAN_LOG"
 export PATH="$TMP_DIR/bin:$PATH"
+
+# These wrappers only log discovery-pipeline utilities when SNAPSHOT_SCAN_LOG
+# is set for a specific call. They let the test prove that a normal cache hit
+# no longer launches find/sort/head without perturbing unrelated assertions.
+for tool in find sort head; do
+    cat > "$TMP_DIR/bin/$tool" <<STUB
+#!/bin/bash
+if [[ -n "\${SNAPSHOT_SCAN_TRACE:-}" && -n "\${SNAPSHOT_SCAN_LOG:-}" ]]; then
+    printf '%s\n' '$tool' >> "\$SNAPSHOT_SCAN_LOG"
+fi
+exec /usr/bin/$tool "\$@"
+STUB
+    chmod +x "$TMP_DIR/bin/$tool"
+done
 
 cat > "$TMP_DIR/bin/ffmpeg" <<'STUB'
 #!/bin/bash
@@ -37,9 +53,31 @@ first="$(get_mpv_snapshot "$source_path" '12.5' false 60)"
 grep -F -- '-ss 12.5' "$FFMPEG_LOG" >/dev/null || { echo "position was not passed to ffmpeg" >&2; exit 1; }
 
 # The periodic backend reuses a fresh snapshot until the 60-second TTL expires.
-second="$(get_mpv_snapshot "$source_path" '13.5' false 60)"
+scan_before="$(wc -l < "$SNAPSHOT_SCAN_LOG")"
+second="$(SNAPSHOT_SCAN_TRACE=1 SNAPSHOT_SCAN_LOG="$SNAPSHOT_SCAN_LOG" get_mpv_snapshot "$source_path" '13.5' false 60)"
 [[ "$second" == "$first" ]] || { echo "fresh snapshot was not reused" >&2; exit 1; }
 [[ "$(wc -l < "$FFMPEG_LOG")" -eq 1 ]] || { echo "fresh cache unexpectedly recaptured" >&2; exit 1; }
+[[ "$(wc -l < "$SNAPSHOT_SCAN_LOG")" -eq "$scan_before" ]] || {
+    echo "fresh snapshot cache hit launched find/sort/head instead of using the sidecar" >&2; exit 1;
+}
+
+# The first access to a legacy snapshot without the sidecar performs one
+# discovery scan, then atomically creates the index for subsequent polls.
+key="$(mpv_snapshot_key "$source_path")"
+rm -f -- "$IMG_PATH/.mpv-${key}.latest"
+scan_before="$(wc -l < "$SNAPSHOT_SCAN_LOG")"
+migrated="$(SNAPSHOT_SCAN_TRACE=1 SNAPSHOT_SCAN_LOG="$SNAPSHOT_SCAN_LOG" get_mpv_snapshot "$source_path" '14' false 60)"
+[[ "$migrated" == "$first" ]] || { echo "legacy snapshot migration changed the current frame" >&2; exit 1; }
+[[ -s "$IMG_PATH/.mpv-${key}.latest" ]] || { echo "legacy snapshot sidecar was not recreated" >&2; exit 1; }
+scan_calls="$(tail -n +$((scan_before + 1)) "$SNAPSHOT_SCAN_LOG")"
+for tool in find sort head; do
+    grep -Fx "$tool" <<< "$scan_calls" >/dev/null || { echo "legacy migration did not use expected $tool scan" >&2; exit 1; }
+done
+scan_before="$(wc -l < "$SNAPSHOT_SCAN_LOG")"
+again="$(SNAPSHOT_SCAN_TRACE=1 SNAPSHOT_SCAN_LOG="$SNAPSHOT_SCAN_LOG" get_mpv_snapshot "$source_path" '14.5' false 60)"
+[[ "$again" == "$first" && "$(wc -l < "$SNAPSHOT_SCAN_LOG")" -eq "$scan_before" ]] || {
+    echo "snapshot sidecar did not avoid follow-up discovery scans" >&2; exit 1;
+}
 
 # An expired image triggers the periodic one-minute refresh.
 touch -d '2 minutes ago' "$first"
@@ -68,12 +106,16 @@ fi
 # Repeated failures on an unsupported source are throttled to one attempt per TTL.
 export FFMPEG_FAIL=1
 bad_source='/media/Unsupported stream.webm'
-bad_first="$(get_mpv_snapshot "$bad_source" '1' false 60)" || bad_first=""
+bad_first="$(SNAPSHOT_SCAN_TRACE=1 SNAPSHOT_SCAN_LOG="$SNAPSHOT_SCAN_LOG" get_mpv_snapshot "$bad_source" '1' false 60)" || bad_first=""
 [[ -z "$bad_first" ]] || { echo "failed source unexpectedly returned a snapshot" >&2; exit 1; }
 failed_count="$(wc -l < "$FFMPEG_LOG")"
-bad_second="$(get_mpv_snapshot "$bad_source" '2' false 60)" || bad_second=""
+scan_before="$(wc -l < "$SNAPSHOT_SCAN_LOG")"
+bad_second="$(SNAPSHOT_SCAN_TRACE=1 SNAPSHOT_SCAN_LOG="$SNAPSHOT_SCAN_LOG" get_mpv_snapshot "$bad_source" '2' false 60)" || bad_second=""
 [[ -z "$bad_second" && "$(wc -l < "$FFMPEG_LOG")" -eq "$failed_count" ]] || {
     echo "failed source was retried before the refresh interval" >&2; exit 1;
+}
+[[ "$(wc -l < "$SNAPSHOT_SCAN_LOG")" -eq "$scan_before" ]] || {
+    echo "failed source repeated snapshot discovery before retry TTL" >&2; exit 1;
 }
 
 # A new source must use its own cache key, not reuse the previous video's frame.

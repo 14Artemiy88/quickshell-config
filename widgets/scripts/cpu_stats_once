@@ -1,41 +1,29 @@
 #!/bin/bash
 set -u
-read_stats() {
-  while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
-    [[ "$cpu" =~ ^cpu[0-9]+$ ]] || continue
-    total=$((user+nice+system+idle+iowait+irq+softirq+steal+guest+guest_nice))
-    busy=$((user+nice+system))
-    printf '%s %s\n' "$busy" "$total"
-  done < /proc/stat
-}
-mapfile -t before < <(read_stats)
-sleep 0.25
-mapfile -t after < <(read_stats)
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/cpu_stats.d/common.sh"
+PROC_STAT="${CPU_STATS_PROC_STAT:-/proc/stat}"
+# CpuWidget passes a sample window derived from its configured poll cadence.
+# Keep direct/scripted invocations compatible with CPU_STATS_SAMPLE_INTERVAL.
+SAMPLE_INTERVAL="${CPU_STATS_SAMPLE_INTERVAL:-0.25}"
+if [[ "${1:-}" =~ ^[0-9]+$ ]] && (( 10#$1 >= 50 && 10#$1 <= 250 )); then
+  printf -v SAMPLE_INTERVAL '0.%03d' "$((10#$1))"
+elif [[ ! "$SAMPLE_INTERVAL" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  SAMPLE_INTERVAL="0.25"
+fi
+
+before="$(cpu_read_counters_with_ids "$PROC_STAT" 2>/dev/null || true)"
+sleep "$SAMPLE_INTERVAL"
+after="$(cpu_read_counters_with_ids "$PROC_STAT" 2>/dev/null || true)"
+pct_snapshot="$(cpu_usage_snapshot_percentages "$before" "$after")"
 
 out="["
-for i in "${!after[@]}"; do
-  read -r b t <<< "${before[i]:-0 0}"
-  read -r ab at <<< "${after[i]}"
-  dt=$((at-t)); db=$((ab-b))
-  ((dt <= 0)) && dt=1
-  ((db < 0)) && db=0
-  pct=$((db*100/dt))
-  ((pct < 0)) && pct=0
-  ((pct > 100)) && pct=100
-  ((i > 0)) && out+=","
+first=1
+while read -r cpu pct; do
+  [[ "${cpu:-}" =~ ^cpu[0-9]+$ && "${pct:-}" =~ ^[0-9]+$ ]] || continue
+  (( first )) || out+=","; first=0
   out+="$pct"
-done
+done <<< "$pct_snapshot"
 out+="]"
-ram=$(awk '
-/^MemTotal:/ { total=$2 }
-/^MemAvailable:/ { avail=$2 }
-END {
-  if (total > 0) {
-    used=total-avail
-    pct=used*100/total
-    printf "%.0f", pct
-  } else {
-    print 0
-  }
-}' /proc/meminfo)
+ram="$(mem_usage_percent /proc/meminfo)"
 printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"
