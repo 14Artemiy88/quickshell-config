@@ -13,8 +13,9 @@ Item {
     readonly property var cpuEntries: root.monitor?.data?.top_apps?.cpu ?? []
     readonly property var memoryEntries: root.monitor?.data?.top_apps?.mem ?? []
     readonly property var sectionEntries: sectionType === "ram" ? memoryEntries : cpuEntries
-    readonly property string sectionTitle: sectionType === "ram" ? "ПАМЯТЬ" : "CPU"
-    readonly property color sectionFillColor: sectionType === "ram" ? Config.ram : Config.accent
+    readonly property string sectionTitle: sectionType === "ram" ? Config.topAppsRamHeaderTitle : Config.topAppsCpuHeaderTitle
+    readonly property string sectionSubtitle: sectionType === "ram" ? Config.topAppsRamHeaderSubtitle : Config.topAppsCpuHeaderSubtitle
+    readonly property color sectionFillColor: sectionType === "ram" ? Config.topAppsRamBarColor : Config.topAppsCpuBarColor
     readonly property color sectionTrackColor: sectionType === "ram" ? Config.ramTrack : Config.metricTrack
     readonly property string sectionModuleName: sectionType === "ram" ? "topAppsRam" : "topAppsCpu"
     readonly property string displayFontFamily: String(Config.topAppsFont || "").trim() !== ""
@@ -69,16 +70,16 @@ Item {
                             text: root.sectionTitle
                             color: root.sectionFillColor
                             font.family: root.displayFontFamily
-                            font.pixelSize: Config.uiFontSize(10)
+                            font.pixelSize: Config.uiFontSize(Config.topAppsHeaderTitleFontSize)
                             font.bold: true
                             verticalAlignment: Text.AlignVCenter
                         }
 
                         Text {
-                            text: root.sectionType === "ram" ? "ТОП ПРОЦЕССОВ" : "ДОЛЯ ОТ ВСЕГО CPU"
+                            text: root.sectionSubtitle
                             color: Config.textMuted
                             font.family: root.displayFontFamily
-                            font.pixelSize: Config.uiFontSize(9)
+                            font.pixelSize: Config.uiFontSize(Config.topAppsHeaderSubtitleFontSize)
                             verticalAlignment: Text.AlignVCenter
                         }
                     }

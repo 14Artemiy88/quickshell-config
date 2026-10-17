@@ -88,7 +88,7 @@ Item {
                 height: parent.height
                 x: Config.mopidyQueueDurationX
                 y: Config.mopidyQueueDurationY
-                text: Config.mopidyQueueDurationMode === "remaining" ? controller.formatDuration(controller.queueRemainingDuration) : controller.formatDuration(controller.queueTotalDuration)
+                text: Config.mopidyQueueDurationMode === "remaining" ? controller.formatDuration(controller.queueRemainingDuration, true) : controller.formatDuration(controller.queueTotalDuration, false)
                 color: Config.mopidyQueueDurationColor
                 font.family: Config.mopidyQueueDurationFont
                 font.pixelSize: Config.mopidyQueueDurationFontSize

@@ -26,14 +26,21 @@ export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
 # New user directories should be private because settings can contain API tokens.
 umask 077
-mkdir -p "$QS_CONFIG_DIR" "$QS_DATA_DIR" "$QS_STATE_DIR" "$QS_CACHE_DIR" 2>/dev/null || true
+# `env` is sourced by the short-lived Player poll and several other frequently
+# called scripts. Once the XDG directories exist, avoid starting `mkdir` on
+# every invocation; still create all missing directories on first use.
+if [[ ! -d "$QS_CONFIG_DIR" || ! -d "$QS_DATA_DIR" || ! -d "$QS_STATE_DIR" || ! -d "$QS_CACHE_DIR" ]]; then
+    mkdir -p "$QS_CONFIG_DIR" "$QS_DATA_DIR" "$QS_STATE_DIR" "$QS_CACHE_DIR" 2>/dev/null || true
+fi
 
 # Migrate legacy files only when a canonical destination does not exist.
 # Source files are deliberately retained as rollback copies. If the current
 # project directory has no legacy file, look for older Quickshell installs.
 _qs_migrate_json_if_missing() {
-    local legacy="$1" destination="$2" kind="$3" temp marker
-    marker="$(dirname "$destination")/.migration-${kind}-v1"
+    local legacy="$1" destination="$2" kind="$3" temp marker destination_dir
+    destination_dir="${destination%/*}"
+    [[ "$destination_dir" != "$destination" ]] || destination_dir=.
+    marker="$destination_dir/.migration-${kind}-v1"
     [[ -e "$marker" ]] && return 0
     # A canonical file always wins. Mark the migration as complete so deleting
     # that file later (for a reset) cannot resurrect a stale legacy copy.

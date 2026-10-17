@@ -1,6 +1,9 @@
 #!/bin/bash
 set -u
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the script's sibling paths without spawning dirname or a subshell.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+[[ "$SCRIPT_DIR" != "$SCRIPT_PATH" ]] || SCRIPT_DIR=.
 source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 PROC_STAT="${CPU_STATS_PROC_STAT:-/proc/stat}"
 # CpuWidget passes a sample window derived from its configured poll cadence.

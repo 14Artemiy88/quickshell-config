@@ -40,6 +40,7 @@ QtObject {
     property int calendarDayFontSize: 14
     property int calendarDayY: 0
     property string calendarDayFont: "JetBrainsMono Nerd Font"
+    property string calendarAdjacentDaysColor: "#777777"
     property bool calendarPastDaysColorEnabled: false
     property string calendarPastDaysColor: "#888888"
     property string calendarNoteMarkerStyle: "dot"
@@ -137,6 +138,12 @@ QtObject {
     property bool cpuShowRam: true
     // Top Apps presentation
     property bool topAppsShowHeaders: true
+    property string topAppsCpuHeaderTitle: "CPU"
+    property string topAppsCpuHeaderSubtitle: "ДОЛЯ ОТ ВСЕГО CPU"
+    property string topAppsRamHeaderTitle: "ПАМЯТЬ"
+    property string topAppsRamHeaderSubtitle: "ТОП ПРОЦЕССОВ"
+    property int topAppsHeaderTitleFontSize: 10
+    property int topAppsHeaderSubtitleFontSize: 9
     property bool topAppsShowBars: true
     property bool topAppsShowSystemRemainder: true
     property string topAppsSystemRemainderLabel: "Система/прочее"
@@ -144,6 +151,8 @@ QtObject {
     property int topAppsFontSize: 12
     property int topAppsRowSpacing: 1
     property int topAppsTopOffset: 3
+    property color topAppsCpuBarColor: "#00cccc"
+    property color topAppsRamBarColor: "#3daee9"
 
     // Network display tuning
     property bool networkShowUpload: true

@@ -20,12 +20,20 @@ function apply(Config, o) {
         if (o.cpuGraphMode !== undefined) { var cgm = String(o.cpuGraphMode); Config.cpuGraphMode = ["both", "top", "bottom"].indexOf(cgm) >= 0 ? cgm : "both" }
         if (o.cpuShowRam !== undefined) Config.cpuShowRam = !!o.cpuShowRam
         if (o.topAppsShowHeaders !== undefined) Config.topAppsShowHeaders = !!o.topAppsShowHeaders
+        var topAppsHeaderTextFields = [
+            ["topAppsCpuHeaderTitle", 64], ["topAppsCpuHeaderSubtitle", 64],
+            ["topAppsRamHeaderTitle", 64], ["topAppsRamHeaderSubtitle", 64]
+        ]
+        for (var thf = 0; thf < topAppsHeaderTextFields.length; ++thf) {
+            var thname = topAppsHeaderTextFields[thf][0]
+            if (o[thname] !== undefined) Config[thname] = String(o[thname]).replace(/[\r\n\t]/g, " ").trim().slice(0, topAppsHeaderTextFields[thf][1])
+        }
         if (o.topAppsShowBars !== undefined) Config.topAppsShowBars = !!o.topAppsShowBars
         if (o.topAppsShowSystemRemainder !== undefined) Config.topAppsShowSystemRemainder = !!o.topAppsShowSystemRemainder
         if (o.topAppsSystemRemainderLabel !== undefined) { var remainderLabel = String(o.topAppsSystemRemainderLabel).replace(/[\r\n\t]/g, " ").trim().slice(0, 64); Config.topAppsSystemRemainderLabel = remainderLabel || "Система/прочее" }
         if (o.topAppsFont !== undefined) Config.topAppsFont = String(o.topAppsFont).slice(0, 128)
         // User-tuned Top Apps typography/layout: keep lower bounds that prevent invalid sizes, but no artificial upper bounds.
-        var topAppsNumberFields = [["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity], ["topAppsTopOffset", 0, Infinity]]
+        var topAppsNumberFields = [["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity], ["topAppsTopOffset", 0, Infinity], ["topAppsHeaderTitleFontSize", 6, 32], ["topAppsHeaderSubtitleFontSize", 6, 32]]
         for (var taf = 0; taf < topAppsNumberFields.length; ++taf) {
             var taname = topAppsNumberFields[taf][0]
             if (o[taname] !== undefined) {
@@ -79,6 +87,10 @@ function apply(Config, o) {
         if (o.calendarWeekdayFont !== undefined) Config.calendarWeekdayFont = String(o.calendarWeekdayFont)
         if (o.calendarDayFont !== undefined) Config.calendarDayFont = String(o.calendarDayFont)
         if (o.calendarPastDaysColorEnabled !== undefined) Config.calendarPastDaysColorEnabled = !!o.calendarPastDaysColorEnabled
+        if (o.calendarAdjacentDaysColor !== undefined) {
+            var adjacentDaysColor = String(o.calendarAdjacentDaysColor)
+            Config.calendarAdjacentDaysColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(adjacentDaysColor) ? adjacentDaysColor : "#777777"
+        }
         if (o.calendarPastDaysColor !== undefined) {
             var pastDaysColor = String(o.calendarPastDaysColor)
             Config.calendarPastDaysColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(pastDaysColor) ? pastDaysColor : "#888888"

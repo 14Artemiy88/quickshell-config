@@ -9,23 +9,35 @@ Item {
     property bool emphasized: false
     property bool emphasizedHoverOnly: false
     property color emphasizedColor: Config.accent
+    property bool fillOnHover: !root.emphasized || !root.emphasizedHoverOnly
+    property bool borderOnHover: true
+    property color backgroundColor: Config.settingsBackground
+    property real radius: 4
+    property real borderWidth: Math.max(1, Config.frameBorderWidth)
+    property real fontSize: 12
+    property bool fontBold: true
+    readonly property bool hovered: button.hovered
+
     signal clicked()
 
     width: 30
     height: 30
 
     SettingsButton {
+        id: button
         anchors.fill: parent
         text: root.label
         emphasized: root.emphasized
-        fillOnHover: root.emphasized && !root.emphasizedHoverOnly
-        borderOnHover: root.emphasized
+        fillOnHover: root.fillOnHover
+        borderOnHover: root.borderOnHover
         accentColor: root.emphasizedColor
-        backgroundColor: Config.settingsBackground
+        backgroundColor: root.backgroundColor
         textColor: root.emphasized ? root.emphasizedColor : Config.text
-        fontSize: 12
-        radius: 4
-        fontBold: root.emphasized
+        hoverTextColor: Config.black
+        fontSize: root.fontSize
+        radius: root.radius
+        borderWidth: root.borderWidth
+        fontBold: root.fontBold
         tooltip: root.tooltip
         onClicked: root.clicked()
     }

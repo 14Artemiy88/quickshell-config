@@ -1,5 +1,11 @@
 #!/bin/bash
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+if [[ "$SCRIPT_DIR" == "$SCRIPT_PATH" ]]; then
+    SCRIPT_DIR='.'
+elif [[ -z "$SCRIPT_DIR" ]]; then
+    SCRIPT_DIR='/'
+fi
 source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 
 STATE="${CPU_GRAPH_STATE:-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-cpu-graph}"
@@ -10,6 +16,7 @@ LINES=51
 prev_busy=0 prev_total=0
 has_prev=0
 hist=""
+delta_total=0 delta_busy=0
 
 # State v2 stores exactly the shared helper's busy/total counters. When an old
 # four-counter state is encountered, preserve valid history but take a fresh
@@ -24,6 +31,14 @@ if [[ -f "$STATE" ]]; then
         has_prev=1
     fi
 fi
+
+# Resolve the state directory once instead of launching `dirname` on every
+# graph refresh. If the directory is removed while the daemon is running, the
+# loop recreates it only when needed.
+case "$STATE" in
+    */*) state_dir="${STATE%/*}"; [[ -n "$state_dir" ]] || state_dir='/' ;;
+    *) state_dir='.' ;;
+esac
 
 # History must contain exactly 51 integer samples in [0,100]. A partial write
 # or old malformed state is ignored instead of poisoning the graph forever.
@@ -53,7 +68,15 @@ while true; do
 
     pct=0
     if (( has_prev )); then
-        pct=$(cpu_usage_percent "$prev_busy" "$prev_total" "$busy" "$total")
+        # Keep this one-second hot path in the daemon shell rather than using
+        # a command substitution to call cpu_usage_percent (one subshell per tick).
+        delta_total=$((total - prev_total))
+        delta_busy=$((busy - prev_busy))
+        if (( delta_total > 0 && delta_busy >= 0 )); then
+            pct=$((delta_busy * 100 / delta_total))
+            (( pct < 0 )) && pct=0
+            (( pct > 100 )) && pct=100
+        fi
     fi
 
     if [[ -z "$hist" ]]; then
@@ -64,12 +87,14 @@ while true; do
 
     # Publish the state as a single atomic replacement so a restarting daemon
     # never observes a truncated first line or a history line from another tick.
-    state_dir="$(dirname -- "$STATE")"
-    if mkdir -p "$state_dir" 2>/dev/null; then
+    # mktemp already creates a private 0600 file, so chmod would only add a
+    # subprocess to every graph refresh. Avoid mkdir unless the state directory
+    # was removed or could not be created on an earlier tick.
+    if [[ -d "$state_dir" ]] || mkdir -p "$state_dir" 2>/dev/null; then
         state_tmp=$(mktemp "${STATE}.tmp.XXXXXX" 2>/dev/null || true)
         if [[ -n "$state_tmp" ]]; then
             if printf 'v2 %s %s\n%s\n' "$busy" "$total" "$hist" > "$state_tmp" && \
-               chmod 600 "$state_tmp" 2>/dev/null && mv -f -- "$state_tmp" "$STATE"; then
+               mv -f -- "$state_tmp" "$STATE"; then
                 :
             else
                 rm -f -- "$state_tmp" 2>/dev/null || true

@@ -110,7 +110,12 @@ get_mpris_player_metadata() {
 
     # Emit progress only if both position and duration are usable numeric
     # values. Metadata-only/live items remain displayable without a fake 0%.
-    if [[ "$position" =~ $numeric_re && "$len" =~ $numeric_re ]] && awk -v d="$len" 'BEGIN {exit !(d > 0)}'; then
+    # Duration is reported in microseconds and is already validated as a
+    # decimal string above. Check for any non-zero digit using Bash built-ins
+    # instead of spawning awk on every successful MPRIS poll.
+    local duration_nonzero="${len//./}"
+    duration_nonzero="${duration_nonzero//0/}"
+    if [[ "$position" =~ $numeric_re && "$len" =~ $numeric_re && -n "$duration_nonzero" ]]; then
         get_json \
             --first_line "$title" \
             --second_line "$artist" \

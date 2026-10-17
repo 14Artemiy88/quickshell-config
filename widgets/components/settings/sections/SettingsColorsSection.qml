@@ -137,6 +137,7 @@ Flickable {
                 }
             }
 
+
             SettingsCheckBox {
                 id: editColorsCheck
                 text: "Редактировать цвета"
@@ -290,7 +291,8 @@ Flickable {
                                 cpu1: "CPU 1", cpu2: "CPU 2", cpu3: "CPU 3", cpu4: "CPU 4",
                                 cpu5: "CPU 5", cpu6: "CPU 6", cpu7: "CPU 7", cpu8: "CPU 8", ram: "RAM",
                                 metricTrack: "Фон полос CPU", ramTrack: "Фон полос RAM", networkUpload: "Сеть: загрузка",
-                                networkDownload: "Сеть: скачивание", tempHot: "Погода: очень тепло", tempWarm: "Погода: тепло",
+                                networkDownload: "Сеть: скачивание",
+                                tempHot: "Погода: очень тепло", tempWarm: "Погода: тепло",
                                 tempMild: "Погода: умеренно", tempCool: "Погода: прохладно", tempZero: "Погода: около 0°C",
                                 tempCold: "Погода: холодно", tempVeryCold: "Погода: очень холодно", tempFreezing: "Погода: мороз"
                             })

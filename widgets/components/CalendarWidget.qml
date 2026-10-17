@@ -30,6 +30,16 @@ Primitives.ModuleFrame {
         return String(root.year) + "-" + mm + "-" + dd
     }
 
+    // Show complete weeks only. Cells before day 1 and after the month's final day
+    // are represented by offsets that JavaScript Date normalizes into adjacent months.
+    function gridCellCount() {
+        return Math.ceil((root.firstDay() + root.daysInMonth()) / 7) * 7
+    }
+
+    function calendarGridDayNumber(day) {
+        return new Date(root.year, root.month, day).getDate()
+    }
+
     function hasNoteForDate(key) {
         return !!key && !!root.calendarNotes && String(root.calendarNotes[key] || "").trim().length > 0
     }
@@ -45,7 +55,7 @@ Primitives.ModuleFrame {
     }
 
     function calendarDayColor(key, day) {
-        if (day < 1 || day > root.daysInMonth()) return Config.text
+        if (day < 1 || day > root.daysInMonth()) return Config.calendarAdjacentDaysColor
         if (String(key || "") === root.currentDateKey()) return Config.accent
         if (Config.calendarPastDaysColorEnabled && root.isPastDateKey(key))
             return Config.calendarPastDaysColor
@@ -222,11 +232,11 @@ Primitives.ModuleFrame {
                 columns: 7
                 rowSpacing: 3
                 Repeater {
-                    model: 42
+                    model: root.gridCellCount()
                     delegate: Rectangle {
                         width: parent.width / 7
                         height: 30
-                        color: dayMouse.containsMouse && day >= 1 && day <= root.daysInMonth() ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent
+                        color: dayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent
                         property int day: index - root.firstDay() + 1
                         property string dateKey: root.dateKeyForDay(day)
                         property bool hasNote: root.hasNoteForDate(dateKey)
@@ -237,8 +247,8 @@ Primitives.ModuleFrame {
                             width: parent.width
                             height: parent.height
                             y: Config.calendarDayY
-                            text: parent.day >= 1 && parent.day <= root.daysInMonth() ? parent.day : ""
-                            color: dayMouse.containsMouse && parent.day >= 1 && parent.day <= root.daysInMonth()
+                            text: root.calendarGridDayNumber(parent.day)
+                            color: dayMouse.containsMouse
                                 ? Config.accent
                                 : root.calendarDayColor(parent.dateKey, parent.day)
                             horizontalAlignment: Text.AlignHCenter
@@ -335,8 +345,18 @@ Primitives.ModuleFrame {
                             anchors.fill: parent
                             hoverEnabled: true
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
-                            cursorShape: parent.day >= 1 && parent.day <= root.daysInMonth() ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: function(mouse) {
+                                // Adjacent-month dates navigate to that month; note actions
+                                // remain reserved for dates belonging to the visible month.
+                                if (parent.day < 1) {
+                                    root.shiftMonth(-1)
+                                    return
+                                }
+                                if (parent.day > root.daysInMonth()) {
+                                    root.shiftMonth(1)
+                                    return
+                                }
                                 if (!parent.dateKey) return
                                 if (mouse.button === Qt.RightButton)
                                     root.openNoteEditor(parent.dateKey)

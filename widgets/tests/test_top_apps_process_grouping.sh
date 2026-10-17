@@ -14,6 +14,17 @@ fixture=$'init\t0.0\t1000\t1\t0\nzen\t12.0\t100000\t101\t1\nzen\t18.0\t300000\t1
 cpu_groups="$(printf '%s\n' "$fixture" | aggregate_process_rows cpu)"
 mem_groups="$(printf '%s\n' "$fixture" | aggregate_process_rows mem)"
 
+# The shell-side row limiter must preserve numeric descending sort and both
+# historical limit semantics: zero means unlimited, a positive value caps rows.
+all_mem_rows="$(printf '%s\n' "$fixture" | aggregate_process_rows mem 0)"
+limited_mem_rows="$(printf '%s\n' "$fixture" | aggregate_process_rows mem 2)"
+[[ "$(printf '%s\n' "$all_mem_rows" | awk 'NF {n++} END {print n+0}')" -gt 5 ]] || fail "row_limit=0 should return all groups"
+[[ "$(printf '%s\n' "$limited_mem_rows" | awk 'NF {n++} END {print n+0}')" == 2 ]] || fail "row_limit=2 should return exactly two groups"
+first_two="$(printf '%s\n' "$all_mem_rows" | head -n 2)"
+[[ "$limited_mem_rows" == "$first_two" ]] || fail "limited output must preserve the sorted prefix"
+aggregate_body="$(sed -n '/^aggregate_process_rows() {/,/^}/p' "$source_script")"
+! grep -Fq 'sort -t "$tab" -k2,2nr | awk -v limit=' <<< "$aggregate_body" || fail "row-limit AWK subprocess is still present"
+
 cpu_zen="$(printf '%s\n' "$cpu_groups" | awk -F '\t' '$1 == "zen" { print; exit }')"
 [[ -n "$cpu_zen" ]] || fail "Zen aggregate is absent from CPU ranking"
 IFS=$'\t' read -r name total count pid <<< "$cpu_zen"

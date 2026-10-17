@@ -1,5 +1,9 @@
 #!/bin/bash
-PLAYER_SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the sibling directory using Bash path expansion. The script never
+# changes directory, so preserving a relative invocation path is sufficient.
+PLAYER_SCRIPT_PATH="${BASH_SOURCE[0]}"
+PLAYER_SCRIPT_DIR="${PLAYER_SCRIPT_PATH%/*}"
+[[ "$PLAYER_SCRIPT_DIR" != "$PLAYER_SCRIPT_PATH" ]] || PLAYER_SCRIPT_DIR=.
 source "$PLAYER_SCRIPT_DIR/player.d/common.sh"
 source "$PLAYER_SCRIPT_DIR/mopidy/player_backend.sh"
 source "$PLAYER_SCRIPT_DIR/player.d/backend_mpv.sh"

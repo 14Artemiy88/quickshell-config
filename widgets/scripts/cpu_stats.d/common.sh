@@ -54,7 +54,7 @@ cpu_read_counters() {
 # Output: cpuN percentage, in the order the newer snapshot lists the CPUs.
 cpu_usage_snapshot_percentages() {
     local before_snapshot="${1:-}" after_snapshot="${2:-}"
-    local cpu busy total pct
+    local cpu busy total pct delta_total delta_busy
     declare -A before_busy=() before_total=()
 
     while read -r cpu busy total; do
@@ -67,7 +67,16 @@ cpu_usage_snapshot_percentages() {
         [[ "${cpu:-}" =~ ^cpu[0-9]+$ && "${busy:-}" =~ ^[0-9]+$ && "${total:-}" =~ ^[0-9]+$ ]] || continue
         pct=0
         if [[ -n "${before_busy[$cpu]+present}" && -n "${before_total[$cpu]+present}" ]]; then
-            pct="$(cpu_usage_percent "${before_busy[$cpu]}" "${before_total[$cpu]}" "$busy" "$total")"
+            # Inline the small integer calculation instead of invoking a
+            # command substitution for every logical CPU on each sample.
+            # This function can run once per second on systems with many cores.
+            delta_total=$((total - before_total[$cpu]))
+            delta_busy=$((busy - before_busy[$cpu]))
+            if (( delta_total > 0 && delta_busy >= 0 )); then
+                pct=$((delta_busy * 100 / delta_total))
+                (( pct < 0 )) && pct=0
+                (( pct > 100 )) && pct=100
+            fi
         fi
         printf '%s %s\n' "$cpu" "$pct"
     done <<< "$after_snapshot"
@@ -135,21 +144,28 @@ cpu_usage_percent() {
 # semantics of `free`, which can report a different value on older procps.
 mem_usage_percent() {
     local meminfo_path="${1:-/proc/meminfo}"
-    awk '
-        /^MemTotal:/ { total = $2 + 0 }
-        /^MemAvailable:/ { available = $2 + 0 }
-        END {
-            if (total > 0) {
-                if (available < 0) available = 0
-                if (available > total) available = total
-                used = total - available
-                pct = used * 100 / total
-                if (pct < 0) pct = 0
-                if (pct > 100) pct = 100
-                printf "%.0f", pct
-            } else {
-                print 0
-            }
-        }
-    ' "$meminfo_path"
+    local key value total=0 available=0 used pct
+
+    # /proc/meminfo is tiny and these two fields are all the percentage needs.
+    # Parse with Bash built-ins to avoid starting AWK on every memory poll.
+    while read -r key value _; do
+        case "$key" in
+            MemTotal:) [[ "${value:-}" =~ ^[0-9]+$ ]] && total="$value" ;;
+            MemAvailable:) [[ "${value:-}" =~ ^[0-9]+$ ]] && available="$value" ;;
+        esac
+        [[ "$total" != 0 && "$key" == MemAvailable: ]] && break
+    done < "$meminfo_path"
+
+    if (( total > 0 )); then
+        (( available < 0 )) && available=0
+        (( available > total )) && available="$total"
+        used=$((total - available))
+        # Round to the nearest whole percent, matching the prior printf format.
+        pct=$(( (used * 100 + total / 2) / total ))
+        (( pct < 0 )) && pct=0
+        (( pct > 100 )) && pct=100
+        printf '%s' "$pct"
+    else
+        printf '0'
+    fi
 }

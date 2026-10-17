@@ -1,7 +1,15 @@
 #!/bin/bash
 
-WEATHER_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# This file is sourced on each weather poll. Its parent path is only used to
+# source the sibling env file, so it doesn't need canonicalization via dirname.
+WEATHER_COMMON_PATH="${BASH_SOURCE[0]}"
+if [[ "$WEATHER_COMMON_PATH" == */* ]]; then
+    WEATHER_SCRIPT_DIR="${WEATHER_COMMON_PATH%/*}/.."
+else
+    WEATHER_SCRIPT_DIR=".."
+fi
 source "$WEATHER_SCRIPT_DIR/env"
+unset WEATHER_COMMON_PATH
 
 declare -r WEATHER_CACHE_DIR="${WEATHER_CACHE_DIR:-$QS_CACHE_DIR/weather}"
 declare -r WEATHER_CACHE_TTL="${WEATHER_CACHE_TTL:-600}"
@@ -28,7 +36,13 @@ weather_cache_valid() {
     [[ -f "$cache_file" ]] || return 1
     modified=$(stat -c %Y -- "$cache_file" 2>/dev/null) || return 1
     [[ "$modified" =~ ^[0-9]+$ ]] || return 1
-    now=$(date +%s) || return 1
+    # Bash 5+ exposes the current epoch second without spawning `date` on
+    # every cache hit. Keep the external fallback for older Bash versions.
+    if [[ "${EPOCHSECONDS+x}" == x && "$EPOCHSECONDS" =~ ^[0-9]+$ ]]; then
+        now=$EPOCHSECONDS
+    else
+        now=$(date +%s) || return 1
+    fi
     age=$((now - modified))
     # A future mtime can occur after clock adjustments; don't treat it as a
     # valid fresh cache indefinitely.
@@ -43,16 +57,13 @@ weather_payload_usable() {
 
 weather_cache_read_usable() {
     local cache_file="$1"
+    local payload
     [[ -s "$cache_file" ]] || return 1
-    # Parse the cache file directly instead of spawning `cat` and then feeding
-    # the result to jq. Slurp mode also rejects multiple JSON documents; emit
-    # one compact object/array only when its top-level payload is usable.
-    jq -cse '
-        if length == 1 then
-            .[0] | if (type == "object" or type == "array") and length > 0
-                   then . else empty end
-        else empty end
-    ' -- "$cache_file" 2>/dev/null
+    # Read the cache with Bash's redirection shortcut instead of a `cat`
+    # process. Command substitution keeps the same trailing-newline behavior.
+    payload=$(<"$cache_file") || return 1
+    weather_payload_usable "$payload" || return 1
+    printf '%s\n' "$payload"
 }
 
 weather_cache_write() {

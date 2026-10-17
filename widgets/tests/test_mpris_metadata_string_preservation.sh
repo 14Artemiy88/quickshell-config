@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 mkdir -p "$TMP_DIR/bin" "$TMP_DIR/runtime" "$TMP_DIR/config" "$TMP_DIR/data" "$TMP_DIR/state" "$TMP_DIR/cache"
+export AWK_CALL_LOG="$TMP_DIR/awk-calls.log"
 export PATH="$TMP_DIR/bin:$PATH"
 export XDG_RUNTIME_DIR="$TMP_DIR/runtime"
 export XDG_CONFIG_HOME="$TMP_DIR/config"
@@ -34,11 +35,20 @@ exit 1
 STUB
 chmod +x "$TMP_DIR/bin/playerctl"
 
+# A valid MPRIS response must not spawn awk just to check that duration > 0.
+cat > "$TMP_DIR/bin/awk" <<'STUB'
+#!/bin/bash
+printf '%s\n' "$*" >> "$AWK_CALL_LOG"
+exit 99
+STUB
+chmod +x "$TMP_DIR/bin/awk"
+
 output="$(bash -c 'source "$1"; source "$2"; get_mpris_player_metadata spotify' \
     _ "$ROOT/scripts/player.d/common.sh" "$ROOT/scripts/player.d/backend_mpris.sh")"
 
+[[ ! -s "$AWK_CALL_LOG" ]] || { echo 'MPRIS duration check unexpectedly spawned awk' >&2; cat "$AWK_CALL_LOG" >&2; exit 1; }
 jq -e --arg title "$MPRIS_TITLE" --arg artist "$MPRIS_ARTIST" \
-    '.first_line == $title and .second_line == $artist and .player == "spotify" and .text == $artist' \
+    '.first_line == $title and .second_line == $artist and .player == "spotify" and .text == $artist and .duration == "60000000"' \
     <<< "$output" >/dev/null || {
     printf 'MPRIS metadata string changed during JSON serialization\nExpected title: %s\nJSON: %s\n' "$MPRIS_TITLE" "$output" >&2
     exit 1

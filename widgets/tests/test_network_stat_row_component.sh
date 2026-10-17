@@ -12,11 +12,14 @@ grep -Fq 'accentColor: Config.networkUpload' "$PARENT"
 grep -Fq 'accentColor: Config.networkDownload' "$PARENT"
 grep -Fq 'visible: Config.networkShowUpload' "$PARENT"
 grep -Fq 'visible: Config.networkShowDownload' "$PARENT"
-grep -Fq 'root.monitor?.data?.net_stat?.speed_up' "$PARENT"
-grep -Fq 'root.monitor?.data?.net_stat?.speed_down' "$PARENT"
+grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")' "$PARENT"
+grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")' "$PARENT"
 grep -Fq 'Config.networkIconColumnWidth' "$ROW"
 grep -Fq 'Config.networkIconLeftPadding' "$ROW"
 grep -Fq 'Config.networkRightPadding' "$ROW"
+grep -Fq 'Config.networkValueFontSize' "$ROW"
+grep -Fq 'valueText' "$ROW"
+grep -Fq 'horizontalAlignment: Text.AlignRight' "$ROW"
 grep -Fq 'Config.networkValueFontSize' "$ROW"
 
 python3 - "$PARENT" "$ROW" <<'PYCODE'
@@ -58,8 +61,10 @@ import re
 if re.search(r'(?m)^\s*(?:Text|Row) \{', parent):
     raise SystemExit('NetworkStat duplicates row layout instead of using NetworkStatRow')
 if row.count('Text {') != 2:
-    raise SystemExit('NetworkStatRow must own exactly the icon and value text elements')
-print('NetworkStat upload/download rows share layout and preserve config bindings: OK')
+    raise SystemExit('NetworkStatRow must use the restored compact two-text layout')
+if 'speedText' in row or 'totalText' in row or 'speedText:' in parent or 'totalText:' in parent:
+    raise SystemExit('NetworkStat must preserve the compact single-value layout instead of splitting the value')
+print('NetworkStat keeps the compact single-value row layout and preserves config bindings: OK')
 PYCODE
 
 echo 'Network stat row component test: OK'

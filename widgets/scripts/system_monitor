@@ -1,10 +1,15 @@
 #!/bin/bash
-source "$(dirname "$0")/env"
-source "$(dirname "$0")/system_monitor.d/common.sh"
-source "$(dirname "$0")/system_monitor.d/network_stat.sh"
-source "$(dirname "$0")/system_monitor.d/top_apps.sh"
-source "$(dirname "$0")/system_monitor.d/volumes.sh"
-source "$(dirname "$0")/system_monitor.d/network_connections.sh"
+# Resolve sibling scripts once with Bash parameter expansion; the old source
+# statements spawned `dirname` separately for each file on every poll.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+[[ "$SCRIPT_DIR" != "$SCRIPT_PATH" ]] || SCRIPT_DIR=.
+source "$SCRIPT_DIR/env"
+source "$SCRIPT_DIR/system_monitor.d/common.sh"
+source "$SCRIPT_DIR/system_monitor.d/network_stat.sh"
+source "$SCRIPT_DIR/system_monitor.d/top_apps.sh"
+source "$SCRIPT_DIR/system_monitor.d/volumes.sh"
+source "$SCRIPT_DIR/system_monitor.d/network_connections.sh"
 
 STATE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net"
 CACHE_NET="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-net_cache"

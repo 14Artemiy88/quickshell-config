@@ -59,9 +59,12 @@ get_color() {
     printf '%02x%02x%02x\n' "$r" "$g" "$b"
 }
 
-json_escape() {
+# Escape a JSON string directly into a caller variable. The timer daemon runs
+# this twice for every timer on every one-second poll; command substitution
+# around json_escape would create two subshells per timer per cycle.
+json_escape_into() {
+    local output_var="$1" value="${2-}" char escaped_char out="" i code
     local LC_ALL=C
-    local value="$1" char escaped out="" i code
     for ((i = 0; i < ${#value}; i++)); do
         char="${value:i:1}"
         case "$char" in
@@ -75,17 +78,37 @@ json_escape() {
             *)
                 printf -v code '%d' "'$char"
                 if (( code < 32 || code == 127 )); then
-                    printf -v escaped '\\u%04x' "$code"
-                    out+="$escaped"
+                    printf -v escaped_char '\\u%04x' "$code"
+                    out+="$escaped_char"
                 else
                     out+="$char"
                 fi
                 ;;
         esac
     done
-    printf '%s' "$out"
+    printf -v "$output_var" '%s' "$out"
 }
 
+# Preserve the stdout-based interface for existing callers.
+json_escape() {
+    local encoded_result
+    json_escape_into encoded_result "${1-}"
+    printf '%s' "$encoded_result"
+}
+
+# Wrap already-serialized timer records in a JSON array without launching jq
+# on every daemon tick. Entries are produced by timer_process_entry_locked,
+# which owns JSON escaping for all string fields.
+timer_entries_to_json() {
+    local result='[' entry first=1
+    for entry in "$@"; do
+        (( first )) || result+=,
+        result+="$entry"
+        first=0
+    done
+    result+=']'
+    printf '%s\n' "$result"
+}
 format_time() {
     local total_seconds=$1 hours minutes seconds time_str
     hours=$((total_seconds / 3600))
@@ -94,6 +117,19 @@ format_time() {
     printf -v time_str "%02d:%02d:%02d" "$hours" "$minutes" "$seconds"
     time_str=${time_str##00:}
     printf '%s\n' "$time_str"
+}
+
+# Assign the formatted value directly in the caller's scope. The timer daemon
+# runs this twice per timer entry per tick; command substitution around
+# format_time would otherwise fork a subshell for each value.
+format_time_into() {
+    local output_var="$1" total_seconds="$2" hours minutes seconds time_str
+    hours=$((total_seconds / 3600))
+    minutes=$(((total_seconds % 3600) / 60))
+    seconds=$((total_seconds % 60))
+    printf -v time_str "%02d:%02d:%02d" "$hours" "$minutes" "$seconds"
+    time_str=${time_str##00:}
+    printf -v "$output_var" '%s' "$time_str"
 }
 
 read_timer_file() {

@@ -53,10 +53,23 @@ actual="$(get_network_stat "$STATE" "$DEV" "$UPTIME" "$SYSFS")"
 assert_json "$actual" '.down == "3.41 KB" and .up == "4.39 KB" and .speed_down == "1000 B/s" and .speed_up == "1000 B/s"' 'second sample should report bytes per second'
 
 # Different poll intervals must use elapsed time, not raw bytes per sample.
+# Rate arithmetic is built into Bash now; a valid poll should start only the
+# AWK process needed to batch-format all four byte values.
+AWK_REAL="$(command -v awk)"
+AWK_LOG="$TMP/awk-calls.log"
+mkdir -p "$TMP/awk-bin"
+cat > "$TMP/awk-bin/awk" <<EOF_AWK
+#!/usr/bin/env bash
+printf 'awk\n' >> "$AWK_LOG"
+exec "$AWK_REAL" "\$@"
+EOF_AWK
+chmod +x "$TMP/awk-bin/awk"
+: > "$AWK_LOG"
 printf '12.50 12.50\n' > "$UPTIME"
 write_dev 900150 800150 4000 5000
-actual="$(get_network_stat "$STATE" "$DEV" "$UPTIME" "$SYSFS")"
+actual="$(PATH="$TMP/awk-bin:$PATH" get_network_stat "$STATE" "$DEV" "$UPTIME" "$SYSFS")"
 assert_json "$actual" '.speed_down == "1000 B/s" and .speed_up == "1000 B/s"' 'same 500 bytes over half a second should preserve the rate'
+[[ ! -s "$AWK_LOG" ]] || fail "a valid rate poll should not launch AWK, got $(wc -l < "$AWK_LOG") calls"
 
 # Interface/counter reset should not create negative or huge speed values.
 printf '14.00 14.00\n' > "$UPTIME"

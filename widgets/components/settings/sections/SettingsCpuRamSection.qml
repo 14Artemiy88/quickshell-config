@@ -328,12 +328,13 @@ Column {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width
         wrapMode: Text.WordWrap
-        text: "Настройки заголовков, полос и типографики списка процессов."
+        text: "Дополнительные параметры раскрываются сразу под соответствующим переключателем."
         color: Config.textMuted
         font.family: Config.settingsFont
         font.pixelSize: Config.settingsUiSize(10)
     }
 
+    // Заголовки: зависимые параметры сгруппированы сразу под переключателем.
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
@@ -345,6 +346,121 @@ Column {
         }
     }
 
+    Text {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Настройки заголовков"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+
+    Text {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "CPU"
+        color: Config.settingsSubheading
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsTextField {
+            id: topAppsCpuHeaderTitleField
+            width: 180; height: 30
+            text: Config.topAppsCpuHeaderTitle
+            color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "CPU"
+            activeFocusOnTab: true
+            onEditingFinished: { Config.topAppsCpuHeaderTitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsCpuHeaderTitle; settings.save() }
+            Connections { target: Config; function onTopAppsCpuHeaderTitleChanged() { topAppsCpuHeaderTitleField.text = Config.topAppsCpuHeaderTitle } }
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsTextField {
+            id: topAppsCpuHeaderSubtitleField
+            width: 180; height: 30
+            text: Config.topAppsCpuHeaderSubtitle
+            color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "ДОЛЯ ОТ ВСЕГО CPU"
+            activeFocusOnTab: true
+            onEditingFinished: { Config.topAppsCpuHeaderSubtitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsCpuHeaderSubtitle; settings.save() }
+            Connections { target: Config; function onTopAppsCpuHeaderSubtitleChanged() { topAppsCpuHeaderSubtitleField.text = Config.topAppsCpuHeaderSubtitle } }
+        }
+    }
+
+    Text {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Память"
+        color: Config.settingsSubheading
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsTextField {
+            id: topAppsRamHeaderTitleField
+            width: 180; height: 30
+            text: Config.topAppsRamHeaderTitle
+            color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "ПАМЯТЬ"
+            activeFocusOnTab: true
+            onEditingFinished: { Config.topAppsRamHeaderTitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsRamHeaderTitle; settings.save() }
+            Connections { target: Config; function onTopAppsRamHeaderTitleChanged() { topAppsRamHeaderTitleField.text = Config.topAppsRamHeaderTitle } }
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsTextField {
+            id: topAppsRamHeaderSubtitleField
+            width: 180; height: 30
+            text: Config.topAppsRamHeaderSubtitle
+            color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+            placeholderText: "ТОП ПРОЦЕССОВ"
+            activeFocusOnTab: true
+            onEditingFinished: { Config.topAppsRamHeaderSubtitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsRamHeaderSubtitle; settings.save() }
+            Connections { target: Config; function onTopAppsRamHeaderSubtitleChanged() { topAppsRamHeaderSubtitleField.text = Config.topAppsRamHeaderSubtitle } }
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Размер основного заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsHeaderTitleFontSize
+            minimum: 6; maximum: 32; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsHeaderTitleFontSize"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; text: "Размер подзаголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsHeaderSubtitleFontSize
+            minimum: 6; maximum: 32; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsHeaderSubtitleFontSize"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    // Полосы: цвета расположены непосредственно под переключателем показа.
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
@@ -356,6 +472,55 @@ Column {
         }
     }
 
+    Text {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Цвета полос нагрузки"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+
+    Text {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        wrapMode: Text.WordWrap
+        text: "Отдельные цвета для заполнения полос CPU и RAM."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(9)
+    }
+
+    SettingsColorField {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        label: "CPU: цвет полосы"
+        value: String(Config.topAppsCpuBarColor)
+        targetObject: Config
+        targetProperty: "topAppsCpuBarColor"
+        settingsObject: root.settings
+        saveOnEdit: true
+        allowAlpha: true
+        allowTransparent: true
+        fieldWidth: 120
+        compact: false
+    }
+
+    SettingsColorField {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        label: "RAM: цвет полосы"
+        value: String(Config.topAppsRamBarColor)
+        targetObject: Config
+        targetProperty: "topAppsRamBarColor"
+        settingsObject: root.settings
+        saveOnEdit: true
+        allowAlpha: true
+        allowTransparent: true
+        fieldWidth: 120
+        compact: false
+    }
+
+    // Строка «Система/прочее»: поле названия рядом с соответствующим переключателем.
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
@@ -367,8 +532,16 @@ Column {
         }
     }
 
+    Text {
+        visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Настройки строки «Система/прочее»"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+
     Row {
-        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
         Text {
             width: 210; text: "Название строки остатка"
@@ -379,7 +552,6 @@ Column {
         SettingsTextField {
             id: topAppsSystemRemainderLabelField
             width: 180; height: 30
-            enabled: Config.topAppsShowSystemRemainder
             text: Config.topAppsSystemRemainderLabel
             color: Config.text; font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(11)
@@ -395,6 +567,14 @@ Column {
                 function onTopAppsSystemRemainderLabelChanged() { topAppsSystemRemainderLabelField.text = Config.topAppsSystemRemainderLabel }
             }
         }
+    }
+
+    Text {
+        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Настройки списка"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
     }
 
     Row {

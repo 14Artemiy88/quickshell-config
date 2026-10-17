@@ -63,7 +63,14 @@ mopidy_image_url() {
 # Convert local Mopidy file URIs to a filesystem path so local Mopidy tracks
 # use the exact same cover search as DeaDBeeF. Remote/library URIs return empty.
 mopidy_local_track_path() {
-    local uri="$1"
+    local uri="$1" uri_lower="${1,,}"
+    # Most Mopidy URIs are remote/library identifiers, not filesystem paths.
+    # Return on those common polling paths before starting Python; retain Python
+    # URL decoding for local file URIs and absolute filesystem paths.
+    case "$uri_lower" in
+        file://*|/*) ;;
+        *) return 0 ;;
+    esac
     command -v python3 >/dev/null 2>&1 || return 0
     python3 - "$uri" <<'PYURI'
 import sys
@@ -100,7 +107,12 @@ mopidy_cover_for_track() {
 
     cache_dir="$QS_CACHE_DIR/mopidy-covers"
     mkdir -p "$cache_dir" 2>/dev/null || { mopidy_cover_fallback; return 0; }
-    key=$(printf '%s' "$track_uri" | sha256sum | awk '{print $1}')
+    # sha256sum already writes its digest as the first whitespace-delimited
+    # field. Parse it in Bash rather than starting AWK on every Player poll.
+    local hash_output
+    hash_output=$(printf '%s' "$track_uri" | sha256sum) || { mopidy_cover_fallback; return 0; }
+    key="${hash_output%% *}"
+    [[ "$key" =~ ^[0-9a-f]{64}$ ]] || { mopidy_cover_fallback; return 0; }
     marker="$cache_dir/$key.uri"
     stamp="$cache_dir/$key.checked"
 

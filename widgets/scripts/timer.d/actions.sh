@@ -1,7 +1,7 @@
 #!/bin/bash
 
-timer_up()       { timer_with_lock timer_up_locked "$1"; }
-timer_down()     { timer_with_lock timer_down_locked "$1"; }
+timer_up()       { timer_with_lock timer_up_locked "$1" "${2:-1}"; }
+timer_down()     { timer_with_lock timer_down_locked "$1" "${2:-1}"; }
 timer_delete()   { timer_with_lock timer_delete_locked "$1"; }
 timer_add_at()   { timer_with_lock timer_add_at_locked "$1"; }
 timer_add()      { timer_with_lock timer_add_locked "$1" "$2"; }
@@ -12,21 +12,27 @@ refresh_add()    { timer_with_lock refresh_add_locked "$1"; }
 toggle_pause()   { timer_with_lock toggle_pause_locked "$1"; }
 
 timer_up_locked() {
-    local file="$1"
+    local file="$1" step="${2:-1}"
+    [[ "$step" =~ ^[0-9]+$ ]] || step=1
+    (( step < 1 )) && step=1
+    (( step > 60 )) && step=60
     read_timer_file "$file" || return 1
-    end_time=$((end_time + 60))
+    end_time=$((end_time + 60 * step))
     local now
     now=$(date '+%s')
     ding=$((end_time - now <= 0))
-    total_time=$((total_time + 1))
+    total_time=$((total_time + step))
     write_timer_file "$file"
 }
 
 timer_down_locked() {
-    local file="$1"
+    local file="$1" step="${2:-1}"
+    [[ "$step" =~ ^[0-9]+$ ]] || step=1
+    (( step < 1 )) && step=1
+    (( step > 60 )) && step=60
     read_timer_file "$file" || return 1
-    end_time=$((end_time - 60))
-    total_time=$((total_time - 1))
+    end_time=$((end_time - 60 * step))
+    total_time=$((total_time - step))
     local now
     now=$(date '+%s')
     if (( end_time > now )); then

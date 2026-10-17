@@ -53,7 +53,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 1
         anchors.verticalCenter: parent.verticalCenter
-        text: controller.formatDuration(controller.albumDisplayDuration(itemData))
+        text: controller.formatDuration(controller.albumDisplayDuration(itemData), controller.albumShowsRemainingTime(itemData))
         color: controller.hoverTextColor(albumHovered, Config.accent)
         font.family: Config.mopidyDurationFont
         font.pixelSize: Config.mopidyDurationFontSize

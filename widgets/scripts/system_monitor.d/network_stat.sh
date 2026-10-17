@@ -130,24 +130,22 @@ _get_network_stat_unlocked() {
     su=0
     if (( have_previous && have_previous_time )) && [[ "$now_cs" =~ ^[0-9]+$ && "$prev_signature" == "$current_signature" ]]; then
         # Convert delta bytes / elapsed centiseconds into bytes per second.
+        # These counters have been validated as decimal integers; Bash arithmetic
+        # avoids launching a second AWK process on every network poll.
         # Counter resets and non-positive elapsed time produce a safe zero.
-        read -r sd su <<< "$(awk -v pd="$prev_down" -v pu="$prev_up" -v cd="$cd" -v cu="$cu" -v pt="$prev_time_cs" -v nt="$now_cs" '
-            BEGIN {
-                elapsed = nt - pt
-                down = cd - pd
-                up = cu - pu
-                sd = 0; su = 0
-                if (elapsed > 0 && down >= 0 && up >= 0) {
-                    sd = int(down * 100 / elapsed)
-                    su = int(up * 100 / elapsed)
-                }
-                printf "%.0f %.0f\n", sd, su
-            }
-        ')"
+        local elapsed_cs delta_down delta_up
+        elapsed_cs=$((10#$now_cs - 10#$prev_time_cs))
+        delta_down=$((10#$cd - 10#$prev_down))
+        delta_up=$((10#$cu - 10#$prev_up))
+        if (( elapsed_cs > 0 && delta_down >= 0 && delta_up >= 0 )); then
+            sd=$((delta_down * 100 / elapsed_cs))
+            su=$((delta_up * 100 / elapsed_cs))
+        fi
     fi
 
     local -a formatted_bytes=()
-    mapfile -t formatted_bytes < <(format_bytes_batch "$cd" "$cu" "$sd" "$su")
+    format_bytes_batch_values "$cd" "$cu" "$sd" "$su"
+    formatted_bytes=("${FORMATTED_BYTES_BATCH[@]}")
     # All four inputs are integers produced from validated proc counters. If
     # the formatter unexpectedly returns fewer lines, keep the JSON safe.
     while ((${#formatted_bytes[@]} < 4)); do formatted_bytes+=("0 B"); done
@@ -161,7 +159,6 @@ _get_network_stat_unlocked() {
     state_tmp="$(mktemp "${state_file}.tmp.XXXXXX" 2>/dev/null)" || state_tmp=""
     if [[ -n "$state_tmp" ]]; then
         if printf '%s %s %s %s\n' "$cu" "$cd" "${now_cs:--}" "$current_signature" > "$state_tmp"; then
-            chmod 600 "$state_tmp" 2>/dev/null || true
             mv -f -- "$state_tmp" "$state_file" || rm -f -- "$state_tmp"
         else
             rm -f -- "$state_tmp"

@@ -1,14 +1,20 @@
 #!/bin/bash
-source "$(dirname "$0")/env"
-source "$(dirname "$0")/timer.d/common.sh"
-source "$(dirname "$0")/timer.d/actions.sh"
-source "$(dirname "$0")/timer.d/daemon.sh"
+# Resolve sibling scripts once with Bash parameter expansion. The timer entry
+# point is polled frequently, so avoid four `dirname` subprocesses per call.
+TIMER_SCRIPT_PATH="${BASH_SOURCE[0]}"
+TIMER_SCRIPT_DIR="${TIMER_SCRIPT_PATH%/*}"
+[[ "$TIMER_SCRIPT_DIR" != "$TIMER_SCRIPT_PATH" ]] || TIMER_SCRIPT_DIR=.
+source "$TIMER_SCRIPT_DIR/env"
+source "$TIMER_SCRIPT_DIR/timer.d/common.sh"
+source "$TIMER_SCRIPT_DIR/timer.d/actions.sh"
+source "$TIMER_SCRIPT_DIR/timer.d/daemon.sh"
+unset TIMER_SCRIPT_PATH TIMER_SCRIPT_DIR
 
 case "$1" in
     add)           timer_add "$2" "$3";;
     add_at)        timer_add_at "$2";;
-    up)            timer_up "$2";;
-    down)          timer_down "$2";;
+    up)            timer_up "$2" "${3:-1}";;
+    down)          timer_down "$2" "${3:-1}";;
     delete)        timer_delete "$2";;
     update_color)  update_color "$2";;
     set_comment)   set_comment "$2" "$3";;

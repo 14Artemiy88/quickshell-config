@@ -3,12 +3,16 @@
 # Read, render and apply the expiration transition under the same lock used by
 # UI actions. This prevents a stale daemon snapshot from overwriting a pause,
 # extension, comment edit or deletion.
-timer_process_entry() {
-    local status=0
-    # JSON is streamed through while the callback holds the lock. A special
-    # return code reports a new expiration, so speech starts only after unlock
-    # without adding a second nested command-substitution process.
-    timer_with_lock timer_process_entry_locked "$1" "$2" || status=$?
+# Assign a timer entry's serialized JSON directly into the caller's variable.
+# The daemon polls every timer each second; capturing timer_process_entry stdout
+# with command substitution would fork one subshell per active timer per tick.
+timer_process_entry_into() {
+    local output_var="$1" status=0
+    shift
+    printf -v "$output_var" '%s' ''
+    # JSON is assembled while the callback holds the lock. A special return
+    # code reports a new expiration, so speech starts only after the lock ends.
+    timer_with_lock timer_process_entry_locked "$output_var" "$1" "$2" || status=$?
     if (( status == 10 )); then
         say "$MESSAGE"
         return 0
@@ -16,8 +20,16 @@ timer_process_entry() {
     return "$status"
 }
 
+# Preserve the stdout-based interface for callers and existing integrations.
+timer_process_entry() {
+    local entry status=0
+    timer_process_entry_into entry "$1" "$2" || status=$?
+    [[ -n "$entry" ]] && printf '%s' "$entry"
+    return "$status"
+}
+
 timer_process_entry_locked() {
-    local file="$1" now="$2"
+    local output_var="$1" file="$2" now="$3"
     local total_time end_time ding color paused_at comment
     local seconds_left display_now sign timer_str time_passed comment_json file_json
 
@@ -45,14 +57,16 @@ timer_process_entry_locked() {
     [[ -z "$comment" ]] && comment="$total_time"
     timer_str="PAUSED"
     if (( paused_at == 0 )); then
-        timer_str=$(format_time "${seconds_left#-}")
+        format_time_into timer_str "${seconds_left#-}"
     fi
 
-    time_passed=$(format_time $((total_time * 60 - seconds_left)))
-    comment_json=$(json_escape "$comment")
-    file_json=$(json_escape "$file")
-    printf '{"file":"%s", "comment":"%s", "timer":"%s", "color":"#%s", "sign":"%s", "time_passed":"%s", "ding":%s}' \
+    format_time_into time_passed $((total_time * 60 - seconds_left))
+    json_escape_into comment_json "$comment"
+    json_escape_into file_json "$file"
+    local json_record
+    printf -v json_record '{"file":"%s","comment":"%s","timer":"%s","color":"#%s","sign":"%s","time_passed":"%s","ding":%s}' \
         "$file_json" "$comment_json" "$timer_str" "$color" "$sign" "$time_passed" "$ding"
+    printf -v "$output_var" '%s' "$json_record"
     if (( ding_transition )); then
         return 10
     fi
@@ -65,7 +79,13 @@ run_daemon() {
     timer_ensure_dirs || return 1
 
     while true; do
-        now=$(date '+%s')
+        # Bash 5+ exposes EPOCHSECONDS as a built-in clock value. Use it on
+        # every one-second daemon tick to avoid spawning `date`; retain the
+        # external fallback for older Bash versions.
+        now=${EPOCHSECONDS:-}
+        if [[ ! "$now" =~ ^[0-9]+$ ]]; then
+            now=$(date '+%s')
+        fi
         timers=()
 
         # Read fresh state for every timer each cycle. The old second-resolution
@@ -73,15 +93,13 @@ run_daemon() {
         # data over newer user actions.
         for file in "$TIMER_DIR"/*; do
             [[ -f "$file" ]] || continue
-            data=$(timer_process_entry "$file" "$now") || continue
+            timer_process_entry_into data "$file" "$now" || continue
             [[ -n "$data" ]] && timers+=("$data")
         done
 
-        if (( ${#timers[@]} > 0 )); then
-            printf '%s\n' "${timers[@]}" | jq -s -c .
-        else
-            echo '[]'
-        fi
+        # Every entry is already a valid compact JSON object. Join entries in
+        # the current shell rather than starting jq once per non-empty tick.
+        timer_entries_to_json "${timers[@]}"
 
         sleep 1
     done

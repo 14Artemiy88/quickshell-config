@@ -163,7 +163,8 @@ Item {
             id: settingsBody
             width: parent.width
             height: parent.height - y
-            spacing: 8
+            // Keep the settings text visually separated from the sidebar tabs.
+            spacing: 16
 
             Column {
                 id: mainSettingsTabs
@@ -201,7 +202,7 @@ Item {
 
             Item {
                 id: settingsContentArea
-                width: parent.width - mainSettingsTabs.width - 8
+                width: parent.width - mainSettingsTabs.width - 16
                 height: parent.height
 
                 SettingsModulesSection {

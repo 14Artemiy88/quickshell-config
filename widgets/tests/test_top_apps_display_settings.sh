@@ -30,6 +30,7 @@ grep -Fq 'visible: Config.topAppsShowBars' "$ui" || fail "bar rendering is not c
 grep -Fq 'width: Config.topAppsShowBars ? 98 : Math.max(40, parent.width - root.valueColumnWidth(root.sectionEntries) - 2 * appRow.spacing)' "$ui" || fail "process name does not expand when bars are hidden"
 grep -Fq 'width: Config.topAppsShowBars ? Math.max(0, parent.width - 98 - 5 - root.valueColumnWidth(root.sectionEntries) - 5) : 0' "$ui" || fail "bar placeholder still consumes width when bars are hidden"
 grep -Fq 'moduleName === "topAppsCpu" || moduleName === "topAppsRam"' "$resets" || fail "Top Apps CPU/RAM module profile reset branch is missing"
-grep -Fq '"topAppsShowHeaders", "topAppsShowBars"' "$resets" || fail "CPU/RAM reset does not restore Top Apps display settings"
+grep -Fq '"topAppsShowHeaders"' "$resets" || fail "CPU/RAM reset does not restore header visibility"
+grep -Fq '"topAppsShowBars"' "$resets" || fail "CPU/RAM reset does not restore bar visibility"
 
 echo "Top Apps display settings: OK"

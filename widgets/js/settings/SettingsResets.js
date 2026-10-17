@@ -134,7 +134,7 @@ function resetModule(owner, config, moduleName) {
     owner.moduleMonitors = m
 
     if (moduleName === "calendar") {
-        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
+        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
     } else if (moduleName === "cpu") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
@@ -144,7 +144,7 @@ function resetModule(owner, config, moduleName) {
     } else if (moduleName === "cpuGraph") {
         applyConfigKeysFromProfile(owner, config, profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode"])
     } else if (moduleName === "topAppsCpu" || moduleName === "topAppsRam") {
-        applyConfigKeysFromProfile(owner, config, profile, ["topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
+        applyConfigKeysFromProfile(owner, config, profile, ["topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
     } else if (moduleName === "networkStat" || moduleName === "networks") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
@@ -236,7 +236,7 @@ function resetColors(owner, config, names, themes, colorNames) {
 
 function resetCpuSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
 }
 
 function resetNetworkSettings(owner, config) {
@@ -286,7 +286,7 @@ function resetWeatherSettings(owner, config) {
 
 function resetCalendarSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"]); owner.save()
 }
 
 function resetCavaSettings(owner, config) {

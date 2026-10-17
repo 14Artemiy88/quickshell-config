@@ -32,11 +32,11 @@ for i in "${!expected[@]}"; do
     [[ "${actual[$i]}" == "${expected[$i]}" ]] || fail "input '${values[$i]}' expected '${expected[$i]}', got '${actual[$i]}'"
 done
 calls="$(wc -c < "$BATCH_AWK_CALLS")"
-[[ "$calls" -eq 1 ]] || fail "batch formatter launched awk $calls times, expected 1"
+[[ "$calls" -eq 0 ]] || fail "batch formatter launched awk $calls times, expected 0"
 
 : > "$BATCH_AWK_CALLS"
 empty="$(format_bytes_batch)"
 [[ -z "$empty" ]] || fail "empty batch should return empty output, got '$empty'"
 [[ ! -s "$BATCH_AWK_CALLS" ]] || fail 'empty batch should not launch awk'
 
-echo 'System monitor batch byte formatter: OK (format parity, 1 awk call, empty-input fast path)'
+echo 'System monitor batch byte formatter: OK (format parity, no awk calls, empty-input fast path)'

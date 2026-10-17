@@ -1,6 +1,9 @@
 #!/bin/bash
-# Shared Player backend helpers.
-PLAYER_LIB_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Shared Player backend helpers. All sources stay relative to this file's
+# location; path expansion avoids a dirname process on every Player poll.
+PLAYER_LIB_PATH="${BASH_SOURCE[0]}"
+PLAYER_LIB_DIR="${PLAYER_LIB_PATH%/*}"
+[[ "$PLAYER_LIB_DIR" != "$PLAYER_LIB_PATH" ]] || PLAYER_LIB_DIR=.
 source "$PLAYER_LIB_DIR/../env"
 
 declare -r IMG_PATH="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/desktop-shell-player"

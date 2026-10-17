@@ -3,14 +3,19 @@
 _get_network_connections_unlocked() {
     local cache_file="$1"
     local cache_time_file="$2"
-    local now
-    now=$(date +%s)
+    # Bash 5 provides EPOCHSECONDS without launching an external `date`
+    # process on each poll. Retain the external fallback for older Bash builds.
+    local now="${EPOCHSECONDS:-}" cached_payload
+    [[ "$now" =~ ^[0-9]+$ ]] || now=$(date +%s)
 
     if [[ -f "$cache_time_file" ]]; then
         local t
         read -r t < "$cache_time_file" || true
         if [[ "$t" =~ ^[0-9]+$ ]] && (( now - t < 2 )) && [[ -f "$cache_file" ]]; then
-            cat "$cache_file"
+            # The cached payload is one JSON line. Read it with a shell builtin
+            # rather than starting `cat` on every cache hit.
+            IFS= read -r cached_payload < "$cache_file" || cached_payload=''
+            [[ -z "$cached_payload" ]] || printf '%s\n' "$cached_payload"
             return
         fi
     fi
@@ -84,7 +89,6 @@ _get_network_connections_unlocked() {
     if [[ -n "$cache_tmp" && -n "$time_tmp" ]] && \
        printf '%s\n' "$result" > "$cache_tmp" && \
        printf '%s\n' "$now" > "$time_tmp"; then
-        chmod 600 "$cache_tmp" "$time_tmp" 2>/dev/null || true
         if mv -f -- "$cache_tmp" "$cache_file"; then
             mv -f -- "$time_tmp" "$cache_time_file" || rm -f -- "$time_tmp"
         else

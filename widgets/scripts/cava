@@ -36,7 +36,10 @@ noise_reduction=0.5
 CAVA
 }
 
+# Transform CAVA's semicolon-separated raw stream in one long-lived filter.
+# Keeping the final output flush preserves the low-latency stream consumed by
+# Quickshell, while combining sed+awk avoids an extra process for the lifetime
+# of this high-frequency audio visualizer.
 cava_config \
     | cava -p /dev/stdin \
-    | sed -u 's/;$//; s/;/,/g' \
-    | awk '{print "[" $0 "]"; fflush()}'
+    | awk '{ sub(/;$/, ""); gsub(/;/, ","); print "[" $0 "]"; fflush() }'

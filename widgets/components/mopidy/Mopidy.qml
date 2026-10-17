@@ -774,24 +774,32 @@ Primitives.ModuleFrame {
         addTrackProcess.running = true
     }
 
+    function trackShowsRemainingTime(track) {
+        return !!Config.mopidyShowTrackRemaining && Number(track && track.tlid) === Number(root.currentTlid)
+    }
+
     function trackDisplayDuration(track) {
         var duration = Number(track && track.duration)
         if (!isFinite(duration) || duration < 0) duration = 0
-        if (!Config.mopidyShowTrackRemaining || Number(track && track.tlid) !== Number(root.currentTlid))
+        if (!root.trackShowsRemainingTime(track))
             return duration
         return Math.max(0, duration - Math.max(0, Number(root.currentPositionMs) || 0))
+    }
+
+    function albumShowsRemainingTime(itemData) {
+        if (!Config.mopidyShowAlbumRemaining || !itemData || itemData.startIndex === undefined || itemData.endIndex === undefined)
+            return false
+        var current = root.currentQueueIndex
+        return current >= itemData.startIndex && current <= itemData.endIndex
     }
 
     function albumDisplayDuration(itemData) {
         var duration = Number(itemData && itemData.duration)
         if (!isFinite(duration) || duration < 0) duration = 0
-        if (!Config.mopidyShowAlbumRemaining || !itemData || itemData.startIndex === undefined || itemData.endIndex === undefined)
+        if (!root.albumShowsRemainingTime(itemData))
             return duration
 
         var current = root.currentQueueIndex
-        if (current < itemData.startIndex || current > itemData.endIndex)
-            return duration
-
         var remaining = 0
         for (var i = current; i <= itemData.endIndex; ++i) {
             var rd = Number(root.tracks[i] && root.tracks[i].duration)
@@ -803,7 +811,7 @@ Primitives.ModuleFrame {
         return Math.max(0, remaining)
     }
 
-    function formatDuration(value) {
+    function formatDuration(value, remaining) {
         var ms = Number(value)
         if (!isFinite(ms) || ms < 0)
             return "--:--"
@@ -818,9 +826,10 @@ Primitives.ModuleFrame {
             return number < 10 ? "0" + number : String(number)
         }
 
-        if (hours > 0)
-            return hours + ":" + twoDigits(minutes) + ":" + twoDigits(seconds)
-        return minutes + ":" + twoDigits(seconds)
+        var formatted = hours > 0
+            ? hours + ":" + twoDigits(minutes) + ":" + twoDigits(seconds)
+            : minutes + ":" + twoDigits(seconds)
+        return remaining ? "-" + formatted : formatted
     }
 
     Process {

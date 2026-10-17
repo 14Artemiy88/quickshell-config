@@ -294,6 +294,25 @@ Row {
     SettingsTextField { id: calendarDayFontField; width: 130; height: 30; text: Config.calendarDayFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarDayFont = text; settings.save() } }
 }
 
+Row {
+    width: parent.width
+    height: 30
+    spacing: 8
+    SettingsColorField {
+        width: parent.width
+        label: "Цвет дней соседних месяцев"
+        value: String(Config.calendarAdjacentDaysColor)
+        targetObject: Config
+        targetProperty: "calendarAdjacentDaysColor"
+        settingsObject: settings
+        saveOnEdit: true
+        allowAlpha: false
+        allowTransparent: false
+        fieldWidth: 120
+        compact: false
+    }
+}
+
 Text {
     text: "Прошедшие дни"
     color: Config.accent

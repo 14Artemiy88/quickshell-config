@@ -1,5 +1,8 @@
 #!/bin/bash
 set -u
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the script's sibling paths without spawning dirname or a subshell.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+[[ "$SCRIPT_DIR" != "$SCRIPT_PATH" ]] || SCRIPT_DIR=.
 source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 mem_usage_percent /proc/meminfo

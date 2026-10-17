@@ -43,7 +43,7 @@ grep -Fq 'readonly property int displayRowHeight: Math.max(1, displayFontSize + 
 grep -Fq 'height: root.displayRowHeight' "$ui" || fail "rows do not use the calculated row height"
 
 grep -Fq 'moduleName === "topAppsCpu" || moduleName === "topAppsRam"' "$resets" || fail "Top Apps CPU/RAM module reset branch is missing"
-grep -Fq '"topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "Top Apps module reset does not restore typography"
-grep -Fq '"cpuShowRam", "topAppsShowHeaders", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"' "$resets" || fail "CPU/RAM reset does not restore the Top Apps top offset"
+for key in topAppsShowHeaders topAppsShowBars topAppsShowSystemRemainder topAppsSystemRemainderLabel topAppsFont topAppsFontSize topAppsRowSpacing topAppsTopOffset; do grep -Fq '"'$key'"' "$resets" || fail "Top Apps module reset misses $key"; done
+for key in cpuShowRam topAppsShowHeaders topAppsShowBars topAppsShowSystemRemainder topAppsSystemRemainderLabel topAppsFont topAppsFontSize topAppsRowSpacing topAppsTopOffset; do grep -Fq '"'$key'"' "$resets" || fail "CPU/RAM reset misses $key"; done
 
 echo "Top Apps typography settings: OK"

@@ -1,7 +1,14 @@
 #!/bin/bash
 set -o pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve sibling files with Bash parameter expansion; this entry point is
+# called repeatedly by the weather widget, so avoid spawning `dirname`.
+WEATHER_ENTRY_PATH="${BASH_SOURCE[0]}"
+if [[ "$WEATHER_ENTRY_PATH" == */* ]]; then
+    SCRIPT_DIR="${WEATHER_ENTRY_PATH%/*}"
+else
+    SCRIPT_DIR="."
+fi
 source "$SCRIPT_DIR/weather.d/common.sh"
 source "$SCRIPT_DIR/weather.d/gismeteo.sh"
 
@@ -18,10 +25,9 @@ get_weather() {
     lock_file="${cache_file}.lock"
     attempt_file="${cache_file}.attempt"
 
-    # Fast path for an ordinary poll. A fresh usable cache does not require
-    # reading the API token at all, and should remain available if the token
-    # is temporarily missing or the settings file cannot be parsed.
-    # Cache writes use atomic rename, so this
+    token=$(weather_require_token) || return 1
+
+    # Fast path for an ordinary poll. Cache writes use atomic rename, so this
     # unlocked read sees either the old complete JSON or the new complete JSON.
     if [[ "$force" != "true" ]] && weather_cache_valid "$cache_file"; then
         cached_payload=$(weather_cache_read_usable "$cache_file") && {
@@ -68,17 +74,6 @@ get_weather() {
             # to avoid repeated network storms even when no fallback exists.
             exit 1
         fi
-
-        # Resolve the token only when a network refresh is actually needed.
-        # If it is unavailable, serve a usable stale cache instead of dropping
-        # weather data that was already fetched successfully.
-        token=$(weather_require_token) || {
-            cached_payload=$(weather_cache_read_usable "$cache_file") && {
-                printf '%s\n' "$cached_payload"
-                exit 0
-            }
-            exit 1
-        }
 
         weather_mark_attempt "$attempt_file" "$now" || true
         payload=$(weather_gismeteo_fetch "$token" "$endpoint_type" "$params") || payload=""

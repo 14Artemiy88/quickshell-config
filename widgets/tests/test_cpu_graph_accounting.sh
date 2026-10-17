@@ -21,6 +21,27 @@ trap cleanup EXIT
 proc_stat="$work/proc-stat"
 state="$work/graph-state"
 out="$work/output"
+command_log="$work/unneeded-commands.log"
+real_dirname="$(command -v dirname)"
+real_chmod="$(command -v chmod)"
+real_mkdir="$(command -v mkdir)"
+mkdir -p "$work/bin"
+cat > "$work/bin/dirname" <<'WRAPPER'
+#!/bin/sh
+printf 'dirname\n' >> "$CPU_GRAPH_TEST_COMMAND_LOG"
+exec "$CPU_GRAPH_TEST_REAL_DIRNAME" "$@"
+WRAPPER
+cat > "$work/bin/chmod" <<'WRAPPER'
+#!/bin/sh
+printf 'chmod\n' >> "$CPU_GRAPH_TEST_COMMAND_LOG"
+exec "$CPU_GRAPH_TEST_REAL_CHMOD" "$@"
+WRAPPER
+cat > "$work/bin/mkdir" <<'WRAPPER'
+#!/bin/sh
+printf 'mkdir\n' >> "$CPU_GRAPH_TEST_COMMAND_LOG"
+exec "$CPU_GRAPH_TEST_REAL_MKDIR" "$@"
+WRAPPER
+chmod +x "$work/bin/dirname" "$work/bin/chmod" "$work/bin/mkdir"
 cat > "$proc_stat" <<'STAT'
 cpu 100 0 100 700 50 0 0 0 0 0
 cpu0 10 0 10 70 5 0 0 0 0 0
@@ -32,7 +53,10 @@ STAT
 
 # Run the real daemon with an isolated proc-stat fixture, then atomically update
 # the counters during its interval. Its next sample should match cpu_stats.
-CPU_GRAPH_PROC_STAT="$proc_stat" CPU_GRAPH_STATE="$state" CPU_GRAPH_INTERVAL=0.10 \
+PATH="$work/bin:$PATH" CPU_GRAPH_TEST_COMMAND_LOG="$command_log" \
+  CPU_GRAPH_TEST_REAL_DIRNAME="$real_dirname" CPU_GRAPH_TEST_REAL_CHMOD="$real_chmod" \
+  CPU_GRAPH_TEST_REAL_MKDIR="$real_mkdir" \
+  CPU_GRAPH_PROC_STAT="$proc_stat" CPU_GRAPH_STATE="$state" CPU_GRAPH_INTERVAL=0.10 \
   "$daemon" > "$out" 2>/dev/null &
 daemon_pid=$!
 for _ in $(seq 1 100); do
@@ -57,6 +81,8 @@ jq -e 'type == "array" and length == 51 and .[-1] == 35' < <(sed -n '2p' "$out")
   fail "CPU graph sample didn't use shared accounting (expected final sample 35%)"
 read -r state_version _ < "$state"
 [[ "$state_version" == "v2" ]] || fail "CPU graph state wasn't atomically updated to v2"
+[[ "$(stat -c %a "$state")" == "600" ]] || fail "CPU graph state should remain private (0600)"
+[[ ! -s "$command_log" ]] || fail "steady-state graph refresh invoked unnecessary dirname/chmod/mkdir subprocesses"
 
 # Legacy state remains readable for history, but its incompatible counters are
 # deliberately discarded to avoid a one-frame spike during upgrade.
@@ -162,10 +188,17 @@ daemon_pid=""
 # Static regression guard: the graph must no longer use the old incomplete
 # user+nice+system+idle formula or non-atomic multi-line state writes.
 grep -Fq 'cpu_read_aggregate_counters' "$daemon" || fail "daemon doesn't use the shared CPU accounting"
-grep -Fq 'cpu_usage_percent' "$daemon" || fail "daemon doesn't use shared percentage calculation"
+grep -Fq 'delta_total=$((total - prev_total))' "$daemon" || fail "daemon doesn't calculate total deltas inline"
+grep -Fq 'pct=$((delta_busy * 100 / delta_total))' "$daemon" || fail "daemon doesn't calculate percentages inline"
+if grep -Eq 'pct=\$\(cpu_usage_percent' "$daemon"; then
+  fail "per-sample percentage calculation still launches a command-substitution subshell"
+fi
 grep -Fq "printf 'v2 %s %s\\n%s\\n'" "$daemon" || fail "versioned atomic state payload missing"
 if grep -Eq 'u=\$\(\(user \+ nice \+ system\)\)|t=\$\(\(u \+ idle\)\)' "$daemon"; then
   fail "old incomplete CPU formula remains in graph daemon"
+fi
+if grep -Eq 'state_dir=.*dirname|chmod 600 "\$state_tmp"' "$daemon"; then
+  fail "redundant per-sample dirname/chmod operation returned to CPU graph daemon"
 fi
 
 echo "CPU graph accounting: OK"

@@ -15,6 +15,8 @@ set -euo pipefail
 cat "$NMCLI_FIXTURE"
 MOCK
 chmod +x "$TMP/bin/nmcli"
+# Resolve the real jq before prepending the stub directory, otherwise the
+# wrapper can resolve itself and recurse indefinitely.
 REAL_JQ="$(command -v jq)"
 cat > "$TMP/bin/jq" <<'MOCK_JQ'
 #!/usr/bin/env bash
@@ -22,8 +24,8 @@ printf 'jq\n' >> "$JQ_CALL_LOG"
 exec "$REAL_JQ" "$@"
 MOCK_JQ
 chmod +x "$TMP/bin/jq"
-PATH="$TMP/bin:$PATH"
 JQ_CALL_LOG="$TMP/jq-calls.log"
+PATH="$TMP/bin:$PATH"
 export PATH REAL_JQ JQ_CALL_LOG
 
 cat > "$TMP/nmcli-fixture.txt" <<'EOF_FIXTURE'

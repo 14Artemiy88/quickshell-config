@@ -93,7 +93,7 @@ Rectangle {
         height: Math.min(28, Math.max(20, trackRow.height - 6))
         x: trackRow.width - width - 5
         y: Math.round((trackRow.height - height) / 2)
-        text: controller.formatDuration(controller.trackDisplayDuration(itemData.track))
+        text: controller.formatDuration(controller.trackDisplayDuration(itemData.track), controller.trackShowsRemainingTime(itemData.track))
         color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
         font.family: Config.mopidyDurationFont
         font.pixelSize: Config.mopidyDurationFontSize

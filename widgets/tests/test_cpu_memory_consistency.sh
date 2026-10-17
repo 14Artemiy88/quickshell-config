@@ -28,6 +28,24 @@ MemAvailable:   0 kB
 MEMINFO
 [[ "$(mem_usage_percent "$fixture")" == "100" ]] || fail "zero available memory should report 100% used"
 
+cat > "$fixture" <<'MEMINFO'
+MemTotal:       200 kB
+MemAvailable:   149 kB
+MEMINFO
+[[ "$(mem_usage_percent "$fixture")" == "26" ]] || fail "percentage should round to nearest whole number"
+
+cat > "$fixture" <<'MEMINFO'
+MemAvailable:   10 kB
+MemFree:        5 kB
+MEMINFO
+[[ "$(mem_usage_percent "$fixture")" == "0" ]] || fail "missing MemTotal should report 0%"
+
+cat > "$fixture" <<'MEMINFO'
+MemTotal:       invalid kB
+MemAvailable:   10 kB
+MEMINFO
+[[ "$(mem_usage_percent "$fixture")" == "0" ]] || fail "invalid MemTotal should report 0%"
+
 for script in cpu_stats cpu_stats_once mem_stats_once; do
     path="$ROOT/scripts/$script"
     grep -Fq 'mem_usage_percent /proc/meminfo' "$path" || fail "$script doesn't use the shared memory helper"

@@ -6,11 +6,11 @@ NAV_TEST="$ROOT/tests/test_calendar_navigation_button_primitive.sh"
 CHECK="$ROOT/CHECK.sh"
 test -f "$CALENDAR"
 test -f "$NAV_TEST"
-# The date hover changes the glyph color to the theme accent, but only for real
-# dates; leading/trailing grid cells must remain inert and visually empty.
-grep -Fq 'color: dayMouse.containsMouse && parent.day >= 1 && parent.day <= root.daysInMonth()' "$CALENDAR"
+# Dates in the visible month and adjacent-month cells show hover feedback; adjacent
+# dates keep their configured base color when not hovered.
+grep -Fq 'color: dayMouse.containsMouse' "$CALENDAR"
 grep -Fq '? Config.accent' "$CALENDAR"
-grep -Fq 'color: dayMouse.containsMouse && day >= 1 && day <= root.daysInMonth() ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent' "$CALENDAR"
+grep -Fq 'color: dayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent' "$CALENDAR"
 python3 - "$CALENDAR" "$CHECK" <<'PYCODE'
 from pathlib import Path
 import sys
@@ -18,7 +18,7 @@ calendar = Path(sys.argv[1]).read_text(encoding='utf-8')
 check = Path(sys.argv[2]).read_text(encoding='utf-8')
 # Ensure the hover feedback is bound to the day's actual MouseArea and that
 # note click semantics stay intact.
-assert 'dayMouse.containsMouse && parent.day >= 1 && parent.day <= root.daysInMonth()' in calendar
+assert 'color: dayMouse.containsMouse' in calendar
 assert 'onClicked: function(mouse)' in calendar
 assert 'root.openNoteEditor(parent.dateKey)' in calendar
 assert 'root.openNoteViewer(parent.dateKey)' in calendar

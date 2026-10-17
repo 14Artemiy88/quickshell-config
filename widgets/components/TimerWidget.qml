@@ -591,10 +591,14 @@ Primitives.ModuleFrame {
                                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file])
                             }
                         }
-                        onWheel: wheel => Quickshell.execDetached([
-                            Quickshell.shellDir + "/scripts/timer",
-                            wheel.angleDelta.y > 0 ? "up" : "down", timerData.file
-                        ])
+                        onWheel: wheel => {
+                            const step = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                            Quickshell.execDetached([
+                                Quickshell.shellDir + "/scripts/timer",
+                                wheel.angleDelta.y > 0 ? "up" : "down", timerData.file, String(step)
+                            ])
+                            wheel.accepted = true
+                        }
                     }
                 }
             }

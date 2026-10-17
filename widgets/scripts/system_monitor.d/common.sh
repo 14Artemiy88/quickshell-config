@@ -1,63 +1,64 @@
 #!/bin/bash
 
-format_bytes() {
-    local bytes="${1:-0}"
-    # Network counters are integer byte counts. Validate them before passing
-    # them to awk so a malformed/empty input produces a harmless zero.
+# Format one byte count using Bash arithmetic/printf, with the same binary
+# units and truncation semantics used by the System Monitor display.
+# The result is returned in FORMAT_BYTES_RESULT so callers can batch values
+# without command substitutions or external formatter processes.
+_format_bytes_value() {
+    local bytes="${1:-0}" bytes_num divisor unit whole remainder fraction
     bytes="${bytes%%.*}"
     [[ "$bytes" =~ ^[0-9]+$ ]] || bytes=0
+    # Normalize decimal strings before arithmetic: Bash otherwise treats a
+    # leading zero as octal in some arithmetic contexts.
+    while [[ ${#bytes} -gt 1 && "$bytes" == 0* ]]; do bytes="${bytes#0}"; done
+    bytes_num=$((10#$bytes))
 
-    # Use awk instead of bc: this keeps System Monitor working on minimal
-    # installations where bc is not installed. Compute two decimals by
-    # truncation to preserve the previous bc(scale=2) display semantics.
-    LC_ALL=C awk -v bytes="$bytes" '
-        function format_scaled(value, divisor, unit, whole, fraction) {
-            whole = int(value / divisor)
-            fraction = int(((value - whole * divisor) * 100) / divisor)
-            if (fraction < 0) fraction = 0
-            if (fraction > 99) fraction = 99
-            printf "%d.%02d %s\n", whole, fraction, unit
-        }
-        BEGIN {
-            bytes += 0
-            if (bytes >= 1099511627776) format_scaled(bytes, 1099511627776, "TB")
-            else if (bytes >= 1073741824) format_scaled(bytes, 1073741824, "GB")
-            else if (bytes >= 1048576) format_scaled(bytes, 1048576, "MB")
-            else if (bytes >= 1024) format_scaled(bytes, 1024, "KB")
-            else printf "%.0f B\n", bytes
-        }
-    '
+    divisor=1
+    unit=''
+    if (( bytes_num >= 1099511627776 )); then
+        divisor=1099511627776; unit=TB
+    elif (( bytes_num >= 1073741824 )); then
+        divisor=1073741824; unit=GB
+    elif (( bytes_num >= 1048576 )); then
+        divisor=1048576; unit=MB
+    elif (( bytes_num >= 1024 )); then
+        divisor=1024; unit=KB
+    fi
+
+    if [[ -z "$unit" ]]; then
+        printf -v FORMAT_BYTES_RESULT '%d B' "$bytes_num"
+        return 0
+    fi
+    whole=$((bytes_num / divisor))
+    remainder=$((bytes_num % divisor))
+    # remainder < 2^40, so multiplying it by 100 fits signed 64-bit math.
+    fraction=$((remainder * 100 / divisor))
+    (( fraction < 0 )) && fraction=0
+    (( fraction > 99 )) && fraction=99
+    printf -v FORMAT_BYTES_RESULT '%d.%02d %s' "$whole" "$fraction" "$unit"
 }
 
+format_bytes() {
+    _format_bytes_value "${1:-0}"
+    printf '%s\n' "$FORMAT_BYTES_RESULT"
+}
 
-# Format multiple byte counters in one awk process. Network-stat output needs
-# four values each poll (RX/TX totals and RX/TX rates); invoking format_bytes
-# four times starts four interpreters unnecessarily. Keep the exact display
-# semantics of format_bytes(), including integer truncation and unit names.
+# Batch formatter for callers that need several totals/rates at once. Values
+# are available in FORMATTED_BYTES_BATCH for same-shell callers; stdout remains
+# available for tests or other consumers that prefer line-oriented output.
+format_bytes_batch_values() {
+    local value
+    FORMATTED_BYTES_BATCH=()
+    for value in "$@"; do
+        _format_bytes_value "$value"
+        FORMATTED_BYTES_BATCH+=("$FORMAT_BYTES_RESULT")
+    done
+}
+
 format_bytes_batch() {
-    (($#)) || return 0
-    printf '%s\n' "$@" | LC_ALL=C awk '
-        function format_scaled(value, divisor, unit, whole, fraction) {
-            whole = int(value / divisor)
-            fraction = int(((value - whole * divisor) * 100) / divisor)
-            if (fraction < 0) fraction = 0
-            if (fraction > 99) fraction = 99
-            printf "%d.%02d %s\n", whole, fraction, unit
-        }
-        function format_one(input, bytes) {
-            bytes = input
-            sub(/[.].*/, "", bytes)
-            if (bytes !~ /^[0-9]+$/) bytes = 0
-            bytes += 0
-            if (bytes >= 1099511627776) format_scaled(bytes, 1099511627776, "TB")
-            else if (bytes >= 1073741824) format_scaled(bytes, 1073741824, "GB")
-            else if (bytes >= 1048576) format_scaled(bytes, 1048576, "MB")
-            else if (bytes >= 1024) format_scaled(bytes, 1024, "KB")
-            else printf "%.0f B\n", bytes
-        }
-        { values[NR] = $0 }
-        END { for (i = 1; i <= NR; i++) format_one(values[i]) }
-    '
+    format_bytes_batch_values "$@"
+    ((${#FORMATTED_BYTES_BATCH[@]})) || return 0
+    printf '%s\n' "${FORMATTED_BYTES_BATCH[@]}"
 }
 
 escape_json_string() {

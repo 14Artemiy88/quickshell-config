@@ -42,6 +42,10 @@ function applyTheme(owner, themes, Config, name) {
     var n = String(name)
     var p = themes.palette(n, owner.customThemes)
     for (var key in p) Config[key] = p[key]
+    // Custom themes saved before Top Apps bar colors existed inherit their
+    // CPU/RAM colors from the corresponding palette entries when switched.
+    if (p.topAppsCpuBarColor === undefined) Config.topAppsCpuBarColor = p.accent || Config.accent
+    if (p.topAppsRamBarColor === undefined) Config.topAppsRamBarColor = p.ram || Config.ram
     owner.activeTheme = n
     owner.themeDraftSource = n
     owner.themeDraft = JSON.parse(JSON.stringify(p))
