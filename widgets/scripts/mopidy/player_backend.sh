@@ -41,6 +41,46 @@ mopidy_cover_fallback() {
     fi
 }
 
+# If the current-playback snapshot omits artist tags, try the library metadata
+# and the current tracklist entry. Some Mopidy backends expose richer metadata
+# there than in core.playback.get_current_tl_track.
+mopidy_lookup_artist_fallback() {
+    local uri="${1:-}" tlid="${2:-}" payload response
+    [[ -n "$uri" ]] || return 0
+    payload=$(jq -cn --arg uri "$uri" '[
+        {jsonrpc:"2.0",id:10,method:"core.library.lookup",params:{uris:[$uri]}},
+        {jsonrpc:"2.0",id:11,method:"core.tracklist.get_tl_tracks",params:{}}
+    ]') || return 0
+    response=$(curl -sS --connect-timeout 1 --max-time 2 \
+        -H 'Content-Type: application/json' \
+        -d "$payload" \
+        "$MOPIDY_RPC_URL" 2>/dev/null) || return 0
+    jq -r --arg uri "$uri" --arg tlid "$tlid" '
+        def names:
+          if type == "array" then
+            map(if type == "object" then (.name // "") elif type == "string" then . else "" end)
+            | map(select(type == "string" and length > 0)) | join(", ")
+          elif type == "object" then (.name // "")
+          elif type == "string" then .
+          else "" end;
+        def artist_for_track:
+          (.artists | names) as $track_artists
+          | (.artist | names) as $track_artist
+          | (.album.artists | names) as $album_artists
+          | (.album.artist | names) as $album_artist
+          | (.performers | names) as $performers
+          | if $track_artists != "" then $track_artists
+            elif $track_artist != "" then $track_artist
+            elif $album_artists != "" then $album_artists
+            elif $album_artist != "" then $album_artist
+            else $performers end;
+        . as $responses
+        | ([ $responses[] | select(.id == 10) | .result[$uri][]? | artist_for_track | select(length > 0) ][0] // "") as $library_artist
+        | ([ $responses[] | select(.id == 11) | .result[]? | select((.tlid | tostring) == $tlid) | .track | artist_for_track | select(length > 0) ][0] // "") as $queue_artist
+        | if $library_artist != "" then $library_artist else $queue_artist end
+    ' <<< "$response" 2>/dev/null || true
+}
+
 # Resolve Mopidy Image URIs to a local file for the Player widget.
 # Mopidy's core.library.get_images commonly returns paths like /local/<hash>.jpeg,
 # which must be requested from the same HTTP server as the JSON-RPC endpoint.
@@ -87,9 +127,22 @@ except Exception:
 PYURI
 }
 
+# Set a named variable in the caller to the current epoch second without
+# launching `date` on supported Bash versions. The older-Bash fallback remains
+# for systems where EPOCHSECONDS is not available.
+mopidy_set_epoch_seconds() {
+    local target_var="${1:-}" current="${EPOCHSECONDS:-}"
+    [[ "$target_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 1
+    if [[ ! "$current" =~ ^[0-9]+$ ]]; then
+        current=$(date +%s) || return 1
+    fi
+    [[ "$current" =~ ^[0-9]+$ ]] || return 1
+    printf -v "$target_var" '%s' "$current"
+}
+
 mopidy_cover_for_track() {
     local track_uri="$1" album_uri="${2:-}" cache_dir key marker stamp art_uri now
-    local image_url url_path ext output_path tmp params images_json failed_stamp failed_at
+    local image_url url_path ext output_path tmp params images_json failed_stamp failed_at output_valid=0
     local local_track_path local_cover
     [[ -n "$track_uri" ]] || { mopidy_cover_fallback; return 0; }
 
@@ -106,7 +159,12 @@ mopidy_cover_for_track() {
     fi
 
     cache_dir="$QS_CACHE_DIR/mopidy-covers"
-    mkdir -p "$cache_dir" 2>/dev/null || { mopidy_cover_fallback; return 0; }
+    # Player polls cover metadata frequently. The cache directory is stable
+    # after first use, so avoid spawning `mkdir -p` on every cache lookup.
+    # Keep the guarded creation for first use and for recovery if it vanished.
+    if [[ ! -d "$cache_dir" ]]; then
+        mkdir -p "$cache_dir" 2>/dev/null || { mopidy_cover_fallback; return 0; }
+    fi
     # sha256sum already writes its digest as the first whitespace-delimited
     # field. Parse it in Bash rather than starting AWK on every Player poll.
     local hash_output
@@ -121,12 +179,13 @@ mopidy_cover_for_track() {
     if [[ -f "$marker" ]]; then
         IFS= read -r art_uri < "$marker" || true
         if [[ -z "$art_uri" ]]; then
-            now=$(date +%s)
             local checked=0
-            [[ -f "$stamp" ]] && read -r checked < "$stamp"
-            if [[ "$checked" =~ ^[0-9]+$ ]] && (( now - checked < 30 )); then
-                mopidy_cover_fallback
-                return 0
+            if mopidy_set_epoch_seconds now; then
+                [[ -f "$stamp" ]] && read -r checked < "$stamp"
+                if [[ "$checked" =~ ^[0-9]+$ ]] && (( now - checked < 30 )); then
+                    mopidy_cover_fallback
+                    return 0
+                fi
             fi
         fi
     fi
@@ -142,7 +201,12 @@ mopidy_cover_for_track() {
         ' <<< "$images_json" 2>/dev/null)
         [[ "$art_uri" == "null" ]] && art_uri=""
         printf '%s\n' "$art_uri" > "$marker"
-        date +%s > "$stamp"
+        local stamp_now
+        if mopidy_set_epoch_seconds stamp_now; then
+            printf '%s\n' "$stamp_now" > "$stamp"
+        else
+            : > "$stamp"
+        fi
     fi
 
     if [[ -z "$art_uri" ]]; then
@@ -178,30 +242,48 @@ mopidy_cover_for_track() {
     esac
     output_path="$cache_dir/$key.$ext"
     failed_stamp="$cache_dir/$key.download-failed"
-    # Remove corrupt cached responses created by older attempts.
-    if [[ -e "$output_path" ]] && ! mopidy_is_image_file "$output_path"; then
-        rm -f "$output_path"
+    # Validate an existing cache entry once and carry that result forward.
+    # The old flow ran `file` once while checking for a corrupt cache and again
+    # after the download branch, even when the same image had just been accepted.
+    if [[ -e "$output_path" ]]; then
+        if mopidy_is_image_file "$output_path"; then
+            output_valid=1
+        else
+            rm -f "$output_path"
+        fi
     fi
-    if [[ ! -s "$output_path" ]]; then
-        now=$(date +%s)
+    if (( ! output_valid )); then
         failed_at=0
-        [[ -f "$failed_stamp" ]] && read -r failed_at < "$failed_stamp"
-        if [[ "$failed_at" =~ ^[0-9]+$ ]] && (( now - failed_at < 30 )); then
-            mopidy_cover_fallback
-            return 0
+        if mopidy_set_epoch_seconds now; then
+            [[ -f "$failed_stamp" ]] && read -r failed_at < "$failed_stamp"
+            if [[ "$failed_at" =~ ^[0-9]+$ ]] && (( now - failed_at < 30 )); then
+                mopidy_cover_fallback
+                return 0
+            fi
         fi
         tmp="$output_path.part.$$"
         if curl -fsSL --connect-timeout 1 --max-time 4 "$image_url" -o "$tmp" 2>/dev/null && mopidy_is_image_file "$tmp"; then
-            mv -f "$tmp" "$output_path"
-            rm -f "$failed_stamp"
+            if mv -f -- "$tmp" "$output_path"; then
+                rm -f "$failed_stamp"
+                # The temporary file was already validated before the atomic
+                # rename; don't launch `file` a second time on the same bytes.
+                output_valid=1
+            else
+                rm -f -- "$tmp"
+            fi
         else
             rm -f "$tmp"
-            date +%s > "$failed_stamp"
+            local failed_stamp_now
+            if mopidy_set_epoch_seconds failed_stamp_now; then
+                printf '%s\n' "$failed_stamp_now" > "$failed_stamp"
+            else
+                : > "$failed_stamp"
+            fi
             mopidy_cover_fallback
             return 0
         fi
     fi
-    if mopidy_is_image_file "$output_path"; then
+    if (( output_valid )) && [[ -s "$output_path" ]]; then
         printf '%s\n' "$output_path"
     else
         rm -f "$output_path"
@@ -349,41 +431,76 @@ get_mopidy_player_metadata() {
     # unlike line-delimited output, while Bash variables keep the original text.
     local -a metadata_fields=()
     mapfile -d '' -t metadata_fields < <(jq -jr '
+        def artist_names:
+          (if type == "array" then . else [.] end)
+          | map(if type == "object" then (.name // "") elif type == "string" then . else "" end)
+          | map(select(type == "string" and length > 0))
+          | join(", ");
+        def artist_value:
+          if type == "object" then (.name // "")
+          elif type == "string" then .
+          else "" end;
         . as $responses
+        | first($responses[] | select(.id == 2) | .result.track) as $track
+        | (
+            ($track.artists | artist_names) as $track_artists
+            | ($track.artist | artist_value) as $track_artist
+            | ($track.album.artists | artist_names) as $album_artists
+            | ($track.album.artist | artist_value) as $album_artist
+            | ($track.performers | artist_names) as $performers
+            | if $track_artists != "" then $track_artists
+              elif $track_artist != "" then $track_artist
+              elif $album_artists != "" then $album_artists
+              elif $album_artist != "" then $album_artist
+              else $performers end
+          ) as $artist
         | [
             (first($responses[] | select(.id == 1) | .result) // ""),
-            ((first($responses[] | select(.id == 2) | .result) | type) == "object"),
+            ((first($responses[] | select(.id == 2) | .result | type) == "object")),
+            (first($responses[] | select(.id == 2) | .result.tlid) // ""),
             (first($responses[] | select(.id == 3) | .result) // 0),
-            (first($responses[] | select(.id == 2) | .result.track.album.name) // ""),
-            (first($responses[] | select(.id == 2) | .result.track.album.date) // ""),
-            (first($responses[] | select(.id == 2) | .result.track.artists[0].name) // ""),
-            (first($responses[] | select(.id == 2) | .result.track.length) // 0),
-            (first($responses[] | select(.id == 2) | .result.track.name) // ""),
-            (first($responses[] | select(.id == 2) | .result.track.uri) // ""),
-            (first($responses[] | select(.id == 2) | .result.track.album.uri) // "")
+            ($track.album.name // ""),
+            ($track.album.date // ""),
+            ($artist // ""),
+            ($track.length // 0),
+            ($track.name // ""),
+            ($track.uri // ""),
+            ($track.album.uri // "")
           ]
         | .[] | (if . == null then "" else tostring end), "\u0000"
     ' <<< "$rpc_data")
-    [[ ${#metadata_fields[@]} -eq 10 ]] || return
+    [[ ${#metadata_fields[@]} -eq 11 ]] || return
     state="${metadata_fields[0]}"
     [[ "$state" == "playing" || "$state" == "paused" ]] || return
     [[ "${metadata_fields[1]}" == "true" ]] || return
-    trackTime="${metadata_fields[2]}"
-    current_album="${metadata_fields[3]}"
-    current_album_date="${metadata_fields[4]}"
-    current_artist="${metadata_fields[5]}"
-    current_length="${metadata_fields[6]}"
-    current_title="${metadata_fields[7]}"
-    current_track_uri="${metadata_fields[8]}"
-    current_album_uri="${metadata_fields[9]}"
+    local current_tlid="${metadata_fields[2]}"
+    trackTime="${metadata_fields[3]}"
+    current_album="${metadata_fields[4]}"
+    current_album_date="${metadata_fields[5]}"
+    current_artist="${metadata_fields[6]}"
+    current_length="${metadata_fields[7]}"
+    current_title="${metadata_fields[8]}"
+    current_track_uri="${metadata_fields[9]}"
+    current_album_uri="${metadata_fields[10]}"
+    if [[ -z "${current_artist//[[:space:]]/}" ]]; then
+        current_artist=$(mopidy_lookup_artist_fallback "$current_track_uri" "$current_tlid")
+    fi
 
     format_album="$current_album_date"
     [[ -n "$current_album" ]] && format_album+=" - $current_album"
     [[ -z "$format_album" ]] && format_album=""
     [[ -z "$current_artist" ]] && current_artist="music"
 
-    time_left=$(timeFormat $((current_length - trackTime)))
-    time_left=${time_left##00:}
+    # Keep the Player countdown explicit, like mpv and other MPRIS backends.
+    # Unknown/zero track lengths have no meaningful remaining-time value.
+    time_left=""
+    if [[ "$current_length" =~ ^[0-9]+$ && "$trackTime" =~ ^[0-9]+$ ]] && (( current_length > 0 )); then
+        local remaining_ms=$((current_length - trackTime))
+        (( remaining_ms < 0 )) && remaining_ms=0
+        timeFormat_into time_left "$remaining_ms" || time_left=""
+        time_left=${time_left##00:}
+        [[ -n "$time_left" ]] && time_left="-$time_left"
+    fi
 
     cls=$DEFAULT_TITLE_CLASS
     [[ ${#current_title} -gt 10 ]] && cls="more_ten"

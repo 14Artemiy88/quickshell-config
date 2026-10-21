@@ -71,7 +71,17 @@ get_mpris_player_metadata() {
     # claim the PlayerWidget and prevent the next configured backend from
     # being queried.
     [[ "$status" == "Playing" || "$status" == "Paused" ]] || return
-    [[ -n "${title//[[:space:]]/}" && "$title" != "null" ]] || return
+    # Some browser integrations expose the Talk URL while returning an empty
+    # title; let the site-specific fallback below recover the room name rather
+    # than abandoning this backend and emitting the global "silence" payload.
+    local is_talk_url=false
+    if [[ "$player" == "plasma-browser-integration" && "$url" == *"talk.sima-team.ru"* ]]; then
+        is_talk_url=true
+    fi
+    if [[ -z "${title//[[:space:]]/}" || "$title" == "null" ]]; then
+        [[ "$is_talk_url" == true ]] || return
+        title=""
+    fi
 
     local numeric_re='^[0-9]+([.][0-9]+)?$'
     if [[ -n "$position" && "$position" != "null" && ! "$position" =~ $numeric_re ]]; then
@@ -82,6 +92,38 @@ get_mpris_player_metadata() {
     if [[ -n "$len" && ! "$len" =~ $numeric_re ]]; then return; fi
 
     [[ "$player" == "org.telegram.desktop" && "$status" != "Playing" ]] && return
+
+    # KDE's browser MPRIS integration reports Talk/Jitsi rooms with a generic
+    # suffix (for example "Teamf | Talk" or "Teamf | Jitsi Meet"). The Player's
+    # centered no-art fallback uses the `text` field, so keep that field
+    # meaningful for active calls instead of showing "silence"/"no image".
+    # Restrict the override to the Talk host or an explicit Talk/Jitsi suffix
+    # so ordinary browser media keeps its existing display behavior.
+    if [[ "$player" == "plasma-browser-integration" ]] && \
+       { [[ "$url" == *"talk.sima-team.ru"* ]] || [[ "$title" == *" | Talk" ]] || [[ "$title" == *" | Jitsi Meet" ]]; }; then
+        # Support both suffixes because different browser builds report the
+        # same Talk room as either "Room | Talk" or "Room | Jitsi Meet".
+        title="${title% | Talk}"
+        title="${title% | Jitsi Meet}"
+        # Browser metadata may expose a generic label rather than the room
+        # name. In that case, recover the room from the URL path.
+        if [[ -z "${title//[[:space:]]/}" || "${title,,}" == "null" || "${title,,}" == "talk" || "${title,,}" == "jitsi meet" || "${title,,}" == "silence" || "${title,,}" == "no image" ]]; then
+            local url_path="${url#*://}"
+            if [[ "$url_path" == */* ]]; then
+                url_path="${url_path#*/}"
+            else
+                url_path=""
+            fi
+            url_path="${url_path%%[?#]*}"
+            url_path="${url_path%/}"
+            if [[ -n "$url_path" ]]; then
+                title="${url_path##*/}"
+            else
+                title="talk"
+            fi
+        fi
+        service="$title"
+    fi
 
     case "$title" in
         *"Кинопоиск"*) service="kinopoisk"; title=${title/" — смотреть онлайн в хорошем качестве — Кинопоиск"/} ;;

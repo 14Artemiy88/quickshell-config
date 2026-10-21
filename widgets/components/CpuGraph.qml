@@ -11,7 +11,6 @@ Primitives.ModuleFrame {
     width: 315
     height: 82
     property var values: []
-    property var flippedValues: []
 
     Process {
         id: proc
@@ -29,16 +28,66 @@ Primitives.ModuleFrame {
         }
     }
 
-    // Both halves retain the mirrored graph with its baseline in the center.
-    Column {
-        visible: Config.cpuGraphMode === "both"
+    // Instantiate only the selected layout. Previously all three mode layouts
+    // existed at once, so their hidden Repeaters also allocated bar delegates.
+    Loader {
         anchors.fill: parent
-        anchors.margins: 3
-        spacing: 0
+        sourceComponent: Config.cpuGraphMode === "both" ? bothModeComponent
+            : Config.cpuGraphMode === "top" ? topModeComponent
+            : Config.cpuGraphMode === "bottom" ? bottomModeComponent
+            : bothModeComponent
+    }
 
+    Component {
+        id: bothModeComponent
+
+        // Both halves retain the mirrored graph with its baseline in the center.
+        Column {
+            anchors.fill: parent
+            anchors.margins: 3
+            spacing: 0
+
+            Item {
+                width: parent.width
+                height: parent.height / 2
+                Primitives.SegmentBarGraph {
+                    anchors.fill: parent
+                    values: root.values
+                    barCount: 51
+                    slotWidth: Config.cpuGraphSegmentSlotWidth
+                    barWidth: Config.cpuGraphBarWidth
+                    barColor: Config.baseColor
+                    barBorderColor: Config.baseColor
+                    barBorderWidth: 1
+                    direction: "up"
+                }
+            }
+
+            Item {
+                width: parent.width
+                height: parent.height / 2
+                Primitives.SegmentBarGraph {
+                    anchors.fill: parent
+                    values: root.values
+                    barCount: 51
+                    slotWidth: Config.cpuGraphSegmentSlotWidth
+                    barWidth: Config.cpuGraphBarWidth
+                    barColor: Config.baseColor
+                    barBorderColor: Config.baseColor
+                    barBorderWidth: 1
+                    direction: "down"
+                }
+            }
+        }
+    }
+
+    Component {
+        id: topModeComponent
+
+        // Upper-only mode: use full graph height and grow upward from bottom.
         Item {
-            width: parent.width
-            height: parent.height / 2
+            anchors.fill: parent
+            anchors.margins: 3
             Primitives.SegmentBarGraph {
                 anchors.fill: parent
                 values: root.values
@@ -51,10 +100,15 @@ Primitives.ModuleFrame {
                 direction: "up"
             }
         }
+    }
 
+    Component {
+        id: bottomModeComponent
+
+        // Lower-only mode: use full graph height and grow downward from top.
         Item {
-            width: parent.width
-            height: parent.height / 2
+            anchors.fill: parent
+            anchors.margins: 3
             Primitives.SegmentBarGraph {
                 anchors.fill: parent
                 values: root.values
@@ -66,44 +120,6 @@ Primitives.ModuleFrame {
                 barBorderWidth: 1
                 direction: "down"
             }
-        }
-    }
-
-    // Upper-only mode: use the full graph height and grow upward from the bottom edge.
-    Item {
-        visible: Config.cpuGraphMode === "top"
-        anchors.fill: parent
-        anchors.margins: 3
-
-        Primitives.SegmentBarGraph {
-            anchors.fill: parent
-            values: root.values
-            barCount: 51
-            slotWidth: Config.cpuGraphSegmentSlotWidth
-            barWidth: Config.cpuGraphBarWidth
-            barColor: Config.baseColor
-            barBorderColor: Config.baseColor
-            barBorderWidth: 1
-            direction: "up"
-        }
-    }
-
-    // Lower-only mode: use the full graph height and grow downward from the top edge.
-    Item {
-        visible: Config.cpuGraphMode === "bottom"
-        anchors.fill: parent
-        anchors.margins: 3
-
-        Primitives.SegmentBarGraph {
-            anchors.fill: parent
-            values: root.values
-            barCount: 51
-            slotWidth: Config.cpuGraphSegmentSlotWidth
-            barWidth: Config.cpuGraphBarWidth
-            barColor: Config.baseColor
-            barBorderColor: Config.baseColor
-            barBorderWidth: 1
-            direction: "down"
         }
     }
 }

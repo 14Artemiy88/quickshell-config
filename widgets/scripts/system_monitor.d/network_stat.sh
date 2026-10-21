@@ -179,8 +179,12 @@ get_network_stat() {
     # commit sequence so overlapping System Monitor polls cannot reuse one delta.
     if command -v flock >/dev/null 2>&1 && [[ -n "$state_file" ]]; then
         (
+            # Lock files created on the hot path must be private from the start;
+            # the default umask inside this subshell makes new files mode 0600
+            # without spawning chmod on every statistics poll. Existing lock
+            # files from previous versions were already hardened to 0600.
+            umask 077
             exec 9>"${state_file}.lock" || exit 1
-            chmod 600 "${state_file}.lock" 2>/dev/null || true
             flock -x 9 || exit 1
             _get_network_stat_unlocked "$state_file" "$proc_net_dev" "$proc_uptime" "$sys_class_net"
         )

@@ -6,7 +6,7 @@ function apply(Config, o) {
             ["weatherIconSize", 16, 128], ["weatherArrowSize", 8, 64],
             ["weatherArrowYOffset", -40, 40], ["weatherWindArrowGap", -20, 40],
             ["weatherHourlyCount", 1, 12], ["weatherDailyCount", 1, 4],
-            ["weatherIconY", -100, 100],
+            ["weatherIconX", 0, 500], ["weatherIconY", -100, 100],
             ["weatherWindColumnX", 0, 500], ["weatherWindSpeedFontSize", 8, 64],
             ["weatherWindUnitFontSize", 6, 48], ["weatherPressureY", 0, 100],
             ["weatherDescriptionY", 0, 120], ["weatherDescriptionFontSize", 6, 48],
@@ -73,6 +73,7 @@ function apply(Config, o) {
         if (o.cavaBarWidthRatio !== undefined) { var cbwr=Number(o.cavaBarWidthRatio); if (isFinite(cbwr)) Config.cavaBarWidthRatio=Math.max(0.05,Math.min(1,cbwr)) }
         if (o.cavaMode !== undefined) { var cm = String(o.cavaMode); Config.cavaMode = ["both", "top", "bottom"].indexOf(cm) >= 0 ? cm : "both" }
         if (o.cavaHideWhenSilent !== undefined) Config.cavaHideWhenSilent = !!o.cavaHideWhenSilent
+        if (o.cavaHideZeroBars !== undefined) Config.cavaHideZeroBars = !!o.cavaHideZeroBars
         if (o.frameBorderWidth !== undefined) {
             var bw = Number(o.frameBorderWidth)
             if (isFinite(bw)) Config.frameBorderWidth = Math.max(0, Math.min(20, Math.round(bw)))

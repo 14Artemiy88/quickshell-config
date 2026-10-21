@@ -49,17 +49,26 @@ Item {
     // Do not use Behavior here: a Behavior with a runtime duration of 0 can
     // still produce a visual transition when the popup is created/destroyed.
     // The popup is animated only by these explicit animations.
-    NumberAnimation {
-        id: showOpacityAnimation
-        target: root
-        property: "opacity"
-        easing.type: Config.easingType()
-    }
-    NumberAnimation {
-        id: showScaleAnimation
-        target: root
-        property: "scale"
-        easing.type: Config.easingType()
+    property bool closeSignalSent: false
+
+    // Drive opacity/scale with one animation group so the popup's lifetime is
+    // tied to the real visual transition rather than a separate Timer. This
+    // avoids timing drift when duration/settings change during the close.
+    ParallelAnimation {
+        id: visualTransition
+        NumberAnimation {
+            id: showOpacityAnimation
+            target: root
+            property: "opacity"
+            easing.type: Config.easingType()
+        }
+        NumberAnimation {
+            id: showScaleAnimation
+            target: root
+            property: "scale"
+            easing.type: Config.easingType()
+        }
+        onFinished: root.finishCloseOnce()
     }
 
     function animationsActive() {
@@ -70,12 +79,12 @@ Item {
         var targetOpacity = (closing || selectedFile === "") ? 0 : 1
         var targetScale = (closing || selectedFile === "") ? 0.97 : 1
 
-        showOpacityAnimation.stop()
-        showScaleAnimation.stop()
+        visualTransition.stop()
 
         if (!animationsActive()) {
             opacity = targetOpacity
             scale = targetScale
+            finishCloseOnce()
             return
         }
 
@@ -86,23 +95,13 @@ Item {
         showScaleAnimation.from = scale
         showScaleAnimation.to = targetScale
         showScaleAnimation.duration = duration
-        showOpacityAnimation.start()
-        showScaleAnimation.start()
+        visualTransition.start()
     }
 
     Connections {
         target: Config
         function onAnimationsEnabledChanged() { root.syncVisualState() }
         function onAnimationExpansionEnabledChanged() { root.syncVisualState() }
-    }
-
-    Timer {
-        id: closeTimer
-        interval: Config.animationDuration(Config.animationTimerOptionsDuration, "expansion")
-        repeat: false
-        onTriggered: {
-            root.closeFinished()
-        }
     }
 
     // Closing on a click outside the mini-window is handled by the
@@ -264,15 +263,17 @@ Item {
         }
     }
 
+    function finishCloseOnce() {
+        if (!closing || closeSignalSent) return
+        closeSignalSent = true
+        closeFinished()
+    }
+
     function startClose() {
         if (closing) return
+        closeSignalSent = false
         closing = true
         syncVisualState()
-        if (!animationsActive()) {
-            closeFinished()
-            return
-        }
-        closeTimer.restart()
     }
 
     function updateSelected() {

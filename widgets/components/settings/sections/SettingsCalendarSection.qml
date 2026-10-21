@@ -10,7 +10,6 @@ Item {
     property var settings: Settings
 
     visible: host && host.currentOtherTab === 8
-             && host.currentOtherSubTab === 0
     width: parent ? parent.width : 0
     height: visible ? calendarColumn.implicitHeight : 0
     implicitHeight: calendarColumn.implicitHeight
@@ -295,6 +294,7 @@ Row {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
@@ -314,6 +314,45 @@ Row {
 }
 
 Text {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+    text: "Выходные и отметки отпусков"
+    color: Config.accent
+    font.family: Config.settingsFont
+    font.pixelSize: Config.settingsUiSize(13)
+}
+
+Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+    width: parent.width
+    height: 30
+    spacing: 8
+    SettingsColorField {
+        width: parent.width
+        label: "Цвет выходных и отмеченных дней"
+        value: String(Config.calendarWeekendColor)
+        targetObject: Config
+        targetProperty: "calendarWeekendColor"
+        settingsObject: settings
+        saveOnEdit: true
+        allowAlpha: false
+        allowTransparent: false
+        fieldWidth: 120
+        compact: false
+    }
+}
+
+Text {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+    text: "Щёлкни правой кнопкой по дате и выбери «Отметить день», чтобы выделить отпуск или событие этим же цветом."
+    color: Config.textMuted
+    font.family: Config.settingsFont
+    font.pixelSize: Config.settingsUiSize(10)
+    wrapMode: Text.WordWrap
+    width: parent.width
+}
+
+Text {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
     text: "Прошедшие дни"
     color: Config.accent
     font.family: Config.settingsFont
@@ -321,6 +360,7 @@ Text {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
@@ -344,6 +384,7 @@ Row {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
@@ -362,14 +403,8 @@ Row {
     }
 }
 
-Text {
-    text: "Метки заметок"
-    color: Config.accent
-    font.family: Config.settingsFont
-    font.pixelSize: Config.settingsUiSize(13)
-}
-
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2
     width: parent.width
     height: 30
     spacing: 8
@@ -399,7 +434,7 @@ Row {
 Row {
     width: parent.width
     height: Config.calendarNoteMarkerStyle === "frame" ? 0 : 30
-    visible: Config.calendarNoteMarkerStyle !== "frame"
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2 && Config.calendarNoteMarkerStyle !== "frame"
     spacing: 8
     Text { width: 210; height: 30; text: "Положение метки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
@@ -451,7 +486,7 @@ Row {
 Row {
     width: parent.width
     height: Config.calendarNoteMarkerStyle === "frame" ? 30 : 0
-    visible: Config.calendarNoteMarkerStyle === "frame"
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2 && Config.calendarNoteMarkerStyle === "frame"
     spacing: 8
     SettingsColorField {
         width: parent.width
@@ -469,6 +504,7 @@ Row {
 }
 
 Text {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
     text: "Анимация появления/исчезновения"
     color: Config.accent
     font.family: Config.settingsFont
@@ -476,10 +512,11 @@ Text {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
         id: animationCalendarVisibilityBox
         width: 180
@@ -498,10 +535,11 @@ Row {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Раскрытие (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Раскрытие (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
         id: calendarAnimationSlideField
         width: 100; height: 30
@@ -513,10 +551,11 @@ Row {
 }
 
 Row {
+    visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Исчезновение (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Исчезновение (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
         id: calendarAnimationFadeField
         width: 100; height: 30

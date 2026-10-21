@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: root
@@ -10,15 +11,37 @@ Column {
     spacing: 10
     width: parent ? parent.width : 0
 
-    Text {
-        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
-        text: "Таймеры"
-        color: Config.accent
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(14)
+    function setTimerIconOrder(nextOrder) {
+        if (nextOrder !== "timer-left" && nextOrder !== "alarm-left")
+            return
+        if (nextOrder === Config.timerIconOrder)
+            return
+
+        var oldTimerX = Number(Config.timerIconX)
+        var oldAlarmX = Number(Config.timerAlarmIconX)
+        if (!isFinite(oldTimerX) || !isFinite(oldAlarmX))
+            return
+
+        Config.timerIconX = Math.round(oldAlarmX)
+        Config.timerAlarmIconX = Math.round(oldTimerX)
+        Config.timerIconOrder = nextOrder
+        root.settings.save()
     }
 
-    Text {
+    function moveTimerIconOrder(iconId, delta) {
+        var order = Config.timerIconOrder === "timer-left"
+            ? ["timer", "alarm"]
+            : ["alarm", "timer"]
+        var index = order.indexOf(String(iconId))
+        var target = index + Number(delta)
+        if (index < 0 || target < 0 || target >= order.length)
+            return
+        var item = order[index]
+        order.splice(index, 1)
+        order.splice(target, 0, item)
+        root.setTimerIconOrder(order[0] === "timer" ? "timer-left" : "alarm-left")
+    }
+Text {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
         text: "Дефолтные значения кнопок таймера, в минутах"
         color: Config.textMuted
@@ -41,7 +64,7 @@ Column {
 
                 Text {
                     width: 75
-                    height: 28
+                    height: 30
                     text: "Кнопка " + (index + 1)
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -109,13 +132,6 @@ Column {
         font.pixelSize: Config.settingsUiSize(10)
     }
 
-    Text {
-        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
-        text: "Окно окончания таймера"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
 
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
@@ -136,7 +152,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Путь к изображению"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Путь к изображению"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsTextField {
             id: timerFinishedImagePathField
             width: 250
@@ -159,7 +175,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Ширина изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Ширина изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: timerFinishedImageWidthField
     width: 100
@@ -186,7 +202,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Отступ изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Отступ изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsNumberField {
             id: timerFinishedImageMarginField
             width: 100
@@ -211,7 +227,7 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: timerFinishedTitleColorModeBox
             width: 250; height: 30
@@ -226,7 +242,7 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled && !Config.timerFinishedTitleUsesTimerColor
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsColorField {
             id: timerFinishedTitleColorField
             width: 140
@@ -247,7 +263,7 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: timerFinishedTitleFontSizeField
     width: 100
@@ -272,7 +288,7 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: timerFinishedTitleFontField
             width: 250; height: 30
@@ -287,7 +303,7 @@ Column {
     Row {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsComboBox {
             id: timerFinishedTitleAlignmentBox
             width: 250; height: 30
@@ -304,7 +320,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Цвет рамки окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Цвет рамки окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: timerFinishedBorderColorBox
             width: 250
@@ -322,7 +338,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Фон окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Фон окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: timerFinishedBackgroundModeBox
             width: 250
@@ -340,7 +356,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsColorField {
             id: timerFinishedBackgroundColorField
             width: 140
@@ -358,186 +374,164 @@ Column {
         }
     }
 
-    Text {
-        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 2
-        text: "Иконки таймера"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
     Column {
         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 2
         width: parent.width
         spacing: 4
-        Row {
+
+        Text {
             width: parent.width
-            height: 30
-            spacing: 8
-            Text { width: 210; text: "Порядок иконок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-            SettingsComboBox {
-                id: timerIconOrderCombo
-                width: 140
-                height: 30
-                model: ["Будильник слева", "Таймер слева"]
-                currentIndex: Config.timerIconOrder === "timer-left" ? 1 : 0
-                contentItem: Text { text: timerIconOrderCombo.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 10; elide: Text.ElideRight }
-                background: Rectangle { color: Config.settingsBackground; border.color: (timerIconOrderCombo.activeFocus || timerIconOrderCombo.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: Config.frameRadius }
-                onItemChosen: function(index) {
-                    var next = Number(index) === 1 ? "timer-left" : "alarm-left"
-                    if (next === Config.timerIconOrder) {
-                        currentIndex = next === "timer-left" ? 1 : 0
-                        return
-                    }
-
-                    var oldTimerX = Number(Config.timerIconX)
-                    var oldAlarmX = Number(Config.timerAlarmIconX)
-
-                    if (!isFinite(oldTimerX) || !isFinite(oldAlarmX))
-                        return
-
-                    Config.timerIconX = Math.round(oldAlarmX)
-                    Config.timerAlarmIconX = Math.round(oldTimerX)
-                    Config.timerIconOrder = next
-                    currentIndex = next === "timer-left" ? 1 : 0
-                    root.settings.save()
-                }
-                Connections { target: Config; function onTimerIconOrderChanged() { timerIconOrderCombo.currentIndex = Config.timerIconOrder === "timer-left" ? 1 : 0 } }
-            }
+            text: "Иконки таймера и будильника"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            wrapMode: Text.WordWrap
         }
+
         Row {
             width: parent.width
             height: 18
-            spacing: 8
+            spacing: 6
+            Item { width: 110; height: 18 }
             Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
             Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
             Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
             Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
         }
-        Row {
-            width: parent.width
-            height: 30
-            spacing: 8
-            SettingsTextField { id: timerIconField; width: 58; height: 30; text: Config.timerIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (timerIconField.activeFocus || timerIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.timerIcon=text; root.settings.save() } Connections { target: Config; function onTimerIconChanged(){ timerIconField.text=Config.timerIcon } } }
-            SettingsNumberField {
-    id: timerIconSizeField
-    width: 58
-    height: 30
-    value: Config.timerIconSize
-    minimum: 8
-    maximum: 64
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhDigitsOnly
-    targetObject: Config
-    targetProperty: "timerIconSize"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-            SettingsNumberField {
-    id: timerIconXField
-    width: 58
-    height: 30
-    value: Config.timerIconX
-    minimum: -100
-    maximum: 100
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhFormattedNumbersOnly
-    targetObject: Config
-    targetProperty: "timerIconX"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-            SettingsNumberField {
-    id: timerIconYField
-    width: 58
-    height: 30
-    value: Config.timerIconY
-    minimum: -100
-    maximum: 100
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhFormattedNumbersOnly
-    targetObject: Config
-    targetProperty: "timerIconY"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-        }
-        Row {
-            width: parent.width
-            height: 30
-            spacing: 8
-            SettingsTextField { id: timerAlarmIconField; width: 58; height: 30; text: Config.timerAlarmIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (timerAlarmIconField.activeFocus || timerAlarmIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.timerAlarmIcon=text; root.settings.save() } Connections { target: Config; function onTimerAlarmIconChanged(){ timerAlarmIconField.text=Config.timerAlarmIcon } } }
-            SettingsNumberField {
-    id: timerAlarmIconSizeField
-    width: 58
-    height: 30
-    value: Config.timerAlarmIconSize
-    minimum: 8
-    maximum: 64
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhDigitsOnly
-    targetObject: Config
-    targetProperty: "timerAlarmIconSize"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-            SettingsNumberField {
-    id: timerAlarmIconXField
-    width: 58
-    height: 30
-    value: Config.timerAlarmIconX
-    minimum: -100
-    maximum: 100
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhFormattedNumbersOnly
-    targetObject: Config
-    targetProperty: "timerAlarmIconX"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
-            SettingsNumberField {
-    id: timerAlarmIconYField
-    width: 58
-    height: 30
-    value: Config.timerAlarmIconY
-    minimum: -100
-    maximum: 100
-    step: 1
-    wheelStep: 1
-    decimals: 0
-    compact: true
-    fieldWidth: 58
-    fieldFontSize: 11
-    inputMethodHints: Qt.ImhFormattedNumbersOnly
-    targetObject: Config
-    targetProperty: "timerAlarmIconY"
-    settingsObject: root.settings
-    saveOnEdit: true
-}
+
+        Repeater {
+            model: Config.timerIconOrder === "timer-left" ? ["timer", "alarm"] : ["alarm", "timer"]
+            delegate: Row {
+                width: parent.width
+                height: 30
+                spacing: 6
+
+                Text {
+                    width: 110
+                    height: 30
+                    text: modelData === "alarm" ? "Будильник" : "Таймер"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                SettingsTextField {
+                    id: timerIconValueField
+                    width: 58
+                    height: 30
+                    text: modelData === "timer" ? Config.timerIcon : Config.timerAlarmIcon
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(12)
+                    horizontalAlignment: Text.AlignHCenter
+                    activeFocusOnTab: true
+                    background: Rectangle {
+                        color: Config.settingsBackground
+                        border.color: (timerIconValueField.activeFocus || timerIconValueField.pointerHovered) ? Config.accent : Config.baseColor
+                        border.width: 1
+                        radius: 4
+                    }
+                    onEditingFinished: {
+                        if (modelData === "timer") Config.timerIcon = text
+                        else Config.timerAlarmIcon = text
+                        root.settings.save()
+                    }
+                    Connections {
+                        target: Config
+                        function onTimerIconChanged() {
+                            if (modelData === "timer") timerIconValueField.text = Config.timerIcon
+                        }
+                        function onTimerAlarmIconChanged() {
+                            if (modelData === "alarm") timerIconValueField.text = Config.timerAlarmIcon
+                        }
+                    }
+                }
+
+                SettingsNumberField {
+                    width: 58
+                    height: 30
+                    value: modelData === "timer" ? Config.timerIconSize : Config.timerAlarmIconSize
+                    minimum: 8
+                    maximum: 64
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 58
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config
+                    targetProperty: modelData === "timer" ? "timerIconSize" : "timerAlarmIconSize"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
+
+                SettingsNumberField {
+                    width: 58
+                    height: 30
+                    value: modelData === "timer" ? Config.timerIconX : Config.timerAlarmIconX
+                    minimum: -100
+                    maximum: 100
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 58
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    targetObject: Config
+                    targetProperty: modelData === "timer" ? "timerIconX" : "timerAlarmIconX"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
+
+                SettingsNumberField {
+                    width: 58
+                    height: 30
+                    value: modelData === "timer" ? Config.timerIconY : Config.timerAlarmIconY
+                    minimum: -100
+                    maximum: 100
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 58
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    targetObject: Config
+                    targetProperty: modelData === "timer" ? "timerIconY" : "timerAlarmIconY"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
+
+                MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↑"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index > 0
+                    toolTipText: "Поднять выше"
+                    onClicked: root.moveTimerIconOrder(modelData, -1)
+                }
+
+                MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↓"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index < 1
+                    toolTipText: "Опустить ниже"
+                    onClicked: root.moveTimerIconOrder(modelData, 1)
+                }
+            }
         }
     }
 
@@ -572,7 +566,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Комментарий"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Комментарий"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsNumberField {
     id: timerCommentWidthField
     width: 58
@@ -654,11 +648,11 @@ Column {
         Text { width: 58; text: "Справа"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
     }
             Row {
-                visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
+                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; text: "Таймеры"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                Text { width: 210; height: 30; text: "Таймеры"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
     id: timerRowSpacingField
     width: 58
@@ -718,8 +712,8 @@ Column {
 }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                Text { width: 210; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                Text { width: 210; height: 30; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
     id: timerFadeField
     width: 100
@@ -741,8 +735,8 @@ Column {
 }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                Text { width: 210; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                Text { width: 210; height: 30; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
     id: timerSlideField
     width: 100
@@ -764,8 +758,8 @@ Column {
 }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: root.currentOtherTab === 1 && root.currentOtherSubTab === 3
-                Text { width: 210; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                Text { width: 210; height: 30; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
     id: timerIconFadeField
     width: 100
@@ -788,6 +782,7 @@ Column {
             }
 
 Text {
+    visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
     text: "Анимация появления/исчезновения"
     color: Config.accent
     font.family: Config.settingsFont
@@ -795,10 +790,11 @@ Text {
 }
 
 Row {
+    visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
         id: animationTimerVisibilityBox
         width: 180
@@ -817,11 +813,11 @@ Row {
 }
 
 Row {
-    visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+    visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Анимация настроек (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Анимация окна опций (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
         id: timerAnimationOptionsDurationField
         width: 100; height: 30

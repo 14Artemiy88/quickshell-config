@@ -123,9 +123,9 @@ ShellRoot {
         visible: Settings.topAppsCpu
         offsetX: Settings.geometryForLayout("topAppsCpu")[0]
         offsetY: Settings.geometryForLayout("topAppsCpu")[1]
-        contentWidth: Settings.geometry.topAppsCpu[2]
+        contentWidth: Math.max(Settings.geometry.topAppsCpu[2], topAppsCpuView.requiredContentWidth)
         contentHeight: Settings.geometry.topAppsCpu[3]
-        TopApps { anchors.fill: parent; monitor: monitor; sectionType: "cpu" }
+        TopApps { id: topAppsCpuView; anchors.fill: parent; monitor: monitor; sectionType: "cpu" }
     }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
@@ -134,9 +134,9 @@ ShellRoot {
         visible: Settings.topAppsRam
         offsetX: Settings.geometryForLayout("topAppsRam")[0]
         offsetY: Settings.geometryForLayout("topAppsRam")[1]
-        contentWidth: Settings.geometry.topAppsRam[2]
+        contentWidth: Math.max(Settings.geometry.topAppsRam[2], topAppsRamView.requiredContentWidth)
         contentHeight: Settings.geometry.topAppsRam[3]
-        TopApps { anchors.fill: parent; monitor: monitor; sectionType: "ram" }
+        TopApps { id: topAppsRamView; anchors.fill: parent; monitor: monitor; sectionType: "ram" }
     }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
@@ -462,7 +462,7 @@ ShellRoot {
             anchors.fill: parent
             shown: shell.calendarVisible
             animationStyle: Config.animationCalendarVisibilityStyle
-            duration: Config.animationDuration(Math.max(Config.animationCalendarSlideDuration, Config.animationCalendarFadeDuration), "appearance")
+            duration: Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
             CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }
         }
     }

@@ -224,7 +224,7 @@ Item {
                                 controller.addBrowseFolder(modelData.uri, modelData.name)
                             return
                         }
-                        if (modelData.type === "track" && mouse.button === Qt.RightButton)
+                        if (modelData.type === "track" && (mouse.button === Qt.LeftButton || mouse.button === Qt.RightButton))
                             controller.addSearchResult(modelData.uri, modelData.name)
                     }
                 }

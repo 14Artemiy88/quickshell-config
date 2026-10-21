@@ -71,6 +71,7 @@ Item {
 
         Text {
             width: root.compact ? 0 : root.labelWidth
+            height: root.fieldHeight
             visible: !root.compact
             text: root.label
             color: Config.text

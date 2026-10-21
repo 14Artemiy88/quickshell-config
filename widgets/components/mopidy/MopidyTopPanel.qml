@@ -167,7 +167,9 @@ Item {
                 anchors.leftMargin: 2
                 width: 32
                 height: parent.height
-                text: controller.mopidyVolume >= 0 ? String(controller.mopidyVolume) + "%" : "--"
+                text: controller.mopidyMuted && controller.mopidyRestoreVolume > 0
+                    ? String(controller.mopidyRestoreVolume) + "%"
+                    : (controller.mopidyVolume >= 0 ? String(controller.mopidyVolume) + "%" : "--")
                 color: controller.hoverTextColor(volumeControlMouse.containsMouse, controller.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
                 font.family: Config.mopidyDurationFont
                 font.pixelSize: Config.mopidyDurationFontSize
@@ -178,7 +180,7 @@ Item {
             MouseArea {
                 id: volumeControlMouse
                 anchors.fill: parent
-                enabled: controller.mixerAvailable && !controller.queueBusy
+                enabled: controller.mixerAvailable && !controller.queueBusy && !controller.mixerSoftMuteMigrationPending
                 cursorShape: Qt.PointingHandCursor
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                 hoverEnabled: true

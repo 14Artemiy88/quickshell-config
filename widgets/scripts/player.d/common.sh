@@ -23,16 +23,25 @@ declare -A cover_cache
 # for every successful capture is important because QtQuick.Image may cache a
 # local image by URL and otherwise keep showing an old frame after its file is
 # overwritten. Only a small time window of snapshots is retained per source.
-mpv_snapshot_key() {
-    local source_path="${1:-}" digest=""
+# Assign the source key into the caller's variable so the polled snapshot path
+# avoids an extra command-substitution subshell. Keep the stdout wrapper for
+# existing callers and tests.
+mpv_snapshot_key_into() {
+    local source_path="${1:-}" output_var="${2:-}" digest=""
     [[ -n "$source_path" ]] || return 1
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 1
     # sha256sum already emits its digest as the first whitespace-delimited
-    # field. Extracting that field with Bash avoids starting a second process
-    # on every Player poll.
+    # field. Extracting it with Bash avoids a second external parser process.
     digest=$(printf '%s' "$source_path" | sha256sum) || return 1
     digest="${digest%% *}"
     [[ "$digest" =~ ^[0-9a-f]{64}$ ]] || return 1
-    printf '%.24s\n' "$digest"
+    printf -v "$output_var" '%s' "${digest:0:24}"
+}
+
+mpv_snapshot_key() {
+    local result_key=""
+    mpv_snapshot_key_into "${1:-}" result_key || return 1
+    printf '%s\n' "$result_key"
 }
 
 mpv_store_latest_snapshot_for_key() {
@@ -55,27 +64,31 @@ mpv_store_latest_snapshot_for_key() {
     }
 }
 
-mpv_latest_snapshot_for_key() {
-    local key="${1:-}" latest="" snapshot_name="" pointer=""
+# Caller-variable API for the hot polling path. The stdout-based helper below
+# remains compatible for existing callers; normal sidecar hits avoid an extra
+# command-substitution subshell when called through this API.
+mpv_latest_snapshot_for_key_into() {
+    local key="${1:-}" output_var="${2:-}" latest="" snapshot_name="" pointer=""
     [[ "$key" =~ ^[0-9a-f]{24}$ && -d "$IMG_PATH" ]] || return 1
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 1
     pointer="$IMG_PATH/.mpv-${key}.latest"
 
     # The sidecar is atomically updated when a snapshot is published. A regular
-    # cache hit now requires only a Bash read and a file existence check instead
-    # of launching find, sort and head on every short Player poll.
+    # cache hit needs only a Bash read and file existence check, not find/sort/head.
     if [[ -f "$pointer" ]]; then
         IFS= read -r snapshot_name < "$pointer" || snapshot_name=""
         if [[ "$snapshot_name" == "-" ]]; then
+            printf -v "$output_var" '%s' ''
             return 1
         fi
         if [[ "$snapshot_name" =~ ^mpv-${key}-[0-9]+(-[0-9]+)*\.png$ && -s "$IMG_PATH/$snapshot_name" ]]; then
-            printf '%s\n' "$IMG_PATH/$snapshot_name"
+            printf -v "$output_var" '%s' "$IMG_PATH/$snapshot_name"
             return 0
         fi
     fi
 
     # One-time migration/fallback for snapshots created by older versions, or
-    # recovery if an indexed file was externally removed.
+    # recovery if the indexed file was externally removed.
     latest=$(find "$IMG_PATH" -maxdepth 1 -type f -name "mpv-${key}-*.png" \
         -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n 1) || true
     if [[ -n "$latest" ]]; then
@@ -83,7 +96,7 @@ mpv_latest_snapshot_for_key() {
         snapshot_name="${latest##*/}"
         if [[ "$snapshot_name" =~ ^mpv-${key}-[0-9]+(-[0-9]+)*\.png$ && -s "$latest" ]]; then
             mpv_store_latest_snapshot_for_key "$key" "$snapshot_name" || true
-            printf '%s\n' "$latest"
+            printf -v "$output_var" '%s' "$latest"
             return 0
         fi
     fi
@@ -91,6 +104,16 @@ mpv_latest_snapshot_for_key() {
     # Remember a clean miss as well. Failed/unsupported sources should not
     # relaunch a find/sort/head pipeline on every poll while retry is throttled.
     mpv_store_latest_snapshot_for_key "$key" "" || true
+    printf -v "$output_var" '%s' ''
+    return 1
+}
+
+mpv_latest_snapshot_for_key() {
+    local result_path=""
+    if mpv_latest_snapshot_for_key_into "${1:-}" result_path; then
+        printf '%s\n' "$result_path"
+        return 0
+    fi
     return 1
 }
 
@@ -101,7 +124,7 @@ create_mpv_snapshot() {
     command -v timeout >/dev/null 2>&1 || return 1
     mkdir -p "$IMG_PATH" 2>/dev/null || return 1
 
-    key=$(mpv_snapshot_key "$source_path") || return 1
+    mpv_snapshot_key_into "$source_path" key || return 1
     stamp=$(date +%s%N 2>/dev/null)
     [[ "$stamp" =~ ^[0-9]+$ ]] || stamp="$(date +%s)-$$-$RANDOM"
     # Keep .png as the final suffix so ffmpeg can reliably infer the encoder.
@@ -130,10 +153,11 @@ create_mpv_snapshot() {
 
 get_mpv_snapshot() {
     local source_path="${1:-}" position="${2:-}" force="${3:-false}" ttl="${4:-60}"
-    local key latest="" modified now captured="" attempt_path attempt_modified
+    local key latest="" cached_latest="" modified now captured="" attempt_path attempt_modified
     [[ -n "$source_path" && "$position" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
-    key=$(mpv_snapshot_key "$source_path") || return 1
-    latest=$(mpv_latest_snapshot_for_key "$key") || latest=""
+    mpv_snapshot_key_into "$source_path" key || return 1
+    mpv_latest_snapshot_for_key_into "$key" cached_latest || cached_latest=""
+    latest="$cached_latest"
     attempt_path="$IMG_PATH/.mpv-${key}.attempt"
 
     if [[ "$force" != "true" ]]; then
@@ -310,11 +334,9 @@ get_image() {
         *) printf '%s\n' "$DEFAULT_IMG"; return 0 ;;
     esac
 
-    mkdir -p "$IMG_PATH" 2>/dev/null || {
-        printf '%s\n' "$DEFAULT_IMG"
-        return 0
-    }
-
+    # Hash the full URL before touching the cache directory. On the high-frequency
+    # warm-cache path, the cached artwork already proves that IMG_PATH exists, so
+    # do not launch `mkdir -p` on every Player poll.
     # Hash the full URL rather than using only its basename: different albums
     # frequently publish images named cover.jpg, and query strings may contain
     # distinct artwork versions or tokens.
@@ -337,6 +359,14 @@ get_image() {
         printf '%s\n' "$image_path"
         return 0
     fi
+
+    # The cache miss path may need to create the runtime directory before the
+    # lock file and temporary download can be opened. Keep this after the hit
+    # check so normal cached Player polls require no mkdir process.
+    mkdir -p "$IMG_PATH" 2>/dev/null || {
+        printf '%s\n' "$DEFAULT_IMG"
+        return 0
+    }
 
     # Multiple Player backends/polls can resolve the same URL simultaneously.
     # Use a non-blocking per-URL lock so only one process performs curl and
@@ -423,33 +453,105 @@ get_image() {
     return 0
 }
 
-# Форматирование времени
-timeFormat() {
-    local milliseconds=$1
+# Format milliseconds directly into a caller-owned variable. The stdout
+# wrapper is retained for existing call sites; polling paths can avoid the
+# command-substitution subshell by using timeFormat_into.
+timeFormat_into() {
+    local output_var="$1" milliseconds="$2"
     local seconds=$((milliseconds / 1000))
-    printf "%02d:%02d:%02d\n" $((seconds / 3600)) $(((seconds % 3600) / 60)) $((seconds % 60))
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 1
+    printf -v "$output_var" "%02d:%02d:%02d" \
+        $((seconds / 3600)) $(((seconds % 3600) / 60)) $((seconds % 60))
+}
+
+timeFormat() {
+    local formatted=""
+    timeFormat_into formatted "$1" || return 1
+    printf '%s\n' "$formatted"
+}
+
+# Escape a Player field as a JSON string without launching jq on each poll.
+# Bash cannot store NUL bytes; all other control characters are escaped, while
+# valid UTF-8 bytes pass through unchanged. Callers keep raw metadata intact and
+# this helper owns escaping exactly once, including quotes and backslashes.
+player_json_escape_into() {
+    local output_var="${1:-}" value="${2-}" char escaped_char out="" i code
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    local LC_ALL=C
+    for ((i = 0; i < ${#value}; i++)); do
+        char="${value:i:1}"
+        case "$char" in
+            $'\\') out+='\\' ;;
+            '"') out+='\"' ;;
+            $'\b') out+='\b' ;;
+            $'\f') out+='\f' ;;
+            $'\n') out+='\n' ;;
+            $'\r') out+='\r' ;;
+            $'\t') out+='\t' ;;
+            *)
+                printf -v code '%d' "'$char"
+                if (( code < 32 || code == 127 )); then
+                    printf -v escaped_char '\\u%04x' "$code"
+                    out+="$escaped_char"
+                else
+                    out+="$char"
+                fi
+                ;;
+        esac
+    done
+    printf -v "$output_var" '%s' "$out"
+}
+
+# Construct the string-only Player payload in the caller's scope. Keep the
+# same fields/types as the former jq --arg serializer, but emit compact JSON so
+# every successful high-frequency Player poll avoids one external jq process.
+player_build_json_into() {
+    local output_var="${1:-}"
+    shift || true
+    local first_line="${1-}" second_line="${2-}" third_line="${3-}" timeleft="${4-}"
+    local position="${5-}" status="${6-}" image="${7-}" artist="${8-}"
+    local player="${9-}" title_class="${10-}" duration="${11-}"
+    local first_json second_json third_json timeleft_json position_json status_json
+    local image_json artist_json player_json title_class_json duration_json serialized_player_json
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+
+    player_json_escape_into first_json "$first_line" || return 1
+    player_json_escape_into second_json "$second_line" || return 1
+    player_json_escape_into third_json "$third_line" || return 1
+    player_json_escape_into timeleft_json "$timeleft" || return 1
+    player_json_escape_into position_json "$position" || return 1
+    player_json_escape_into status_json "$status" || return 1
+    player_json_escape_into image_json "$image" || return 1
+    player_json_escape_into artist_json "$artist" || return 1
+    player_json_escape_into player_json "$player" || return 1
+    player_json_escape_into title_class_json "$title_class" || return 1
+    player_json_escape_into duration_json "$duration" || return 1
+
+    serialized_player_json="{\"first_line\":\"$first_json\",\"second_line\":\"$second_json\",\"third_line\":\"$third_json\",\"timeleft\":\"$timeleft_json\",\"position\":\"$position_json\",\"status\":\"$status_json\",\"image\":\"$image_json\",\"text\":\"$artist_json\",\"player\":\"$player_json\",\"title_class\":\"$title_class_json\",\"duration\":\"$duration_json\"}"
+    printf -v "$output_var" '%s' "$serialized_player_json"
 }
 
 # Получение метаданных Mopidy
 get_json() {
     # Параметры по умолчанию
-    local first_line second_line third_line timeleft pos_ms dur_ms status image artist player title_class duration_ms
+    local first_line="" second_line="" third_line="" timeleft="" pos_ms="" dur_ms=""
+    local status="" image="" artist="" player="" title_class duration_ms="" position_percent="" payload=""
 
     title_class="$DEFAULT_TITLE_CLASS"
     # Парсинг аргументов
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --first_line) first_line="$2"; shift 2 ;;
-            --second_line) second_line="$2"; shift 2 ;;
-            --third_line) third_line="$2"; shift 2 ;;
-            --timeleft) timeleft="$2"; shift 2 ;;
-            --pos_ms) pos_ms="$2"; shift 2 ;;
-            --dur_ms) dur_ms="$2"; duration_ms="$2"; shift 2 ;;
-            --status) status="$2"; shift 2 ;;
-            --image) image="$2"; shift 2 ;;
-            --artist) artist="$2"; shift 2 ;;
-            --player) player="$2"; shift 2 ;;
-            --title_class) title_class="$2"; shift 2 ;;
+            --first_line) first_line="${2-}"; shift 2 ;;
+            --second_line) second_line="${2-}"; shift 2 ;;
+            --third_line) third_line="${2-}"; shift 2 ;;
+            --timeleft) timeleft="${2-}"; shift 2 ;;
+            --pos_ms) pos_ms="${2-}"; shift 2 ;;
+            --dur_ms) dur_ms="${2-}"; duration_ms="${2-}"; shift 2 ;;
+            --status) status="${2-}"; shift 2 ;;
+            --image) image="${2-}"; shift 2 ;;
+            --artist) artist="${2-}"; shift 2 ;;
+            --player) player="${2-}"; shift 2 ;;
+            --title_class) title_class="${2-}"; shift 2 ;;
             *) shift ;; # игнорируем неизвестные параметры
         esac
     done
@@ -458,40 +560,15 @@ get_json() {
     # position empty for metadata-only/live items without a known duration;
     # Player.qml already treats an empty position as zero for layout, while the
     # payload no longer falsely claims a real 0% measurement.
-    local position_percent=""
     if [[ "$pos_ms" =~ ^[0-9]+$ && "$dur_ms" =~ ^[0-9]+$ ]] && (( dur_ms > 0 )); then
         position_percent=$(( (pos_ms * 100) / dur_ms ))
         (( position_percent < 0 )) && position_percent=0
         (( position_percent > 100 )) && position_percent=100
     fi
 
-    # Безопасная генерация JSON с помощью jq
-    jq -n \
-        --arg first_line "$first_line" \
-        --arg second_line "$second_line" \
-        --arg third_line "$third_line" \
-        --arg timeleft "$timeleft" \
-        --arg position "$position_percent" \
-        --arg status "$status" \
-        --arg image "$image" \
-        --arg text "$artist" \
-        --arg player "$player" \
-        --arg title_class "$title_class" \
-        --arg duration "$duration_ms" \
-        '{
-            first_line: $first_line,
-            second_line: $second_line,
-            third_line: $third_line,
-            timeleft: $timeleft,
-            position: $position,
-            status: $status,
-            image: $image,
-            text: $text,
-            player: $player,
-            title_class: $title_class,
-            duration: $duration
-        }'
-
+    player_build_json_into payload \
+        "$first_line" "$second_line" "$third_line" "$timeleft" \
+        "$position_percent" "$status" "$image" "$artist" "$player" "$title_class" "$duration_ms" || return 1
+    printf '%s\n' "$payload"
     exit 0
 }
-

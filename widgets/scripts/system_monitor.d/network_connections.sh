@@ -40,7 +40,14 @@ _get_network_connections_unlocked() {
             wireguard) icon="󰠥" ;;
             *) icon="" ;;
         esac
-        status=$([[ -n "${device:-}" ]] && printf 'on' || printf 'off')
+        # This runs once per connection whenever the cache refreshes. A small
+        # command substitution here would create a subshell for every row; use
+        # a direct assignment instead while preserving the on/off semantics.
+        if [[ -n "${device:-}" ]]; then
+            status=on
+        else
+            status=off
+        fi
         entries+=("$name" "$icon" "$status")
     done < <(nmcli -t -e yes -g NAME,TYPE,DEVICE c 2>/dev/null | awk '
         function split_record(line, field,    i, c, nextc, n) {
@@ -104,13 +111,36 @@ _get_network_connections_unlocked() {
 get_network_connections() {
     local cache_file="${1:-}"
     local cache_time_file="${2:-}"
+    local now="${EPOCHSECONDS:-}" cached_at='' cached_payload=''
 
-    # Recheck cache only after taking the lock. Multiple concurrent polls then
-    # share one nmcli execution, and each reader sees a complete cached JSON file.
+    # A fresh cache payload is published with atomic rename, and its timestamp
+    # is published atomically as well. Therefore a valid hit can be read before
+    # acquiring the inter-process lock: readers still see a complete JSON line,
+    # while the frequent System Monitor cache-hit path avoids a subshell and a
+    # `flock` process. Expired/missing cache data continues through the locked
+    # path below, which rechecks freshness after taking the lock.
+    if [[ "$now" =~ ^[0-9]+$ && -n "$cache_file" && -n "$cache_time_file" && \
+          -f "$cache_file" && -f "$cache_time_file" ]]; then
+        IFS= read -r cached_at < "$cache_time_file" || cached_at=''
+        if [[ "$cached_at" =~ ^[0-9]+$ ]] && (( now - cached_at < 2 )); then
+            IFS= read -r cached_payload < "$cache_file" || cached_payload=''
+            if [[ -n "$cached_payload" ]]; then
+                printf '%s\n' "$cached_payload"
+                return 0
+            fi
+        fi
+    fi
+
+    # Recheck cache only after taking the lock on misses/expired data. Multiple
+    # concurrent polls then share one nmcli execution, and each reader sees a
+    # complete cached JSON file.
     if command -v flock >/dev/null 2>&1 && [[ -n "$cache_file" ]]; then
         (
+            # Restrictive umask secures a newly-created lock file without
+            # launching chmod on each cache lookup. Existing locks were
+            # already hardened by earlier versions.
+            umask 077
             exec 9>"${cache_file}.lock" || exit 1
-            chmod 600 "${cache_file}.lock" 2>/dev/null || true
             flock -x 9 || exit 1
             _get_network_connections_unlocked "$cache_file" "$cache_time_file"
         )

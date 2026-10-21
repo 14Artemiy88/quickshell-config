@@ -84,21 +84,38 @@ Primitives.ModuleFrame {
         anchors.fill: parent
         visible: !Config.cavaHideWhenSilent || root.soundActive
 
+        // Only the active mode is instantiated. With the previous visibility
+        // toggles, hidden mode trees still allocated every bar delegate.
+        Loader {
+            anchors.fill: parent
+            // Release all bar delegates after the silence grace period. The
+            // process/filter keep streaming, so the selected graph is recreated
+            // with the current sample as soon as sound resumes.
+            active: !Config.cavaHideWhenSilent || root.soundActive
+            sourceComponent: Config.cavaMode === "both" ? bothModeComponent
+                : Config.cavaMode === "top" ? topModeComponent
+                : Config.cavaMode === "bottom" ? bottomModeComponent
+                : bothModeComponent
+        }
+    }
+
+    Component {
+        id: bothModeComponent
+
         // Mirrored mode: preserve the original CAVA layout.
         Item {
-            visible: Config.cavaMode === "both"
             anchors.fill: parent
 
             Item {
                 width: parent.width
                 height: parent.height / 2
-
                 Primitives.SegmentBarGraph {
                     anchors.fill: parent
                     values: root.values
                     barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
                     barWidthRatio: Config.cavaBarWidthRatio
+                    hideZeroBars: Config.cavaHideWhenSilent && Config.cavaHideZeroBars
                     barColor: Config.baseColor
                     direction: "up"
                 }
@@ -108,49 +125,49 @@ Primitives.ModuleFrame {
                 y: parent.height / 2
                 width: parent.width
                 height: parent.height / 2
-
                 Primitives.SegmentBarGraph {
                     anchors.fill: parent
                     values: root.values
                     barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
                     barWidthRatio: Config.cavaBarWidthRatio
+                    hideZeroBars: Config.cavaHideWhenSilent && Config.cavaHideZeroBars
                     barColor: Config.baseColor
                     direction: "down"
                 }
             }
         }
+    }
 
-        // Upper-only mode: bars use the full widget height and grow upward from the bottom edge.
-        Item {
-            visible: Config.cavaMode === "top"
+    Component {
+        id: topModeComponent
+
+        // Upper-only mode: bars use full widget height and grow upward.
+        Primitives.SegmentBarGraph {
             anchors.fill: parent
-
-            Primitives.SegmentBarGraph {
-                anchors.fill: parent
-                values: root.values
-                barCount: Config.cavaBars
-                spacing: Config.cavaRowSpacing
-                barWidthRatio: Config.cavaBarWidthRatio
-                barColor: Config.baseColor
-                direction: "up"
-            }
+            values: root.values
+            barCount: Config.cavaBars
+            spacing: Config.cavaRowSpacing
+            barWidthRatio: Config.cavaBarWidthRatio
+            hideZeroBars: Config.cavaHideWhenSilent && Config.cavaHideZeroBars
+            barColor: Config.baseColor
+            direction: "up"
         }
+    }
 
-        // Lower-only mode: bars use the full widget height and grow downward from the top edge.
-        Item {
-            visible: Config.cavaMode === "bottom"
+    Component {
+        id: bottomModeComponent
+
+        // Lower-only mode: bars use full widget height and grow downward.
+        Primitives.SegmentBarGraph {
             anchors.fill: parent
-
-            Primitives.SegmentBarGraph {
-                anchors.fill: parent
-                values: root.values
-                barCount: Config.cavaBars
-                spacing: Config.cavaRowSpacing
-                barWidthRatio: Config.cavaBarWidthRatio
-                barColor: Config.baseColor
-                direction: "down"
-            }
+            values: root.values
+            barCount: Config.cavaBars
+            spacing: Config.cavaRowSpacing
+            barWidthRatio: Config.cavaBarWidthRatio
+            hideZeroBars: Config.cavaHideWhenSilent && Config.cavaHideZeroBars
+            barColor: Config.baseColor
+            direction: "down"
         }
     }
 

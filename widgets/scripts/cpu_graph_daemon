@@ -22,8 +22,12 @@ delta_total=0 delta_busy=0
 # four-counter state is encountered, preserve valid history but take a fresh
 # baseline to avoid a false spike from incompatible counters.
 if [[ -f "$STATE" ]]; then
-    IFS=' ' read -r state_version state_busy state_total < "$STATE" || true
-    hist=$(sed -n '2p' "$STATE" 2>/dev/null || true)
+    # Read both state lines in the current shell. The old separate `sed -n 2p`
+    # launched a process only to fetch the history row during daemon startup.
+    {
+        IFS=' ' read -r state_version state_busy state_total || true
+        IFS= read -r hist || true
+    } < "$STATE"
     if [[ "${state_version:-}" == "v2" && "${state_busy:-}" =~ ^[0-9]+$ && "${state_total:-}" =~ ^[0-9]+$ ]] && \
        (( 10#$state_total > 0 && 10#$state_busy <= 10#$state_total )); then
         prev_busy="$state_busy"
@@ -42,15 +46,35 @@ esac
 
 # History must contain exactly 51 integer samples in [0,100]. A partial write
 # or old malformed state is ignored instead of poisoning the graph forever.
-if [[ "$hist" =~ ^[0-9]+(,[0-9]+){50}$ ]] && \
-   awk -F, '{ for (i=1; i<=NF; i++) if ($i < 0 || $i > 100) exit 1 }' <<< "$hist"; then
-    :
+history_valid=1
+if [[ "$hist" =~ ^[0-9]+(,[0-9]+){50}$ ]]; then
+    IFS=',' read -r -a history_values <<< "$hist"
+    for history_value in "${history_values[@]}"; do
+        # Compare as decimal after removing leading zeroes, avoiding Bash's
+        # octal interpretation and keeping arithmetic bounded to 0..100.
+        history_value="${history_value#"${history_value%%[!0]*}"}"
+        [[ -n "$history_value" ]] || history_value=0
+        if [[ ! "$history_value" =~ ^[0-9]+$ ]] || \
+           (( ${#history_value} > 3 )) || \
+           { (( ${#history_value} == 3 )) && (( 10#$history_value > 100 )); }; then
+            history_valid=0
+            break
+        fi
+    done
 else
+    history_valid=0
+fi
+if (( ! history_valid )); then
     hist=""
 fi
 
 while true; do
-    counters=$(cpu_read_aggregate_counters "$PROC_STAT" 2>/dev/null || true)
+    # Read into this shell's variable directly. Capturing the compatibility
+    # helper's stdout with command substitution used to create one Bash
+    # subshell per graph sample, even though the shared reader already exposes
+    # a caller-variable API for this hot path.
+    counters=''
+    cpu_read_aggregate_counters_into counters "$PROC_STAT" 2>/dev/null || counters=''
     read -r busy total <<< "$counters"
     if [[ ! "${busy:-}" =~ ^[0-9]+$ || ! "${total:-}" =~ ^[0-9]+$ ]]; then
         # A transiently unreadable /proc/stat sample is not a real zero-load

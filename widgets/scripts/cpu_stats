@@ -3,7 +3,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 prev_snapshot=""
 while :; do
-  cur_snapshot="$(cpu_read_counters_with_ids /proc/stat 2>/dev/null || true)"
+  cur_snapshot=""
+  cpu_read_counters_with_ids_into cur_snapshot /proc/stat 2>/dev/null || true
   # Ignore a failed/empty read without discarding a valid baseline. This keeps
   # a transient /proc/stat read error from turning every core into a new core.
   if [[ -z "$cur_snapshot" ]]; then
@@ -12,7 +13,8 @@ while :; do
   fi
 
   if [[ -n "$prev_snapshot" ]]; then
-    pct_snapshot="$(cpu_usage_snapshot_percentages "$prev_snapshot" "$cur_snapshot")"
+    pct_snapshot=""
+    cpu_usage_snapshot_percentages_into pct_snapshot "$prev_snapshot" "$cur_snapshot"
     out="["
     first=1
     while read -r cpu pct; do
@@ -21,7 +23,8 @@ while :; do
       out+="$pct"
     done <<< "$pct_snapshot"
     out+="]"
-    ram="$(mem_usage_percent /proc/meminfo)"
+    ram=""
+    mem_usage_percent_into ram /proc/meminfo
     printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"
   fi
 

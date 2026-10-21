@@ -61,18 +61,35 @@ Item {
         root.currentOtherSubTab = 0
     }
 
+    // Internal IDs remain stable for section visibility, reset handlers and external callers.
+    // The sidebar display order places Mopidy directly below Player.
+    readonly property var otherTabLabels: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Окно настроек", "Mopidy"]
+    readonly property var otherTabDisplayOrder: [0, 1, 2, 10, 3, 4, 5, 6, 7, 8, 9]
+
+    function otherTabIdForDisplayIndex(index) {
+        if (index < 0 || index >= root.otherTabDisplayOrder.length)
+            return 0
+        return root.otherTabDisplayOrder[index]
+    }
+    readonly property string currentOtherTabTitle: {
+        var main = root.otherTabLabels[root.currentOtherTab] || "Настройки"
+        var subtabs = root.currentOtherSubTabs
+        var sub = subtabs[root.currentOtherSubTab] || ""
+        return (main + (sub ? " · " + sub : "")).toLocaleUpperCase()
+    }
+
     readonly property var currentOtherSubTabs: {
         switch (root.currentOtherTab) {
-        case 0: return ["Интерфейс", "Рамки", "Анимации"]
-        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка"]
+        case 0: return ["Интерфейс", "Анимации", "Профили"]
+        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации"]
         case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
         case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
         case 4: return ["Основные", "Полосы"]
         case 5: return ["Общие", "График CPU", "Top Apps"]
         case 6: return ["Обновления", "Сеть"]
-        case 7: return ["Иконки", "Полосы", "Потоки", "Адаптивность"]
-        case 8: return ["Общие"]
-        case 9: return ["Интерфейс", "Окно настроек", "Профили"]
+        case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность"]
+        case 8: return ["Разметка", "Цвета", "Метки заметок", "Анимации"]
+        case 9: return ["Интерфейс", "Окно настроек"]
         case 10: return ["Общее", "Время", "Иконки", "Пусто и недоступен"]
         default: return []
         }
@@ -173,14 +190,14 @@ Item {
                 spacing: 5
 
                 Repeater {
-                    model: ["Модули", "Темы", "Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Окно настроек", "Mopidy"]
+                    model: ["Модули", "Темы", "Общие", "Таймеры", "Плеер", "Mopidy", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Окно настроек"]
 
                     delegate: SettingsSubTab {
                         width: mainSettingsTabs.width
                         selected: {
                             if (index === 0) return root.currentTab === 0
                             if (index === 1) return root.currentTab === 1
-                            return root.currentTab === 2 && root.currentOtherTab === index - 2
+                            return root.currentTab === 2 && root.currentOtherTab === root.otherTabIdForDisplayIndex(index - 2)
                         }
                         text: modelData
                         leftAligned: true
@@ -193,7 +210,7 @@ Item {
                                 root.currentTab = 1
                             } else {
                                 root.currentTab = 2
-                                root.currentOtherTab = index - 2
+                                root.currentOtherTab = root.otherTabIdForDisplayIndex(index - 2)
                             }
                         }
                     }
@@ -250,16 +267,18 @@ Item {
                                 height: 30
                                 Text {
                                     width: parent.width - 38
-                                    text: "НАСТРОЙКИ"
+                                    text: root.currentOtherTabTitle
                                     color: Config.accent
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(15)
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
+                                    visible: !(root.currentOtherTab === 0 && root.currentOtherSubTab === 2)
                                     tooltip: "Сбросить текущую вкладку"
                                     onClicked: {
-                                        if (root.currentOtherTab === 0) { settings.resetGeneralSettings(); settings.resetAnimationSettings() }
+                                        if (root.currentOtherTab === 0 && root.currentOtherSubTab === 0) settings.resetGeneralSettings()
+                                        else if (root.currentOtherTab === 0 && root.currentOtherSubTab === 1) settings.resetAnimationSettings()
                                         else if (root.currentOtherTab === 1) settings.resetTimerSettings()
                                         else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
                                         else if (root.currentOtherTab === 3) settings.resetWeatherSettings()
@@ -314,28 +333,6 @@ Item {
                                 settings: root.settings
                             }
 
-                            Text { visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0; text: "Обновление общих данных"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
-
-                            SettingsNumberField {
-                                visible: root.currentOtherTab === 6 && root.currentOtherSubTab === 0
-                                label: "System Monitor (мс) — общие данные"
-                                value: Config.systemMonitorInterval
-                                minimum: 200
-                                maximum: 10000
-                                step: 100
-                                wheelStep: 100
-                                onValueEdited: value => { Config.systemMonitorInterval = value; settings.save() }
-                            }
-                            SettingsNumberField {
-                                visible: root.currentOtherTab === 5 && root.currentOtherSubTab === 0
-                                label: "CPU (мс)"
-                                value: Config.cpuUpdateInterval
-                                minimum: 200
-                                maximum: 10000
-                                step: 100
-                                wheelStep: 100
-                                onValueEdited: value => { Config.cpuUpdateInterval = value; settings.save() }
-                            }
                             SettingsNumberField {
                                 visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
                                 label: "Плеер (мс)"

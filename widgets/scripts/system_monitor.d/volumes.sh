@@ -1,10 +1,63 @@
 #!/bin/bash
 
+# Escape a string for JSON without launching jq for this collector's final
+# encoding. Operates bytewise so UTF-8 bytes pass through unchanged while ASCII
+# control bytes are escaped as required by JSON. Bash cannot store NUL bytes.
+system_monitor_volume_json_escape_into() {
+    local output_var="${1:-}" value="${2-}" char escaped_char out="" i code
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    local LC_ALL=C
+    for ((i = 0; i < ${#value}; i++)); do
+        char="${value:i:1}"
+        case "$char" in
+            $'\\') out+='\\' ;;
+            '"') out+='\"' ;;
+            $'\b') out+='\b' ;;
+            $'\f') out+='\f' ;;
+            $'\n') out+='\n' ;;
+            $'\r') out+='\r' ;;
+            $'\t') out+='\t' ;;
+            *)
+                printf -v code '%d' "'$char"
+                if (( code < 32 || code == 127 )); then
+                    printf -v escaped_char '\\u%04x' "$code"
+                    out+="$escaped_char"
+                else
+                    out+="$char"
+                fi
+                ;;
+        esac
+    done
+    printf -v "$output_var" '%s' "$out"
+}
+
+# Turn a flat sequence of num/value/name triples into the existing JSON array.
+# Arguments preserve row boundaries and Bash handles escaping without jq.
+system_monitor_volume_encode_fields() {
+    local -a fields=("$@")
+    if ((${#fields[@]} == 0)); then
+        printf '[]'
+        return 0
+    fi
+
+    (( ${#fields[@]} % 3 == 0 )) || return 2
+    local json='[' first=1 i num_json value_json name_json
+    for ((i = 0; i < ${#fields[@]}; i += 3)); do
+        system_monitor_volume_json_escape_into num_json "${fields[i]}" || return 1
+        system_monitor_volume_json_escape_into value_json "${fields[i + 1]}" || return 1
+        system_monitor_volume_json_escape_into name_json "${fields[i + 2]}" || return 1
+        (( first )) || json+=','
+        first=0
+        json+="{\"num\":\"${num_json}\",\"value\":\"${value_json}\",\"name\":\"${name_json}\"}"
+    done
+    json+=']'
+    printf '%s\n' "$json"
+}
+
 get_volumes() {
     local num vol name
-    # Preserve arbitrary user-facing names safely as separate argv entries.
-    # Encode the whole sink-input list in one jq call below instead of starting
-    # one jq process per row and then another jq process to combine the array.
+    # Preserve arbitrary user-facing names as independent fields, then encode
+    # them in Bash after AWK parsing to avoid a per-poll jq process.
     local -a fields=()
 
     # pactl's human-readable headings may be localized. Accept the common
@@ -12,7 +65,7 @@ get_volumes() {
     # NUL-delimited records between awk and Bash.
     while IFS= read -r -d '' num && IFS= read -r -d '' vol && IFS= read -r -d '' name; do
         [[ "$num" =~ ^[0-9]+$ && "$vol" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
-        # jq handles quotes, backslashes and control characters in names.
+        # Keep the original parsed values; the JSON escaper below owns quoting.
         fields+=("$num" "$vol" "$name")
     done < <(pactl list sink-inputs 2>/dev/null | awk '
         function extract_media_name(line, pos, i, c, result, escaped) {
@@ -74,16 +127,8 @@ get_volumes() {
         END { emit_record() }
     ')
 
-    # `--args` passes each parsed field as a separate JSON-safe string, so
-    # quotes, backslashes, whitespace and Unicode names do not need custom
-    # escaping or tab-delimited transport. Empty input naturally becomes [].
-    if ((${#fields[@]} == 0)); then
-        printf '[]'
-        return 0
-    fi
-    jq -cn --args '
-        $ARGS.positional as $fields |
-        [range(0; (($fields | length) / 3)) as $i |
-            {num:$fields[$i * 3], value:$fields[$i * 3 + 1], name:$fields[$i * 3 + 2]}]
-    ' -- "${fields[@]}"
+    # The main System Monitor process validates the complete payload in its
+    # final jq assembly pass. Keep this collector process-free after AWK by
+    # encoding its parsed fields with the byte-safe Bash JSON escaper.
+    system_monitor_volume_encode_fields "${fields[@]}"
 }

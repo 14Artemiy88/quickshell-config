@@ -1,7 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the sibling audio helper with Bash path expansion, avoiding an
+# external dirname process and a command-substitution shell.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+SCRIPT_DIR="${SCRIPT_PATH%/*}"
+[[ "$SCRIPT_DIR" != "$SCRIPT_PATH" ]] || SCRIPT_DIR=.
 source "$SCRIPT_DIR/audio/common.sh"
 
 toggle_main_mute

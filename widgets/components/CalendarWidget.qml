@@ -18,6 +18,8 @@ Primitives.ModuleFrame {
     property var names: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"]
     property var calendarNotes: ({})
     property bool notesLoaded: false
+    property var calendarMarkedDates: ({})
+    property bool markedDatesLoaded: false
     property string noteOverlayMode: "" // "edit", "view", or empty
     property string noteDialogDate: ""
     property string noteDraft: ""
@@ -44,6 +46,44 @@ Primitives.ModuleFrame {
         return !!key && !!root.calendarNotes && String(root.calendarNotes[key] || "").trim().length > 0
     }
 
+    function isCalendarDateMarked(key) {
+        return !!key && !!root.calendarMarkedDates && root.calendarMarkedDates[key] === true
+    }
+
+    function isWeekendDateKey(key) {
+        const value = String(key || "")
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+        const parts = value.split("-")
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+        if (d.getFullYear() !== Number(parts[0]) || d.getMonth() !== Number(parts[1]) - 1 || d.getDate() !== Number(parts[2])) return false
+        return d.getDay() === 0 || d.getDay() === 6
+    }
+
+    function setCalendarDateMarked(key, marked) {
+        const value = String(key || "")
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return
+        const next = Object.assign({}, root.calendarMarkedDates || ({}))
+        if (marked) next[value] = true
+        else delete next[value]
+        root.calendarMarkedDates = next
+        Quickshell.execDetached([
+            Quickshell.shellDir + "/scripts/calendar_marks",
+            "set",
+            value,
+            marked ? "true" : "false"
+        ])
+    }
+
+    function setCalendarMarksFromJson(raw) {
+        try {
+            const parsed = JSON.parse(String(raw || "{}").trim() || "{}")
+            root.calendarMarkedDates = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : ({})
+        } catch (e) {
+            root.calendarMarkedDates = ({})
+        }
+        root.markedDatesLoaded = true
+    }
+
     function currentDateKey() {
         const today = new Date()
         return String(today.getFullYear()) + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-" + String(today.getDate()).padStart(2, "0")
@@ -56,7 +96,9 @@ Primitives.ModuleFrame {
 
     function calendarDayColor(key, day) {
         if (day < 1 || day > root.daysInMonth()) return Config.calendarAdjacentDaysColor
+        if (root.isCalendarDateMarked(key)) return Config.calendarWeekendColor
         if (String(key || "") === root.currentDateKey()) return Config.accent
+        if (root.isWeekendDateKey(key)) return Config.calendarWeekendColor
         if (Config.calendarPastDaysColorEnabled && root.isPastDateKey(key))
             return Config.calendarPastDaysColor
         return Config.text
@@ -149,6 +191,19 @@ Primitives.ModuleFrame {
         onExited: function(exitCode) {
             if (exitCode !== 0 && !root.notesLoaded)
                 root.setCalendarNotesFromJson("{}")
+        }
+    }
+
+    Process {
+        id: calendarMarksRead
+        command: [Quickshell.shellDir + "/scripts/calendar_marks", "get"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.setCalendarMarksFromJson(this.text)
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0 && !root.markedDatesLoaded)
+                root.setCalendarMarksFromJson("{}")
         }
     }
 
@@ -435,7 +490,7 @@ Primitives.ModuleFrame {
             TextArea {
                 id: noteArea
                 width: parent.width
-                height: parent.height - 69
+                height: Math.max(48, parent.height - 103)
                 text: ""
                 focus: root.noteOverlayMode === "edit"
                 activeFocusOnPress: true
@@ -456,6 +511,29 @@ Primitives.ModuleFrame {
                 onTextChanged: {
                     if (root.noteOverlayMode === "edit")
                         root.noteDraft = text
+                }
+            }
+
+            Row {
+                width: parent.width
+                height: 28
+                spacing: 6
+                Text {
+                    width: parent.width - 126
+                    height: parent.height
+                    text: root.isCalendarDateMarked(root.noteDialogDate) ? "День отмечен цветом" : "Отметка отпуска / события"
+                    color: Config.calendarWeekendColor
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+                Primitives.StyledTextButton {
+                    id: calendarMarkButton
+                    width: 120
+                    height: parent.height
+                    text: root.isCalendarDateMarked(root.noteDialogDate) ? "Снять отметку" : "Отметить день"
+                    onClicked: root.setCalendarDateMarked(root.noteDialogDate, !root.isCalendarDateMarked(root.noteDialogDate))
                 }
             }
 

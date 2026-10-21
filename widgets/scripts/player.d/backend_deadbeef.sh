@@ -2,35 +2,43 @@
 
 get_deadbeef_player_metadata() {
     # DeaDBeeF's process comm differs between packages/builds: some expose
-    # `deadbeef-main`, while others expose `deadbeef`. Accept either exact
-    # process name so the CLI backend is not silently skipped on distributions
-    # that use the un-suffixed name. Try the common upstream name first and
-    # only fall back to the alternate spelling if needed.
-    if ! pgrep -x deadbeef-main >/dev/null 2>&1 && ! pgrep -x deadbeef >/dev/null 2>&1; then
+    # `deadbeef-main`, while others expose `deadbeef`. pgrep accepts an extended
+    # regular expression with -x, so match either complete name in one launch
+    # rather than probing each spelling with a separate process.
+    if ! pgrep -x 'deadbeef(-main)?' >/dev/null 2>&1; then
         return
     fi
 
-    local title status artist year album duration position timeleft file_path image_path meta meta_output separators
-    title=$(deadbeef --nowplaying "%t" 2>/dev/null) || return
+    local title status artist year album duration position timeleft file_path image_path meta meta_output
+    # Read the track title and all other metadata in one CLI invocation. The
+    # title is deliberately the final field so a literal pipe in the title is
+    # preserved by Bash's last read variable rather than shifting other fields.
+    # Strip only the known startup banner used by older DeaDBeeF builds.
+    meta_output=$(deadbeef --nowplaying-tf '$if(%ispaused%,1,0)|%artist%|%year%|%album%|%length_seconds%|%playback_time_seconds%|-%playback_time_remaining%|%path%|%title%' 2>/dev/null) || return
+    meta="$meta_output"
+    # Strip the known startup banner only when it is the first line. Keep the
+    # rest intact because a track title itself may contain embedded newlines.
+    if [[ "$meta" == *$'\n'* && "${meta%%$'\n'*}" == starting\ deadbeef* ]]; then
+        meta="${meta#*$'\n'}"
+    fi
+    [[ -n "$meta" ]] || return
+
+    # Consume exactly the eight fixed separators using parameter expansion.
+    # This preserves a pipe or newline in the final title field. Malformed
+    # earlier fields remain fail-closed through the status/numeric checks.
+    [[ "$meta" == *'|'* ]] || return; status="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; artist="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; year="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; album="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; duration="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; position="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; timeleft="${meta%%|*}"; meta="${meta#*|}"
+    [[ "$meta" == *'|'* ]] || return; file_path="${meta%%|*}"; title="${meta#*|}"
     # A running DeaDBeeF process does not necessarily mean a usable track is
     # available (the CLI can be starting, stopped, or temporarily unresponsive).
     # Do not emit a synthetic player payload in that case: scripts/player uses
     # the first valid backend result according to configured priority.
     [[ -n "${title//[[:space:]]/}" && "$title" != "nothing" ]] || return
-
-    # Keep the known-compatible CLI format. Strip only its known startup banner
-    # by taking the final output line, as older DeaDBeeF CLI versions may print
-    # that banner before the metadata record.
-    meta_output=$(deadbeef --nowplaying-tf '$if(%ispaused%,1,0)|%artist%|%year%|%album%|%length_seconds%|%playback_time_seconds%|-%playback_time_remaining%|%path%' 2>/dev/null) || return
-    meta="${meta_output##*$'\n'}"
-    [[ -n "$meta" ]] || return
-
-    # This legacy CLI format is pipe-delimited. Fail closed if a response has
-    # a missing/extra delimiter rather than misassigning fields and preventing
-    # a later healthy backend from being selected.
-    separators="${meta//[^|]/}"
-    [[ ${#separators} -eq 7 ]] || return
-    IFS='|' read -r status artist year album duration position timeleft file_path <<< "$meta"
     # DeaDBeeF title-formatting fields such as %ispaused% are conditional:
     # the raw field is present only while paused and is empty while playing.
     # The $if wrapper above normalizes both states to a numeric 0/1 value.

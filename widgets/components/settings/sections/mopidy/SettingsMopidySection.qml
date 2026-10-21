@@ -23,7 +23,7 @@ Column {
         id: toggleWithPlayerCheckBox
         width: parent.width
         height: 30
-        text: "Открывать/скрывать Mopidy по ПКМ на Player"
+        text: "Переключать Mopidy по ПКМ на Player"
         checked: Config.mopidyToggleWithPlayerRightClick
         onClicked: {
             Config.mopidyToggleWithPlayerRightClick = checked
@@ -43,7 +43,8 @@ Column {
         spacing: 8
 
         Text {
-            width: 180
+            width: 210
+            height: 30
             text: "Наведение"
             color: Config.text
             font.family: Config.settingsFont
@@ -187,7 +188,8 @@ Column {
         spacing: 8
 
         Text {
-            width: 180
+            width: 210
+            height: 30
             text: "Разделитель альбома"
             color: Config.text
             font.family: Config.settingsFont
@@ -225,7 +227,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 180; text: "Шаг колеса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шаг колеса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             width: 72; height: 30; value: Config.mopidyVolumeStep; minimum: 1; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
             targetObject: Config; targetProperty: "mopidyVolumeStep"; settingsObject: root.settings; saveOnEdit: true
@@ -253,7 +255,7 @@ Row {
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
         id: animationMopidyVisibilityBox
         width: 180

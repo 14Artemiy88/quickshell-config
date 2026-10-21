@@ -16,13 +16,21 @@ Item {
     readonly property string sectionTitle: sectionType === "ram" ? Config.topAppsRamHeaderTitle : Config.topAppsCpuHeaderTitle
     readonly property string sectionSubtitle: sectionType === "ram" ? Config.topAppsRamHeaderSubtitle : Config.topAppsCpuHeaderSubtitle
     readonly property color sectionFillColor: sectionType === "ram" ? Config.topAppsRamBarColor : Config.topAppsCpuBarColor
-    readonly property color sectionTrackColor: sectionType === "ram" ? Config.ramTrack : Config.metricTrack
+    readonly property color sectionTrackColor: sectionType === "ram" ? Config.topAppsRamBarTrackColor : Config.topAppsCpuBarTrackColor
     readonly property string sectionModuleName: sectionType === "ram" ? "topAppsRam" : "topAppsCpu"
     readonly property string displayFontFamily: String(Config.topAppsFont || "").trim() !== ""
                                                   ? String(Config.topAppsFont).trim()
                                                   : Qt.application.font.family
     readonly property int displayFontSize: Math.max(1, Math.round(Number(Config.topAppsFontSize) * (Number(Config.fontSize) > 0 ? Number(Config.fontSize) : 12) / 12))
     readonly property int displayRowHeight: Math.max(1, displayFontSize + 2)
+    // The host window may extend to show the entire bar, but the logical row
+    // width stays tied to the configured module width. This keeps the value
+    // column fixed while a longer or right-shifted bar is drawn underneath it.
+    readonly property int layoutContentWidth: Math.max(1, Number(
+        sectionType === "ram" ? Settings.geometry.topAppsRam[2] : Settings.geometry.topAppsCpu[2]) || 315)
+    readonly property int layoutRowWidth: Math.max(1, root.layoutContentWidth - 20)
+    readonly property int requiredContentWidth: Config.topAppsShowBars ? Math.ceil(
+        Number(Config.topAppsBarX) + Number(Config.topAppsBarWidth) + 20) : 0
 
     // Reserve enough width for the longest value so larger RAM values
     // (for example "1001.1 Mb") remain fully readable.
@@ -44,12 +52,11 @@ Item {
         moduleName: root.sectionModuleName
 
         Item {
-            anchors.fill: parent
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
-            anchors.topMargin: Math.min(Math.max(0, Config.topAppsTopOffset), Math.max(0, parent.height - 6))
-            anchors.bottomMargin: 3
-            clip: true
+            x: 10
+            y: Math.min(Math.max(0, Config.topAppsTopOffset), Math.max(0, root.height - 6))
+            width: Math.max(1, root.width - 20)
+            height: Math.max(0, root.height - y - 3)
+            clip: false
 
             Column {
                 anchors.fill: parent
@@ -92,15 +99,27 @@ Item {
                     Repeater {
                         model: root.sectionEntries
 
-                        delegate: Row {
+                        delegate: Item {
                             id: appRow
                             property real relativeUsage: Math.max(0, Math.min(1, Number(modelData.ratio ?? 0)))
+                            property int horizontalGap: 5
+                            property int valueWidth: root.valueColumnWidth(root.sectionEntries)
+                            // X and length only affect bar placement; the value column
+                            // stays anchored to the logical module width and is painted above it.
+                            property int barStartX: Math.max(45, Number(Config.topAppsBarX))
+                            property int effectiveBarHeight: Math.max(1, Math.min(root.displayRowHeight, Number(Config.topAppsBarHeight)))
                             width: parent.width
                             height: root.displayRowHeight
-                            spacing: 5
+                            clip: true
 
                             Text {
-                                width: Config.topAppsShowBars ? 98 : Math.max(40, parent.width - root.valueColumnWidth(root.sectionEntries) - 2 * appRow.spacing)
+                                x: 0
+                                y: 0
+                                width: Config.topAppsShowBars
+                                       ? Math.max(0, Math.min(appRow.barStartX - appRow.horizontalGap,
+                                                              parent.width - appRow.valueWidth - 2 * appRow.horizontalGap))
+                                       : Math.max(40, root.layoutRowWidth - appRow.valueWidth - 2 * appRow.horizontalGap)
+                                height: parent.height
                                 text: modelData.name ?? ""
                                 color: Config.text
                                 font.family: root.displayFontFamily
@@ -110,22 +129,30 @@ Item {
                             }
 
                             Item {
+                                id: usageBar
                                 visible: Config.topAppsShowBars
-                                width: Config.topAppsShowBars ? Math.max(0, parent.width - 98 - 5 - root.valueColumnWidth(root.sectionEntries) - 5) : 0
-                                height: 6
-                                anchors.verticalCenter: parent.verticalCenter
+                                x: appRow.barStartX
+                                y: Math.round((appRow.height - height) / 2) + Number(Config.topAppsBarY)
+                                width: Math.max(1, Number(Config.topAppsBarWidth))
+                                height: appRow.effectiveBarHeight
+                                clip: true
 
                                 Primitives.ProgressTrack {
                                     anchors.fill: parent
                                     value: appRow.relativeUsage * 100
-                                    radius: 3
+                                    radius: Math.min(3, parent.height / 2)
                                     fillColor: root.sectionFillColor
                                     trackColor: root.sectionTrackColor
                                 }
                             }
 
                             Text {
-                                width: root.valueColumnWidth(root.sectionEntries)
+                                // Keep the numeric column anchored to the original
+                                // module width even if the transparent host window grows.
+                                x: root.layoutRowWidth - width
+                                y: 0
+                                width: appRow.valueWidth
+                                height: parent.height
                                 text: modelData.value ?? ""
                                 color: Config.text
                                 font.family: root.displayFontFamily

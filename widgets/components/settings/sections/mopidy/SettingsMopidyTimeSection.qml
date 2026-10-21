@@ -31,7 +31,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Отображать"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Отображать"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: queueDurationModeCombo
             width: 160; height: 30
@@ -44,7 +44,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: queueDurationFontField
             width: 140; height: 30; text: Config.mopidyQueueDurationFont; color: Config.text; activeFocusOnTab: true
@@ -70,16 +70,16 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Положение X / Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-        Text { width: 46; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+        Text { width: 210; height: 30; text: "Положение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 46; height: 30; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationX; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "mopidyQueueDurationX"; settingsObject: root.settings; saveOnEdit: true }
-        Text { width: 46; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+        Text { width: 46; height: 30; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyQueueDurationY"; settingsObject: root.settings; saveOnEdit: true }
     }
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Выравнивание времени очереди"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Выравнивание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: queueDurationAlignmentCombo
             width: 140; height: 30
@@ -108,7 +108,7 @@ Column {
     SettingsCheckBox {
         id: showTrackRemainingCheckBox
         width: parent.width; height: 30
-        text: "Показывать оставшееся время текущего трека"
+        text: "Показывать оставшееся время трека"
         checked: Config.mopidyShowTrackRemaining
         onClicked: { Config.mopidyShowTrackRemaining = checked; settings.save() }
         Connections { target: Config; function onMopidyShowTrackRemainingChanged() { showTrackRemainingCheckBox.checked = Config.mopidyShowTrackRemaining } }
@@ -117,7 +117,7 @@ Column {
     SettingsCheckBox {
         id: showAlbumRemainingCheckBox
         width: parent.width; height: 30
-        text: "Показывать оставшееся время текущего альбома"
+        text: "Показывать оставшееся время альбома"
         checked: Config.mopidyShowAlbumRemaining
         onClicked: { Config.mopidyShowAlbumRemaining = checked; settings.save() }
         Connections { target: Config; function onMopidyShowAlbumRemainingChanged() { showAlbumRemainingCheckBox.checked = Config.mopidyShowAlbumRemaining } }
@@ -135,7 +135,8 @@ Column {
         height: 30
         spacing: 8
         Text {
-            width: 180
+            width: 210
+            height: 30
             text: "Режим отображения"
             color: Config.text
             font.family: Config.settingsFont
@@ -164,7 +165,8 @@ Column {
     Row {
         width: parent.width; height: 30; spacing: 8
         Text {
-            width: 180
+            width: 210
+            height: 30
             text: "Высота строки списка"
             color: Config.text
             font.family: Config.settingsFont
@@ -192,7 +194,8 @@ Column {
     Row {
         width: parent.width; height: 30; spacing: 8
         Text {
-            width: 180
+            width: 210
+            height: 30
             text: "Разделитель в одну строку"
             color: Config.text
             font.family: Config.settingsFont
@@ -217,13 +220,6 @@ Column {
                     trackArtistSeparatorField.text = Config.mopidyTrackArtistSeparator
                 }
             }
-        }
-        Text {
-            text: "пример:  ·  /  —  /  |"
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(9)
-            verticalAlignment: Text.AlignVCenter
         }
     }
 
@@ -256,7 +252,7 @@ Column {
     // mixed into the general Mopidy behavior settings.
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Шрифт альбома"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт альбома"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: albumFontField
             width: 140; height: 30; text: Config.mopidyAlbumFont; color: Config.text; activeFocusOnTab: true
@@ -270,7 +266,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Шрифт названия трека"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Шрифт названия трека"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsTextField {
             id: trackFontField
             width: 140; height: 30; text: Config.mopidyTrackFont; color: Config.text; activeFocusOnTab: true
@@ -284,7 +280,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Шрифт исполнителя"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт исполнителя"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: artistFontField
             width: 140; height: 30; text: Config.mopidyArtistFont; color: Config.text; activeFocusOnTab: true
@@ -298,7 +294,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 8
-        Text { width: 180; text: "Шрифт длительности"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт длительности"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: durationFontField
             width: 140; height: 30; text: Config.mopidyDurationFont; color: Config.text; activeFocusOnTab: true

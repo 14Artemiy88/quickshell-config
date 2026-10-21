@@ -21,16 +21,26 @@ is_ide_process_candidate() {
 }
 
 read_process_cmdline() {
-    local file="${1:-}" arg result=''
-    [[ -r "$file" ]] || return 0
-    while IFS= read -r -d '' arg; do
-        [[ -n "$result" ]] && result+=' '
-        result+="$arg"
-    done < "$file"
-    result="${result//$'\t'/ }"
-    result="${result//$'\r'/ }"
-    result="${result//$'\n'/ }"
-    printf '%s' "$result"
+    local file="${1:-}" output_var="${2:-}" arg cmdline_value=''
+    if [[ -n "$output_var" && ! "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        return 2
+    fi
+    if [[ -r "$file" ]]; then
+        while IFS= read -r -d '' arg; do
+            [[ -n "$cmdline_value" ]] && cmdline_value+=' '
+            cmdline_value+="$arg"
+        done < "$file"
+    fi
+    cmdline_value="${cmdline_value//$'\t'/ }"
+    cmdline_value="${cmdline_value//$'\r'/ }"
+    cmdline_value="${cmdline_value//$'\n'/ }"
+    # Keep the stdout API for older callers, while allowing the per-process
+    # collector to avoid a command-substitution subshell for IDE candidates.
+    if [[ -n "$output_var" ]]; then
+        printf -v "$output_var" '%s' "$cmdline_value"
+    else
+        printf '%s' "$cmdline_value"
+    fi
 }
 
 # Build a full process snapshot as TSV: comm, CPU %, RSS KiB, PID, PPID,
@@ -83,26 +93,30 @@ calculate_process_cpu_snapshot() {
 calculate_system_load_percent() {
     local previous_busy="${1:-}" previous_total="${2:-}"
     local current_busy="${3:-}" current_total="${4:-}"
-    local delta_busy delta_total scaled
+    local output_var="${5:-}" delta_busy delta_total scaled formatted_value='0.0000'
 
-    [[ "$previous_busy" =~ ^[0-9]+$ && "$previous_total" =~ ^[0-9]+$ && \
-       "$current_busy" =~ ^[0-9]+$ && "$current_total" =~ ^[0-9]+$ ]] || {
-        printf '0.0000'
-        return 0
-    }
-
-    delta_total=$((10#$current_total - 10#$previous_total))
-    delta_busy=$((10#$current_busy - 10#$previous_busy))
-    if (( delta_total <= 0 || delta_busy < 0 )); then
-        scaled=0
-    else
-        # percentage * 10,000 = delta_busy * 1,000,000 / delta_total.
-        # Linux CPU counters advance slowly enough that this product is safe
-        # in signed 64-bit Bash arithmetic for realistic sampling intervals.
-        scaled=$(( (delta_busy * 1000000 + delta_total / 2) / delta_total ))
-        (( scaled > 1000000 )) && scaled=1000000
+    if [[ "$previous_busy" =~ ^[0-9]+$ && "$previous_total" =~ ^[0-9]+$ && \
+          "$current_busy" =~ ^[0-9]+$ && "$current_total" =~ ^[0-9]+$ ]]; then
+        delta_total=$((10#$current_total - 10#$previous_total))
+        delta_busy=$((10#$current_busy - 10#$previous_busy))
+        if (( delta_total > 0 && delta_busy >= 0 )); then
+            # percentage * 10,000 = delta_busy * 1,000,000 / delta_total.
+            # Linux CPU counters advance slowly enough that this product is safe
+            # in signed 64-bit Bash arithmetic for realistic sampling intervals.
+            scaled=$(( (delta_busy * 1000000 + delta_total / 2) / delta_total ))
+            (( scaled > 1000000 )) && scaled=1000000
+            printf -v formatted_value '%d.%04d' "$((scaled / 10000))" "$((scaled % 10000))"
+        fi
     fi
-    printf '%d.%04d' "$((scaled / 10000))" "$((scaled % 10000))"
+
+    # Preserve the historical stdout API, but allow hot-path callers to receive
+    # the result directly without a command-substitution subshell.
+    if [[ -n "$output_var" ]]; then
+        [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+        printf -v "$output_var" '%s' "$formatted_value"
+    else
+        printf '%s' "$formatted_value"
+    fi
 }
 
 # Calculate process CPU usage over the interval between two System Monitor polls.
@@ -115,7 +129,7 @@ _get_process_snapshot_unlocked() {
     local runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
     local uid="${UID:-$(id -u)}"
     local state_file="$runtime_dir/quickshell-top-apps-cpu-${uid}.tsv"
-    local previous_file current_file next_state previous_file_is_temp=0
+    local previous_file="" current_file="" next_state previous_file_is_temp=0 ram_rows=0
     local uptime uptime_seconds uptime_fraction now_cs clk_tck ps_output
     local proc_root="${TOP_APPS_PROC_ROOT:-/proc}"
     local proc_stat_path="${TOP_APPS_PROC_STAT:-/proc/stat}"
@@ -132,31 +146,33 @@ _get_process_snapshot_unlocked() {
     [[ -d "$runtime_dir" && -w "$runtime_dir" ]] || runtime_dir="/tmp"
     state_file="$runtime_dir/quickshell-top-apps-cpu-${uid}.tsv"
 
-    # The poll lock serializes readers/writers of state_file, so the previous
-    # sample can be read in place. Avoid an extra mktemp + cat subprocess on
-    # every CPU poll; create a temporary sentinel only for the first sample or
-    # when CPU collection is re-enabled after RAM-only mode.
-    if [[ "$want_cpu" == "1" && -r "$state_file" ]]; then
-        previous_file="$state_file"
-    else
-        previous_file="$(mktemp "$runtime_dir/top-apps-previous.XXXXXX")" || return 1
-        previous_file_is_temp=1
-        printf 'T\t-1\n' > "$previous_file"
+    # The CPU path needs a previous/current file pair for interval accounting.
+    # RAM-only mode has no snapshot comparison to perform, so stream its rows
+    # directly and avoid creating throwaway previous/current files on every poll.
+    if [[ "$want_cpu" == "1" ]]; then
+        if [[ -r "$state_file" ]]; then
+            previous_file="$state_file"
+        else
+            previous_file="$(mktemp "$runtime_dir/top-apps-previous.XXXXXX")" || return 1
+            previous_file_is_temp=1
+            printf 'T\t-1\n' > "$previous_file"
+        fi
+        current_file="$(mktemp "$runtime_dir/top-apps-current.XXXXXX")" || {
+            [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
+            return 1
+        }
     fi
-    current_file="$(mktemp "$runtime_dir/top-apps-current.XXXXXX")" || {
-        [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-        return 1
-    }
     next_state="$(mktemp "$runtime_dir/top-apps-state.XXXXXX")" || {
         [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-        rm -f "$current_file"
+        [[ -z "$current_file" ]] || rm -f "$current_file"
         return 1
     }
 
     if [[ "$want_cpu" == "1" ]]; then
         if ! IFS=' ' read -r uptime _ < /proc/uptime; then
             [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-            rm -f "$current_file" "$next_state"
+            [[ -z "$current_file" ]] || rm -f "$current_file"
+            rm -f "$next_state"
             return 1
         fi
         uptime_seconds="${uptime%%.*}"
@@ -164,7 +180,8 @@ _get_process_snapshot_unlocked() {
         uptime_fraction="${uptime_fraction:0:2}"
         [[ "$uptime_seconds" =~ ^[0-9]+$ && "$uptime_fraction" =~ ^[0-9]{2}$ ]] || {
             [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-            rm -f "$current_file" "$next_state"
+            [[ -z "$current_file" ]] || rm -f "$current_file"
+            rm -f "$next_state"
             return 1
         }
         now_cs=$((10#$uptime_seconds * 100 + 10#$uptime_fraction))
@@ -190,7 +207,8 @@ _get_process_snapshot_unlocked() {
         # Sample aggregate /proc/stat counters at the same start-of-poll point
         # as the process CPU baseline, so the residual row reflects the overall
         # busy percentage over this monitor interval.
-        system_counters="$(cpu_read_aggregate_counters "$proc_stat_path" 2>/dev/null || true)"
+        system_counters=''
+        cpu_read_aggregate_counters_into system_counters "$proc_stat_path" 2>/dev/null || system_counters=''
         if [[ "$system_counters" =~ ^([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
             current_busy="${BASH_REMATCH[1]}"
             current_total="${BASH_REMATCH[2]}"
@@ -200,7 +218,7 @@ _get_process_snapshot_unlocked() {
             if [[ "$previous_system_counters" =~ ^([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
                 previous_busy="${BASH_REMATCH[1]}"
                 previous_total="${BASH_REMATCH[2]}"
-                system_load_pct="$(calculate_system_load_percent "$previous_busy" "$previous_total" "$current_busy" "$current_total")"
+                calculate_system_load_percent "$previous_busy" "$previous_total" "$current_busy" "$current_total" system_load_pct
                 printf 'L\t%s\n' "$system_load_pct" >> "$next_state"
             fi
         fi
@@ -216,13 +234,16 @@ _get_process_snapshot_unlocked() {
     # still belong to the IDE's systemd application scope.
     ps_output="$(LC_ALL=C ps -ww --no-header -eo pid,ppid,rss,cgroup,comm 2>/dev/null)" || {
         [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-        rm -f "$current_file" "$next_state"
+        [[ -z "$current_file" ]] || rm -f "$current_file"
+        rm -f "$next_state"
         return 1
     }
-    # Keep the output files open during the per-process loop. Appending with
-    # `>>` for every PID makes Bash reopen both files repeatedly on systems
-    # with many processes; persistent descriptors reduce that per-row overhead.
-    exec {current_fd}>>"$current_file"
+    # Keep state/snapshot files open during the per-process loop. CPU mode
+    # writes a snapshot file for interval calculations; RAM-only mode streams
+    # final rows directly and therefore opens only the state file.
+    if [[ "$want_cpu" == "1" ]]; then
+        exec {current_fd}>>"$current_file"
+    fi
     exec {next_state_fd}>>"$next_state"
     while IFS= read -r line; do
         [[ -n "$line" ]] || continue
@@ -240,13 +261,15 @@ _get_process_snapshot_unlocked() {
 
         cmdline=''
         if [[ "$want_cpu" == "1" ]] && is_ide_process_candidate "$comm"; then
-            cmdline="$(read_process_cmdline "$proc_root/$pid/cmdline")"
+            read_process_cmdline "$proc_root/$pid/cmdline" cmdline
         fi
 
         if [[ "$want_cpu" != "1" ]]; then
             # The RAM-only view needs just the process inventory and RSS. Do
-            # not open /proc/<pid>/stat when CPU counters were not requested.
-            printf '%s\t0.0000\t%s\t%s\t%s\n' "$comm" "${rss:-0}" "$pid" "$ppid" >&"$current_fd"
+            # not open /proc/<pid>/stat or write an intermediate snapshot file;
+            # these rows are already the final line-oriented output format.
+            printf '%s\t0.0000\t%s\t%s\t%s\n' "$comm" "${rss:-0}" "$pid" "$ppid"
+            ram_rows=$((ram_rows + 1))
             continue
         fi
 
@@ -266,22 +289,26 @@ _get_process_snapshot_unlocked() {
         printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$comm" "$ticks" "${rss:-0}" "$pid" "$ppid" "$starttime" "$cgroup" "${cmdline:--}" >&"$current_fd"
         printf 'P\t%s\t%s\t%s\n' "$pid" "$starttime" "$ticks" >&"$next_state_fd"
     done <<< "$ps_output"
-    exec {current_fd}>&-
+    if [[ "$want_cpu" == "1" ]]; then
+        exec {current_fd}>&-
+    fi
     exec {next_state_fd}>&-
 
     if [[ "$want_cpu" == "1" ]]; then
         # 100% means one logical core fully used. PID starttime guards against PID reuse.
         calculate_process_cpu_snapshot "$previous_file" "$current_file" "$now_cs" "$clk_tck"
-    else
-        cat -- "$current_file"
     fi
 
     # Replace the prior sample only after collecting a complete new snapshot.
-    if [[ -s "$current_file" ]]; then
+    if {
+        [[ "$want_cpu" == "1" && -s "$current_file" ]] ||
+        [[ "$want_cpu" != "1" && "$ram_rows" -gt 0 ]]
+    }; then
         mv -f -- "$next_state" "$state_file"
     fi
     [[ "$previous_file_is_temp" == "1" ]] && rm -f "$previous_file"
-    rm -f "$current_file" "$next_state"
+    [[ -z "$current_file" ]] || rm -f "$current_file"
+    rm -f "$next_state"
 }
 
 get_process_snapshot() {
@@ -297,8 +324,11 @@ get_process_snapshot() {
     # compare against the same previous sample and then double-count the interval.
     if command -v flock >/dev/null 2>&1; then
         (
+            # Keep the per-poll lock private when it is first created, without
+            # spawning chmod for every CPU/RAM snapshot. Previous versions
+            # already created this persistent lock at mode 0600.
+            umask 077
             exec 9>"${state_file}.lock" || exit 1
-            chmod 600 "${state_file}.lock" 2>/dev/null || true
             flock -x 9 || exit 1
             _get_process_snapshot_unlocked "$want_cpu"
         )
@@ -316,11 +346,14 @@ get_process_snapshot() {
 aggregate_process_rows() {
     local metric="${1:-cpu}"
     local row_limit="${2:-5}"
-    local tab=$'\t'
     [[ "$metric" == "mem" ]] || metric="cpu"
     [[ "$row_limit" =~ ^[0-9]+$ ]] || row_limit=5
 
-    LC_ALL=C awk -F '\t' -v metric="$metric" '
+    # Keep sorting and limiting in the same AWK process. The previous version
+    # launched an external `sort` plus a shell pipeline stage on every CPU/RAM
+    # refresh. The comparator mirrors `sort -t TAB -k2,2nr`: numeric value
+    # descending, with the full output row as an ascending C-locale tie-breaker.
+    LC_ALL=C awk -F '\t' -v metric="$metric" -v row_limit="$row_limit" '
         function is_browser_root(name) {
             return name == "zen" || name == "zen-bin" || \
                    name == "firefox" || name == "firefox-bin" || name == "firefox-esr" || \
@@ -379,6 +412,37 @@ aggregate_process_rows() {
                 parent = next_parent
             }
             return ""
+        }
+        function row_before(left_value, left_row, right_value, right_row) {
+            left_value += 0
+            right_value += 0
+            if (left_value > right_value) return 1
+            if (left_value < right_value) return 0
+            return left_row < right_row
+        }
+        function quicksort(left, right,    i, j, middle, pivot_value, pivot_row, tmp_value, tmp_row) {
+            if (left >= right) return
+            i = left
+            j = right
+            middle = int((left + right) / 2)
+            pivot_value = out_value[middle]
+            pivot_row = out_row[middle]
+            while (i <= j) {
+                while (i <= right && row_before(out_value[i], out_row[i], pivot_value, pivot_row)) i++
+                while (j >= left && row_before(pivot_value, pivot_row, out_value[j], out_row[j])) j--
+                if (i <= j) {
+                    tmp_value = out_value[i]
+                    out_value[i] = out_value[j]
+                    out_value[j] = tmp_value
+                    tmp_row = out_row[i]
+                    out_row[i] = out_row[j]
+                    out_row[j] = tmp_row
+                    i++
+                    j--
+                }
+            }
+            if (left < j) quicksort(left, j)
+            if (i < right) quicksort(i, right)
         }
         NF >= 5 {
             i = ++row_count
@@ -490,29 +554,30 @@ aggregate_process_rows() {
                     # otherwise let transient sampling helpers fill the list.
                     if (value <= 0) continue
                 }
-                printf "%s\t%.4f\t%d\t%s\n", group, value, count[group], pid
+                formatted_value = sprintf("%.4f", value)
+                out_count++
+                out_value[out_count] = formatted_value + 0
+                out_row[out_count] = sprintf("%s\t%s\t%d\t%s", group, formatted_value, count[group], pid)
+            }
+
+            if (out_count > 1) quicksort(1, out_count)
+            for (j = 1; j <= out_count; j++) {
+                if (row_limit > 0 && j > row_limit) break
+                print out_row[j]
             }
         }
-    ' | LC_ALL=C sort -t "$tab" -k2,2nr | {
-        # The result is already sorted. Limit rows in this shell reader rather
-        # than starting a second AWK process on every Top Apps refresh.
-        emitted=0
-        while IFS= read -r sorted_row; do
-            if (( row_limit == 0 || emitted < row_limit )); then
-                printf '%s\n' "$sorted_row"
-                ((emitted += 1))
-            fi
-        done
-    }
+    '
 }
 
 # Return the machine's available CPU capacity expressed as percent of one core
 # per logical CPU. Per-process CPU values are also expressed per core and can
 # exceed 100% when a process uses multiple cores.
 get_cpu_capacity_percent() {
+    local output_var="${1:-}"
     local online_path="${TOP_APPS_CPU_ONLINE:-/sys/devices/system/cpu/online}"
-    local cpuinfo_path="${TOP_APPS_CPUINFO:-/proc/cpuinfo}" line token first last count=0 online_cpus=''
+    local cpuinfo_path="${TOP_APPS_CPUINFO:-/proc/cpuinfo}" line token first last count=0 online_cpus='' result
     local -a ranges=()
+    if [[ -n "$output_var" && ! "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then return 2; fi
 
     # Linux exposes the online CPU set directly (for example 0-3,8,10-11).
     # Parse it in Bash rather than launching getconf on every widget refresh.
@@ -546,21 +611,32 @@ get_cpu_capacity_percent() {
         fi
     fi
     (( count > 0 )) || count=1
-    printf '%d.0000' "$((count * 100))"
+    result="$((count * 100)).0000"
+    if [[ -n "$output_var" ]]; then
+        printf -v "$output_var" '%s' "$result"
+    else
+        printf '%s' "$result"
+    fi
 }
 
 # Return total physical memory in KiB, matching the RSS units produced above.
 # /proc/meminfo is small; parse it with Bash built-ins rather than starting AWK
-# for every widget refresh. An override keeps the parser easy to fixture-test.
+# for every widget refresh. An optional output variable avoids a subshell in
+# the Top Apps polling path while the zero-argument stdout API remains available.
 get_total_memory_kib() {
-    local meminfo_path="${TOP_APPS_MEMINFO:-/proc/meminfo}" key value unit
+    local output_var="${1:-}" meminfo_path="${TOP_APPS_MEMINFO:-/proc/meminfo}" key value unit result='0'
+    if [[ -n "$output_var" && ! "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then return 2; fi
     while read -r key value unit _; do
         if [[ "$key" == "MemTotal:" && "$value" =~ ^[0-9]+$ && "$unit" == "kB" ]]; then
-            printf '%s' "$value"
-            return 0
+            result="$value"
+            break
         fi
     done < "$meminfo_path" 2>/dev/null || true
-    printf '0'
+    if [[ -n "$output_var" ]]; then
+        printf -v "$output_var" '%s' "$result"
+    else
+        printf '%s' "$result"
+    fi
 }
 
 # Express a value as a fraction of total system capacity. A process group can
@@ -580,11 +656,10 @@ calculate_resource_ratio() {
     '
 }
 
-# Format every row in one AWK process and encode the section in one jq process.
-# The previous implementation spawned AWK for each row's ratio and label, then
-# jq once per row. Since each section contains up to five apps, batching avoids
-# dozens of short-lived processes without changing the JSON schema or labels.
-format_top_apps_rows_json() {
+# Format every row in one AWK process into compact TSV. The established JSON
+# wrapper remains available below, while the combined CPU/RAM hot path encodes
+# both formatted sections in one jq process.
+format_top_apps_rows_tsv() {
     local rows="${1:-}" metric="${2:-cpu}" capacity="${3:-0}"
     printf '%s\n' "$rows" | LC_ALL=C awk -F '\t' -v metric="$metric" -v capacity="$capacity" '
         BEGIN {
@@ -611,19 +686,89 @@ format_top_apps_rows_json() {
             }
             printf "%s\t%s\t%s\t%d\t%.4f\n", name, label, pid, process_count, ratio
         }
-    ' | jq -Rn '[inputs | select(length > 0) | split("\t") | {name:.[0], value:.[1], pid:.[2], processCount:(.[3]|tonumber), ratio:(.[4]|tonumber)}]'
+    '''
 }
+
+# Keep the established JSON helper for callers/tests that need one section.
+# The live Top Apps poll uses the TSV-only helper for CPU and RAM and encodes
+# both sections in one jq process below, rather than jq once per section plus a
+# final jq to combine them.
+format_top_apps_rows_json() {
+    local formatted_rows=''
+    formatted_rows="$(format_top_apps_rows_tsv "${1:-}" "${2:-cpu}" "${3:-0}")" || return 1
+    printf '%s\n' "$formatted_rows" | jq -Rn '[inputs | select(length > 0) | split("\t") | {name:.[0], value:.[1], pid:.[2], processCount:(.[3]|tonumber), ratio:(.[4]|tonumber)}]'
+}
+
+# Encode the already formatted CPU/RAM rows into the final schema with one jq
+# pass. This reduces the normal combined poll from three jq invocations (one
+# per section plus the final object) to one. Empty or disabled sections remain
+# empty arrays, exactly as before.
+format_top_apps_payload_json() {
+    local cpu_rows="${1:-}" mem_rows="${2:-}"
+    jq -cn --arg cpu_rows "$cpu_rows" --arg mem_rows "$mem_rows" '
+        def parse_rows($raw):
+            if $raw == "" then []
+            else
+                $raw
+                | split("\n")
+                | map(select(length > 0) | split("\t") |
+                    {name:.[0], value:.[1], pid:.[2], processCount:(.[3]|tonumber), ratio:(.[4]|tonumber)})
+            end;
+        {cpu: parse_rows($cpu_rows), mem: parse_rows($mem_rows)}
+    '
+}
+
 
 # Read the last global CPU utilization sample stored alongside process counters.
 # This is 0..100% of total system capacity, matching the CPU widget's semantics.
 get_system_cpu_load_percent() {
+    local output_var="${1:-}"
     local runtime_dir="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
     local uid="${UID:-$(id -u)}"
-    local state_file
+    local state_file marker value whole result='0.0000'
+    if [[ -n "$output_var" && ! "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        return 2
+    fi
     [[ -d "$runtime_dir" && -w "$runtime_dir" ]] || runtime_dir="/tmp"
     state_file="$runtime_dir/quickshell-top-apps-cpu-${uid}.tsv"
-    [[ -r "$state_file" ]] || { printf '0.0000\n'; return 0; }
-    awk -F '\t' '$1 == "L" && $2 ~ /^[0-9]+([.][0-9]+)?$/ { value=$2; found=1; exit } END { if (found) { if (value < 0) value=0; if (value > 100) value=100; printf "%.4f\n", value } else print "0.0000" }' "$state_file"
+    if [[ ! -r "$state_file" ]]; then
+        if [[ -n "$output_var" ]]; then
+            printf -v "$output_var" '%s' "$result"
+        else
+            printf '%s\n' "$result"
+        fi
+        return 0
+    fi
+
+    # The state file is generated by this collector, and the L record already
+    # contains a validated fixed-point percentage. Read it with Bash rather
+    # than starting AWK on every Top Apps CPU poll.
+    while IFS=$'\t' read -r marker value _; do
+        [[ "$marker" == 'L' ]] || continue
+        [[ "$value" =~ ^([0-9]+)([.][0-9]+)?$ ]] || continue
+        whole="${BASH_REMATCH[1]}"
+        while [[ ${#whole} -gt 1 && "$whole" == 0* ]]; do whole="${whole#0}"; done
+        # The field is normally already formatted to four decimals by
+        # calculate_system_load_percent. Keep defensive clamping for malformed
+        # or manually edited state, with printf's locale fixed to a dot.
+        if [[ ${#whole} -gt 3 ]] || (( 10#$whole >= 100 )); then
+            result='100.0000'
+        else
+            local LC_NUMERIC=C
+            printf -v result '%.4f' "$value"
+            # Preserve AWK's historical lower bound even if a future writer
+            # accidentally stores a signed number (the validation above rejects it).
+            [[ "$result" =~ ^[0-9]+([.][0-9]+)?$ ]] || result='0.0000'
+        fi
+        break
+    done < "$state_file"
+    # Keep the stdout API for existing callers, while allowing the Top Apps
+    # polling path to receive the value without a command-substitution subshell.
+    if [[ -n "$output_var" ]]; then
+        printf -v "$output_var" '%s' "$result"
+    else
+        printf '%s\n' "$result"
+    fi
 }
 
 # Keep the four heaviest named apps and summarize all remaining system CPU
@@ -677,7 +822,7 @@ get_top_apps() {
 
     local snapshot='' cpu_rows='' mem_rows=''
     local cpu_capacity='' total_memory_kib='' system_cpu_load_pct='0.0000'
-    local cpu_json='[]' mem_json='[]'
+    local cpu_formatted_rows='' mem_formatted_rows=''
 
     if [[ "$want_cpu" == "1" || "$want_mem" == "1" ]]; then
         snapshot="$(get_process_snapshot "$want_cpu")"
@@ -688,23 +833,23 @@ get_top_apps() {
         else
             cpu_rows="$(printf '%s\n' "$snapshot" | aggregate_process_rows cpu 5)"
         fi
-        cpu_capacity="$(get_cpu_capacity_percent)"
+        get_cpu_capacity_percent cpu_capacity
         if [[ "$show_remainder" == "1" ]]; then
             if [[ -n "$snapshot" ]]; then
-                system_cpu_load_pct="$(get_system_cpu_load_percent)"
+                get_system_cpu_load_percent system_cpu_load_pct
             else
                 system_cpu_load_pct='0.0000'
             fi
             cpu_rows="$(add_system_cpu_remainder_row "$cpu_rows" "$system_cpu_load_pct" "$cpu_capacity" "$remainder_label")"
         fi
-        cpu_json="$(format_top_apps_rows_json "$cpu_rows" cpu "$cpu_capacity")"
+        cpu_formatted_rows="$(format_top_apps_rows_tsv "$cpu_rows" cpu "$cpu_capacity")"
     fi
 
     if [[ "$want_mem" == "1" ]]; then
         mem_rows="$(printf '%s\n' "$snapshot" | aggregate_process_rows mem)"
-        total_memory_kib="$(get_total_memory_kib)"
-        mem_json="$(format_top_apps_rows_json "$mem_rows" mem "$total_memory_kib")"
+        get_total_memory_kib total_memory_kib
+        mem_formatted_rows="$(format_top_apps_rows_tsv "$mem_rows" mem "$total_memory_kib")"
     fi
 
-    jq -cn --argjson cpu "$cpu_json" --argjson mem "$mem_json" '{cpu:$cpu,mem:$mem}'
+    format_top_apps_payload_json "$cpu_formatted_rows" "$mem_formatted_rows"
 }

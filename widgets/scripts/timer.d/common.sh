@@ -27,7 +27,9 @@ timer_with_lock() {
     }
     "$callback" "$@"
     status=$?
-    flock -u "$lock_fd" 2>/dev/null || true
+    # The lock is attached to the shared open-file description. Closing the
+    # last descriptor releases it, so launching a second external `flock -u`
+    # process here is unnecessary on every timer poll/action.
     exec {lock_fd}>&-
     return "$status"
 }
@@ -98,15 +100,24 @@ json_escape() {
 
 # Wrap already-serialized timer records in a JSON array without launching jq
 # on every daemon tick. Entries are produced by timer_process_entry_locked,
-# which owns JSON escaping for all string fields.
-timer_entries_to_json() {
-    local result='[' entry first=1
+# which owns JSON escaping for all string fields. The caller-variable variant
+# lets the daemon assemble its batch while holding the shared state lock without
+# a command-substitution subshell.
+timer_entries_to_json_into() {
+    local output_var="$1" serialized_json='[' entry first=1
+    shift
     for entry in "$@"; do
-        (( first )) || result+=,
-        result+="$entry"
+        (( first )) || serialized_json+=,
+        serialized_json+="$entry"
         first=0
     done
-    result+=']'
+    serialized_json+=']'
+    printf -v "$output_var" '%s' "$serialized_json"
+}
+
+timer_entries_to_json() {
+    local result
+    timer_entries_to_json_into result "$@"
     printf '%s\n' "$result"
 }
 format_time() {
@@ -147,7 +158,8 @@ write_timer_file() {
         rm -f "$temp"
         return 1
     fi
-    chmod 600 "$temp" 2>/dev/null || true
+    # mktemp creates a private 0600 file already; do not spawn chmod on
+    # every daemon tick or timer action before publishing it atomically.
     if ! mv -f -- "$temp" "$file"; then
         rm -f "$temp"
         return 1
@@ -161,7 +173,8 @@ timer_create_file() {
         rm -f "$temp"
         return 1
     fi
-    chmod 600 "$temp" 2>/dev/null || true
+    # mktemp creates a private 0600 file already; retain that mode through
+    # the atomic rename without an additional chmod process.
     if ! mv -f -- "$temp" "$file"; then
         rm -f "$temp"
         return 1

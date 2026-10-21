@@ -41,6 +41,7 @@ QtObject {
     property int calendarDayY: 0
     property string calendarDayFont: "JetBrainsMono Nerd Font"
     property string calendarAdjacentDaysColor: "#777777"
+    property string calendarWeekendColor: "#d98282"
     property bool calendarPastDaysColorEnabled: false
     property string calendarPastDaysColor: "#888888"
     property string calendarNoteMarkerStyle: "dot"
@@ -62,6 +63,7 @@ QtObject {
     property real cavaBarWidthRatio: 0.45
     property string cavaMode: "both"
     property bool cavaHideWhenSilent: false
+    property bool cavaHideZeroBars: false
 
     // General behaviour / update intervals
     property bool animationsEnabled: true
@@ -145,6 +147,12 @@ QtObject {
     property int topAppsHeaderTitleFontSize: 10
     property int topAppsHeaderSubtitleFontSize: 9
     property bool topAppsShowBars: true
+    // Bar geometry is measured within each Top Apps row. X is row-relative;
+    // Y is an offset from vertical center, keeping the default precisely aligned.
+    property int topAppsBarX: 103
+    property int topAppsBarY: 0
+    property int topAppsBarHeight: 6
+    property int topAppsBarWidth: 115
     property bool topAppsShowSystemRemainder: true
     property string topAppsSystemRemainderLabel: "Система/прочее"
     property string topAppsFont: "" // Empty means use the application font, preserving the previous default.
@@ -153,6 +161,8 @@ QtObject {
     property int topAppsTopOffset: 3
     property color topAppsCpuBarColor: "#00cccc"
     property color topAppsRamBarColor: "#3daee9"
+    property color topAppsCpuBarTrackColor: "#4d006666"
+    property color topAppsRamBarTrackColor: "#4d006666"
 
     // Network display tuning
     property bool networkShowUpload: true
@@ -339,6 +349,7 @@ QtObject {
 
     // Weather tuning
     property int weatherIconSize: 55
+    property int weatherIconX: 113
     property int weatherArrowSize: 22
     property int weatherArrowYOffset: -8
     property int weatherWindArrowGap: 2

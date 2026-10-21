@@ -14,6 +14,8 @@ Item {
     property real barWidth: 2
     property real barWidthRatio: 0
     property string direction: "up"
+    // When enabled, zero/invalid samples do not render a 1px minimum bar.
+    property bool hideZeroBars: false
     property color barColor: "white"
     property color barBorderColor: barColor
     property int barBorderWidth: 0
@@ -21,6 +23,7 @@ Item {
     function barHeightFor(value, availableHeight) {
         var percent = Number(value)
         if (!isFinite(percent)) percent = 0
+        if (root.hideZeroBars && percent <= 0) return 0
         return Math.max(1, Math.min(availableHeight, percent * availableHeight / 100))
     }
 
@@ -35,8 +38,8 @@ Item {
             delegate: Item {
                 width: root.slotWidth > 0
                     ? root.slotWidth
-                    : (root.values && root.values.length > 0
-                        ? (barRow.width - (root.values.length - 1) * root.spacing) / root.values.length
+                    : (root.barCount > 0
+                        ? (barRow.width - (root.barCount - 1) * root.spacing) / root.barCount
                         : 0)
                 height: barRow.height
 
@@ -45,6 +48,7 @@ Item {
                         ? Math.max(1, Math.round(parent.width * root.barWidthRatio))
                         : root.barWidth
                     height: root.barHeightFor(root.values && root.values.length > index ? root.values[index] : 0, parent.height)
+                    visible: !root.hideZeroBars || height > 0
                     x: (parent.width - width) / 2
                     y: root.direction === "up" ? parent.height - height : 0
                     color: root.barColor

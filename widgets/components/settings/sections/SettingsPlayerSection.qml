@@ -98,13 +98,6 @@ Column {
 
     Component.onCompleted: root.syncPlayerPriorityModel()
 
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
-        text: "Плеер"
-        color: Config.accent
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(14)
-    }
     Row {
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
         width: parent.width
@@ -113,6 +106,7 @@ Column {
 
         Text {
             width: 210
+            height: 30
             text: "Текст при отсутствии воспроизведения"
             color: Config.text
             font.family: Config.settingsFont
@@ -158,6 +152,7 @@ Column {
 
         Text {
             width: 210
+            height: 30
             text: "Основной шрифт плеера"
             color: Config.text
             font.family: Config.settingsFont
@@ -196,7 +191,7 @@ Column {
     }
     Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
-        Text { width: 210; text: "Размер текста Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: silenceSizeField
     width: 72
@@ -219,7 +214,7 @@ Column {
     }
     Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
-        Text { width: 210; text: "Размер длинного Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер длинного текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: silenceLongSizeField
     width: 72
@@ -241,7 +236,7 @@ Column {
 }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Ширина области Silence"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Ширина области"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerSilenceWidthField
     width: 72
@@ -351,15 +346,8 @@ Column {
             }
         }
     }
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
-        text: "Оставшееся время"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
-    Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Размер оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Text { width: 210; height: 30; text: "Размер"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerTimeFontSizeField
     width: 72
@@ -381,14 +369,14 @@ Column {
 }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Шрифт оставшегося времени"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField { id: playerTimeFontField; width: 140; height: 30; text: Config.playerTimeFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (playerTimeFontField.activeFocus || playerTimeFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
             onEditingFinished: { var v=text.trim(); if (v.length > 0) Config.playerTimeFont=v; text=Config.playerTimeFont; settings.save() }
             Connections { target: Config; function onPlayerTimeFontChanged() { playerTimeFontField.text=Config.playerTimeFont } }
         }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Смещение оставшегося времени по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Смещение по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             id: playerTimeYField
             width: 72
@@ -410,7 +398,7 @@ Column {
         }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Отступ оставшегося времени справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Отступ справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerTimeRightPaddingField
     width: 72
@@ -431,14 +419,7 @@ Column {
     saveOnEdit: true
 }
     }
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2
-        text: "Метаданные"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
-    Row {
+Row {
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
         width: parent.width
         height: 34
@@ -446,6 +427,7 @@ Column {
 
         Text {
             width: 210
+            height: 30
             text: "Шрифт метаданных плеера"
             color: Config.text
             font.family: Config.settingsFont
@@ -484,7 +466,7 @@ Column {
     }
     Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
-        Text { width: 210; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+        Text { width: 210; height: 30; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
         SettingsNumberField {
     id: metaSizeField
     width: 72
@@ -507,7 +489,7 @@ Column {
     }
     Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
-        Text { width: 210; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: metaSecondarySizeField
     width: 72
@@ -530,7 +512,7 @@ Column {
     }
     Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
-        Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: metaSpacingField
     width: 72
@@ -552,7 +534,7 @@ Column {
 }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerMetaXPadField
     width: 72
@@ -574,7 +556,7 @@ Column {
 }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerMetaYField
     width: 72
@@ -620,6 +602,7 @@ Column {
         spacing: 8
         Text {
             width: 210
+            height: 30
             text: "Цвет обводки"
             color: Config.text
             font.family: Config.settingsFont
@@ -788,14 +771,7 @@ Column {
 }
         }
     }
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 4
-        text: "Полоска прогресса"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
-    Row { width: parent.width; height: 30; spacing: 8
+Row { width: parent.width; height: 30; spacing: 8
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
         SettingsCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } }
     }
@@ -814,6 +790,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
+        Item { width: 210; height: 30 }
         SettingsNumberField {
             compact: true
             value: Config.playerProgressY
@@ -852,7 +829,7 @@ Column {
         }
     }
     Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerCoverOpacityField
     width: 72
@@ -873,14 +850,7 @@ Column {
     saveOnEdit: true
 }
     }
-    Text {
-        visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
-        text: "Обложка и фон"
-        color: Config.settingsSubheading
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(10)
-    }
-    Row {
+Row {
         visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
         width: parent.width
         height: 30
@@ -909,7 +879,7 @@ Column {
         width: parent.width
         height: 30
         spacing: 8
-        Text { width: 210; text: "Радиус области блюра (0–40)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Радиус области блюра (0–40)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: playerBlurRadiusField
     width: 72

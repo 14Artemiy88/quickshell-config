@@ -10,16 +10,7 @@ Column {
 
     width: parent ? parent.width : 0
     spacing: 10
-
-                    Text {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
-                        text: "Настройки интерфейса настроек"
-                        color: Config.accent
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(14)
-                    }
-
-                    Text {
+Text {
                         visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
                         text: "Отдельный шрифт, размер текста и внутренние отступы самого окна настроек."
                         color: Config.textMuted
@@ -34,7 +25,7 @@ Column {
                         width: parent.width
                         height: 34
                         spacing: 8
-                        Text { width: 210; text: "Шрифт настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                        Text { width: 210; height: 30; text: "Шрифт настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                         SettingsTextField {
                             id: settingsFontField
                             width: 160; height: 30
@@ -53,7 +44,7 @@ Column {
                         width: parent.width
                         height: 34
                         spacing: 8
-                        Text { width: 210; text: "Размер шрифта настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                        Text { width: 210; height: 30; text: "Размер шрифта настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                         SettingsNumberField {
     id: settingsFontSizeField
     width: 100
@@ -70,7 +61,7 @@ Column {
     inputMethodHints: Qt.ImhDigitsOnly
     targetObject: Config
     targetProperty: "settingsFontSize"
-    settingsObject: root.settings
+    settingsObject: settingsWindowColumn.settings
     saveOnEdit: true
 }
                     }
@@ -80,7 +71,7 @@ Column {
                         width: parent.width
                         height: 34
                         spacing: 8
-                        Text { width: 210; text: "Внутренний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                        Text { width: 210; height: 30; text: "Внутренний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                         SettingsNumberField {
     id: settingsPaddingField
     width: 100
@@ -97,7 +88,7 @@ Column {
     inputMethodHints: Qt.ImhDigitsOnly
     targetObject: Config
     targetProperty: "settingsPadding"
-    settingsObject: root.settings
+    settingsObject: settingsWindowColumn.settings
     saveOnEdit: true
 }
                     }
@@ -107,7 +98,7 @@ Column {
                         width: parent.width
                         height: 34
                         spacing: 8
-                        Text { width: 210; text: "Расстояние между элементами"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                        Text { width: 210; height: 30; text: "Расстояние между элементами"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                         SettingsNumberField {
     id: settingsSpacingField
     width: 100
@@ -124,20 +115,11 @@ Column {
     inputMethodHints: Qt.ImhDigitsOnly
     targetObject: Config
     targetProperty: "settingsSpacing"
-    settingsObject: root.settings
+    settingsObject: settingsWindowColumn.settings
     saveOnEdit: true
 }
                     }
-
-                    Text {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-                        text: "Окно настроек"
-                        color: Config.accent
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(14)
-                    }
-
-                    Text {
+Text {
                         visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
                         text: "Координаты и размеры окна настроек"
                         color: Config.textMuted
@@ -244,17 +226,8 @@ Column {
                             verticalAlignment: Text.AlignVCenter
                         }
                     }
-
-                    Text {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
-                        text: "Профили"
-                        color: Config.accent
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(14)
-                    }
-
-                    Text {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+Text {
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         text: "Сохраняй несколько вариантов всей конфигурации и переключайся между ними без ручной перенастройки."
                         color: Config.textMuted
                         font.family: Config.settingsFont
@@ -264,7 +237,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -341,7 +314,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -425,7 +398,7 @@ Column {
 
                     Item {
                         id: profileActionFeedback
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         width: parent.width
                         height: 22
 
@@ -454,7 +427,7 @@ Column {
                     }
 
                     Text {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         width: parent.width
                         text: settings.activeProfile ? "Текущий профиль: " + settings.activeProfile : "Текущий профиль: по умолчанию"
                         color: Config.textMuted
@@ -463,7 +436,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+                        visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -494,7 +467,7 @@ Row {
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
         id: settingsWindowAnimationVisibilityBox
         width: 180; height: 30

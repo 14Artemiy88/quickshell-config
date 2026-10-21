@@ -12,18 +12,9 @@ Column {
     visible: host && host.currentOtherTab === 6
     width: parent ? parent.width : 0
     spacing: 10
-
-                Text {
-                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1
-                    text: "Сеть"
-                    color: Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(14)
-                }
-
-                Text {
-                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1
-                    text: "Отображение сетевого трафика и общий интервал system monitor"
+Text {
+                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 0
+                    text: "Частота обновления общих данных мониторинга"
                     color: Config.textMuted
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(10)
@@ -32,9 +23,9 @@ Column {
                 }
 
                 Row {
-                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 0
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Интервал обновления данных (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Интервал обновления данных (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkIntervalField
     width: 100
@@ -55,9 +46,18 @@ Column {
     saveOnEdit: true
 }
                 }
+Text {
+                    visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+                    text: "Внешний вид и расположение сетевого трафика"
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    wrapMode: Text.WordWrap
+                    width: parent.width
+                }
 
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Отступ блока слева/справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Отступ блока слева/справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkPaddingField
     width: 100
@@ -79,7 +79,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Отступ иконки слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Отступ иконки слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkIconPaddingField
     width: 100
@@ -101,7 +101,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Ширина колонки иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Ширина колонки иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkIconColumnWidthField
     width: 100
@@ -131,7 +131,7 @@ Column {
                 }
 
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkRowHeightField
     width: 100
@@ -153,7 +153,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkRowSpacingField
     width: 100
@@ -175,7 +175,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Размер иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Размер иконки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkIconSizeField
     width: 100
@@ -197,7 +197,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkFontSizeField
     width: 100
@@ -219,7 +219,7 @@ Column {
 }
                 }
                 Row { visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; text: "Отступ значений справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    Text { width: 210; height: 30; text: "Отступ значений справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsNumberField {
     id: networkRightPaddingField
     width: 100

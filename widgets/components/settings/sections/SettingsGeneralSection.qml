@@ -15,14 +15,6 @@ Column {
 
 Text {
     visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
-    text: "Общие"
-    color: Config.accent
-    font.family: Config.settingsFont
-    font.pixelSize: Config.settingsUiSize(14)
-}
-
-Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
     text: "Основной шрифт интерфейса, LED-шрифт и общие параметры"
     color: Config.textMuted
     font.family: Config.settingsFont
@@ -36,7 +28,7 @@ Row {
     width: parent.width
     height: 34
     spacing: 8
-    Text { width: 210; text: "Основной шрифт интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Основной шрифт интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsTextField {
         id: generalFontField
         width: 160; height: 30
@@ -57,7 +49,7 @@ Row {
     width: parent.width
     height: 34
     spacing: 8
-    Text { width: 210; text: "Размер шрифта интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Размер шрифта интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
     id: generalFontSizeField
     width: 100
@@ -84,7 +76,7 @@ Row {
     width: parent.width
     height: 34
     spacing: 8
-    Text { width: 210; text: "LED-шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "LED-шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsTextField {
         id: ledFontField
         width: 160; height: 30
@@ -99,17 +91,8 @@ Row {
         Connections { target: Config; function onLedFontChanged() { ledFontField.text = Config.ledFont } }
     }
 }
-
-Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
-    text: "Общие анимации"
-    color: Config.accent
-    font.family: Config.settingsFont
-    font.pixelSize: Config.settingsUiSize(14)
-}
-
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
@@ -125,11 +108,11 @@ Row {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Скорость анимаций (×)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Скорость анимаций (×)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
     id: animationSpeedField
     width: 100
@@ -152,11 +135,11 @@ Row {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
     width: parent.width
     height: 30
     spacing: 8
-    Text { width: 210; text: "Сглаживание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Сглаживание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsComboBox {
         id: animationEasingBox
         width: 180; height: 30
@@ -170,7 +153,7 @@ Row {
 
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
     width: parent.width
     height: 60
     spacing: 8
@@ -235,7 +218,7 @@ Row {
 }
 
 Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
     text: "Единая скорость и длительности встроенных анимаций. 0 мс отключает конкретную анимацию."
     color: Config.textMuted
     font.family: Config.settingsFont
@@ -251,15 +234,7 @@ Text {
 
 
 Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-    text: "Рамки"
-    color: Config.accent
-    font.family: Config.settingsFont
-    font.pixelSize: Config.settingsUiSize(14)
-}
-
-Text {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
     text: "Общие рамки виджетов. Толщина 0 полностью отключает рамку."
     color: Config.textMuted
     font.family: Config.settingsFont
@@ -269,13 +244,14 @@ Text {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
     width: parent.width
     height: 30
     spacing: 8
 
     Text {
         width: 210
+        height: 30
         text: "Толщина рамки (0 = выкл.)"
         color: Config.text
         font.family: Config.settingsFont
@@ -305,13 +281,14 @@ Row {
 }
 
 Row {
-    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+    visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
     width: parent.width
     height: 30
     spacing: 8
 
     Text {
         width: 210
+        height: 30
         text: "Радиус скругления рамки"
         color: Config.text
         font.family: Config.settingsFont

@@ -13,6 +13,13 @@ Item {
     property color hoverColor: Config.accent
     property string toolTipText: ""
     property bool interactionEnabled: true
+    property bool requestedVisible: true
+    property bool hideWhenDisabled: true
+
+    // Hide unavailable directions by default. Consumers such as Mopidy can
+    // keep an available arrow visible while temporarily disabling interaction.
+    visible: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)
+
     signal clicked()
 
     implicitWidth: 22

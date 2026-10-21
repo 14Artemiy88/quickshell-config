@@ -75,11 +75,15 @@ weather_cache_write() {
         rm -f -- "$tmp_file"
         return 1
     fi
-    if ! weather_payload_usable "$(cat -- "$tmp_file")"; then
+    # The caller passes a payload already validated by weather_gismeteo_fetch.
+    # Avoid starting `cat` and another `jq` merely to re-parse the same bytes;
+    # the checked printf plus atomic rename are sufficient for safe publication.
+    if [[ ! -s "$tmp_file" ]]; then
         rm -f -- "$tmp_file"
         return 1
     fi
-    chmod 600 "$tmp_file" 2>/dev/null || true
+    # GNU/BSD mktemp creates this file with mode 0600; chmod would only add
+    # an external process on every weather refresh without tightening it.
     mv -f -- "$tmp_file" "$cache_file" || {
         rm -f -- "$tmp_file"
         return 1
@@ -102,7 +106,8 @@ weather_mark_attempt() {
         rm -f -- "$tmp_file"
         return 1
     fi
-    chmod 600 "$tmp_file" 2>/dev/null || true
+    # mktemp already sets the attempt marker to 0600. Keep the atomic rename
+    # and avoid an otherwise redundant chmod process on each API attempt.
     mv -f -- "$tmp_file" "$attempt_file" || {
         rm -f -- "$tmp_file"
         return 1

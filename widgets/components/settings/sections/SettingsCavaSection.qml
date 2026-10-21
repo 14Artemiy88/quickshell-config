@@ -12,15 +12,6 @@ Column {
     visible: host && host.currentOtherTab === 4
     width: parent ? parent.width : 0
     spacing: 10
-
-Text {
-    visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
-    text: "CAVA"
-    color: Config.accent
-    font.family: Config.settingsFont
-    font.pixelSize: Config.settingsUiSize(14)
-}
-
 Row {
     visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
     width: parent.width
@@ -29,6 +20,7 @@ Row {
 
     Text {
         width: 210
+        height: 30
         text: "Режим CAVA"
         color: Config.text
         font.family: Config.settingsFont
@@ -58,6 +50,7 @@ Row {
 
     Text {
         width: 210
+        height: 30
         text: "Скрывать полоски без звука"
         color: Config.text
         font.family: Config.settingsFont
@@ -83,6 +76,39 @@ Row {
 }
 
 Row {
+    visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0 && Config.cavaHideWhenSilent
+    width: parent.width
+    height: 30
+    spacing: 8
+
+    Text {
+        width: 210
+        height: 30
+        text: "Скрывать пустые полоски"
+        color: Config.text
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(11)
+        verticalAlignment: Text.AlignVCenter
+    }
+
+    SettingsCheckBox {
+        id: cavaHideZeroBarsCheckBox
+        width: 58
+        height: 30
+        indicatorOnly: true
+        checked: Config.cavaHideZeroBars
+        onToggled: {
+            Config.cavaHideZeroBars = checked
+            settings.save()
+        }
+        Connections {
+            target: Config
+            function onCavaHideZeroBarsChanged() { cavaHideZeroBarsCheckBox.checked = Config.cavaHideZeroBars }
+        }
+    }
+}
+
+Row {
     visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
     width: parent.width
     height: 30
@@ -90,6 +116,7 @@ Row {
 
     Text {
         width: 210
+        height: 30
         text: "Количество полос CAVA"
         color: Config.text
         font.family: Config.settingsFont
@@ -126,6 +153,7 @@ Row {
 
     Text {
         width: 210
+        height: 30
         text: "Частота обновления CAVA (FPS)"
         color: Config.text
         font.family: Config.settingsFont
@@ -155,7 +183,7 @@ Row {
 }
 
 Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-    Text { width: 210; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
     id: cavaRowSpacingField
     width: 100
@@ -177,7 +205,7 @@ Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; widt
 }
 }
 Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-    Text { width: 210; text: "Ширина полоски (% слота)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+    Text { width: 210; height: 30; text: "Ширина полоски (% слота)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
     SettingsNumberField {
     id: cavaBarWidthRatioField
     width: 100

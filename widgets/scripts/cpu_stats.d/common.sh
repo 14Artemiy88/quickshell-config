@@ -7,10 +7,14 @@
 # Keeping the CPU id beside each snapshot is important: CPU hotplug/online
 # changes can otherwise shift array positions and compare counters from two
 # different cores, producing a false utilization spike or drop.
-cpu_read_counters_with_ids() {
-    local stat_path="${1:-/proc/stat}"
+# Caller-variable variant for CPU collectors that run on every poll. Assigning
+# multiline snapshots directly avoids a command-substitution subshell per sample.
+cpu_read_counters_with_ids_into() {
+    local output_var="${1:-}" stat_path="${2:-/proc/stat}"
     local cpu user nice system idle iowait irq softirq steal guest guest_nice
-    local total busy valid counter
+    local total busy valid counter output="" status=0
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    printf -v "$output_var" '%s' ''
 
     while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
         [[ "${cpu:-}" =~ ^cpu[0-9]+$ ]] || continue
@@ -39,8 +43,20 @@ cpu_read_counters_with_ids() {
 
         total=$((user + nice + system + idle + iowait + irq + softirq + steal))
         busy=$((total - idle - iowait))
-        printf '%s %s %s\n' "$cpu" "$busy" "$total"
-    done < "$stat_path"
+        [[ -n "$output" ]] && output+=$'\n'
+        output+="$cpu $busy $total"
+    done < "$stat_path" || status=$?
+
+    printf -v "$output_var" '%s' "$output"
+    return "$status"
+}
+
+# Keep the stdout API for existing callers and integrations.
+cpu_read_counters_with_ids() {
+    local result status=0
+    cpu_read_counters_with_ids_into result "${1:-/proc/stat}" || status=$?
+    [[ -n "$result" ]] && printf '%s\n' "$result"
+    return "$status"
 }
 
 # Compatibility helper retained for callers/tests that only need the counter
@@ -52,10 +68,12 @@ cpu_read_counters() {
 # Match snapshots by logical CPU id, not by row/index. A core that appears in
 # the newer snapshot has no comparable baseline yet, so its first sample is 0.
 # Output: cpuN percentage, in the order the newer snapshot lists the CPUs.
-cpu_usage_snapshot_percentages() {
-    local before_snapshot="${1:-}" after_snapshot="${2:-}"
-    local cpu busy total pct delta_total delta_busy
+cpu_usage_snapshot_percentages_into() {
+    local output_var="${1:-}" before_snapshot="${2:-}" after_snapshot="${3:-}"
+    local cpu busy total pct delta_total delta_busy output=""
     declare -A before_busy=() before_total=()
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    printf -v "$output_var" '%s' ''
 
     while read -r cpu busy total; do
         [[ "${cpu:-}" =~ ^cpu[0-9]+$ && "${busy:-}" =~ ^[0-9]+$ && "${total:-}" =~ ^[0-9]+$ ]] || continue
@@ -78,16 +96,29 @@ cpu_usage_snapshot_percentages() {
                 (( pct > 100 )) && pct=100
             fi
         fi
-        printf '%s %s\n' "$cpu" "$pct"
+        [[ -n "$output" ]] && output+=$'\n'
+        output+="$cpu $pct"
     done <<< "$after_snapshot"
+
+    printf -v "$output_var" '%s' "$output"
 }
 
-# Read the aggregate CPU counters from the first "cpu" row in /proc/stat.
-# Output busy_ticks total_ticks using the same accounting as per-core metrics.
-cpu_read_aggregate_counters() {
-    local stat_path="${1:-/proc/stat}"
+# Compatibility wrapper for callers that consume the line-oriented output.
+cpu_usage_snapshot_percentages() {
+    local result
+    cpu_usage_snapshot_percentages_into result "${1:-}" "${2:-}"
+    [[ -n "$result" ]] && printf '%s\n' "$result"
+}
+
+# Read aggregate CPU counters directly into the caller's variable. This is the
+# hot-path form used by Top Apps, which polls the snapshot every refresh.
+cpu_read_aggregate_counters_into() {
+    local output_var="${1:-}" stat_path="${2:-/proc/stat}"
     local cpu user nice system idle iowait irq softirq steal guest guest_nice
-    local total busy valid counter
+    local total busy valid counter aggregate_value=''
+
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    printf -v "$output_var" '%s' ''
 
     while read -r cpu user nice system idle iowait irq softirq steal guest guest_nice; do
         [[ "$cpu" == "cpu" ]] || continue
@@ -114,10 +145,19 @@ cpu_read_aggregate_counters() {
         (( valid )) || continue
         total=$((user + nice + system + idle + iowait + irq + softirq + steal))
         busy=$((total - idle - iowait))
-        printf '%s %s\n' "$busy" "$total"
+        aggregate_value="$busy $total"
+        printf -v "$output_var" '%s' "$aggregate_value"
         return 0
     done < "$stat_path"
     return 1
+}
+
+# Keep the stdout API for existing callers and integrations.
+cpu_read_aggregate_counters() {
+    local result status=0
+    cpu_read_aggregate_counters_into result "${1:-/proc/stat}" || status=$?
+    [[ -n "$result" ]] && printf '%s\n' "$result"
+    return "$status"
 }
 
 # Convert two busy/total snapshots to a bounded integer percentage.
@@ -142,9 +182,11 @@ cpu_usage_percent() {
 # Calculate used physical memory using Linux's MemAvailable estimate. Keeping
 # this shared with every collector avoids depending on the version/output
 # semantics of `free`, which can report a different value on older procps.
-mem_usage_percent() {
-    local meminfo_path="${1:-/proc/meminfo}"
-    local key value total=0 available=0 used pct
+mem_usage_percent_into() {
+    local output_var="${1:-}" meminfo_path="${2:-/proc/meminfo}"
+    local key value total=0 available=0 used pct computed
+    [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
+    printf -v "$output_var" '%s' '0'
 
     # /proc/meminfo is tiny and these two fields are all the percentage needs.
     # Parse with Bash built-ins to avoid starting AWK on every memory poll.
@@ -164,8 +206,16 @@ mem_usage_percent() {
         pct=$(( (used * 100 + total / 2) / total ))
         (( pct < 0 )) && pct=0
         (( pct > 100 )) && pct=100
-        printf '%s' "$pct"
+        computed=$pct
     else
-        printf '0'
+        computed=0
     fi
+    printf -v "$output_var" '%s' "$computed"
+}
+
+# Keep the stdout API for external scripts and existing integrations.
+mem_usage_percent() {
+    local result
+    mem_usage_percent_into result "${1:-/proc/meminfo}"
+    printf '%s' "$result"
 }

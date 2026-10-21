@@ -1,7 +1,0 @@
-.qmlls.ini
-
-# User-created calendar notes
-calendar-notes.json
-
-# Legacy user data, retained only for safe migration from older installs
-settings.json

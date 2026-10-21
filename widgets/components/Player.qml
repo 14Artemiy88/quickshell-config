@@ -92,25 +92,38 @@ Primitives.ModuleFrame {
         opacity: Config.playerCoverOpacity
     }
 
+    // Measure fallback labels at the smallest supported size. Short labels
+    // keep their one-line HorizontalFit behavior; labels that still exceed the
+    // configured width switch to a small, bounded multiline layout.
+    TextMetrics {
+        id: silenceMetrics
+        font.family: Config.playerFont
+        font.pixelSize: Config.playerSilenceLongFontSize
+        text: silenceText.text
+    }
+
     // With no cover/track information, keep "silence" exactly in the
     // center of the player rather than inheriting the metadata layout.
     Text {
         id: silenceText
+        property bool needsMultiline: text.length > 0 && silenceMetrics.advanceWidth > width
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         width: Config.playerSilenceWidth
+        maximumLineCount: needsMultiline ? 3 : 1
         // A stale/unreadable path used to suppress the fallback text even when
         // QtQuick could not load the cover. Use the actual Image status too.
         text: (!root.player.image || root.player.image.endsWith("/assets/1px.png") || root.player.image.endsWith("/album_cover.png") || coverImage.status === Image.Error || coverImage.status === Image.Null)
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
         font.family: Config.playerFont
-        font.pixelSize: Config.playerSilenceFontSize
-        fontSizeMode: Text.HorizontalFit
+        font.pixelSize: needsMultiline ? Config.playerSilenceLongFontSize : Config.playerSilenceFontSize
+        fontSizeMode: needsMultiline ? Text.FixedSize : Text.HorizontalFit
         minimumPixelSize: Config.playerSilenceLongFontSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
-        wrapMode: Text.NoWrap
+        wrapMode: needsMultiline ? Text.Wrap : Text.NoWrap
+        elide: Text.ElideRight
         style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
         styleColor: Config.playerTextOutlineColor
     }

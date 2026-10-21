@@ -10,5 +10,5 @@ weather_gismeteo_fetch() {
         --max-time "$WEATHER_CURL_MAX_TIME" \
         -H "X-Gismeteo-Token: $token" \
         "https://api.gismeteo.net/v2/weather/$endpoint_type/4517/$params" |
-        jq -c '.response | select(. != null)'
+        jq -c '.response | if (type == "object" or type == "array") then select(length > 0) else empty end'
 }

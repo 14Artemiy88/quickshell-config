@@ -15,10 +15,11 @@ elif [[ ! "$SAMPLE_INTERVAL" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
   SAMPLE_INTERVAL="0.25"
 fi
 
-before="$(cpu_read_counters_with_ids "$PROC_STAT" 2>/dev/null || true)"
+before="" after="" pct_snapshot="" ram=""
+cpu_read_counters_with_ids_into before "$PROC_STAT" 2>/dev/null || true
 sleep "$SAMPLE_INTERVAL"
-after="$(cpu_read_counters_with_ids "$PROC_STAT" 2>/dev/null || true)"
-pct_snapshot="$(cpu_usage_snapshot_percentages "$before" "$after")"
+cpu_read_counters_with_ids_into after "$PROC_STAT" 2>/dev/null || true
+cpu_usage_snapshot_percentages_into pct_snapshot "$before" "$after"
 
 out="["
 first=1
@@ -28,5 +29,5 @@ while read -r cpu pct; do
   out+="$pct"
 done <<< "$pct_snapshot"
 out+="]"
-ram="$(mem_usage_percent /proc/meminfo)"
+mem_usage_percent_into ram /proc/meminfo
 printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"

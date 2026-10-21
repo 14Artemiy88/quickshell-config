@@ -134,7 +134,7 @@ function resetModule(owner, config, moduleName) {
     owner.moduleMonitors = m
 
     if (moduleName === "calendar") {
-        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
+        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
     } else if (moduleName === "cpu") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
@@ -144,7 +144,7 @@ function resetModule(owner, config, moduleName) {
     } else if (moduleName === "cpuGraph") {
         applyConfigKeysFromProfile(owner, config, profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode"])
     } else if (moduleName === "topAppsCpu" || moduleName === "topAppsRam") {
-        applyConfigKeysFromProfile(owner, config, profile, ["topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
+        applyConfigKeysFromProfile(owner, config, profile, ["topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
     } else if (moduleName === "networkStat" || moduleName === "networks") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
@@ -154,7 +154,7 @@ function resetModule(owner, config, moduleName) {
     } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes",
-            "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize",
+            "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX",
             "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount",
             "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize",
             "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize",
@@ -208,7 +208,7 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "cava") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent"
+            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent", "cavaHideZeroBars"
         ])
     }
 
@@ -236,7 +236,7 @@ function resetColors(owner, config, names, themes, colorNames) {
 
 function resetCpuSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
 }
 
 function resetNetworkSettings(owner, config) {
@@ -279,19 +279,19 @@ function resetMopidySettings(owner, config) {
 
 function resetWeatherSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
+    applyConfigKeysFromProfile(owner, config, profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
     if (profile.weatherToken !== undefined) owner.weatherToken = String(profile.weatherToken)
     owner.save()
 }
 
 function resetCalendarSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"]); owner.save()
 }
 
 function resetCavaSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode", "cavaHideWhenSilent"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode", "cavaHideWhenSilent", "cavaHideZeroBars"]); owner.save()
 }
 
 function resetGeneralSettings(owner, config) {

@@ -80,7 +80,7 @@ Primitives.ModuleFrame {
 
     Image {
         visible: root.hasData
-        x: (Config.weatherTempColumnWidth + Config.weatherWindColumnX - width) / 2
+        x: Config.weatherIconX
         y: Config.weatherIconY
         width: Config.weatherIconSize
         height: Config.weatherIconSize

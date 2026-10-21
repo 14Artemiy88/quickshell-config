@@ -25,6 +25,9 @@ Primitives.ModuleFrame {
     property bool mainPendingMuted: false
     property double mainMutePendingUntil: 0
     property bool mainMuteRefreshPending: false
+    // Keep per-stream click targets outside delegates: SystemMonitor replaces
+    // its JSON snapshot on every poll, which can recreate Repeater delegates.
+    property var streamPendingValues: ({})
     readonly property int streamCount: streamRepeater.count
     readonly property int effectiveStreamCount: Config.volumeShowStreams ? streamCount : 0
     readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
@@ -102,8 +105,30 @@ Primitives.ModuleFrame {
             Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_volume", "main", String(next)])
         }
     }
+    function clearStreamPending(id) {
+        const key = String(id)
+        if (!Object.prototype.hasOwnProperty.call(streamPendingValues, key)) return
+        const next = Object.assign({}, streamPendingValues)
+        delete next[key]
+        streamPendingValues = next
+    }
+
+    function reconcileStreamPending(id, backendValue) {
+        const key = String(id)
+        const pending = streamPendingValues[key]
+        if (!pending) return
+        if (Math.abs(Number(backendValue) - Number(pending.value)) <= 0.5 || Date.now() >= Number(pending.until))
+            clearStreamPending(key)
+    }
+
     function applyStreamVolume(id, v) {
         const next = Math.round(clampVolume(v))
+        const pending = Object.assign({}, streamPendingValues)
+        pending[String(id)] = { value: next, until: Date.now() + 2000 }
+        // Render the requested value immediately and keep it visible until a
+        // monitor snapshot confirms it. This survives delegate recreation and
+        // prevents stale polls from snapping the track back after a click.
+        streamPendingValues = pending
         Quickshell.execDetached([Quickshell.shellDir + "/scripts/set_volume", "stream", String(next), String(id)])
     }
 
@@ -137,6 +162,26 @@ Primitives.ModuleFrame {
                 root.mainMuteRefreshPending = true
             else
                 volumePoll.running = true
+        }
+    }
+
+    Timer {
+        id: streamPendingExpiryTimer
+        interval: 100
+        repeat: true
+        running: Object.keys(root.streamPendingValues).length > 0
+        onTriggered: {
+            const now = Date.now()
+            const current = root.streamPendingValues
+            const next = {}
+            let changed = false
+            for (const key in current) {
+                if (Object.prototype.hasOwnProperty.call(current, key) && Number(current[key]?.until ?? 0) > now)
+                    next[key] = current[key]
+                else
+                    changed = true
+            }
+            if (changed) root.streamPendingValues = next
         }
     }
 
@@ -247,8 +292,17 @@ Primitives.ModuleFrame {
                 width: parent.width
                 spacing: Config.volumeStreamSpacing
                 property real backendValue: Number(modelData.value ?? 0)
-                property real dragValue: backendValue
+                property var pendingVolume: root.streamPendingValues[String(modelData.num)] ?? null
+                property real dragValue: displayedValue
                 property bool dragging: false
+                property real displayedValue: {
+                    if (dragging) return dragValue
+                    if (pendingVolume && Date.now() < Number(pendingVolume.until))
+                        return Number(pendingVolume.value)
+                    return backendValue
+                }
+                onBackendValueChanged: root.reconcileStreamPending(modelData.num, backendValue)
+                Component.onCompleted: root.reconcileStreamPending(modelData.num, backendValue)
 
                 Text {
                     text: modelData.name
@@ -269,7 +323,7 @@ Primitives.ModuleFrame {
                         width: parent.width
                         height: Config.volumeStreamTrackHeight
                         radius: Config.volumeTrackRadius
-                        value: root.clampVolume(streamColumn.dragging ? streamColumn.dragValue : streamColumn.backendValue)
+                        value: root.clampVolume(streamColumn.displayedValue)
                         fillColor: Config.volumeFill
                         trackColor: Config.volumeTrack
                     }
@@ -290,7 +344,7 @@ Primitives.ModuleFrame {
                             root.applyStreamVolume(modelData.num, streamColumn.dragValue)
                         }
                         onWheel: wheel => {
-                            const current = streamColumn.dragging ? streamColumn.dragValue : streamColumn.backendValue
+                            const current = streamColumn.displayedValue
                             const next = root.clampVolume(current + (wheel.angleDelta.y > 0 ? 1 : -1))
                             streamColumn.dragging = false
                             streamColumn.dragValue = next

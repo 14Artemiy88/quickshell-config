@@ -124,11 +124,12 @@ Column {
                 y: Math.round((parent.height - height) / 2) + Config.mopidyMoveUpIconY
                 iconText: index > 0 ? Config.mopidyMoveUpIcon : ""
                 iconSize: Config.mopidyMoveUpIconSize
-                visible: index > 0 && Config.mopidyShowMoveUpIcon
+                requestedVisible: index > 0 && Config.mopidyShowMoveUpIcon
+                hideWhenDisabled: false
                 baseColor: Config.textMuted
                 hoverMode: Config.mopidyHoverMode
                 hoverColor: Config.mopidyHoverColor
-                interactionEnabled: visible && !controller.playlistsBusy && !controller.playlistContentMoveBusy
+                interactionEnabled: requestedVisible && !controller.playlistsBusy && !controller.playlistContentMoveBusy
                 onClicked: controller.movePlaylistItem(index, index - 1, modelData.name)
             }
 
@@ -141,11 +142,12 @@ Column {
                 y: Math.round((parent.height - height) / 2) + Config.mopidyMoveDownIconY
                 iconText: index < controller.playlistItems.length - 1 ? Config.mopidyMoveDownIcon : ""
                 iconSize: Config.mopidyMoveDownIconSize
-                visible: index < controller.playlistItems.length - 1 && Config.mopidyShowMoveDownIcon
+                requestedVisible: index < controller.playlistItems.length - 1 && Config.mopidyShowMoveDownIcon
+                hideWhenDisabled: false
                 baseColor: Config.textMuted
                 hoverMode: Config.mopidyHoverMode
                 hoverColor: Config.mopidyHoverColor
-                interactionEnabled: visible && !controller.playlistsBusy && !controller.playlistContentMoveBusy
+                interactionEnabled: requestedVisible && !controller.playlistsBusy && !controller.playlistContentMoveBusy
                 onClicked: controller.movePlaylistItem(index, index + 1, modelData.name)
             }
 

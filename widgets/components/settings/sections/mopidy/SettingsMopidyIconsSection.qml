@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../../primitives"
+import "../../../primitives" as Primitives
 import "../../../.."
 
 Column {
@@ -42,7 +43,8 @@ Column {
         height: 30
         spacing: 8
         Text {
-            width: 220
+            width: 210
+            height: 30
             text: "Скрывать верхнюю панель иконок"
             color: Config.text
             font.family: Config.settingsFont
@@ -65,7 +67,8 @@ Column {
         height: 30
         spacing: 8
         Text {
-            width: 220
+            width: 210
+            height: 30
             text: "Высота области наведения"
             color: Config.text
             font.family: Config.settingsFont
@@ -88,7 +91,8 @@ Column {
         height: 30
         spacing: 8
         Text {
-            width: 220
+            width: 210
+            height: 30
             text: "Отступ сверху (Y)"
             color: Config.text
             font.family: Config.settingsFont
@@ -162,31 +166,29 @@ Column {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                SettingsButton {
-                    width: 32
-                    height: 28
-                    text: "↑"
-                    fontSize: 11
-                    enabled: index > 0
-                    fillOnHover: true
-                    backgroundColor: Config.settingsBackground
-                    hoverBackgroundColor: Config.baseColor
-                    textColor: Config.text
-                    hoverTextColor: Config.text
+                Primitives.MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↑"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index > 0
+                    toolTipText: "Поднять выше"
                     onClicked: orderColumn.moveItem(index, -1)
                 }
 
-                SettingsButton {
-                    width: 32
-                    height: 28
-                    text: "↓"
-                    fontSize: 11
-                    enabled: index < orderColumn.orderIds.length - 1
-                    fillOnHover: true
-                    backgroundColor: Config.settingsBackground
-                    hoverBackgroundColor: Config.baseColor
-                    textColor: Config.text
-                    hoverTextColor: Config.text
+                Primitives.MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↓"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "background"
+                    hoverColor: Config.accent
+                    interactionEnabled: index < orderColumn.orderIds.length - 1
+                    toolTipText: "Опустить ниже"
                     onClicked: orderColumn.moveItem(index, 1)
                 }
             }
@@ -235,7 +237,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Стоп"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Стоп"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: stopIconField; width: 58; height: 30; text: Config.mopidyStopIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (stopIconField.activeFocus || stopIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -254,7 +256,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Обновить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Обновить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: refreshIconField; width: 58; height: 30; text: Config.mopidyRefreshIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (refreshIconField.activeFocus || refreshIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -274,7 +276,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Открыть добавление"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Открыть добавление"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: openAddIconField; width: 58; height: 30; text: Config.mopidyOpenAddIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (openAddIconField.activeFocus || openAddIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -293,7 +295,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Добавить элемент"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Добавить элемент"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: addIconField; width: 58; height: 30; text: Config.mopidyAddIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (addIconField.activeFocus || addIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -312,7 +314,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Shuffle"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Shuffle"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: shuffleIconField; width: 58; height: 30; text: Config.mopidyShuffleIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (shuffleIconField.activeFocus || shuffleIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -331,7 +333,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Repeat"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Repeat"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: repeatIconField; width: 58; height: 30; text: Config.mopidyRepeatIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (repeatIconField.activeFocus || repeatIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -350,7 +352,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Переключить плейлист"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
+        Text { width: 82; height: 30; text: "Переключить плейлист"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
         SettingsTextField {
             id: switchPlaylistIconField; width: 58; height: 30; text: Config.mopidySwitchPlaylistIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (switchPlaylistIconField.activeFocus || switchPlaylistIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -369,7 +371,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Удаление плейлистов/треков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
+        Text { width: 82; height: 30; text: "Удаление плейлистов/треков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
         SettingsTextField {
             id: playlistDeleteIconField; width: 58; height: 30; text: Config.mopidyPlaylistDeleteIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (playlistDeleteIconField.activeFocus || playlistDeleteIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -388,7 +390,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Вверх"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Вверх"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: moveUpIconField; width: 58; height: 30; text: Config.mopidyMoveUpIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (moveUpIconField.activeFocus || moveUpIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -407,7 +409,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Вниз"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Вниз"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: moveDownIconField; width: 58; height: 30; text: Config.mopidyMoveDownIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (moveDownIconField.activeFocus || moveDownIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -426,7 +428,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: volumeIconField; width: 58; height: 30; text: Config.mopidyVolumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -445,7 +447,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Mute"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Mute"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: mutedIconField; width: 58; height: 30; text: Config.mopidyMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (mutedIconField.activeFocus || mutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
@@ -460,7 +462,7 @@ Column {
 
     Row {
         width: parent.width; height: 30; spacing: 6
-        Text { width: 82; text: "Очистить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 82; height: 30; text: "Очистить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: clearIconField; width: 58; height: 30; text: Config.mopidyClearIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
             background: Rectangle { color: Config.settingsBackground; border.color: (clearIconField.activeFocus || clearIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }

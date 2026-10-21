@@ -33,7 +33,12 @@ function apply(Config, o) {
         if (o.topAppsSystemRemainderLabel !== undefined) { var remainderLabel = String(o.topAppsSystemRemainderLabel).replace(/[\r\n\t]/g, " ").trim().slice(0, 64); Config.topAppsSystemRemainderLabel = remainderLabel || "Система/прочее" }
         if (o.topAppsFont !== undefined) Config.topAppsFont = String(o.topAppsFont).slice(0, 128)
         // User-tuned Top Apps typography/layout: keep lower bounds that prevent invalid sizes, but no artificial upper bounds.
-        var topAppsNumberFields = [["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity], ["topAppsTopOffset", 0, Infinity], ["topAppsHeaderTitleFontSize", 6, 32], ["topAppsHeaderSubtitleFontSize", 6, 32]]
+        var topAppsNumberFields = [
+            ["topAppsFontSize", 1, Infinity], ["topAppsRowSpacing", 0, Infinity],
+            ["topAppsTopOffset", 0, Infinity], ["topAppsHeaderTitleFontSize", 6, 32],
+            ["topAppsHeaderSubtitleFontSize", 6, 32], ["topAppsBarX", 45, 240],
+            ["topAppsBarY", -10, 10], ["topAppsBarHeight", 1, 30], ["topAppsBarWidth", 1, 300]
+        ]
         for (var taf = 0; taf < topAppsNumberFields.length; ++taf) {
             var taname = topAppsNumberFields[taf][0]
             if (o[taname] !== undefined) {
@@ -90,6 +95,10 @@ function apply(Config, o) {
         if (o.calendarAdjacentDaysColor !== undefined) {
             var adjacentDaysColor = String(o.calendarAdjacentDaysColor)
             Config.calendarAdjacentDaysColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(adjacentDaysColor) ? adjacentDaysColor : "#777777"
+        }
+        if (o.calendarWeekendColor !== undefined) {
+            var weekendColor = String(o.calendarWeekendColor)
+            Config.calendarWeekendColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(weekendColor) ? weekendColor : "#d98282"
         }
         if (o.calendarPastDaysColor !== undefined) {
             var pastDaysColor = String(o.calendarPastDaysColor)

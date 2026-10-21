@@ -73,9 +73,36 @@ timer_process_entry_locked() {
     return 0
 }
 
+
+# Build a whole timer snapshot under one shared lock per daemon tick. Every
+# entry is still read afresh, and expiration transitions are committed while
+# UI actions are excluded; this keeps the no-stale-snapshot guarantee while
+# replacing one external `flock` process per timer with one per snapshot.
+# The number of expirations is returned separately so speech only starts after
+# timer_with_lock has closed its descriptor and released the lock.
+timer_process_batch_locked() {
+    local output_var="$1" expired_var="$2" now="$3"
+    local file data status result_json expired_count=0
+    local -a entries=()
+
+    for file in "$TIMER_DIR"/*; do
+        [[ -f "$file" ]] || continue
+        data=''
+        status=0
+        timer_process_entry_locked data "$file" "$now" || status=$?
+        [[ -n "$data" ]] && entries+=("$data")
+        if (( status == 10 )); then
+            expired_count=$((expired_count + 1))
+        fi
+    done
+
+    timer_entries_to_json_into result_json "${entries[@]}"
+    printf -v "$output_var" '%s' "$result_json"
+    printf -v "$expired_var" '%d' "$expired_count"
+}
+
 run_daemon() {
-    local now file data
-    local -a timers=()
+    local now tick_payload tick_expirations i
     timer_ensure_dirs || return 1
 
     while true; do
@@ -86,20 +113,23 @@ run_daemon() {
         if [[ ! "$now" =~ ^[0-9]+$ ]]; then
             now=$(date '+%s')
         fi
-        timers=()
 
-        # Read fresh state for every timer each cycle. The old second-resolution
-        # mtime cache could miss two writes in the same second and replay stale
-        # data over newer user actions.
-        for file in "$TIMER_DIR"/*; do
-            [[ -f "$file" ]] || continue
-            timer_process_entry_into data "$file" "$now" || continue
-            [[ -n "$data" ]] && timers+=("$data")
+        tick_payload=''
+        tick_expirations=0
+        # One lock covers the full snapshot, including expiry-state updates.
+        # UI actions can therefore never be overwritten by a stale scan, while
+        # the daemon launches flock once per tick rather than once per timer.
+        if ! timer_with_lock timer_process_batch_locked tick_payload tick_expirations "$now"; then
+            tick_payload='[]'
+            tick_expirations=0
+        fi
+        [[ -n "$tick_payload" ]] || tick_payload='[]'
+        printf '%s\n' "$tick_payload"
+
+        # Never run the speech command while holding the shared timer lock.
+        for ((i = 0; i < tick_expirations; i++)); do
+            say "$MESSAGE"
         done
-
-        # Every entry is already a valid compact JSON object. Join entries in
-        # the current shell rather than starting jq once per non-empty tick.
-        timer_entries_to_json "${timers[@]}"
 
         sleep 1
     done

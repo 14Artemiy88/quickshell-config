@@ -46,6 +46,8 @@ function applyTheme(owner, themes, Config, name) {
     // CPU/RAM colors from the corresponding palette entries when switched.
     if (p.topAppsCpuBarColor === undefined) Config.topAppsCpuBarColor = p.accent || Config.accent
     if (p.topAppsRamBarColor === undefined) Config.topAppsRamBarColor = p.ram || Config.ram
+    if (p.topAppsCpuBarTrackColor === undefined) Config.topAppsCpuBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack
+    if (p.topAppsRamBarTrackColor === undefined) Config.topAppsRamBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack
     owner.activeTheme = n
     owner.themeDraftSource = n
     owner.themeDraft = JSON.parse(JSON.stringify(p))

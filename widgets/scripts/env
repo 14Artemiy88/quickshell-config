@@ -2,7 +2,54 @@
 # Paths used by quickshell-widgets follow the XDG Base Directory Specification.
 # Keep the installed/source tree separate from user data: assets and scripts
 # are project files, not a writable settings directory.
-QS_PROJECT_DIR="${QS_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+# Resolve the project root from this sourced file using Bash built-ins. `env`
+# is sourced by frequently polled scripts (Player/System Monitor/timer); the
+# former dirname + cd/pwd command substitution spawned processes each time.
+if [[ -z "${QS_PROJECT_DIR:-}" ]]; then
+    _qs_env_source_path="${BASH_SOURCE[0]}"
+    [[ "$_qs_env_source_path" == /* ]] || _qs_env_source_path="$PWD/$_qs_env_source_path"
+    _qs_env_rest="${_qs_env_source_path#/}"
+    _qs_env_components=()
+    while [[ -n "$_qs_env_rest" ]]; do
+        if [[ "$_qs_env_rest" == */* ]]; then
+            _qs_env_component="${_qs_env_rest%%/*}"
+            _qs_env_rest="${_qs_env_rest#*/}"
+        else
+            _qs_env_component="$_qs_env_rest"
+            _qs_env_rest=''
+        fi
+        case "$_qs_env_component" in
+            ''|.) ;;
+            ..)
+                _qs_env_count=${#_qs_env_components[@]}
+                if ((_qs_env_count > 0)); then
+                    _qs_env_last=$((_qs_env_count - 1))
+                    if [[ "${_qs_env_components[$_qs_env_last]}" != ".." ]]; then
+                        unset "_qs_env_components[$_qs_env_last]"
+                    else
+                        _qs_env_components+=("..")
+                    fi
+                fi
+                ;;
+            *) _qs_env_components+=("$_qs_env_component") ;;
+        esac
+    done
+
+    # env always lives at <project>/scripts/env. Remove those final two path
+    # components after normalizing '.', '..' and repeated slashes.
+    _qs_env_count=${#_qs_env_components[@]}
+    if ((_qs_env_count >= 2)); then
+        unset "_qs_env_components[$((_qs_env_count - 1))]"
+        _qs_env_count=$((_qs_env_count - 1))
+        unset "_qs_env_components[$((_qs_env_count - 1))]"
+    fi
+    QS_PROJECT_DIR=''
+    for _qs_env_component in "${_qs_env_components[@]}"; do
+        QS_PROJECT_DIR+="/$_qs_env_component"
+    done
+    [[ -n "$QS_PROJECT_DIR" ]] || QS_PROJECT_DIR='/'
+    unset _qs_env_source_path _qs_env_rest _qs_env_components _qs_env_component _qs_env_count _qs_env_last
+fi
 
 # XDG base variables are only valid when absolute; fall back to spec defaults
 # if an invalid relative path was inherited from the desktop environment.

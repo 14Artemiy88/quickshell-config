@@ -4,7 +4,7 @@ var moduleNames = ["time","calendar","cpu","cpuGraph","topAppsCpu","topAppsRam",
 
 var moduleLabels = ({time:"Часы",cpu:"CPU",cpuGraph:"График CPU",topAppsCpu:"Top Apps CPU",topAppsRam:"Top Apps RAM",networkStat:"Сеть",weatherNow:"Погода сейчас",weatherHourly:"Погода по часам",weatherDaily:"Погода по дням",timer:"Таймеры",volumes:"Громкость",player:"Плеер",mopidy:"Mopidy",cava:"CAVA",networks:"Networks",calendar:"Календарь"})
 
-var colorNames = ["baseColor","accent","currentWeather","background","text","textMuted","textDim","textDisabled","calendarBackground","settingsBackground","settingsBorder","settingsSubheading","playerOverlay","playerProgressTrack","playerProgressFill","activeNetworkBackground","volumeTrack","volumeFill","cpu1","cpu2","cpu3","cpu4","cpu5","cpu6","cpu7","cpu8","ram","metricTrack","ramTrack","networkUpload","networkDownload","topAppsCpuBarColor","topAppsRamBarColor","tempHot","tempWarm","tempMild","tempCool","tempZero","tempCold","tempVeryCold","tempFreezing"]
+var colorNames = ["baseColor","accent","currentWeather","background","text","textMuted","textDim","textDisabled","calendarBackground","settingsBackground","settingsBorder","settingsSubheading","playerOverlay","playerProgressTrack","playerProgressFill","activeNetworkBackground","volumeTrack","volumeFill","cpu1","cpu2","cpu3","cpu4","cpu5","cpu6","cpu7","cpu8","ram","metricTrack","ramTrack","networkUpload","networkDownload","topAppsCpuBarColor","topAppsRamBarColor","topAppsCpuBarTrackColor","topAppsRamBarTrackColor","tempHot","tempWarm","tempMild","tempCool","tempZero","tempCold","tempVeryCold","tempFreezing"]
 
 var defaultWeatherToken = ""
 var defaultTimerPresetDefaults = [5, 7, 15]

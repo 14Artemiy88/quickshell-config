@@ -12,16 +12,7 @@ Column {
     visible: host && host.currentOtherTab === 5
     width: parent ? parent.width : 0
     spacing: 10
-
-    Text {
-        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
-        text: "CPU и RAM"
-        color: Config.accent
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(14)
-    }
-
-    Text {
+Text {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         text: "Настройки полос CPU и RAM"
         color: Config.textMuted
@@ -32,7 +23,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Интервал обновления CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Интервал обновления CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             id: cpuSettingsIntervalField
             value: Config.cpuUpdateInterval
@@ -53,7 +44,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Направление заполнения полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Направление заполнения полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: cpuBarDirectionCombo
             width: 170
@@ -70,7 +61,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuBarThicknessField
     width: 100
@@ -95,7 +86,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Ширина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Ширина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuBarWidthField
     width: 100
@@ -120,7 +111,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuRowHeightField
     width: 100
@@ -145,7 +136,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuRowSpacingField
     width: 100
@@ -170,7 +161,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Отступ подписи слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Отступ подписи слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuLabelPaddingField
     width: 100
@@ -195,7 +186,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Смещение полос слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Смещение полос слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuBarOffsetField
     width: 100
@@ -220,7 +211,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Радиус полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Радиус полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuBarRadiusField
     width: 100
@@ -242,10 +233,9 @@ Column {
 }
     }
 
-    Text { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; text: "График CPU"; color: Config.accent; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12) }
 
     Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Режим графика CPU"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Режим графика CPU"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsComboBox {
             id: cpuGraphModeCombo
             width: 130
@@ -260,7 +250,7 @@ Column {
     }
 
     Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuGraphSlotField
     width: 100
@@ -283,7 +273,7 @@ Column {
     }
 
     Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Толщина полос графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Толщина полос графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
     id: cpuGraphBarWidthField
     width: 100
@@ -365,7 +355,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: topAppsCpuHeaderTitleField
             width: 180; height: 30
@@ -381,7 +371,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: topAppsCpuHeaderSubtitleField
             width: 180; height: 30
@@ -405,7 +395,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: topAppsRamHeaderTitleField
             width: 180; height: 30
@@ -421,7 +411,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsTextField {
             id: topAppsRamHeaderSubtitleField
             width: 180; height: 30
@@ -437,7 +427,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Размер основного заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер основного заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             value: Config.topAppsHeaderTitleFontSize
             minimum: 6; maximum: 32; step: 1; wheelStep: 1
@@ -450,7 +440,7 @@ Column {
     Row {
         visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Размер подзаголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер подзаголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             value: Config.topAppsHeaderSubtitleFontSize
             minimum: 6; maximum: 32; step: 1; wheelStep: 1
@@ -469,6 +459,66 @@ Column {
             text: "Показывать полосы нагрузки"
             checked: Config.topAppsShowBars
             onToggled: { Config.topAppsShowBars = checked; settings.save() }
+        }
+    }
+
+    Text {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        text: "Положение и размер полос"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(12)
+    }
+
+    Row {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; height: 30; text: "X — положение по горизонтали"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsBarX
+            minimum: 45; maximum: 240; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsBarX"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; height: 30; text: "Y — смещение по вертикали"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsBarY
+            minimum: -10; maximum: 10; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsBarY"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; height: 30; text: "Высота полосы"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsBarHeight
+            minimum: 1; maximum: 30; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsBarHeight"
+            settingsObject: root.settings; saveOnEdit: true
+        }
+    }
+
+    Row {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width; height: 30; spacing: 8
+        Text { width: 210; height: 30; text: "Длина полосы"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsNumberField {
+            value: Config.topAppsBarWidth
+            minimum: 1; maximum: 300; step: 1; wheelStep: 1
+            labelWidth: 0; fieldWidth: 100; compact: true
+            targetObject: Config; targetProperty: "topAppsBarWidth"
+            settingsObject: root.settings; saveOnEdit: true
         }
     }
 
@@ -520,6 +570,36 @@ Column {
         compact: false
     }
 
+    SettingsColorField {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        label: "CPU: неактивная часть полосы"
+        value: String(Config.topAppsCpuBarTrackColor)
+        targetObject: Config
+        targetProperty: "topAppsCpuBarTrackColor"
+        settingsObject: root.settings
+        saveOnEdit: true
+        allowAlpha: true
+        allowTransparent: true
+        fieldWidth: 120
+        compact: false
+    }
+
+    SettingsColorField {
+        visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        width: parent.width
+        label: "RAM: неактивная часть полосы"
+        value: String(Config.topAppsRamBarTrackColor)
+        targetObject: Config
+        targetProperty: "topAppsRamBarTrackColor"
+        settingsObject: root.settings
+        saveOnEdit: true
+        allowAlpha: true
+        allowTransparent: true
+        fieldWidth: 120
+        compact: false
+    }
+
     // Строка «Система/прочее»: поле названия рядом с соответствующим переключателем.
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -544,7 +624,7 @@ Column {
         visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
         Text {
-            width: 210; text: "Название строки остатка"
+            width: 210; height: 30; text: "Название строки остатка"
             color: Config.text; font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
@@ -581,7 +661,7 @@ Column {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
         Text {
-            width: 210; text: "Шрифт списка (пусто — системный)"
+            width: 210; height: 30; text: "Шрифт списка (пусто — системный)"
             color: Config.text; font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
@@ -609,7 +689,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Размер шрифта списка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Размер шрифта списка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             value: Config.topAppsFontSize
             minimum: 1; step: 1; wheelStep: 1
@@ -622,7 +702,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Межстрочный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Межстрочный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             value: Config.topAppsRowSpacing
             minimum: 0; step: 1; wheelStep: 1
@@ -635,7 +715,7 @@ Column {
     Row {
         visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width; height: 30; spacing: 8
-        Text { width: 210; text: "Отступ от верхнего края"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        Text { width: 210; height: 30; text: "Отступ от верхнего края"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         SettingsNumberField {
             value: Config.topAppsTopOffset
             minimum: 0; step: 1; wheelStep: 1

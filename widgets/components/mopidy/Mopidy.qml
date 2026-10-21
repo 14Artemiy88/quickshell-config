@@ -19,8 +19,15 @@ Primitives.ModuleFrame {
     property int currentTlid: -1
     property int currentPositionMs: 0
     property int mopidyVolume: -1
+    property int mopidyRestoreVolume: -1
     property bool mopidyMuted: false
     property bool mixerAvailable: false
+    property bool mixerCommandPending: false
+    property int pendingMixerTargetVolume: -1
+    property bool pendingMixerTargetMuted: false
+    property bool pendingMixerMatchVolume: true
+    property bool mixerSoftMuteMigrationAttempted: false
+    property bool mixerSoftMuteMigrationPending: false
     property bool playbackPrefsAvailable: false
     property bool mopidyRandom: false
     property bool mopidyRepeat: false
@@ -375,25 +382,47 @@ Primitives.ModuleFrame {
     function moveTrack(tlid, position) { runQueueCommand(["move", String(tlid), String(position)]) }
     function clearQueue() { runQueueCommand(["clear"]) }
     function stopPlayback() { runQueueCommand(["stop"]) }
-    function refreshMixer() {
-        if (!Settings.mopidy || mixerProcess.running || mixerActionProcess.running) return
-        mixerProcess.running = true
+    function refreshMopidyStatus() {
+        if (!Settings.mopidy || mopidyStatusProcess.running || mixerActionProcess.running ||
+                mixerSoftMuteMigrationProcess.running || playbackPrefsActionProcess.running) return
+        mopidyStatusProcess.running = true
     }
+    function refreshMopidyStatusAfterPending() {
+        root.refreshMopidyStatus()
+    }
+
+    function markMixerCommandPending(targetVolume, targetMuted, matchVolume) {
+        root.mixerCommandPending = true
+        root.pendingMixerTargetVolume = targetVolume
+        root.pendingMixerTargetMuted = !!targetMuted
+        root.pendingMixerMatchVolume = matchVolume !== false
+        mixerPendingFallbackTimer.restart()
+    }
+
     function setMixerVolume(value) {
         var next = Math.max(0, Math.min(100, Math.round(Number(value))))
         if (!isFinite(next) || mixerActionProcess.running) return
+        var wasMuted = root.mopidyMuted
+        if (next > 0) {
+            root.mopidyRestoreVolume = next
+            root.mopidyMuted = false
+        } else {
+            root.mopidyMuted = true
+        }
         root.mopidyVolume = next
-        mixerActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "set", String(next)]
+        root.markMixerCommandPending(next, next === 0, true)
+        // A positive wheel/volume change while muted must also clear a legacy
+        // native mute; otherwise use the fast volume path directly.
+        mixerActionProcess.command = wasMuted && next > 0
+            ? [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "mute", "false", String(next)]
+            : [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "set", String(next), String(root.mopidyRestoreVolume)]
         mixerActionProcess.running = true
     }
     function adjustMixerVolume(delta) {
-        var base = Number(root.mopidyVolume)
+        var base = root.mopidyMuted && root.mopidyRestoreVolume > 0
+            ? Number(root.mopidyRestoreVolume) : Number(root.mopidyVolume)
         if (!isFinite(base) || base < 0) return
         setMixerVolume(base + delta)
-    }
-    function refreshPlaybackPrefs() {
-        if (!Settings.mopidy || playbackPrefsProcess.running || playbackPrefsActionProcess.running) return
-        playbackPrefsProcess.running = true
     }
     function toggleRandom() {
         if (!root.playbackPrefsAvailable || playbackPrefsActionProcess.running) return
@@ -408,9 +437,28 @@ Primitives.ModuleFrame {
     }
 
     function toggleMixerMute() {
-        if (mixerActionProcess.running || !root.mixerAvailable) return
-        root.mopidyMuted = !root.mopidyMuted
-        mixerActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "mute", String(root.mopidyMuted)]
+        if (mixerActionProcess.running || root.mixerSoftMuteMigrationPending || !root.mixerAvailable) return
+        if (!root.mopidyMuted) {
+            var current = Number(root.mopidyVolume)
+            if (isFinite(current) && current > 0)
+                root.mopidyRestoreVolume = current
+            if (!(root.mopidyRestoreVolume > 0))
+                root.mopidyRestoreVolume = 50
+            root.mopidyMuted = true
+            // The fast PulseAudio path mutes the sink input without forcing
+            // Mopidy's own volume to zero. Leave the last mixer level intact.
+            root.markMixerCommandPending(current, true, false)
+            mixerActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "mute", "true", String(root.mopidyRestoreVolume)]
+        } else {
+            var restore = Number(root.mopidyRestoreVolume)
+            if (!isFinite(restore) || restore < 1 || restore > 100)
+                restore = 50
+            root.mopidyRestoreVolume = restore
+            root.mopidyMuted = false
+            root.mopidyVolume = restore
+            root.markMixerCommandPending(restore, false, false)
+            mixerActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "mute", "false", String(restore)]
+        }
         mixerActionProcess.running = true
     }
 
@@ -892,26 +940,112 @@ Primitives.ModuleFrame {
     }
 
     Process {
-        id: mixerProcess
-        command: [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "get"]
+        id: mopidyStatusProcess
+        command: [Quickshell.shellDir + "/scripts/mopidy/status.sh", "state"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     var data = JSON.parse(this.text.trim() || "{}")
-                    root.mixerAvailable = data.ok === true && (data.volume !== null || data.mute !== null)
-                    if (data.volume !== null && isFinite(Number(data.volume)))
-                        root.mopidyVolume = Math.max(0, Math.min(100, Number(data.volume)))
-                    if (data.mute !== null)
-                        root.mopidyMuted = !!data.mute
+                    var mixer = data.mixer || ({})
+                    var playback = data.playback || ({})
+
+                    root.mixerAvailable = mixer.ok === true && (mixer.volume !== null || mixer.mute !== null)
+                    var hasVolume = mixer.volume !== null && isFinite(Number(mixer.volume))
+                    var actualVolume = hasVolume ? Math.max(0, Math.min(100, Number(mixer.volume))) : -1
+                    var actualMute = mixer.mute === true || (hasVolume && actualVolume === 0)
+                    var pendingMatches = !root.mixerCommandPending ||
+                        (root.pendingMixerTargetMuted
+                            ? actualMute
+                            : (!actualMute && (!root.pendingMixerMatchVolume ||
+                                (hasVolume && actualVolume === root.pendingMixerTargetVolume))))
+                    if (!root.mixerCommandPending || pendingMatches) {
+                        if (hasVolume)
+                            root.mopidyVolume = actualVolume
+                        else if (!root.mixerAvailable)
+                            root.mopidyVolume = -1
+                        var savedRestore = Number(mixer.restore_volume)
+                        if (isFinite(savedRestore) && savedRestore >= 1 && savedRestore <= 100)
+                            root.mopidyRestoreVolume = savedRestore
+                        else if (hasVolume && actualVolume > 0)
+                            root.mopidyRestoreVolume = actualVolume
+                        else if (hasVolume && actualVolume === 0 && !(root.mopidyRestoreVolume > 0))
+                            root.mopidyRestoreVolume = 50
+                        if (mixer.mute !== null || hasVolume)
+                            root.mopidyMuted = actualMute
+                        else if (!root.mixerAvailable)
+                            root.mopidyMuted = false
+                        if (root.mixerCommandPending && pendingMatches) {
+                            root.mixerCommandPending = false
+                            root.pendingMixerTargetVolume = -1
+                            root.pendingMixerTargetMuted = false
+                            root.pendingMixerMatchVolume = true
+                            mixerPendingFallbackTimer.stop()
+                        }
+
+                        // v782 used Mopidy's software mixer volume=0 for mute.
+                        // On the first v783 status poll after upgrade, migrate
+                        // that legacy state while the Pulse stream is muted;
+                        // restore the internal mixer level before the next user
+                        // unmute click, so regular toggles are immediate.
+                        var migrationRestore = Number(mixer.restore_volume)
+                        var needsSoftMuteMigration = !root.mixerSoftMuteMigrationAttempted &&
+                            !root.mixerCommandPending && mixer.pulse_mute_available === true &&
+                            hasVolume && actualVolume === 0 && isFinite(migrationRestore) &&
+                            migrationRestore >= 1 && migrationRestore <= 100
+                        if (needsSoftMuteMigration) {
+                            root.mixerSoftMuteMigrationAttempted = true
+                            root.mixerSoftMuteMigrationPending = true
+                            root.mopidyRestoreVolume = migrationRestore
+                            root.mopidyMuted = true
+                            mixerSoftMuteMigrationProcess.command = [Quickshell.shellDir + "/scripts/mopidy/mixer.sh", "migrate-soft-mute", String(migrationRestore)]
+                            mixerSoftMuteMigrationProcess.running = true
+                        } else if (hasVolume && actualVolume === 0 && root.mixerCommandPending) {
+                            // A just-issued user command may deliberately set
+                            // volume to zero; don't reinterpret it as legacy state.
+                            root.mixerSoftMuteMigrationAttempted = true
+                        }
+                    } else {
+                        // An already-running poll may contain the state from
+                        // before the user's click. Ignore that stale snapshot
+                        // until a poll confirms the requested target volume.
+                        mixerPendingRefreshTimer.restart()
+                    }
+
+                    root.playbackPrefsAvailable = playback.ok === true
+                    root.mopidyRandom = !!playback.random
+                    root.mopidyRepeat = !!playback.repeat
+                    root.mopidySingle = !!playback.single
                 } catch (e) {
                     root.mixerAvailable = false
-                    root.mopidyVolume = -1
+                    if (!root.mixerCommandPending) {
+                        root.mopidyVolume = -1
+                        root.mopidyMuted = false
+                    } else {
+                        mixerPendingRefreshTimer.restart()
+                    }
+                    root.playbackPrefsAvailable = false
+                    root.mopidyRandom = false
+                    root.mopidyRepeat = false
+                    root.mopidySingle = false
                 }
-                mixerProcess.running = false
+                mopidyStatusProcess.running = false
             }
         }
         stderr: StdioCollector {}
+    }
+
+    Process {
+        id: mixerSoftMuteMigrationProcess
+        command: []
+        running: false
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: {
+            mixerSoftMuteMigrationProcess.running = false
+            root.mixerSoftMuteMigrationPending = false
+            root.refreshMopidyStatus()
+        }
     }
 
     Process {
@@ -922,32 +1056,8 @@ Primitives.ModuleFrame {
         stderr: StdioCollector {}
         onExited: {
             mixerActionProcess.running = false
-            root.refreshMixer()
+            root.refreshMopidyStatus()
         }
-    }
-
-    Process {
-        id: playbackPrefsProcess
-        command: [Quickshell.shellDir + "/scripts/mopidy/playback.sh", "state"]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    var data = JSON.parse(this.text.trim() || "{}")
-                    root.playbackPrefsAvailable = data.ok === true
-                    root.mopidyRandom = !!data.random
-                    root.mopidyRepeat = !!data.repeat
-                    root.mopidySingle = !!data.single
-                } catch (e) {
-                    root.playbackPrefsAvailable = false
-                    root.mopidyRandom = false
-                    root.mopidyRepeat = false
-                    root.mopidySingle = false
-                }
-                playbackPrefsProcess.running = false
-            }
-        }
-        stderr: StdioCollector {}
     }
 
     Process {
@@ -958,7 +1068,7 @@ Primitives.ModuleFrame {
         stderr: StdioCollector {}
         onExited: {
             playbackPrefsActionProcess.running = false
-            root.refreshPlaybackPrefs()
+            root.refreshMopidyStatus()
         }
     }
 
@@ -1250,7 +1360,29 @@ Primitives.ModuleFrame {
     }
 
     Timer {
-        interval: 1500
+        id: mixerPendingRefreshTimer
+        interval: 250
+        repeat: false
+        onTriggered: root.refreshMopidyStatusAfterPending()
+    }
+
+    Timer {
+        id: mixerPendingFallbackTimer
+        interval: 6000
+        repeat: false
+        onTriggered: {
+            if (!root.mixerCommandPending) return
+            root.mixerCommandPending = false
+            root.pendingMixerTargetVolume = -1
+            root.pendingMixerTargetMuted = false
+            root.pendingMixerMatchVolume = true
+            root.refreshMopidyStatus()
+        }
+    }
+
+    Timer {
+        // Queue-derived remaining-time labels should refresh about once per second.
+        interval: 1000
         running: Settings.loaded && Settings.mopidy
         repeat: true
         triggeredOnStart: true
@@ -1262,15 +1394,7 @@ Primitives.ModuleFrame {
         running: Settings.loaded && Settings.mopidy
         repeat: true
         triggeredOnStart: true
-        onTriggered: root.refreshMixer()
-    }
-
-    Timer {
-        interval: 1200
-        running: Settings.loaded && Settings.mopidy
-        repeat: true
-        triggeredOnStart: true
-        onTriggered: root.refreshPlaybackPrefs()
+        onTriggered: root.refreshMopidyStatus()
     }
 
     Connections {
@@ -1291,19 +1415,27 @@ Primitives.ModuleFrame {
         function onMopidyChanged() {
             if (Settings.mopidy) {
                 root.refreshQueue()
-                root.refreshMixer()
-                root.refreshPlaybackPrefs()
+                root.refreshMopidyStatus()
             } else {
                 if (queueProcess.running) queueProcess.running = false
                 if (queueActionProcess.running) queueActionProcess.running = false
-                if (mixerProcess.running) mixerProcess.running = false
+                if (mopidyStatusProcess.running) mopidyStatusProcess.running = false
                 if (mixerActionProcess.running) mixerActionProcess.running = false
-                if (playbackPrefsProcess.running) playbackPrefsProcess.running = false
+                if (mixerSoftMuteMigrationProcess.running) mixerSoftMuteMigrationProcess.running = false
+                root.mixerSoftMuteMigrationPending = false
+                root.mixerSoftMuteMigrationAttempted = false
                 if (playbackPrefsActionProcess.running) playbackPrefsActionProcess.running = false
                 queueBusy = false
                 root.mixerAvailable = false
                 root.mopidyVolume = -1
+                root.mopidyRestoreVolume = -1
                 root.mopidyMuted = false
+                root.mixerCommandPending = false
+                root.pendingMixerTargetVolume = -1
+                root.pendingMixerTargetMuted = false
+                root.pendingMixerMatchVolume = true
+                mixerPendingFallbackTimer.stop()
+                mixerPendingRefreshTimer.stop()
                 root.playbackPrefsAvailable = false
                 root.mopidyRandom = false
                 root.mopidyRepeat = false
@@ -1339,8 +1471,7 @@ Primitives.ModuleFrame {
         function onLoadedChanged() {
             if (Settings.loaded && Settings.mopidy) {
                 root.refreshQueue()
-                root.refreshMixer()
-                root.refreshPlaybackPrefs()
+                root.refreshMopidyStatus()
             }
         }
     }
