@@ -1,0 +1,11 @@
+method,trial,iterations,elapsed_us,external_dirname_processes
+before_dirname,1,500,2468057,500
+after_bash_parameter_expansion,1,500,4538,0
+before_dirname,2,500,2442647,500
+after_bash_parameter_expansion,2,500,3576,0
+before_dirname,3,500,1825437,500
+after_bash_parameter_expansion,3,500,2933,0
+before_dirname,4,500,1946556,500
+after_bash_parameter_expansion,4,500,4174,0
+before_dirname,5,500,2010577,500
+after_bash_parameter_expansion,5,500,3275,0

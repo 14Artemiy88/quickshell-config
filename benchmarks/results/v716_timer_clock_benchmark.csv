@@ -1,0 +1,11 @@
+method,trial,iterations,elapsed_us,external_date_processes
+before_date,1,500,1969472,500
+after_epochseconds,1,500,2090,0
+before_date,2,500,1740353,500
+after_epochseconds,2,500,1096,0
+before_date,3,500,1762137,500
+after_epochseconds,3,500,5442,0
+before_date,4,500,1699010,500
+after_epochseconds,4,500,1718,0
+before_date,5,500,1793158,500
+after_epochseconds,5,500,4653,0

@@ -1,3 +1,25 @@
-.idea
-widgets/.idea
-widgets/token
+# QML language-server local settings
+.qmlls.ini
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+*.tmp
+*.log
+
+# Local tooling/cache output
+.cache/
+__pycache__/
+*.py[cod]
+.venv/
+
+# User data copied into the project root by mistake (runtime data is normally outside the repo)
+/settings.json
+/calendar-notes.json
+
+# Local build/release output
+/build/
+/dist/
