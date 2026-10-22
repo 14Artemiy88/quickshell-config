@@ -75,6 +75,8 @@ QtObject {
     property color launcherSearchBackground: "transparent"
     property int launcherDefaultMode: 0
     property bool launcherShowResultCount: true
+    property bool launcherCrossSearchProjects: true
+    property bool launcherCrossSearchRunHistory: true
     property var launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     property var launcherTabVisible: [true, true, true, true, true, true, true, true, true]
     property var launcherProjects: LauncherProjects.defaults()

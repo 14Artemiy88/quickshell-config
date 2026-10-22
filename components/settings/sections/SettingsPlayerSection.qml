@@ -875,27 +875,31 @@ Column {
                     }
                 }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsNumberField {
-            id: playerCoverOpacityField
-            width: 72
-            height: 30
-            value: Config.playerCoverOpacity
-            minimum: 0
-            maximum: 1
-            step: 0.05
-            wheelStep: 0.05
-            decimals: 2
-            compact: true
-            fieldWidth: 72
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhFormattedNumbersOnly
-            targetObject: Config
-            targetProperty: "playerCoverOpacity"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
+            SettingsColorField {
+                width: parent.width
+                label: "Цвет дорожки"
+                value: String(Config.playerProgressTrack)
+                targetObject: Config
+                targetProperty: "playerProgressTrack"
+                settingsObject: root.settings
+                saveOnEdit: true
+                allowAlpha: true
+                allowTransparent: true
+                labelWidth: 210
+                fieldWidth: 120
+            }
+            SettingsColorField {
+                width: parent.width
+                label: "Цвет заполнения"
+                value: String(Config.playerProgressFill)
+                targetObject: Config
+                targetProperty: "playerProgressFill"
+                settingsObject: root.settings
+                saveOnEdit: true
+                allowAlpha: true
+                allowTransparent: true
+                labelWidth: 210
+                fieldWidth: 120
             }
     }
     SettingsGroup {
@@ -905,6 +909,32 @@ Column {
         padding: 8
         contentSpacing: 6
 
+            Row {
+                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
+                width: parent.width
+                height: 30
+                spacing: 8
+                Text { width: 210; height: 30; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField {
+                    id: playerCoverOpacityField
+                    width: 72
+                    height: 30
+                    value: Config.playerCoverOpacity
+                    minimum: 0
+                    maximum: 1
+                    step: 0.05
+                    wheelStep: 0.05
+                    decimals: 2
+                    compact: true
+                    fieldWidth: 72
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhFormattedNumbersOnly
+                    targetObject: Config
+                    targetProperty: "playerCoverOpacity"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
+            }
         Row {
                 visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
                 width: parent.width

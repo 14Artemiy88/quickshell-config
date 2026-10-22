@@ -37,6 +37,36 @@ if [[ "${1:-}" == "--priority" ]]; then
     player_priority=("$@")
 fi
 
+# An active Jitsi/Talk call from KDE's browser integration must not be hidden
+# by another registered MPRIS source that only reports Paused (a common case
+# with desktop players left open). Probe the browser only when its MPRIS service
+# is registered; otherwise keep the configured priority path untouched.
+prefer_active_jitsi_browser_call() {
+    local player="plasma-browser-integration" metadata remaining s=$'\x1f' configured_backend
+    local status="" title="" url=""
+    local browser_enabled=false
+    for configured_backend in "${player_priority[@]}"; do
+        [[ "$configured_backend" == "$player" ]] && browser_enabled=true && break
+    done
+    [[ "$browser_enabled" == true ]] || return 1
+    mpris_player_is_active "$player" || return 1
+    metadata=$(playerctl -p "$player" metadata -f '{{status}}'"${s}"'{{title}}'"${s}"'{{xesam:url}}' 2>/dev/null) || return 1
+    [[ -n "$metadata" ]] || return 1
+    remaining="$metadata"
+    [[ "$remaining" == *"$s"* ]] || return 1
+    status="${remaining%%"$s"*}"
+    remaining="${remaining#*"$s"}"
+    [[ "$remaining" == *"$s"* ]] || return 1
+    title="${remaining%%"$s"*}"
+    url="${remaining#*"$s"}"
+    [[ "$status" == "Playing" ]] || return 1
+    if [[ "$url" == *"talk.sima-team.ru" || "$title" == *" | Jitsi Meet" || "$title" == *" | Talk" ]]; then
+        run_player_backend "$player"
+    fi
+    return 1
+}
+prefer_active_jitsi_browser_call
+
 for backend in "${player_priority[@]}"; do
     [[ -n "$backend" ]] || continue
     run_player_backend "$backend"

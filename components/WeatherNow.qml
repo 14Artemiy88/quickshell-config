@@ -68,7 +68,9 @@ Primitives.ModuleFrame {
                   ? (root.weather.temperature?.comfort?.C ?? "") : ""
             color: Config.textMuted
             style: Text.Outline
-            styleColor: Config.background
+            // Use the theme's opaque foreground contrast color: Config.background
+            // is intentionally translucent and could not separate close digits.
+            styleColor: Config.black
             font.family: Config.ledFont
             font.pixelSize: Config.weatherComfortFontSize
             lineHeight: Config.weatherComfortHeight

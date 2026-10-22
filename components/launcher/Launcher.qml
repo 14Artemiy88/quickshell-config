@@ -332,8 +332,8 @@ PanelWindow {
     function setMode(newMode) {
         root.mode = newMode
 
-
-        searchField.clear()
+        // Keep a single query while switching tabs. Each tab applies the same
+        // text to its own model instead of silently erasing the user's search.
         root.resetSelection()
 
         if (root.mode === root.modeRun) {
@@ -716,6 +716,113 @@ PanelWindow {
         ])
     }
 
+    property var appsUnifiedResults: root.buildAppsUnifiedResults()
+
+    function buildAppsUnifiedResults() {
+        const query = root.normalizeRunText(searchField.text)
+        const results = []
+        const applications = appModel.applications || []
+
+        // AppModel returns ranked wrappers ({ entry, score/rank }). Keep its
+        // actual DesktopEntry object for activation and preserve its rank.
+        for (let i = 0; i < applications.length; ++i) {
+            const application = applications[i]
+            const appEntry = application && application.entry
+                ? application.entry
+                : application
+            results.push({
+                kind: "app",
+                entry: appEntry,
+                score: query === "" ? 0 : (
+                    application && Number.isFinite(application.score)
+                        ? application.score
+                        : appModel.scoreEntry(appEntry)
+                ),
+                order: i
+            })
+        }
+
+        if (query === "")
+            return results
+
+        if (Config.launcherCrossSearchProjects !== false) {
+            const projects = Array.isArray(Config.launcherProjects) ? Config.launcherProjects : []
+            const matches = []
+            for (let i = 0; i < projects.length; ++i) {
+                const project = projects[i]
+                if (!project || typeof project !== "object") continue
+                const searchText = [project.name, project.path, project.ide, project.icon].join(" ")
+                const score = root.runFuzzyScore(searchText, query)
+                if (score >= 0) {
+                    matches.push({
+                        kind: "project",
+                        project: {
+                            icon: String(project.icon || ""),
+                            name: String(project.name || ""),
+                            path: String(project.path || ""),
+                            ide: String(project.ide || "")
+                        },
+                        score: score,
+                        order: i
+                    })
+                }
+            }
+            matches.sort(function(a, b) {
+                if (b.score !== a.score) return b.score - a.score
+                return a.order - b.order
+            })
+            for (let i = 0; i < matches.length; ++i) results.push(matches[i])
+        }
+
+        if (Config.launcherCrossSearchRunHistory !== false) {
+            const commands = Array.isArray(root.runHistoryEntries) ? root.runHistoryEntries : []
+            const matches = []
+            const seen = ({})
+            for (let i = 0; i < commands.length; ++i) {
+                const command = String(commands[i] || "").trim()
+                if (!command || seen[command]) continue
+                const score = root.runFuzzyScore(command, query)
+                if (score >= 0) {
+                    matches.push({ kind: "run", command: command, score: score, order: i })
+                    seen[command] = true
+                }
+            }
+            matches.sort(function(a, b) {
+                if (b.score !== a.score) return b.score - a.score
+                return a.order - b.order
+            })
+            for (let i = 0; i < matches.length; ++i) results.push(matches[i])
+        }
+
+        if (query !== "") {
+            // Rank all result types together. AppModel's relative order is
+            // preserved for equal-ranked app entries; a project/command can
+            // only rise above an app when its own match is more relevant.
+            const kindRank = { app: 0, project: 1, run: 2 }
+            results.sort(function(a, b) {
+                if (b.score !== a.score) return b.score - a.score
+                if (a.kind === "app" && b.kind === "app") return a.order - b.order
+                if (a.kind !== b.kind) return kindRank[a.kind] - kindRank[b.kind]
+                return a.order - b.order
+            })
+        }
+        return results
+    }
+
+    function activateAppsSearchResult(result) {
+        if (!result) return
+        if (result.kind === "app") {
+            root.launchEntry(result.entry)
+            return
+        }
+        if (result.kind === "project") {
+            root.launchProject(result.project)
+            return
+        }
+        if (result.kind === "run") {
+            root.runCommand(result.command)
+        }
+    }
     AppModel {
         id: appModel
 
@@ -1282,6 +1389,17 @@ PanelWindow {
                             return
                         }
 
+                        // Pass: Enter copies the selected password entry just
+                        // like a click on the selected row.
+                        if (
+                            root.mode === root.modePass &&
+                            (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                        ) {
+                            root.copySelectedPass()
+                            event.accepted = true
+                            return
+                        }
+
                         // Packages: Enter keeps the primary fast workflow
                         // (copy `name # description`). Ctrl+Enter opens the
                         // user's existing `add` alias in foot.
@@ -1614,7 +1732,7 @@ PanelWindow {
 
                     spacing: 6
 
-                    model: appModel.applications
+                    model: root.appsUnifiedResults
 
                     currentIndex: count > 0 ? 0 : -1
 
@@ -1656,7 +1774,14 @@ PanelWindow {
                             ColorAnimation { duration: 120 }
                         }
 
-                        property var entry: modelData
+                        property var itemData: modelData
+                        property var entry: itemData && itemData.kind === "app" ? itemData.entry : null
+                        property string displayName: itemData && itemData.kind === "project"
+                            ? String(itemData.project.name || "")
+                            : (itemData && itemData.kind === "run" ? String(itemData.command || "") : String(entry && entry.name || ""))
+                        property string displaySubtitle: itemData && itemData.kind === "project"
+                            ? ("ПРОЕКТ · " + String(itemData.project.path || ""))
+                            : (itemData && itemData.kind === "run" ? "КОМАНДА · сохранённая" : String(entry && (entry.genericName || entry.comment) || ""))
 
                         RowLayout {
                             anchors.fill: parent
@@ -1692,20 +1817,114 @@ PanelWindow {
                                     // Resolve the desktop-entry icon before loading it.
                                     // Missing theme icons (for example, rofi or jockey)
                                     // then produce an empty source instead of a Qt warning.
-                                    source: appDelegate.entry.icon
+                                    source: appDelegate.entry && appDelegate.entry.icon
                                         ? Quickshell.iconPath(String(appDelegate.entry.icon))
                                         : ""
-                                    visible: source !== ""
+                                    // This image is only for native application results. Projects and
+                                    // saved commands use their own fallback icons below. Checking a
+                                    // QML url against an empty string can be truthy even for an empty
+                                    // url, which previously hid those fallback icons in Apps search.
+                                    visible: appDelegate.itemData
+                                        && appDelegate.itemData.kind === "app"
+                                        && String(source).length > 0
 
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
                                 }
 
+                                // A project without a reliable custom glyph uses a small
+                                // vector folder. This keeps the result visibly identifiable
+                                // even when a Nerd Font glyph is unavailable on the system.
+                                Item {
+                                    id: projectFolderFallback
+                                    anchors.centerIn: parent
+                                    width: 25
+                                    height: 22
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "project"
+                                        && String(appDelegate.itemData.project && appDelegate.itemData.project.icon || "") === ""
+
+                                    property color glyphColor: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+
+                                    Rectangle {
+                                        x: 2
+                                        y: 2
+                                        width: 12
+                                        height: 7
+                                        radius: 2
+                                        color: projectFolderFallback.glyphColor
+                                    }
+                                    Rectangle {
+                                        x: 1
+                                        y: 6
+                                        width: 23
+                                        height: 15
+                                        radius: 3
+                                        color: projectFolderFallback.glyphColor
+                                    }
+                                    Rectangle {
+                                        x: 4
+                                        y: 9
+                                        width: 17
+                                        height: 9
+                                        radius: 2
+                                        color: ListView.isCurrentItem ? theme.accent : theme.surface
+                                    }
+                                }
+
+                                // Custom project glyphs remain supported. A vector folder
+                                // is used for the default glyph above, rather than relying on
+                                // a font's private-use Unicode mapping.
                                 Text {
                                     anchors.centerIn: parent
                                     visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "project"
+                                        && String(appDelegate.itemData.project && appDelegate.itemData.project.icon || "") !== ""
+                                    text: String(appDelegate.itemData && appDelegate.itemData.project && appDelegate.itemData.project.icon || "")
+                                    color: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 22
+                                }
+
+                                // Draw the terminal marker with ordinary characters so it
+                                // does not depend on Nerd Font glyph coverage.
+                                Item {
+                                    id: runCommandFallback
+                                    anchors.centerIn: parent
+                                    width: 25
+                                    height: 21
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "run"
+
+                                    property color glyphColor: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 3
+                                        color: "transparent"
+                                        border.color: runCommandFallback.glyphColor
+                                        border.width: 1.5
+                                    }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: ">_"
+                                        color: runCommandFallback.glyphColor
+                                        font.family: "monospace"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "app"
                                     text: "󰀻"
-                                    color: theme.textMuted
+                                    color: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 22
                                 }
@@ -1720,7 +1939,7 @@ PanelWindow {
                                     Layout.fillWidth: true
 
                                     text: root.highlightFuzzy(
-                                        appDelegate.entry.name,
+                                        appDelegate.displayName,
                                         searchField.text
                                     )
 
@@ -1737,21 +1956,7 @@ PanelWindow {
                                 Text {
                                     Layout.fillWidth: true
 
-                                    text: {
-                                        if (
-                                            appDelegate.entry.genericName
-                                        ) {
-                                            return appDelegate.entry.genericName
-                                        }
-
-                                        if (
-                                            appDelegate.entry.comment
-                                        ) {
-                                            return appDelegate.entry.comment
-                                        }
-
-                                        return ""
-                                    }
+                                    text: appDelegate.displaySubtitle
 
                                     color: ListView.isCurrentItem
                                         ? theme.selectedSubtext
@@ -1774,11 +1979,7 @@ PanelWindow {
                                 appList.currentIndex = appDelegate.index
                             }
 
-                            onClicked: {
-                                root.launchEntry(
-                                    appDelegate.entry
-                                )
-                            }
+                            onClicked: root.activateAppsSearchResult(appDelegate.itemData)
                         }
                     }
 
@@ -4503,12 +4704,10 @@ PanelWindow {
     }
 
     function launchCurrent() {
-        if (!appList.currentItem)
+        const index = appList.currentIndex
+        if (index < 0 || index >= root.appsUnifiedResults.length)
             return
-
-        launchEntry(
-            appList.currentItem.entry
-        )
+        root.activateAppsSearchResult(root.appsUnifiedResults[index])
     }
 
     function focusWindow(windowId) {

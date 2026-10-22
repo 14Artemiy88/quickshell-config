@@ -27,6 +27,8 @@ function snapshotObject(owner, config) {
             launcherSearchBackground: String(config.launcherSearchBackground),
             launcherDefaultMode: config.launcherDefaultMode,
             launcherShowResultCount: config.launcherShowResultCount,
+            launcherCrossSearchProjects: config.launcherCrossSearchProjects,
+            launcherCrossSearchRunHistory: config.launcherCrossSearchRunHistory,
             launcherTabOrder: JSON.parse(JSON.stringify(config.launcherTabOrder || [0, 1, 2, 3, 4, 5, 6, 7, 8])),
             launcherTabVisible: JSON.parse(JSON.stringify(config.launcherTabVisible || [true, true, true, true, true, true, true, true, true])),
             launcherProjects: JSON.parse(JSON.stringify(config.launcherProjects || [])),

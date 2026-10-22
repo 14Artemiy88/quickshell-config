@@ -11,6 +11,7 @@ Flickable {
     width: parent ? parent.width : 0
     height: visible ? parent.height - y : 0
     property bool editingColors: false
+    property bool themesExpanded: false
 
     function resetScroll() { root.contentY = 0 }
     contentWidth: Math.max(width, colorsColumn.width)
@@ -57,10 +58,17 @@ Flickable {
                         font.pixelSize: Config.settingsUiSize(10)
                     }
 
+                    SettingsCheckBox {
+                        id: expandThemesCheck
+                        text: "Развернуть"
+                        checked: root.themesExpanded
+                        onToggled: root.themesExpanded = checked
+                    }
+
                     SettingsComboBox {
                         id: themeCombo
                         width: parent.width
-                        visible: !settings.currentThemeModified || !root.editingColors
+                        visible: !root.themesExpanded && (!settings.currentThemeModified || !root.editingColors)
                         height: 30
                         model: settings.themeNames
                         currentIndex: Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
@@ -96,6 +104,74 @@ Flickable {
                         }
                     }
 
+                    Column {
+                        id: expandedThemeList
+                        width: parent.width
+                        spacing: 5
+                        visible: root.themesExpanded
+
+                        Repeater {
+                            model: settings.themeNames
+                            delegate: Rectangle {
+                                id: themeCard
+                                required property var modelData
+                                property string themeName: String(modelData)
+                                width: expandedThemeList.width
+                                height: 42
+                                radius: 5
+                                color: Config.settingsBackground
+                                border.color: themeName === settings.activeTheme ? Config.accent : Config.baseColor
+                                border.width: themeName === settings.activeTheme ? 2 : 1
+                                opacity: settings.currentThemeModified && root.editingColors ? 0.65 : 1
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 9
+                                    anchors.rightMargin: 8
+                                    spacing: 5
+
+                                    Text {
+                                        width: Math.min(205, Math.max(95, themeCard.width * 0.39))
+                                        height: parent.height
+                                        text: themeCard.themeName + (themeCard.themeName === settings.activeTheme && settings.currentThemeModified ? " (Changed)" : "")
+                                        color: themeCard.themeName === settings.activeTheme ? Config.accent : Config.text
+                                        font.family: Config.settingsFont
+                                        font.pixelSize: Config.settingsUiSize(10)
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Row {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 4
+                                        Repeater {
+                                            model: settings.themePreview(themeCard.themeName)
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                width: Math.max(12, Math.min(27, (themeCard.width - 235) / 6))
+                                                height: 23
+                                                radius: 3
+                                                color: modelData
+                                                border.color: Config.baseColor
+                                                border.width: 1
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !(settings.currentThemeModified && root.editingColors)
+                                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    onClicked: {
+                                        if (themeCard.themeName && themeCard.themeName !== settings.activeTheme)
+                                            settings.applyTheme(themeCard.themeName)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     SettingsTextField {
                         id: themeNameField
                         visible: root.editingColors && settings.currentThemeModified
@@ -127,9 +203,11 @@ Flickable {
                     }
 
                     Row {
+                        id: activeThemePreviewRow
                         width: parent.width
                         height: 24
                         spacing: 5
+                        visible: !root.themesExpanded
 
                         Repeater {
                             model: settings.themePreview(settings.activeTheme)

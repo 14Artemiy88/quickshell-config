@@ -29,6 +29,8 @@ var defaultConfig = ({
     launcherSearchBackground: "transparent",
     launcherDefaultMode: 0,
     launcherShowResultCount: true,
+    launcherCrossSearchProjects: true,
+    launcherCrossSearchRunHistory: true,
     launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     launcherTabVisible: [true, true, true, true, true, true, true, true, true],
     launcherProjects: LauncherProjects.defaults(),

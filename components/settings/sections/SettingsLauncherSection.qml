@@ -497,6 +497,39 @@ Column {
     }
 
     SettingsGroup {
+        visible: root.host && root.host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            text: "Сквозной поиск"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        SettingsCheckBox {
+            text: "Искать проекты из Apps"
+            checked: Config.launcherCrossSearchProjects
+            onToggled: {
+                Config.launcherCrossSearchProjects = checked
+                root.settings.save()
+            }
+        }
+
+        SettingsCheckBox {
+            text: "Искать сохранённые команды из Apps"
+            checked: Config.launcherCrossSearchRunHistory
+            onToggled: {
+                Config.launcherCrossSearchRunHistory = checked
+                root.settings.save()
+            }
+        }
+    }
+
+    SettingsGroup {
         visible: root.host && root.host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true

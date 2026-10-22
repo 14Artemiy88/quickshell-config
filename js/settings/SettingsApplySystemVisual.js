@@ -53,6 +53,10 @@ function apply(Config, o) {
         }
         if (o.launcherShowResultCount !== undefined)
             Config.launcherShowResultCount = !!o.launcherShowResultCount
+        if (o.launcherCrossSearchProjects !== undefined)
+            Config.launcherCrossSearchProjects = !!o.launcherCrossSearchProjects
+        if (o.launcherCrossSearchRunHistory !== undefined)
+            Config.launcherCrossSearchRunHistory = !!o.launcherCrossSearchRunHistory
         if (o.launcherTabOrder instanceof Array) {
             var validLauncherOrder = []
             for (var lto = 0; lto < o.launcherTabOrder.length; ++lto) {

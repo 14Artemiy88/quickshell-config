@@ -2,6 +2,8 @@
 
 Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** on Linux/Wayland. The project is written in QML/Qt Quick with Bash and JavaScript helpers. Settings, profiles, themes, and calendar notes are managed through the built-in UI; user data is stored outside the source tree.
 
+**Current baseline: v839.** The source archive contains generic defaults; launcher project paths, IDE locations, and API keys are kept in user configuration, not in the repository.
+
 ## Русский
 
 `quickshell-widgets` — набор виджетов рабочего стола и встроенный лаунчер для Quickshell. Проект рассчитан на Linux/Wayland; отдельные функции зависят от установленного рабочего стола и внешних утилит.
@@ -16,8 +18,9 @@ Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** o
 - Календарь с заметками, отметками дат, навигацией по соседним месяцам и настройками анимации.
 - Текущая погода, почасовой и дневной прогнозы через Gismeteo API.
 - Громкость основного выхода и аудиопотоков, состояние сети и активные подключения.
-- Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass и Projects.
-- Общая система настроек, тем, цветов, профилей и рамочных групп; параметры виджетов настраиваются через UI.
+- Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass и Projects; запуск по Enter, сохранённые команды и проекты.
+- Сквозной поиск из Apps по установленным приложениям, проектам и сохранённым командам с отдельными переключателями источников; результаты показывают соответствующие иконки.
+- Общая система настроек, тем, цветов, профилей и рамочных групп; развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
 
 ### Требования
 
@@ -90,7 +93,9 @@ Alt+9 { spawn "qs" "ipc" "call" "launcher" "openProjects"; }
 
 Если Quickshell запущен с нестандартным каталогом конфигурации через `-c`, указывайте этот же путь в аргументах `qs` у кейбиндов, иначе IPC может обратиться к экземпляру конфигурации по умолчанию. Пример: `spawn "qs" "-c" "/absolute/path/to/desktop-shell" "ipc" "call" "launcher" "toggle"`. Примеры выше не меняют Niri config автоматически.
 
-Внутри лаунчера доступны переключение вкладок клавиатурой, нечёткий поиск, тематическая подсветка совпадений и управление списком проектов. Запуск проекта передаёт путь и исполняемый файл IDE отдельными аргументами, без `eval`.
+Внутри лаунчера доступны переключение вкладок клавиатурой, нечёткий поиск, тематическая подсветка совпадений и управление списком проектов. Вкладка Apps может искать не только приложения, но и проекты и сохранённые команды из истории Run; включение каждого дополнительного источника настраивается отдельно. Результаты помечаются типом и имеют свою иконку. Запуск проекта передаёт путь и исполняемый файл IDE отдельными аргументами, без `eval`.
+
+В настройках темы можно включить «Развернуть», чтобы увидеть список тем вместе с цветовыми образцами. В компактном режиме остаётся прежний выбор темы и связанная с ним логика изменений (`Changed`).
 
 ### Разработка и тесты
 
@@ -130,8 +135,9 @@ MIT. См. [`LICENSE`](LICENSE).
 - Calendar notes, date markers, adjacent-month navigation, and animation options.
 - Current weather plus hourly and daily forecasts via the Gismeteo API.
 - Output/stream volume, network statistics, and active connections.
-- Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, and Projects.
-- Shared settings, themes, color palette, profiles, and reusable framed settings groups.
+- Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, and Projects, including keyboard activation, saved commands, and project launching.
+- Apps cross-search across installed applications, configured projects, and saved Run commands, with configurable source toggles and per-result icons.
+- Shared settings, themes, color palette, profiles, and reusable framed settings groups; an expanded theme palette previews each theme before selection.
 
 ### Requirements
 
@@ -201,6 +207,8 @@ Alt+9 { spawn "qs" "ipc" "call" "launcher" "openProjects"; }
 ```
 
 If Quickshell is launched with a non-default configuration directory (`-c`), pass that same directory to the `qs` IPC command in the binding. The examples do not edit your Niri configuration automatically.
+
+The Apps tab can also search configured projects and saved Run commands. Each source can be toggled in launcher settings; cross-search results are labelled by type and display a corresponding icon. The Settings → Colors page has an optional expanded theme list with color previews; disable it to return to the compact selector.
 
 ### Development and tests
 

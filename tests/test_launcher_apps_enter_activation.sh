@@ -17,12 +17,12 @@ assert 'event.key === Qt.Key_Enter' in block
 assert 'root.launchCurrent()' in block
 assert 'event.accepted = true' in block
 assert block.index('root.launchCurrent()') < block.index('event.accepted = true')
-# launchCurrent routes the selected ListView item through the same launchEntry path as mouse clicks.
+# launchCurrent routes the selected unified Apps result through the same activation helper as mouse clicks.
 launch_start = s.index('function launchCurrent()')
 launch_end = s.index('\n    function focusWindow', launch_start)
 launch = s[launch_start:launch_end]
-assert 'appList.currentItem.entry' in launch
-assert 'launchEntry(' in launch
+assert 'root.appsUnifiedResults[index]' in launch
+assert 'root.activateAppsSearchResult' in launch
 entry_start = s.index('function launchEntry(entry)')
 entry_end = s.index('\n    function launchCurrent()', entry_start)
 entry = s[entry_start:entry_end]
