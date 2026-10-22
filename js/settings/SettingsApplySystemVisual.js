@@ -12,8 +12,10 @@ function apply(Config, o) {
             ["launcherWidth", 500, 1400],
             ["launcherHeight", 400, 1200],
             ["launcherItemHeight", 36, 110],
+            ["launcherItemRadius", 0, 30],
             ["launcherRadius", 0, 40],
             ["launcherTitleFontSize", 6, 40],
+            ["launcherTitleY", -40, 40],
             ["launcherTitleLetterSpacing", 0, 12],
             ["launcherSearchFontSize", 8, 40],
             ["launcherSearchHeight", 36, 100],
@@ -38,6 +40,8 @@ function apply(Config, o) {
             Config.launcherTitleText = String(o.launcherTitleText).replace(/[\r\n\t]/g, " ").trim().slice(0, 64) || "LAUNCHER"
         if (o.launcherTitleFont !== undefined)
             Config.launcherTitleFont = String(o.launcherTitleFont).replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        if (o.launcherTitleColor !== undefined)
+            Config.launcherTitleColor = Schema.normalizeSavedColor(o.launcherTitleColor, String(Config.launcherTitleColor))
         if (o.launcherTitleBold !== undefined)
             Config.launcherTitleBold = !!o.launcherTitleBold
         if (o.launcherSearchFont !== undefined)

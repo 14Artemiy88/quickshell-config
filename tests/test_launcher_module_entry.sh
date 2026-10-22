@@ -28,7 +28,9 @@ for field_id in ('launcherWidthField', 'launcherHeightField'):
 # Width/height are only configurable from Modules, not duplicated on the Launcher tab.
 assert 'targetProperty: "launcherWidth"' not in launcher
 assert 'targetProperty: "launcherHeight"' not in launcher
-assert 'text: "Элементы и фон"' in launcher
+assert 'text: "Элемент списка"' in launcher
+assert 'text: "Окно лаунчера"' in launcher
+assert 'label: "Фон окна лаунчера"' in launcher
 assert 'onClicked: settings.resetLauncherSettings()' in modules
 # The row is intentionally after the Repeater of normal modules, and Networks is last in that list.
 assert 'var moduleNames = ["time"' in meta and '"networks"]' in meta

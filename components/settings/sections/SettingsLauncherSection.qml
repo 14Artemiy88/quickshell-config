@@ -184,44 +184,13 @@ Column {
         width: parent.width
         showFrame: true
         padding: 8
-        contentSpacing: 7
+        contentSpacing: 6
 
         Text {
-            text: "Элементы и фон"
+            text: "Окно лаунчера"
             color: Config.settingsSubheading
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(12)
-        }
-
-        Row {
-            width: parent.width
-            height: 34
-            spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Высота элемента списка"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            SettingsNumberField {
-                width: 100
-                compact: true
-                fieldWidth: 100
-                value: Config.launcherItemHeight
-                minimum: 36
-                maximum: 110
-                step: 2
-                wheelStep: 2
-                targetObject: Config
-                targetProperty: "launcherItemHeight"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
         }
 
         Row {
@@ -286,22 +255,6 @@ Column {
                 settingsObject: root.settings
                 saveOnEdit: true
             }
-
-        }
-    }
-
-    SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
-
-        Text {
-            text: "Внешний вид"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
         }
 
         SettingsColorField {
@@ -316,6 +269,83 @@ Column {
             allowTransparent: true
             labelWidth: 190
             fieldWidth: 120
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 7
+
+        Text {
+            text: "Элемент списка"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+
+            Text {
+                width: 190
+                height: 30
+                text: "Высота элемента списка"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsNumberField {
+                width: 100
+                compact: true
+                fieldWidth: 100
+                value: Config.launcherItemHeight
+                minimum: 36
+                maximum: 110
+                step: 2
+                wheelStep: 2
+                targetObject: Config
+                targetProperty: "launcherItemHeight"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+
+            Text {
+                width: 190
+                height: 30
+                text: "Скругление элементов"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsNumberField {
+                width: 100
+                compact: true
+                fieldWidth: 100
+                value: Config.launcherItemRadius
+                minimum: 0
+                maximum: 30
+                step: 1
+                wheelStep: 1
+                targetObject: Config
+                targetProperty: "launcherItemRadius"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
     }
 
@@ -380,6 +410,28 @@ Column {
             spacing: 8
             Text { width: 190; height: 30; text: "Размер шрифта заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleFontSize"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Положение Y заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleY; minimum: -40; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleY"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет заголовка"
+            value: String(Config.launcherTitleColor)
+            targetObject: Config
+            targetProperty: "launcherTitleColor"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: false
+            labelWidth: 190
+            fieldWidth: 120
         }
 
         Row {

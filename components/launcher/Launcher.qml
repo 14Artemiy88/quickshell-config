@@ -292,6 +292,8 @@ PanelWindow {
     }
 
     function hideLauncher() {
+        // Keep the query while switching tabs, but start fresh after closing the launcher.
+        searchField.text = ""
         root.visible = false
     }
 
@@ -1208,11 +1210,12 @@ PanelWindow {
 
                 Text {
                     text: Config.launcherTitleText
-                    color: theme.textWhite
+                    color: Config.launcherTitleColor
                     font.family: Config.launcherTitleFont.trim() === "" ? "" : Config.launcherTitleFont
                     font.pixelSize: Config.launcherTitleFontSize
                     font.bold: Config.launcherTitleBold
                     font.letterSpacing: Config.launcherTitleLetterSpacing
+                    transform: Translate { y: Config.launcherTitleY }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -1755,7 +1758,7 @@ PanelWindow {
                         width: appList.width
                         height: Config.launcherItemHeight
 
-                        radius: 12
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2036,7 +2039,7 @@ PanelWindow {
 
                         width: runList.width
                         height: Config.launcherItemHeight
-                        radius: 11
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2193,7 +2196,7 @@ PanelWindow {
                         width: windowList.width
                         height: Config.launcherItemHeight
 
-                        radius: 12
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2428,7 +2431,7 @@ PanelWindow {
                         width: clipboardList.width
                         height: Math.max(Config.launcherItemHeight, modelData.isImage ? 72 : 86)
 
-                        radius: 12
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2623,7 +2626,7 @@ PanelWindow {
 
                         width: networkList.width
                         height: Config.launcherItemHeight
-                        radius: 11
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2775,7 +2778,7 @@ PanelWindow {
 
                         width: nixList.width
                         height: Math.max(Config.launcherItemHeight, modelData.description !== "" ? 72 : 58)
-                        radius: 11
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -2933,7 +2936,7 @@ PanelWindow {
 
                         width: passList.width
                         height: Config.launcherItemHeight
-                        radius: 11
+                        radius: Config.launcherItemRadius
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -3078,7 +3081,7 @@ PanelWindow {
 
                         width: projectList.width
                         height: Config.launcherItemHeight
-                        radius: 11
+                        radius: Config.launcherItemRadius
                         color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
                         border.width: ListView.isCurrentItem ? 1 : 0
@@ -3243,7 +3246,7 @@ PanelWindow {
 
                         height: Config.launcherItemHeight
 
-                        radius: 11
+                        radius: Config.launcherItemRadius
 
                         color:
                             ListView.isCurrentItem

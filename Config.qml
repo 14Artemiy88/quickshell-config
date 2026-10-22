@@ -59,12 +59,15 @@ QtObject {
     property int launcherWidth: 720
     property int launcherHeight: 640
     property int launcherItemHeight: 56
+    property int launcherItemRadius: 11
     property int launcherRadius: 22
     property real launcherBackdropOpacity: 0.55
     property color launcherBackground: "#e6000000"
     property string launcherTitleText: "LAUNCHER"
     property string launcherTitleFont: ""
     property int launcherTitleFontSize: 13
+    property int launcherTitleY: 0
+    property color launcherTitleColor: "#ffffff"
     property int launcherTitleLetterSpacing: 2
     property bool launcherTitleBold: true
     property string launcherSearchFont: ""

@@ -8,7 +8,7 @@ APPLY="$ROOT/js/settings/SettingsApplySystemVisual.js"
 RESETS="$ROOT/js/settings/SettingsResets.js"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 SECTION="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
-for key in launcherTitleText launcherTitleFont launcherTitleFontSize launcherTitleLetterSpacing launcherTitleBold launcherSearchFont launcherSearchFontSize launcherSearchHeight launcherSearchRadius launcherSearchBackground launcherSearchPlaceholder; do
+for key in launcherTitleText launcherTitleFont launcherTitleFontSize launcherTitleY launcherTitleColor launcherTitleLetterSpacing launcherTitleBold launcherSearchFont launcherSearchFontSize launcherSearchHeight launcherSearchRadius launcherSearchBackground launcherSearchPlaceholder; do
   grep -Fq "$key" "$CONFIG"
   grep -Fq "$key" "$DEFAULTS"
   grep -Fq "$key" "$PERSIST"
