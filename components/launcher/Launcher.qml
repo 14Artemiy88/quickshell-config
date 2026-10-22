@@ -24,12 +24,148 @@ PanelWindow {
 
     exclusionMode: ExclusionMode.Ignore
     aboveWindows: true
-    focusable: true
+    focusable: !root.layoutEditMode
     visible: false
+    screen: root.resolveLauncherScreen()
 
     color: theme.transparent
 
     property int mode: modeApps
+    property bool layoutEditMode: false
+    property bool layoutEditWasVisible: false
+    property int layoutEditSavedMode: modeApps
+    property bool layoutDragging: false
+    property bool layoutDragHidden: false
+    property var layoutEditor: null
+    property real layoutDragBaseGlobalX: 0
+    property real layoutDragBaseGlobalY: 0
+    property real layoutDragPressX: 0
+    property real layoutDragPressY: 0
+
+    readonly property var launcherGeometry: Settings.geometryForLayout("launcher")
+    readonly property real launcherPositionX: {
+        var position = Number(root.launcherGeometry && root.launcherGeometry[0])
+        return isFinite(position) && position >= -10000
+            ? position : Math.max(0, Math.round((root.width - Config.launcherWidth) / 2))
+    }
+    readonly property real launcherPositionY: {
+        var position = Number(root.launcherGeometry && root.launcherGeometry[1])
+        return isFinite(position) && position >= -10000
+            ? position : Math.max(0, Math.round((root.height - Config.launcherHeight) / 2))
+    }
+
+    function resolveLauncherScreen() {
+        var wanted = String((Settings.moduleMonitors || {}).launcher || Config.monitorName || "").trim().toLowerCase()
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var candidate = Quickshell.screens[i]
+            if (!candidate) continue
+            if (wanted && (String(candidate.name || "").trim().toLowerCase() === wanted
+                    || String(candidate.model || "").trim().toLowerCase() === wanted
+                    || String(candidate).trim().toLowerCase() === wanted))
+                return candidate
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    function screenStorageName(screen) {
+        if (!screen) return ""
+        if (screen.name && String(screen.name).trim() !== "") return String(screen.name)
+        if (screen.model && String(screen.model).trim() !== "") return String(screen.model)
+        return ""
+    }
+
+    function findScreenForGlobalPoint(globalX, globalY) {
+        var nearest = null
+        var nearestDistance = Number.POSITIVE_INFINITY
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var candidate = Quickshell.screens[i]
+            if (!candidate) continue
+            var sx = Number(candidate.x || 0)
+            var sy = Number(candidate.y || 0)
+            var sw = Number(candidate.width || 0)
+            var sh = Number(candidate.height || 0)
+            if (globalX >= sx && globalX < sx + sw && globalY >= sy && globalY < sy + sh)
+                return candidate
+            var cx = Math.max(sx, Math.min(globalX, sx + sw))
+            var cy = Math.max(sy, Math.min(globalY, sy + sh))
+            var dx = globalX - cx
+            var dy = globalY - cy
+            var distance = dx * dx + dy * dy
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = candidate
+            }
+        }
+        return nearest || root.screen || Quickshell.screens[0] || null
+    }
+
+    function beginLayoutEdit() {
+        if (!Config.launcherEnabled || root.layoutEditMode) return
+        root.layoutEditWasVisible = root.visible
+        root.layoutEditSavedMode = root.mode
+        root.layoutEditMode = true
+        root.layoutDragHidden = false
+        root.visible = true
+        // Select a stable preview mode without asking this non-focusable window to take keyboard focus.
+        root.mode = root.configuredDefaultMode()
+    }
+
+    function cancelLayoutDrag() {
+        if (!root.layoutDragging) return
+        if (root.layoutEditor) root.layoutEditor.endProxyDrag()
+        Settings.cancelGeometryDrag("launcher")
+        root.layoutDragging = false
+        root.layoutDragHidden = false
+    }
+
+    function endLayoutEdit() {
+        if (!root.layoutEditMode) return
+        root.cancelLayoutDrag()
+        root.layoutEditMode = false
+        root.visible = root.layoutEditWasVisible
+        if (root.visible) root.setMode(root.layoutEditSavedMode)
+    }
+
+    function beginLauncherDrag(mouse) {
+        if (!root.layoutEditMode || root.layoutDragging || !root.layoutEditor) return
+        root.layoutDragging = true
+        root.layoutDragPressX = Number(mouse.x)
+        root.layoutDragPressY = Number(mouse.y)
+        root.layoutDragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(launcherBox.x)
+        root.layoutDragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(launcherBox.y)
+        Settings.beginGeometryDrag("launcher")
+        root.layoutEditor.beginProxyDrag(
+            "launcher", root.layoutDragBaseGlobalX, root.layoutDragBaseGlobalY,
+            Config.launcherWidth, Config.launcherHeight
+        )
+        launcherBox.grabToImage(function(result) {
+            if (!root.layoutDragging) return
+            root.layoutDragHidden = true
+            if (root.layoutEditor) root.layoutEditor.setProxySource(result.url)
+        }, Qt.size(Math.max(1, Math.round(Config.launcherWidth)), Math.max(1, Math.round(Config.launcherHeight))))
+    }
+
+    function updateLauncherDrag(mouse) {
+        if (!root.layoutEditMode || !root.layoutDragging || !root.layoutEditor) return
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
+        root.layoutEditor.updateProxyDrag(globalX, globalY, Config.launcherWidth, Config.launcherHeight)
+    }
+
+    function finishLauncherDrag(mouse) {
+        if (!root.layoutDragging) return
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
+        var targetScreen = root.findScreenForGlobalPoint(
+            globalX + Config.launcherWidth / 2, globalY + Config.launcherHeight / 2
+        )
+        var localX = globalX - Number(targetScreen && targetScreen.x || 0)
+        var localY = globalY - Number(targetScreen && targetScreen.y || 0)
+        if (root.layoutEditor) root.layoutEditor.endProxyDrag()
+        Settings.endGeometryDrag("launcher", root.screenStorageName(targetScreen), localX, localY)
+        root.layoutDragging = false
+        root.layoutDragHidden = false
+    }
 
     // One pointer identity for every list: no stale per-delegate hover flags.
     property real trackedPointerX: 0
@@ -739,6 +875,7 @@ PanelWindow {
 
     Rectangle {
         anchors.fill: parent
+        visible: !root.layoutEditMode
 
         color: theme.backdrop
         opacity: theme.backdropOpacity
@@ -757,8 +894,8 @@ PanelWindow {
     Rectangle {
         id: launcherBox
 
-        anchors.centerIn: parent
-
+        x: root.launcherPositionX
+        y: root.launcherPositionY
         width: Config.launcherWidth
         height: Config.launcherHeight
 
@@ -766,7 +903,7 @@ PanelWindow {
 
         property bool entranceReady: false
         scale: entranceReady ? 1.0 : 0.97
-        opacity: entranceReady ? 1.0 : 0.0
+        opacity: root.layoutDragHidden ? 0.0 : (entranceReady ? 1.0 : 0.0)
 
         Translate {
             id: entranceTranslate
@@ -799,10 +936,12 @@ PanelWindow {
             onTriggered: launcherBox.entranceReady = true
         }
 
-        color: theme.launcherBackground
+        color: (!Settings.loaded || Settings.moduleBackgrounds.launcher !== false)
+            ? theme.launcherBackground : theme.transparent
 
         border.color: theme.border
-        border.width: 1
+        border.width: (!Settings.loaded || Settings.moduleFrames.launcher !== false)
+            ? Config.frameBorderWidth : 0
         focus: root.mode === root.modePower
 
         Keys.priority: Keys.BeforeItem
@@ -899,6 +1038,51 @@ PanelWindow {
                 }
                 root.refreshHoverVisualsForMode()
             }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            visible: root.layoutEditMode && !root.layoutDragHidden
+            z: 10000
+            color: "transparent"
+            border.color: Config.accent
+            border.width: Math.max(2, Config.frameBorderWidth + 1)
+            radius: Config.frameRadius
+            antialiasing: true
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.margins: 5
+                width: launcherEditLabel.implicitWidth + 14
+                height: launcherEditLabel.implicitHeight + 8
+                radius: 4
+                color: Config.accent
+
+                Text {
+                    id: launcherEditLabel
+                    anchors.centerIn: parent
+                    text: "launcher"
+                    color: Config.black
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    font.bold: true
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            visible: root.layoutEditMode
+            z: 10001
+            acceptedButtons: Qt.LeftButton
+            preventStealing: true
+            hoverEnabled: true
+            cursorShape: Qt.SizeAllCursor
+            onPressed: function(mouse) { root.beginLauncherDrag(mouse) }
+            onPositionChanged: function(mouse) { if (pressed) root.updateLauncherDrag(mouse) }
+            onReleased: function(mouse) { root.finishLauncherDrag(mouse) }
+            onCanceled: root.cancelLayoutDrag()
         }
 
         ColumnLayout {

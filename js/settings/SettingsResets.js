@@ -314,6 +314,31 @@ function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
     applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherTabOrder", "launcherTabVisible", "launcherProjects"])
+
+    // Position and monitor are part of the launcher module configuration too.
+    var geometry = Object.assign({}, owner.geometry || {})
+    geometry.launcher = profile.geometry && profile.geometry.launcher
+        ? profile.geometry.launcher.slice()
+        : ((owner.defaultGeometry && owner.defaultGeometry.launcher) || [-999999, -999999, Number(config.launcherWidth) || 720, Number(config.launcherHeight) || 640]).slice()
+    owner.geometry = geometry
+    var monitors = Object.assign({}, owner.moduleMonitors || {})
+    var profileMonitors = profile.moduleMonitors || {}
+    if (profileMonitors.launcher !== undefined && String(profileMonitors.launcher).trim() !== "")
+        monitors.launcher = String(profileMonitors.launcher)
+    else
+        delete monitors.launcher
+    owner.moduleMonitors = monitors
+
+    // Restore the launcher row's Frame and Background flags along with its detailed settings.
+    var profileFrames = profile.moduleFrames || {}
+    var frames = Object.assign({}, owner.moduleFrames || {})
+    frames.launcher = profileFrames.launcher !== undefined ? !!profileFrames.launcher : true
+    owner.moduleFrames = frames
+
+    var profileBackgrounds = profile.moduleBackgrounds || {}
+    var backgrounds = Object.assign({}, owner.moduleBackgrounds || {})
+    backgrounds.launcher = profileBackgrounds.launcher !== undefined ? !!profileBackgrounds.launcher : true
+    owner.moduleBackgrounds = backgrounds
     owner.save()
 }
 

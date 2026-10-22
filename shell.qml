@@ -57,6 +57,15 @@ ShellRoot {
         if (layoutEditMode) {
             settingsMoveMode = false
             settingsVisible = false
+            if (Config.launcherEnabled) {
+                launcherLoader.active = true
+                Qt.callLater(function() {
+                    if (shell.layoutEditMode && launcherLoader.status === Loader.Ready && launcherLoader.item)
+                        launcherLoader.item.beginLayoutEdit()
+                })
+            }
+        } else if (launcherLoader.status === Loader.Ready && launcherLoader.item) {
+            launcherLoader.item.endLayoutEdit()
         }
     }
 
@@ -114,9 +123,14 @@ ShellRoot {
         active: false
         source: "components/launcher/Launcher.qml"
         onLoaded: {
+            item.layoutEditor = moduleLayoutEditorWindow
             if (!Config.launcherEnabled) {
                 shell.pendingLauncherMode = ""
                 item.hideLauncher()
+                return
+            }
+            if (shell.layoutEditMode) {
+                item.beginLayoutEdit()
                 return
             }
             if (shell.pendingLauncherMode !== "") {

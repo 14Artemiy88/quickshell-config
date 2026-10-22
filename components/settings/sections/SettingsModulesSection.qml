@@ -13,6 +13,51 @@ Item {
     function resetScroll() {
         modulesFlick.contentY = 0
     }
+
+    function launcherTargetScreen() {
+        var wanted = String((settings.moduleMonitors || {}).launcher || Config.monitorName || "").trim().toLowerCase()
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var screen = Quickshell.screens[i]
+            if (!screen) continue
+            if (wanted && (String(screen.name || "").trim().toLowerCase() === wanted
+                    || String(screen.model || "").trim().toLowerCase() === wanted
+                    || String(screen).trim().toLowerCase() === wanted))
+                return screen
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    function launcherDefaultCoordinate(index) {
+        var screen = launcherTargetScreen()
+        var available = screen ? Number(index === 0 ? screen.width : screen.height) : (index === 0 ? 1920 : 1080)
+        var size = Number(index === 0 ? Config.launcherWidth : Config.launcherHeight)
+        return Math.max(0, Math.round((available - size) / 2))
+    }
+
+    function launcherCoordinate(index) {
+        var geometry = settings.geometry || {}
+        var g = geometry.launcher || [-999999, -999999, Config.launcherWidth, Config.launcherHeight]
+        var value = Number(g[index])
+        if (index < 2 && (!isFinite(value) || value < -10000))
+            return launcherDefaultCoordinate(index)
+        return isFinite(value) ? value : 0
+    }
+
+    function writeLauncherCoordinate(index, value) {
+        // A focus/blur without an edit should preserve the responsive auto-center default.
+        if (Math.round(Number(value) || 0) === Math.round(launcherCoordinate(index)))
+            return
+        var geometry = Object.assign({}, settings.geometry || {})
+        var a = (geometry.launcher || [-999999, -999999, Config.launcherWidth, Config.launcherHeight]).slice()
+        if (!isFinite(Number(a[0])) || Number(a[0]) < -10000) a[0] = launcherDefaultCoordinate(0)
+        if (!isFinite(Number(a[1])) || Number(a[1]) < -10000) a[1] = launcherDefaultCoordinate(1)
+        a[index] = Math.round(Number(value) || 0)
+        a[2] = Config.launcherWidth
+        a[3] = Config.launcherHeight
+        geometry.launcher = a
+        settings.geometry = geometry
+        settings.save()
+    }
     visible: host && host.currentTab === 0
     width: parent ? parent.width : 0
     height: visible ? parent.height - y : 0
@@ -182,9 +227,9 @@ Item {
                         }
                     }
 
-                    // The launcher is a separate window rather than a positioned widget.
-                    // Keep its module-level controls directly after Networks, while its
-                    // detailed appearance/tab/project settings remain on the Launcher tab.
+                    // The launcher is still a separate window, but its position now uses
+                    // the shared module geometry and Smart Editing workflow. Detailed
+                    // appearance/tab/project settings remain on the dedicated Launcher tab.
                     Row {
                         id: launcherModuleRow
                         width: parent.width
@@ -211,15 +256,23 @@ Item {
 
                         Repeater {
                             model: ["X", "Y"]
-                            delegate: Text {
+                            delegate: SettingsNumberField {
+                                id: launcherCoordinateField
                                 width: 60
                                 height: 30
-                                text: "—"
-                                color: Config.textDisabled
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
+                                compact: true
+                                fieldWidth: 60
+                                fieldFontSize: 10
+                                value: modulesSection.launcherCoordinate(index)
+                                minimum: -10000
+                                maximum: 10000
+                                step: 1
+                                wheelStep: 1
+                                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                valueWriter: function(n) { modulesSection.writeLauncherCoordinate(index, n) }
+                                ToolTip.visible: launcherCoordinateField.pointerHovered
+                                ToolTip.text: ["X", "Y"][index]
+                                ToolTip.delay: 500
                             }
                         }
 
@@ -259,26 +312,40 @@ Item {
                             saveOnEdit: true
                         }
 
-                        Text {
+                        SettingsCheckBox {
+                            id: launcherFrameBox
                             width: 42
                             height: 30
-                            text: "—"
-                            color: Config.textDisabled
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                            text: ""
+                            indicatorOnly: true
+                            checked: settings.moduleFrames.launcher !== false
+                            ToolTip.visible: launcherFrameBox.pointerHovered
+                            ToolTip.text: "Рамка лаунчера"
+                            ToolTip.delay: 500
+                            onToggled: {
+                                var values = Object.assign({}, settings.moduleFrames)
+                                values.launcher = checked
+                                settings.moduleFrames = values
+                                settings.save()
+                            }
                         }
 
-                        Text {
+                        SettingsCheckBox {
+                            id: launcherBackgroundBox
                             width: 42
                             height: 30
-                            text: "—"
-                            color: Config.textDisabled
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+                            text: ""
+                            indicatorOnly: true
+                            checked: settings.moduleBackgrounds.launcher !== false
+                            ToolTip.visible: launcherBackgroundBox.pointerHovered
+                            ToolTip.text: "Фон лаунчера"
+                            ToolTip.delay: 500
+                            onToggled: {
+                                var values = Object.assign({}, settings.moduleBackgrounds)
+                                values.launcher = checked
+                                settings.moduleBackgrounds = values
+                                settings.save()
+                            }
                         }
 
                         SettingsResetButton {

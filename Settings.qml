@@ -37,9 +37,9 @@ QtObject {
     property bool cava: true
     property bool networks: true
     property bool calendar: true
-    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
     property var moduleMonitors: ({})
-    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
@@ -49,7 +49,7 @@ QtObject {
         topAppsCpu: [5,322,315,96], topAppsRam: [5,423,315,96], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
         weatherHourly: [3,665,335,125], weatherDaily: [3,795,325,125], timer: [3,930,315,145],
         timerOptions: [325,888,90,95], calendar: [5,65,315,285], volumes: [331,72,275,210],
-        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180]
+        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180], launcher: [-999999,-999999,720,640]
     })
     // Geometry of the settings window itself: X, Y, Width, Height.
     property var settingsGeometry: [640, 40, 560, 850]

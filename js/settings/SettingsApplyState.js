@@ -39,10 +39,14 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         var frames = Object.assign({}, defaultModuleFrames)
         var savedFrames = migrateLegacyTopAppsMap(o.moduleFrames || {})
         for (var fi=0; fi<moduleNames.length; ++fi) if (savedFrames[moduleNames[fi]] !== undefined) frames[moduleNames[fi]] = !!savedFrames[moduleNames[fi]]
+        // The launcher is a separate window, but shares the module-level frame toggle.
+        if (savedFrames.launcher !== undefined) frames.launcher = !!savedFrames.launcher
         owner.moduleFrames = frames
         var backgrounds = Object.assign({}, defaultModuleBackgrounds)
         var savedBackgrounds = migrateLegacyTopAppsMap(o.moduleBackgrounds || {})
         for (var bi=0; bi<moduleNames.length; ++bi) if (savedBackgrounds[moduleNames[bi]] !== undefined) backgrounds[moduleNames[bi]] = !!savedBackgrounds[moduleNames[bi]]
+        // The launcher is a separate window, but shares the module-level background toggle.
+        if (savedBackgrounds.launcher !== undefined) backgrounds.launcher = !!savedBackgrounds.launcher
         owner.moduleBackgrounds = backgrounds
         var monitors = {}
         var savedMonitors = migrateLegacyTopAppsMap(o.moduleMonitors || {})
@@ -51,6 +55,9 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
             if (monitorValue !== undefined && String(monitorValue).trim() !== "")
                 monitors[moduleNames[mi]] = String(monitorValue)
         }
+        // Launcher has its own row in Modules, but uses the same monitor/geometry system.
+        if (savedMonitors.launcher !== undefined && String(savedMonitors.launcher).trim() !== "")
+            monitors.launcher = String(savedMonitors.launcher)
         owner.moduleMonitors = monitors
         if (o.geometry) {
             var g = Object.assign({}, owner.geometry)

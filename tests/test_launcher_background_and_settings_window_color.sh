@@ -14,7 +14,7 @@ DEFAULTS="$ROOT/js/settings/SettingsDefaults.js"
 
 grep -Fq 'property color launcherBackground: "#e6000000"' "$CONFIG"
 grep -Fq 'readonly property color launcherBackground: Config.launcherBackground' "$THEME"
-grep -Fq 'color: theme.launcherBackground' "$LAUNCHER"
+grep -Fq '? theme.launcherBackground : theme.transparent' "$LAUNCHER"
 grep -Fq 'targetProperty: "launcherBackground"' "$SECTION"
 grep -Fq 'launcherBackground: String(config.launcherBackground)' "$PERSIST"
 grep -Fq 'Schema.normalizeSavedColor(o.launcherBackground' "$APPLY"
