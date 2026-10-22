@@ -229,7 +229,7 @@ Flickable {
                             "textDim", "textDisabled", "calendarBackground"
                         ]},
                         { title: "Настройки", colors: [
-                            "settingsBackground", "settingsBorder", "settingsSubheading"
+                            "settingsBorder", "settingsSubheading"
                         ]},
                         { title: "Сети", colors: [
                             "activeNetworkBackground", "networkUpload", "networkDownload"
@@ -299,7 +299,7 @@ Flickable {
                                         currentWeather: "Цвет текущей погоды", background: "Полупрозрачный фон",
                                         text: "Основной текст", textMuted: "Приглушённый текст", textDim: "Вторичный текст",
                                         textDisabled: "Неактивный текст", calendarBackground: "Фон календаря",
-                                        settingsBackground: "Фон окна настроек", settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
+                                        settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
                                         volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
                                         playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
                                         playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",

@@ -31,9 +31,9 @@ from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
 checks = [
-    ('Показывать заголовки CPU и памяти', 'Настройки заголовков', 'Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
+    ('Показывать заголовки CPU и памяти', 'Заголовки', 'Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
     ('Показывать полосы нагрузки', 'Цвета полос нагрузки', 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
-    ('Показывать строку «Система/прочее»', 'Настройки строки «Система/прочее»', 'Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
+    ('Показывать строку «Система/прочее»', 'Строка «Система/прочее»', 'Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
 ]
 for toggle, group, guard in checks:
     a=s.index('text: "'+toggle+'"')

@@ -22,7 +22,7 @@ Column {
 
         Text {
             visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
-            text: "Основной шрифт интерфейса, LED-шрифт и общие параметры"
+            text: "Шрифты интерфейса"
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)
@@ -258,7 +258,7 @@ Column {
 
         Text {
             visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
-            text: "Общие рамки виджетов. Толщина 0 полностью отключает рамку."
+            text: "Рамки виджетов"
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)

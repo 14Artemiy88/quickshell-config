@@ -18,7 +18,10 @@ Item {
 
     // Hide unavailable directions by default. Consumers such as Mopidy can
     // keep an available arrow visible while temporarily disabling interaction.
-    visible: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)
+    visible: root.requestedVisible
+    // Keep the layout slot when a direction is unavailable, but do not draw or hit-test it.
+    opacity: (!root.hideWhenDisabled || root.interactionEnabled) ? 1 : 0
+    enabled: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)
 
     signal clicked()
 

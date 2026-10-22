@@ -8,6 +8,7 @@ QtObject {
     readonly property color transparent: "#00000000"
     readonly property real backdropOpacity: Config.launcherBackdropOpacity
     readonly property color background: Config.settingsBackground
+    readonly property color launcherBackground: Config.launcherBackground
     readonly property color panel: Config.calendarBackground
     readonly property color panelElevated: Config.settingsBackground
     readonly property color surface: "#00000000"

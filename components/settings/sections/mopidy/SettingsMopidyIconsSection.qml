@@ -187,7 +187,7 @@ Column {
                             iconText: "↑"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index > 0
                             toolTipText: "Поднять выше"
@@ -200,7 +200,7 @@ Column {
                             iconText: "↓"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index < orderColumn.orderIds.length - 1
                             toolTipText: "Опустить ниже"
@@ -214,7 +214,7 @@ Column {
                     height: 28
                     text: "По умолчанию"
                     fontSize: 10
-                    fillOnHover: true
+                    fillOnHover: false
                     backgroundColor: Config.settingsBackground
                     hoverBackgroundColor: Config.baseColor
                     textColor: Config.text
@@ -232,7 +232,7 @@ Column {
         contentSpacing: 6
 
             Text {
-                text: "Настройки иконок"
+                text: "Иконки"
                 color: Config.settingsSubheading
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(10)

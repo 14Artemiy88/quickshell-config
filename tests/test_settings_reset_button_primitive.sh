@@ -21,7 +21,7 @@ python3 - "$RESET" <<'PY'
 from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
-for token in ['SettingsButton {','onClicked: root.clicked()','fillOnHover: !root.emphasized || !root.emphasizedHoverOnly','textColor: root.emphasized ? root.emphasizedColor : Config.text']:
+for token in ['SettingsButton {','onClicked: root.clicked()','property bool fillOnHover: false','emphasized: root.emphasized && !root.emphasizedHoverOnly','textColor: root.emphasized ? root.emphasizedColor : Config.text']:
     if token not in s: raise SystemExit('missing reset button contract: '+token)
-print('Reset button uses standard SettingsButton hover styling and settings sidebar spacing: OK')
+print('Reset button uses border-only hover styling and settings sidebar spacing: OK')
 PY

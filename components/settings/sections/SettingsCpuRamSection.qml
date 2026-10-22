@@ -21,7 +21,7 @@ Column {
 
         Text {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
-                text: "Настройки полос CPU и RAM"
+                text: "Полосы CPU и RAM"
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(10)
@@ -370,7 +370,7 @@ Column {
 
             Text {
                 visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Настройки заголовков"
+                text: "Заголовки"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(12)
@@ -669,7 +669,7 @@ Column {
 
             Text {
                 visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Настройки строки «Система/прочее»"
+                text: "Строка «Система/прочее»"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(12)
@@ -715,7 +715,7 @@ Column {
 
             Text {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Настройки списка"
+                text: "Список приложений"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(12)

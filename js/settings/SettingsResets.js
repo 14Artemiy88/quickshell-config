@@ -93,6 +93,8 @@ function resetSettingsWindowFromProfile(owner, config) {
     else
         owner.settingsMonitorName = config.monitorName
     applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"])
+    if (profile.colors && profile.colors.settingsBackground !== undefined)
+        config.settingsBackground = profile.colors.settingsBackground
     owner.save()
 }
 
@@ -311,7 +313,7 @@ function resetSettingsWindow(owner, config) {
 function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["launcherWidth", "launcherHeight", "launcherItemHeight", "launcherRadius", "launcherBackdropOpacity", "launcherDefaultMode", "launcherShowResultCount", "launcherTabOrder", "launcherTabVisible", "launcherProjects"])
+    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherTabOrder", "launcherTabVisible", "launcherProjects"])
     owner.save()
 }
 

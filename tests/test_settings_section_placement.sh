@@ -46,7 +46,7 @@ grep -Fq 'targetProperty: "animationTimerOptionsDuration"' "$TIMERS"
 grep -Fq 'targetProperty: "systemMonitorInterval"' "$NETWORK"
 grep -Fq 'visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 0' "$NETWORK"
 ! grep -Fq 'text: "Сеть"' "$NETWORK"
-grep -Fq 'text: "Внешний вид и расположение сетевого трафика"' "$NETWORK"
+grep -Fq 'text: "Отступы сетевого блока"' "$NETWORK"
 grep -Fq 'visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1' "$NETWORK"
 
 # Player headings map to their actual subtab instead of adjacent ones.

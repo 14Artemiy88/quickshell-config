@@ -54,12 +54,25 @@ QtObject {
     property color settingsBorder: "#00cccc"
     property color settingsSubheading: "#00cccc"
 
-    // Launcher layout. Its palette is bound to the shared global theme.
+    // Launcher layout and dedicated window background; text, accent, and borders use the shared theme.
+    property bool launcherEnabled: true
     property int launcherWidth: 720
     property int launcherHeight: 640
     property int launcherItemHeight: 56
     property int launcherRadius: 22
     property real launcherBackdropOpacity: 0.55
+    property color launcherBackground: "#e6000000"
+    property string launcherTitleText: "LAUNCHER"
+    property string launcherTitleFont: ""
+    property int launcherTitleFontSize: 13
+    property int launcherTitleLetterSpacing: 2
+    property bool launcherTitleBold: true
+    property string launcherSearchFont: ""
+    property string launcherSearchPlaceholder: "Search..."
+    property int launcherSearchFontSize: 17
+    property int launcherSearchHeight: 58
+    property int launcherSearchRadius: 14
+    property color launcherSearchBackground: "transparent"
     property int launcherDefaultMode: 0
     property bool launcherShowResultCount: true
     property var launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8]

@@ -50,7 +50,7 @@ Column {
 
         Text {
                 visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
-                text: "Дефолтные значения кнопок таймера, в минутах"
+                text: "Минуты кнопок таймера"
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(10)
@@ -105,7 +105,7 @@ Column {
                             text: "Удалить"
                             fontSize: 10
                             radius: 4
-                            fillOnHover: true
+                            fillOnHover: false
                             borderOnHover: true
                             backgroundColor: Config.settingsBackground
                             hoverBackgroundColor: Config.baseColor
@@ -122,7 +122,7 @@ Column {
                     text: "+ Добавить кнопку"
                     fontSize: 10
                     radius: 4
-                    fillOnHover: true
+                    fillOnHover: false
                     borderOnHover: true
                     backgroundColor: Config.settingsBackground
                     textColor: Config.text
@@ -141,7 +141,7 @@ Column {
 
             Text {
                 visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
-                text: "Таймеры: оформление и поведение"
+                text: "Оформление и показ"
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(10)
@@ -535,7 +535,7 @@ Column {
                             iconText: "↑"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index > 0
                             toolTipText: "Поднять выше"
@@ -548,7 +548,7 @@ Column {
                             iconText: "↓"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index < 1
                             toolTipText: "Опустить ниже"
@@ -830,7 +830,7 @@ Column {
 
         Text {
             visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
-            text: "Анимация появления/исчезновения"
+            text: "Анимация"
             color: Config.accent
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(13)

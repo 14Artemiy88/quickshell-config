@@ -103,4 +103,5 @@ echo 'settings labels, alignment, and timer icon reorder: OK'
 
 # The shared arrow primitive hides unavailable directions by default.
 MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
-grep -Fq 'visible: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)' "$MOVE"
+grep -Fq 'visible: root.requestedVisible' "$MOVE"
+grep -Fq 'opacity: (!root.hideWhenDisabled || root.interactionEnabled) ? 1 : 0' "$MOVE"

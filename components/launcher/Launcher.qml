@@ -233,7 +233,10 @@ PanelWindow {
         if (root.mode === root.modeProjects)
             root.rebuildProjectsModel()
 
-        searchField.forceActiveFocus()
+        if (root.mode === root.modePower)
+            launcherBox.forceActiveFocus()
+        else
+            searchField.forceActiveFocus()
     }
 
     function activeListForMode(modeValue) {
@@ -796,10 +799,80 @@ PanelWindow {
             onTriggered: launcherBox.entranceReady = true
         }
 
-        color: theme.background
+        color: theme.launcherBackground
 
         border.color: theme.border
         border.width: 1
+        focus: root.mode === root.modePower
+
+        Keys.priority: Keys.BeforeItem
+        Keys.onPressed: function(event) {
+            if (root.mode !== root.modePower)
+                return
+
+            if (event.key === Qt.Key_Escape) {
+                root.hideLauncher()
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_Up) {
+                root.moveSelectionUp()
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_Down) {
+                root.moveSelectionDown()
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                root.activate()
+                event.accepted = true
+                return
+            }
+            if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+                if (event.key === Qt.Key_Backtab || (event.modifiers & Qt.ShiftModifier))
+                    root.previousMode()
+                else
+                    root.nextMode()
+                event.accepted = true
+                return
+            }
+            if ((event.modifiers & Qt.ControlModifier) &&
+                (event.key === Qt.Key_0 || event.key === Qt.Key_ParenRight)) {
+                root.setMode(root.modeApps)
+                event.accepted = true
+                return
+            }
+            if (event.modifiers & Qt.AltModifier) {
+                var shortcutIndex = -1
+                switch (event.key) {
+                case Qt.Key_1:
+                case Qt.Key_Exclam: shortcutIndex = 0; break
+                case Qt.Key_2:
+                case Qt.Key_At: shortcutIndex = 1; break
+                case Qt.Key_3:
+                case Qt.Key_NumberSign: shortcutIndex = 2; break
+                case Qt.Key_4:
+                case Qt.Key_Dollar: shortcutIndex = 3; break
+                case Qt.Key_5:
+                case Qt.Key_Percent: shortcutIndex = 4; break
+                case Qt.Key_6:
+                case Qt.Key_AsciiCircum: shortcutIndex = 5; break
+                case Qt.Key_7:
+                case Qt.Key_Ampersand: shortcutIndex = 6; break
+                case Qt.Key_8:
+                case Qt.Key_Asterisk: shortcutIndex = 7; break
+                case Qt.Key_9:
+                case Qt.Key_ParenLeft: shortcutIndex = 8; break
+                }
+                if (shortcutIndex >= 0 && shortcutIndex < root.displayedModeTabs.length) {
+                    root.setMode(root.displayedModeTabs[shortcutIndex].mode)
+                    event.accepted = true
+                    return
+                }
+            }
+        }
 
         MouseArea {
             anchors.fill: parent
@@ -843,11 +916,12 @@ PanelWindow {
                 Layout.preferredHeight: 28
 
                 Text {
-                    text: "LAUNCHER"
+                    text: Config.launcherTitleText
                     color: theme.textWhite
-                    font.pixelSize: 13
-                    font.bold: true
-                    font.letterSpacing: 2
+                    font.family: Config.launcherTitleFont.trim() === "" ? "" : Config.launcherTitleFont
+                    font.pixelSize: Config.launcherTitleFontSize
+                    font.bold: Config.launcherTitleBold
+                    font.letterSpacing: Config.launcherTitleLetterSpacing
                 }
 
                 Item { Layout.fillWidth: true }
@@ -934,13 +1008,15 @@ PanelWindow {
              */
 
             Rectangle {
+                id: searchContainer
+                visible: root.mode !== root.modePower
                 Layout.fillWidth: true
+                Layout.preferredHeight: Config.launcherSearchHeight
+                Layout.minimumHeight: Config.launcherSearchHeight
+                Layout.maximumHeight: Config.launcherSearchHeight
 
-                height: 58
-
-                radius: 14
-
-                color: theme.surface
+                radius: Config.launcherSearchRadius
+                color: Config.launcherSearchBackground
 
                 border.color: searchField.activeFocus
                     ? theme.borderAccent
@@ -965,9 +1041,12 @@ PanelWindow {
 
                     color: theme.textWhite
 
-                    font.pixelSize: 17
+                    font.family: Config.launcherSearchFont.trim() === "" ? "" : Config.launcherSearchFont
+                    font.pixelSize: Config.launcherSearchFontSize
 
                     placeholderText: {
+                        if (Config.launcherSearchPlaceholder.trim() !== "")
+                            return Config.launcherSearchPlaceholder
                         switch (root.mode) {
                         case root.modeApps:
                             return "Search applications..."
@@ -980,9 +1059,6 @@ PanelWindow {
 
                         case root.modeClipboard:
                             return "Search clipboard..."
-
-                        case root.modePower:
-                            return "Power..."
 
                         case root.modeNetwork:
                             return "Search networks..."
@@ -1010,6 +1086,17 @@ PanelWindow {
                     Keys.priority: Keys.BeforeItem
 
                     Keys.onPressed: function(event) {
+
+                        // Apps: Enter/Return launches the currently selected
+                        // application, matching the mouse-click activation path.
+                        if (
+                            root.mode === root.modeApps &&
+                            (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                        ) {
+                            root.launchCurrent()
+                            event.accepted = true
+                            return
+                        }
 
                         // Packages: Enter keeps the primary fast workflow
                         // (copy `name # description`). Ctrl+Enter opens the
@@ -1413,19 +1500,30 @@ PanelWindow {
                                 }
 
                                 Image {
+                                    id: appIconImage
+
                                     anchors.fill: parent
                                     anchors.margins: 7
 
-                                    source: {
-                                        if (appDelegate.entry.icon)
-                                            return "image://icon/" +
-                                                   appDelegate.entry.icon
-
-                                        return ""
-                                    }
+                                    // Resolve the desktop-entry icon before loading it.
+                                    // Missing theme icons (for example, rofi or jockey)
+                                    // then produce an empty source instead of a Qt warning.
+                                    source: appDelegate.entry.icon
+                                        ? Quickshell.iconPath(String(appDelegate.entry.icon))
+                                        : ""
+                                    visible: source !== ""
 
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                    text: "󰀻"
+                                    color: theme.textMuted
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 22
                                 }
                             }
 

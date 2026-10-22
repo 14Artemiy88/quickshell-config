@@ -182,6 +182,113 @@ Item {
                         }
                     }
 
+                    // The launcher is a separate window rather than a positioned widget.
+                    // Keep its module-level controls directly after Networks, while its
+                    // detailed appearance/tab/project settings remain on the Launcher tab.
+                    Row {
+                        id: launcherModuleRow
+                        width: parent.width
+                        height: 30
+                        spacing: 6
+
+                        SettingsCheckBox {
+                            id: launcherEnabledBox
+                            width: 110
+                            height: 30
+                            text: "Лаунчер"
+                            checked: Config.launcherEnabled
+                            onToggled: {
+                                Config.launcherEnabled = checked
+                                settings.save()
+                            }
+                            Connections {
+                                target: Config
+                                function onLauncherEnabledChanged() {
+                                    launcherEnabledBox.checked = Config.launcherEnabled
+                                }
+                            }
+                        }
+
+                        Repeater {
+                            model: ["X", "Y"]
+                            delegate: Text {
+                                width: 60
+                                height: 30
+                                text: "—"
+                                color: Config.textDisabled
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(10)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+
+                        SettingsNumberField {
+                            id: launcherWidthField
+                            width: 60
+                            height: 30
+                            compact: true
+                            fieldWidth: 60
+                            fieldFontSize: 10
+                            value: Config.launcherWidth
+                            minimum: 500
+                            maximum: 1400
+                            step: 1
+                            wheelStep: 1
+                            targetObject: Config
+                            targetProperty: "launcherWidth"
+                            settingsObject: settings
+                            saveOnEdit: true
+                        }
+
+                        SettingsNumberField {
+                            id: launcherHeightField
+                            width: 60
+                            height: 30
+                            compact: true
+                            fieldWidth: 60
+                            fieldFontSize: 10
+                            value: Config.launcherHeight
+                            minimum: 400
+                            maximum: 1200
+                            step: 1
+                            wheelStep: 1
+                            targetObject: Config
+                            targetProperty: "launcherHeight"
+                            settingsObject: settings
+                            saveOnEdit: true
+                        }
+
+                        Text {
+                            width: 42
+                            height: 30
+                            text: "—"
+                            color: Config.textDisabled
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        Text {
+                            width: 42
+                            height: 30
+                            text: "—"
+                            color: Config.textDisabled
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        SettingsResetButton {
+                            width: 42
+                            height: 30
+                            tooltip: "Сбросить настройки лаунчера"
+                            onClicked: settings.resetLauncherSettings()
+                        }
+                    }
+
                     Item { width: 1; height: 4 }
     }
 
@@ -204,7 +311,7 @@ Item {
                             text: "УМНОЕ РЕДАКТИРОВАНИЕ"
                             fontSize: 11
                             fontBold: true
-                            fillOnHover: true
+                            fillOnHover: false
                             borderOnHover: true
                             accentColor: Config.accent
                             backgroundColor: "transparent"

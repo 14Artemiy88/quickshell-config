@@ -339,7 +339,7 @@ Column {
                             iconText: "↑"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index > 0
                             toolTipText: "Поднять выше"
@@ -352,7 +352,7 @@ Column {
                             iconText: "↓"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: index < playerPriorityModel.count - 1
                             toolTipText: "Опустить ниже"

@@ -26,6 +26,7 @@ ShellRoot {
     property string pendingLauncherMode: ""
 
     function showLauncherMode(modeName) {
+        if (!Config.launcherEnabled) return
         pendingLauncherMode = String(modeName || "apps")
         if (launcherLoader.status === Loader.Ready && launcherLoader.item) {
             const requestedMode = pendingLauncherMode
@@ -37,6 +38,7 @@ ShellRoot {
     }
 
     function toggleLauncher() {
+        if (!Config.launcherEnabled) return
         if (launcherLoader.status === Loader.Ready && launcherLoader.item && launcherLoader.item.visible) {
             launcherLoader.item.hideLauncher()
             return
@@ -94,6 +96,17 @@ ShellRoot {
         }
     }
 
+    Connections {
+        target: Config
+        function onLauncherEnabledChanged() {
+            if (!Config.launcherEnabled) {
+                shell.pendingLauncherMode = ""
+                if (launcherLoader.status === Loader.Ready && launcherLoader.item)
+                    launcherLoader.item.hideLauncher()
+            }
+        }
+    }
+
     // Load the optional launcher on demand so normal widget startup does not
     // depend on launcher-only QML components or Niri being installed.
     Loader {
@@ -101,6 +114,11 @@ ShellRoot {
         active: false
         source: "components/launcher/Launcher.qml"
         onLoaded: {
+            if (!Config.launcherEnabled) {
+                shell.pendingLauncherMode = ""
+                item.hideLauncher()
+                return
+            }
             if (shell.pendingLauncherMode !== "") {
                 const requestedMode = shell.pendingLauncherMode
                 shell.pendingLauncherMode = ""

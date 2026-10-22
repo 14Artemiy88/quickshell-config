@@ -71,7 +71,7 @@ quickshell -c "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
 
 ### Лаунчер и кейбинды Niri
 
-Вкладка «Лаунчер» расположена перед «Окно настроек». Из UI можно настроить стартовую вкладку, отображение вкладок, их порядок, размеры, прозрачность фона и проекты. Палитра лаунчера берётся из текущей общей темы.
+Вкладка «Лаунчер» расположена перед «Окно настроек». Из UI можно настроить стартовую вкладку, отображение вкладок, их порядок, размеры, прозрачность фона, текст и оформление заголовка, а также шрифт, размер, высоту, скругление и фон строки поиска. Во вкладке Power строка поиска скрыта, поскольку список действий фиксированный. Текст, акцент и рамки лаунчера берутся из общей темы; собственный цвет фона окна настраивается отдельно в «Настройки → Лаунчер». Цвет фона окна настроек доступен в «Настройки → Окно настроек», а не в списке цветов темы.
 
 Для привязок Niri используется IPC текущего экземпляра Quickshell. Для стандартной конфигурации пример выглядит так:
 
@@ -183,7 +183,7 @@ Do not commit personal settings, API keys, calendar notes, or other private runt
 
 ### Niri keybindings
 
-The Launcher settings are placed immediately before Settings Window. Its startup tab, visible tabs, tab order, geometry, backdrop opacity, and project catalogue are configurable. Launcher colors use the active shared theme.
+The Launcher settings are placed immediately before Settings Window. Its startup tab, visible tabs, tab order, geometry, backdrop opacity, and project catalogue are configurable. Launcher text, accent, and borders use the active shared theme; the launcher window background has its own setting under Settings → Launcher. The settings-window background is configured under Settings → Settings Window rather than in the theme color editor.
 
 Example bindings for a default Quickshell instance:
 
@@ -217,10 +217,3 @@ Main directories: `components/` (widgets, launcher, shared QML primitives), `com
 ### License
 
 MIT; see [`LICENSE`](LICENSE).
-
-## Recent changes
-
-- **v815 — GitHub preparation:** removed machine-specific launcher project defaults, documented installation/dependencies/settings, added repository hygiene checks and automated CI.
-- **v814 — Top Apps settings:** each controlling checkbox and its conditional settings share one framed group.
-- **v810 — Projects search:** query matches in project names, paths, and IDE fields use the active theme accent color.
-- **v805–v808 — Launcher integration:** common themes and profiles, per-tab visibility/order, hover handling, and persistent terminal output.

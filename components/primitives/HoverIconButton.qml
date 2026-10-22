@@ -28,6 +28,9 @@ Item {
     Primitives.HoverButtonSurface {
         id: surface
         anchors.fill: parent
+        backgroundColor: root.hoverMode === "frame" ? Config.settingsBackground : Config.transparent
+        borderColor: root.hoverMode === "frame" ? Config.baseColor : Config.transparent
+        borderWidth: root.hoverMode === "frame" ? 1 : 0
         hoverBackgroundEnabled: root.hoverMode === "background"
         hoverBackgroundColor: root.hoverColor
         hoverBorderEnabled: root.hoverMode === "frame"

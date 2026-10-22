@@ -187,72 +187,10 @@ Column {
         contentSpacing: 7
 
         Text {
-            text: "Размер окна"
+            text: "Элементы и фон"
             color: Config.settingsSubheading
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(12)
-        }
-
-        Row {
-            width: parent.width
-            height: 34
-            spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Ширина окна"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            SettingsNumberField {
-                width: 100
-                compact: true
-                fieldWidth: 100
-                value: Config.launcherWidth
-                minimum: 500
-                maximum: 1400
-                step: 10
-                wheelStep: 10
-                targetObject: Config
-                targetProperty: "launcherWidth"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
-        }
-
-        Row {
-            width: parent.width
-            height: 34
-            spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Высота окна"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            SettingsNumberField {
-                width: 100
-                compact: true
-                fieldWidth: 100
-                value: Config.launcherHeight
-                minimum: 400
-                maximum: 1200
-                step: 10
-                wheelStep: 10
-                targetObject: Config
-                targetProperty: "launcherHeight"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
         }
 
         Row {
@@ -349,6 +287,212 @@ Column {
                 saveOnEdit: true
             }
 
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            text: "Внешний вид"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Фон окна лаунчера"
+            value: String(Config.launcherBackground)
+            targetObject: Config
+            targetProperty: "launcherBackground"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: true
+            labelWidth: 190
+            fieldWidth: 120
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            text: "Заголовок лаунчера"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Текст заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsTextField {
+                id: launcherTitleTextField
+                width: Math.min(260, parent.width - 198)
+                height: 30
+                text: Config.launcherTitleText
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                onEditingFinished: {
+                    Config.launcherTitleText = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64) || "LAUNCHER"
+                    text = Config.launcherTitleText
+                    root.settings.save()
+                }
+                Connections { target: Config; function onLauncherTitleTextChanged() { launcherTitleTextField.text = Config.launcherTitleText } }
+            }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsTextField {
+                id: launcherTitleFontField
+                width: Math.min(260, parent.width - 198)
+                height: 30
+                text: Config.launcherTitleFont
+                placeholderText: "По умолчанию"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                onEditingFinished: { Config.launcherTitleFont = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherTitleFont; root.settings.save() }
+                Connections { target: Config; function onLauncherTitleFontChanged() { launcherTitleFontField.text = Config.launcherTitleFont } }
+            }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Размер шрифта заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleFontSize"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Межбуквенный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleLetterSpacing; minimum: 0; maximum: 12; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleLetterSpacing"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Жирный заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsCheckBox {
+                id: launcherTitleBoldCheckBox
+                width: 58; height: 30; indicatorOnly: true
+                checked: Config.launcherTitleBold
+                onToggled: { Config.launcherTitleBold = checked; root.settings.save() }
+                Connections { target: Config; function onLauncherTitleBoldChanged() { launcherTitleBoldCheckBox.checked = Config.launcherTitleBold } }
+            }
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            text: "Строка поиска"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Шрифт поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsTextField {
+                id: launcherSearchFontField
+                width: Math.min(260, parent.width - 198)
+                height: 30
+                text: Config.launcherSearchFont.trim() === "" ? "JetBrainsMono Nerd Font" : Config.launcherSearchFont
+                placeholderText: "По умолчанию"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                onEditingFinished: { Config.launcherSearchFont = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherSearchFont; root.settings.save() }
+                Connections { target: Config; function onLauncherSearchFontChanged() { launcherSearchFontField.text = Config.launcherSearchFont.trim() === "" ? "JetBrainsMono Nerd Font" : Config.launcherSearchFont } }
+            }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Плейсхолдер поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsTextField {
+                id: launcherSearchPlaceholderField
+                width: Math.min(260, parent.width - 198)
+                height: 30
+                text: Config.launcherSearchPlaceholder
+                placeholderText: "Текст-подсказка"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                onEditingFinished: { Config.launcherSearchPlaceholder = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherSearchPlaceholder; root.settings.save() }
+                Connections { target: Config; function onLauncherSearchPlaceholderChanged() { launcherSearchPlaceholderField.text = Config.launcherSearchPlaceholder } }
+            }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Размер шрифта поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchFontSize; minimum: 8; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherSearchFontSize"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchHeight; minimum: 36; maximum: 100; step: 2; wheelStep: 2; targetObject: Config; targetProperty: "launcherSearchHeight"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+            Text { width: 190; height: 30; text: "Скругление строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchRadius; minimum: 0; maximum: 36; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherSearchRadius"; settingsObject: root.settings; saveOnEdit: true }
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Фон строки поиска"
+            value: String(Config.launcherSearchBackground)
+            targetObject: Config
+            targetProperty: "launcherSearchBackground"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: true
+            labelWidth: 190
+            fieldWidth: 120
         }
     }
 
@@ -453,7 +597,7 @@ Column {
                         iconText: "↑"
                         iconSize: Config.settingsUiSize(12)
                         baseColor: Config.text
-                        hoverMode: "background"
+                        hoverMode: "frame"
                         hoverColor: Config.accent
                         interactionEnabled: launcherTabRow.index > 0
                         toolTipText: "Поднять выше"
@@ -469,7 +613,7 @@ Column {
                         iconText: "↓"
                         iconSize: Config.settingsUiSize(12)
                         baseColor: Config.text
-                        hoverMode: "background"
+                        hoverMode: "frame"
                         hoverColor: Config.accent
                         interactionEnabled: launcherTabRow.index < root.orderedTabRows.length - 1
                         toolTipText: "Опустить ниже"
@@ -546,7 +690,7 @@ Column {
                             iconText: "↑"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: projectSettingsCard.index > 0
                             toolTipText: "Поднять выше"
@@ -564,7 +708,7 @@ Column {
                             iconText: "↓"
                             iconSize: Config.settingsUiSize(12)
                             baseColor: Config.text
-                            hoverMode: "background"
+                            hoverMode: "frame"
                             hoverColor: Config.accent
                             interactionEnabled: projectSettingsCard.index < Config.launcherProjects.length - 1
                             toolTipText: "Опустить ниже"
@@ -578,7 +722,7 @@ Column {
                         text: "Удалить"
                         fontSize: 9
                         radius: 4
-                        fillOnHover: true
+                        fillOnHover: false
                         borderOnHover: true
                         backgroundColor: Config.settingsBackground
                         textColor: Config.text
@@ -616,7 +760,7 @@ Column {
             text: "+ Добавить проект"
             fontSize: 10
             radius: 4
-            fillOnHover: true
+            fillOnHover: false
             borderOnHover: true
             backgroundColor: Config.settingsBackground
             textColor: Config.text

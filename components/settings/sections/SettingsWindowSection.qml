@@ -19,7 +19,7 @@ Column {
 
         Text {
                                 visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
-                                text: "Отдельный шрифт, размер текста и внутренние отступы самого окна настроек."
+                                text: "Интерфейс настроек"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
                                 font.pixelSize: Config.settingsUiSize(10)
@@ -136,7 +136,7 @@ Column {
 
         Text {
                                 visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-                                text: "Координаты и размеры окна настроек"
+                                text: "Положение и размер окна"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
                                 font.pixelSize: Config.settingsUiSize(10)
@@ -218,6 +218,35 @@ Column {
         padding: 8
         contentSpacing: 6
 
+        Text {
+            text: "Фон окна"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(12)
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Фон окна настроек"
+            value: String(Config.settingsBackground)
+            targetObject: Config
+            targetProperty: "settingsBackground"
+            settingsObject: settingsWindowColumn.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: true
+            labelWidth: 210
+            fieldWidth: 120
+        }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+        width: parent.width
+        showFrame: true
+        padding: 8
+        contentSpacing: 6
+
                             Row {
                                 visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
                                 width: parent.width
@@ -230,7 +259,7 @@ Column {
                                     text: "УМНОЕ ПЕРЕМЕЩЕНИЕ"
                                     fontSize: 11
                                     fontBold: true
-                                    fillOnHover: true
+                                    fillOnHover: false
                                     borderOnHover: true
                                     accentColor: Config.accent
                                     backgroundColor: "transparent"
@@ -259,7 +288,7 @@ Column {
 
         Text {
                                 visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
-                                text: "Сохраняй несколько вариантов всей конфигурации и переключайся между ними без ручной перенастройки."
+                                text: "Профили настроек"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
                                 font.pixelSize: Config.settingsUiSize(10)
@@ -398,7 +427,7 @@ Column {
                                     text: "Загрузить"
                                     fontSize: 10
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                                    fillOnHover: true
+                                    fillOnHover: false
                                     borderOnHover: true
                                     accentColor: Config.accent
                                     backgroundColor: "transparent"
@@ -415,7 +444,7 @@ Column {
                                     text: "Удалить"
                                     fontSize: 10
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                                    fillOnHover: true
+                                    fillOnHover: false
                                     borderOnHover: true
                                     accentColor: Config.accent
                                     backgroundColor: "transparent"
@@ -495,7 +524,7 @@ Column {
 
         Text {
             visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-            text: "Анимация появления/исчезновения"
+            text: "Анимация"
             color: Config.accent
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(13)

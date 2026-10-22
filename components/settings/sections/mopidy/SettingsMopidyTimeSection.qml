@@ -147,7 +147,7 @@ Column {
         contentSpacing: 6
 
             Text {
-                text: "Отображение названия и исполнителя"
+                text: "Название и исполнитель"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(14)

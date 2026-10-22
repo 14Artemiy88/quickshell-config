@@ -40,7 +40,7 @@ Column {
 
         Text {
             visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1
-            text: "Основная полоса и дополнительные аудиопотоки"
+            text: "Полоса и аудиопотоки"
             color: Config.settingsSubheading
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)

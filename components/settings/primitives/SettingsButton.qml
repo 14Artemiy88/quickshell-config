@@ -7,9 +7,10 @@ Item {
 
     property string text: ""
     property bool emphasized: false
-    property bool fillOnHover: true
+    property bool fillOnHover: false
     property bool borderOnHover: true
     property color accentColor: Config.accent
+    property color outlineColor: Config.baseColor
     property color backgroundColor: "transparent"
     property color hoverBackgroundColor: root.accentColor
     property color textColor: Config.text
@@ -37,9 +38,9 @@ Item {
                 : root.backgroundColor)
         border.color: !root.enabled
             ? Config.baseColor
-            : (root.borderOnHover || root.emphasized
+            : (root.emphasized || (root.borderOnHover && mouse.containsMouse)
                 ? root.accentColor
-                : Config.baseColor)
+                : root.outlineColor)
         border.width: root.borderWidth
 
         Text {

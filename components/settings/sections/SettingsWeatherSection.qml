@@ -359,7 +359,7 @@ Column {
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Размер глифа направления"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Размер стрелки ветра"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -447,7 +447,7 @@ Column {
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; text: "Дневной блок — максимум 4 колонки"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; text: "Дневной прогноз"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Количество дней"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdCount; width: 58; height: 30; value: Config.weatherDailyCount; minimum: 1; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyCount"; settingsObject: settings; saveOnEdit: true }

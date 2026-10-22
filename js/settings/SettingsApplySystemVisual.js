@@ -1,14 +1,23 @@
 .pragma library
 
 .import "SettingsLauncherProjects.js" as LauncherProjects
+.import "SettingsSchema.js" as Schema
 
 function apply(Config, o) {
+        // Launcher module enable flag.
+        if (o.launcherEnabled !== undefined) Config.launcherEnabled = !!o.launcherEnabled
+
         // Launcher geometry and opacity.
         var launcherNumberFields = [
             ["launcherWidth", 500, 1400],
             ["launcherHeight", 400, 1200],
             ["launcherItemHeight", 36, 110],
-            ["launcherRadius", 0, 40]
+            ["launcherRadius", 0, 40],
+            ["launcherTitleFontSize", 6, 40],
+            ["launcherTitleLetterSpacing", 0, 12],
+            ["launcherSearchFontSize", 8, 40],
+            ["launcherSearchHeight", 36, 100],
+            ["launcherSearchRadius", 0, 36]
         ]
         for (var lf = 0; lf < launcherNumberFields.length; ++lf) {
             var launcherName = launcherNumberFields[lf][0]
@@ -23,6 +32,20 @@ function apply(Config, o) {
             if (isFinite(launcherOpacity))
                 Config.launcherBackdropOpacity = Math.max(0, Math.min(0.95, launcherOpacity))
         }
+        if (o.launcherBackground !== undefined)
+            Config.launcherBackground = Schema.normalizeSavedColor(o.launcherBackground, String(Config.launcherBackground))
+        if (o.launcherTitleText !== undefined)
+            Config.launcherTitleText = String(o.launcherTitleText).replace(/[\r\n\t]/g, " ").trim().slice(0, 64) || "LAUNCHER"
+        if (o.launcherTitleFont !== undefined)
+            Config.launcherTitleFont = String(o.launcherTitleFont).replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        if (o.launcherTitleBold !== undefined)
+            Config.launcherTitleBold = !!o.launcherTitleBold
+        if (o.launcherSearchFont !== undefined)
+            Config.launcherSearchFont = String(o.launcherSearchFont).replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        if (o.launcherSearchPlaceholder !== undefined)
+            Config.launcherSearchPlaceholder = String(o.launcherSearchPlaceholder).replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        if (o.launcherSearchBackground !== undefined)
+            Config.launcherSearchBackground = Schema.normalizeSavedColor(o.launcherSearchBackground, String(Config.launcherSearchBackground))
         if (o.launcherDefaultMode !== undefined) {
             var launcherMode = Number(o.launcherDefaultMode)
             Config.launcherDefaultMode = isFinite(launcherMode)

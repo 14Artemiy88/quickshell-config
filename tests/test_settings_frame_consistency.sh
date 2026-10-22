@@ -110,14 +110,14 @@ def groups(text):
     return out
 
 mg = groups(mopidy)
-for title in ("Порядок верхней панели", "Настройки иконок"):
+for title in ("Порядок верхней панели", "Иконки"):
     matches = [g for g in mg if title in g]
     assert len(matches) == 1, f"Expected one framed Mopidy group for {title!r}"
     assert "showFrame: true" in matches[0], f"{title!r} must have its own frame"
 assert sum("showFrame: true" in g for g in mg) == 3, "Mopidy Icons should have separate panel, order and icon-settings frames"
 
 cg = groups(cpu)
-for title in ("Top Apps — отображение", "Настройки списка"):
+for title in ("Top Apps — отображение", "Список приложений"):
     matches = [g for g in cg if title in g]
     assert len(matches) == 1, f"Expected one Top Apps block for {title!r}"
 
@@ -125,9 +125,9 @@ for title in ("Top Apps — отображение", "Настройки спи�
 # conditional settings. The frame remains visible while unchecked, so the user
 # can turn the feature back on without an empty detached frame appearing below.
 control_groups = [
-    ("Показывать заголовки CPU и памяти", "Настройки заголовков", "Config.topAppsShowHeaders"),
+    ("Показывать заголовки CPU и памяти", "Заголовки", "Config.topAppsShowHeaders"),
     ("Показывать полосы нагрузки", "Положение и размер полос", "Config.topAppsShowBars"),
-    ("Показывать строку «Система/прочее»", "Настройки строки «Система/прочее»", "Config.topAppsShowSystemRemainder"),
+    ("Показывать строку «Система/прочее»", "Строка «Система/прочее»", "Config.topAppsShowSystemRemainder"),
 ]
 for toggle, revealed, guard in control_groups:
     matches = [g for g in cg if toggle in g]
@@ -142,7 +142,7 @@ for toggle, revealed, guard in control_groups:
 # CPU/RAM details use subheadings inside their owning header frame, not nested
 # rectangles. Bars geometry and colour settings likewise share one frame.
 assert sum("showFrame: true" in g for g in cg if "host.currentOtherTab === 5 && host.currentOtherSubTab === 2" in g) == 4, "Top Apps should have three toggle frames and one list-settings frame"
-for title in ("topAppsCpuHeaderTitleField", "topAppsRamHeaderTitleField", "Положение и размер полос", "Цвета полос нагрузки", "Настройки строки «Система/прочее»"):
+for title in ("topAppsCpuHeaderTitleField", "topAppsRamHeaderTitleField", "Положение и размер полос", "Цвета полос нагрузки", "Строка «Система/прочее»"):
     matches = [g for g in cg if title in g]
     assert len(matches) == 1, f"Expected {title!r} inside a single Top Apps group"
 PYLAYOUT

@@ -11,7 +11,7 @@ for file in "$SECTION" "$MOVE" "$QUEUE" "$PLAYLIST"; do
 done
 
 grep -Fq 'import "../../../primitives" as Primitives' "$SECTION"
-grep -Fq 'visible: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)' "$MOVE"
+grep -Fq 'visible: root.requestedVisible' "$MOVE"
 grep -Fq 'property bool hideWhenDisabled: true' "$MOVE"
 
 python3 - "$SECTION" <<'PY'

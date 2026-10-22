@@ -9,7 +9,7 @@ Item {
     property bool emphasized: false
     property bool emphasizedHoverOnly: false
     property color emphasizedColor: Config.accent
-    property bool fillOnHover: !root.emphasized || !root.emphasizedHoverOnly
+    property bool fillOnHover: false
     property bool borderOnHover: true
     property color backgroundColor: Config.settingsBackground
     property real radius: 4
@@ -27,7 +27,7 @@ Item {
         id: button
         anchors.fill: parent
         text: root.label
-        emphasized: root.emphasized
+        emphasized: root.emphasized && !root.emphasizedHoverOnly
         fillOnHover: root.fillOnHover
         borderOnHover: root.borderOnHover
         accentColor: root.emphasizedColor

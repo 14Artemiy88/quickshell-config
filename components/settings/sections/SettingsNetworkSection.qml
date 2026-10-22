@@ -21,7 +21,7 @@ Column {
 
         Text {
                             visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 0
-                            text: "Частота обновления общих данных мониторинга"
+                            text: "Обновление данных"
                             color: Config.textMuted
                             font.family: Config.settingsFont
                             font.pixelSize: Config.settingsUiSize(10)
@@ -63,7 +63,7 @@ Column {
 
         Text {
                             visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1
-                            text: "Внешний вид и расположение сетевого трафика"
+                            text: "Отступы сетевого блока"
                             color: Config.textMuted
                             font.family: Config.settingsFont
                             font.pixelSize: Config.settingsUiSize(10)

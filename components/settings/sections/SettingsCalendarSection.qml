@@ -156,14 +156,6 @@ Item {
             Text { width: 58; height: 30; text: ""; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         }
 
-        Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
-            width: parent.width; height: 24; spacing: 8
-            Item { width: 210; height: parent.height }
-            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-        }
     }
 
     SettingsGroup {
@@ -173,6 +165,14 @@ Item {
         padding: 8
         contentSpacing: 6
 
+        Row {
+            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            width: parent.width; height: 24; spacing: 8
+            Item { width: 210; height: parent.height }
+            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+        }
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
             width: parent.width; height: 30; spacing: 8
@@ -217,14 +217,6 @@ Item {
         }
             SettingsTextField { id: calendarTitleFontField; width: 130; height: 30; text: Config.calendarTitleFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarTitleFont = text; settings.save() } }
         }
-    }
-
-    SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
@@ -270,14 +262,6 @@ Item {
         }
             SettingsTextField { id: calendarWeekdayFontField; width: 130; height: 30; text: Config.calendarWeekdayFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarWeekdayFont = text; settings.save() } }
         }
-    }
-
-    SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
@@ -362,7 +346,7 @@ Item {
 
         Text {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
-            text: "Выходные и отметки отпусков"
+            text: "Выходные и отмеченные дни"
             color: Config.accent
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(13)
@@ -576,7 +560,7 @@ Item {
 
         Text {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
-            text: "Анимация появления/исчезновения"
+            text: "Анимация"
             color: Config.accent
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(13)

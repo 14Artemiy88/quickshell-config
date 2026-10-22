@@ -284,7 +284,7 @@ Column {
         contentSpacing: 6
 
         Text {
-            text: "Анимация появления/исчезновения"
+            text: "Анимация"
             color: Config.accent
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(13)
