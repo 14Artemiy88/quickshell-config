@@ -47,6 +47,16 @@ Column {
                                 settings.save()
                             }
                         }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        heading: "Время обновлений"
+        padding: 8
+        contentSpacing: 6
+
                         Row { width: parent.width; height: 30; spacing: 8
                             visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
                             Text { width: 210; height: 30; text: "Погода сейчас (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }

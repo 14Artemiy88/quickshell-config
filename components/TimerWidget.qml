@@ -308,7 +308,7 @@ Primitives.ModuleFrame {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             opacity: root.controlsMode === 0 ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance") : 0; easing.type: Config.easingType() } }
         }
 
         Text {
@@ -323,7 +323,7 @@ Primitives.ModuleFrame {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             opacity: root.controlsMode === 0 ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
+            Behavior on opacity { NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance") : 0; easing.type: Config.easingType() } }
         }
 
         Primitives.AnimatedVisibility {
@@ -334,7 +334,7 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 1
-            animationStyle: Config.animationTimerVisibilityStyle
+            animationStyle: Config.animationsEnabled ? Config.animationTimerVisibilityStyle : "none"
             duration: Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Flickable {
@@ -385,7 +385,7 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 2
-            animationStyle: Config.animationTimerVisibilityStyle
+            animationStyle: Config.animationsEnabled ? Config.animationTimerVisibilityStyle : "none"
             duration: Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Item {

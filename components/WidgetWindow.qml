@@ -11,8 +11,8 @@ PanelWindow {
     property int contentHeight: 100
     property bool bottomLayer: true
     property bool keyboardEnabled: false
-    property bool backgroundBlurEnabled: false
-    property int backgroundBlurRadius: 7
+    property bool backgroundBlurEnabled: root.moduleName !== "" && Settings.moduleBlurEnabled[root.moduleName] === true
+    property int backgroundBlurRadius: Config.backgroundBlurRadius
     property string moduleName: ""
     property bool layoutEditMode: false
     property bool settingsDragMode: false

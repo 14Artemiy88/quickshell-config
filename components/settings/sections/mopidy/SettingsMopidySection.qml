@@ -16,15 +16,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Поведение"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Поведение"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             SettingsCheckBox {
                 id: toggleWithPlayerCheckBox
@@ -98,15 +94,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Внешний вид"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Внешний вид"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             SettingsColorField {
                 width: parent.width
@@ -141,15 +133,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Очередь"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Очередь"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             SettingsCheckBox {
                 id: trackNumbersCheckBox
@@ -244,15 +232,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Громкость"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Громкость"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             Row {
                 width: parent.width
@@ -280,15 +264,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Анимация"
         padding: 8
         contentSpacing: 6
 
-        Text {
-            text: "Анимация"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
+
 
         Row {
             width: parent.width

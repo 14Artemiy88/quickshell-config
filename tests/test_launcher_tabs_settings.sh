@@ -19,7 +19,7 @@ grep -q 'launcherTabOrder: JSON.parse(JSON.stringify(config.launcherTabOrder' "$
 grep -q 'launcherTabVisible: JSON.parse(JSON.stringify(config.launcherTabVisible' "$PERSIST"
 grep -q 'Config.launcherTabOrder = validLauncherOrder' "$APPLY"
 grep -q 'Config.launcherTabVisible = validLauncherVisibility' "$APPLY"
-grep -q '"launcherTabOrder", "launcherTabVisible", "launcherProjects"' "$RESETS"
+grep -q '"launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"' "$RESETS"
 
 # The unified settings navigation exposes the new subtab before/alongside common options.
 grep -Fq 'case 11: return ["Общее", "Вкладки", "Проекты"]' "$WIDGET"

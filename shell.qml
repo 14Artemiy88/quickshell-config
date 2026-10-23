@@ -549,7 +549,7 @@ ShellRoot {
             id: calendarVisibility
             anchors.fill: parent
             shown: shell.calendarVisible
-            animationStyle: Config.animationCalendarVisibilityStyle
+            animationStyle: Config.animationsEnabled ? Config.animationCalendarVisibilityStyle : "none"
             duration: Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
             CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }
         }
@@ -575,8 +575,6 @@ ShellRoot {
         offsetY: Settings.geometryForLayout("player")[1]
         contentWidth: Settings.geometry.player[2]
         contentHeight: Settings.geometry.player[3]
-        backgroundBlurEnabled: Config.playerBlurEnabled
-        backgroundBlurRadius: Config.playerBlurRadius
         Player {
             id: playerWidget
             anchors.fill: parent
@@ -611,12 +609,13 @@ ShellRoot {
             id: mopidyVisibility
             anchors.fill: parent
             shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible
-            animationStyle: Config.animationMopidyVisibilityStyle
+            animationStyle: Config.animationsEnabled ? Config.animationMopidyVisibilityStyle : "none"
             duration: Config.animationDuration(280, "appearance")
             MopidyComponents.Mopidy {
                 id: mopidyWidget
                 anchors.fill: parent
                 externalTopPanelHover: shell.mopidyTopReveal
+                onTopPanelHideRequested: shell.mopidyTopReveal = false
             }
         }
     }
@@ -705,7 +704,7 @@ ShellRoot {
             id: settingsVisibility
             anchors.fill: parent
             shown: shell.settingsVisible
-            animationStyle: Config.animationSettingsVisibilityStyle
+            animationStyle: Config.animationsEnabled ? Config.animationSettingsVisibilityStyle : "none"
             duration: Config.animationDuration(300, "appearance")
             SettingsWidget {
                 id: settingsWidget

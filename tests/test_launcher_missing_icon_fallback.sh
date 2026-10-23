@@ -9,8 +9,9 @@ s = Path(sys.argv[1]).read_text()
 start = s.index('id: appIconImage')
 end = s.index('\n                            }', start)
 block = s[start:end]
-assert 'Quickshell.iconPath(String(appDelegate.entry.icon))' in block, 'app icon should resolve through Quickshell.iconPath'
+assert 'Quickshell.iconPath(String(appDelegate.entry.icon), true)' in block, 'app icon resolution must return an empty source for missing theme icons'
 assert 'appDelegate.itemData.kind === "app"' in block and 'String(source).length > 0' in block, 'only a non-empty native app icon should hide fallback glyphs'
+assert 'Quickshell.iconPath(String(appDelegate.entry.icon))' not in block, 'unchecked iconPath can produce a missing-texture icon instead of the fallback'
 assert 'image://icon/' not in s, 'old icon provider URL should not remain'
 assert 'visible: !appIconImage.visible' in s, 'fallback glyph should appear when icon is unavailable'
 assert 'text: \"󰀻\"' in s and 'appDelegate.itemData.kind === \"app\"' in s, 'generic app fallback should remain available for app entries'

@@ -100,6 +100,59 @@ Column {
         }
     }
     SettingsGroup {
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        heading: "Размытие фона"
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text {
+                width: 210
+                height: 30
+                text: "Радиус области блюра (0–40)"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsNumberField {
+                id: backgroundBlurRadiusField
+                width: 72
+                height: 30
+                value: Config.backgroundBlurRadius
+                minimum: 0
+                maximum: 40
+                step: 1
+                wheelStep: 1
+                decimals: 0
+                compact: true
+                fieldWidth: 72
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "backgroundBlurRadius"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+        Text {
+            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            width: parent.width
+            text: "Общий радиус для всех модулей с включённым блюром; требуется поддержка композитора."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true

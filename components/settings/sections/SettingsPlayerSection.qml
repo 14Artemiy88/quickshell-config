@@ -935,55 +935,5 @@ Column {
                     saveOnEdit: true
                 }
             }
-        Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
-                width: parent.width
-                height: 30
-                spacing: 8
-                SettingsCheckBox {
-                    id: playerBlurEnabledBox
-                    width: 210
-                    height: 30
-                    text: "Блюр фона плеера"
-                    checked: Config.playerBlurEnabled
-                    onToggled: { Config.playerBlurEnabled = checked; settings.save() }
-           
-                }
-            }
-            Text {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
-                text: "Размывает содержимое позади плеера; сила блюра задаётся композитором Niri."
-                color: Config.textMuted
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(9)
-                wrapMode: Text.WordWrap
-                width: parent.width
-            }
-            Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
-                width: parent.width
-                height: 30
-                spacing: 8
-                Text { width: 210; height: 30; text: "Радиус области блюра (0–40)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsNumberField {
-            id: playerBlurRadiusField
-            width: 72
-            height: 30
-            value: Config.playerBlurRadius
-            minimum: 0
-            maximum: 40
-            step: 1
-            wheelStep: 1
-            decimals: 0
-            compact: true
-            fieldWidth: 72
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhDigitsOnly
-            targetObject: Config
-            targetProperty: "playerBlurRadius"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
-            }
     }
 }

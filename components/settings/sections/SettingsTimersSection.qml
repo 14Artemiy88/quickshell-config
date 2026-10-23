@@ -394,6 +394,7 @@ Column {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Иконки таймера и будильника"
         padding: 8
         contentSpacing: 6
 
@@ -401,15 +402,6 @@ Column {
                 visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 2
                 width: parent.width
                 spacing: 4
-
-                Text {
-                    width: parent.width
-                    text: "Иконки таймера и будильника"
-                    color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(10)
-                    wrapMode: Text.WordWrap
-                }
 
                 Row {
                     width: parent.width

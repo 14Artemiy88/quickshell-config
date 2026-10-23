@@ -16,15 +16,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Время очереди"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Время очереди"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             SettingsCheckBox {
                 id: showQueueTimeCheckBox
@@ -110,15 +106,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Время треков и альбомов"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Время треков и альбомов"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             SettingsCheckBox {
                 id: showTrackRemainingCheckBox
@@ -143,15 +135,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Название и исполнитель"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Название и исполнитель"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             Row {
                 width: parent.width
@@ -269,15 +257,11 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        heading: "Шрифты очереди"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                text: "Шрифты очереди"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(14)
-            }
+
 
             // Keep the existing four queue text settings together so they are no longer
             // mixed into the general Mopidy behavior settings.

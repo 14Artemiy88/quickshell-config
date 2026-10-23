@@ -200,7 +200,7 @@ PanelWindow {
     readonly property int modePass: 7
     readonly property int modeProjects: 8
 
-    readonly property var allModeTabs: [
+    readonly property var defaultModeTabs: [
         { id: 0, icon: "󰀻", label: "Apps", mode: root.modeApps },
         { id: 1, icon: "", label: "Run", mode: root.modeRun },
         { id: 2, icon: "󰖯", label: "Windows", mode: root.modeWindows },
@@ -211,6 +211,19 @@ PanelWindow {
         { id: 7, icon: "󰌋", label: "Pass", mode: root.modePass },
         { id: 8, icon: "", label: "Projects", mode: root.modeProjects }
     ]
+
+    readonly property var allModeTabs: {
+        var labels = Config.launcherTabLabels instanceof Array ? Config.launcherTabLabels : []
+        var icons = Config.launcherTabIcons instanceof Array ? Config.launcherTabIcons : []
+        var result = []
+        for (var i = 0; i < root.defaultModeTabs.length; ++i) {
+            var fallback = root.defaultModeTabs[i]
+            var label = labels[i] === undefined ? fallback.label : String(labels[i]).replace(/[\r\n\t]/g, " ").trim().slice(0, 32)
+            var icon = icons[i] === undefined ? fallback.icon : String(icons[i]).replace(/[\r\n\t]/g, " ").slice(0, 16)
+            result.push({ id: fallback.id, icon: icon, label: label || fallback.label, mode: fallback.mode })
+        }
+        return result
+    }
 
     function normalizedModeTabOrder() {
         var result = []
@@ -241,28 +254,12 @@ PanelWindow {
     }
 
     property string currentModeName: {
-        switch (mode) {
-        case modeApps:
-            return "Apps"
-        case modeRun:
-            return "Run"
-        case modeWindows:
-            return "Windows"
-        case modeClipboard:
-            return "Clipboard"
-        case modePower:
-            return "Power"
-        case modeNetwork:
-            return "Network"
-        case modeNix:
-            return "Nix"
-        case modePass:
-            return "Pass"
-        case modeProjects:
-            return "Projects"
-        default:
-            return "Apps"
+        var tabs = root.allModeTabs
+        for (var i = 0; i < tabs.length; ++i) {
+            if (tabs[i].mode === root.mode)
+                return tabs[i].label
         }
+        return "Apps"
     }
 
     property int currentResultCount: {
@@ -1215,18 +1212,18 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: 180
+                    duration: Config.animationsEnabled ? Config.animationDuration(180, "movement") : 0
                     easing.type: Easing.OutCubic
                 }
             }
         }
 
         Behavior on scale {
-            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(180, "size") : 0; easing.type: Easing.OutCubic }
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(140, "appearance") : 0; easing.type: Easing.OutCubic }
         }
 
         Component.onCompleted: entranceTimer.start()
@@ -1459,7 +1456,7 @@ PanelWindow {
                         border.width: root.mode === modelData.mode ? 1 : 0
 
                         Behavior on border.color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         ToolTip.text: modelData.label
@@ -1512,7 +1509,7 @@ PanelWindow {
                 border.width: 1
 
                 Behavior on border.color {
-                    ColorAnimation { duration: 140; easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(140, "appearance") : 0; easing.type: Easing.OutCubic }
                 }
 
 
@@ -1945,7 +1942,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
                         }
 
                         width: appList.width
@@ -1963,11 +1960,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         property var itemData: modelData
@@ -2001,7 +1998,7 @@ PanelWindow {
                                         : theme.surface)
 
                                 Behavior on color {
-                                    ColorAnimation { duration: 120 }
+                                    ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                                 }
 
                                 Image {
@@ -2014,7 +2011,7 @@ PanelWindow {
                                     // Missing theme icons (for example, rofi or jockey)
                                     // then produce an empty source instead of a Qt warning.
                                     source: appDelegate.entry && appDelegate.entry.icon
-                                        ? Quickshell.iconPath(String(appDelegate.entry.icon))
+                                        ? Quickshell.iconPath(String(appDelegate.entry.icon), true)
                                         : ""
                                     // This image is only for native application results. Projects and
                                     // saved commands use their own fallback icons below. Checking a
@@ -2227,7 +2224,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
                         }
 
                         width: runList.width
@@ -2244,11 +2241,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         RowLayout {
@@ -2383,7 +2380,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
                         }
 
                         width: windowList.width
@@ -2618,7 +2615,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: 110; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
                         }
 
                         width: clipboardList.width
@@ -2636,11 +2633,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         RowLayout {
@@ -3279,8 +3276,8 @@ PanelWindow {
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
                         border.width: ListView.isCurrentItem ? 1 : 0
 
-                        Behavior on color { ColorAnimation { duration: 120 } }
-                        Behavior on border.color { ColorAnimation { duration: 120 } }
+                        Behavior on color { ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 } }
+                        Behavior on border.color { ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 } }
 
                         RowLayout {
                             anchors.fill: parent
@@ -3452,11 +3449,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: 120 }
+                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
                         }
 
                         Rectangle {
@@ -5489,5 +5486,11 @@ PanelWindow {
         loadRunHistoryFromDisk()
         appModel.refreshUsageHistory()
         resetSelection()
+    }
+
+    // Blur only behind the launcher card, never across the dimming backdrop.
+    BackgroundEffect.blurRegion: Region {
+        item: Settings.moduleBlurEnabled.launcher === true ? launcherBox : null
+        radius: Math.max(0, Config.backgroundBlurRadius)
     }
 }

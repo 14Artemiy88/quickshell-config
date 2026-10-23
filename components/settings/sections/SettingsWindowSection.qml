@@ -131,16 +131,9 @@ Column {
         visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Положение и размер окна"
         padding: 8
         contentSpacing: 6
-
-        Text {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-                                text: "Положение и размер окна"
-                                color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                            }
 
                             Row {
                                 visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
@@ -209,43 +202,6 @@ Column {
                                 wrapMode: Text.WordWrap
                                 width: parent.width
                             }
-    }
-
-    SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
-
-        Text {
-            text: "Фон окна"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
-
-        SettingsColorField {
-            width: parent.width
-            label: "Фон окна настроек"
-            value: String(Config.settingsBackground)
-            targetObject: Config
-            targetProperty: "settingsBackground"
-            settingsObject: settingsWindowColumn.settings
-            saveOnEdit: true
-            allowAlpha: true
-            allowTransparent: true
-            labelWidth: 210
-            fieldWidth: 120
-        }
-    }
-
-    SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
 
                             Row {
                                 visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
@@ -278,6 +234,56 @@ Column {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                             }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+        width: parent.width
+        showFrame: true
+        heading: "Фон и рамка окна настроек"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsColorField {
+            width: parent.width
+            label: "Фон окна настроек"
+            value: String(Config.settingsBackground)
+            targetObject: Config
+            targetProperty: "settingsBackground"
+            settingsObject: settingsWindowColumn.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: true
+            labelWidth: 210
+            fieldWidth: 120
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет рамки окна настроек"
+            value: String(Config.settingsBorder)
+            targetObject: Config
+            targetProperty: "settingsBorder"
+            settingsObject: settingsWindowColumn.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: false
+            labelWidth: 210
+            fieldWidth: 120
+        }
+
+        Row {
+            width: parent.width
+            height: 30
+            spacing: 8
+            SettingsCheckBox {
+                width: parent.width
+                height: 30
+                text: "Блюр окна настроек"
+                checked: settings.moduleBlurEnabled.settings === true
+                onToggled: settings.setModuleBlurEnabled("settings", checked)
+            }
+        }
     }
     SettingsGroup {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2

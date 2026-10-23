@@ -72,12 +72,16 @@ Item {
     }
 
     function animationsActive() {
-        return Config.animationsEnabled && Config.animationExpansionEnabled
+        // The master switch is authoritative: disabling animations must not
+        // silently replace the expansion transition with a fade.
+        return Config.animationsEnabled
+            && (Config.animationAppearanceEnabled || Config.animationExpansionEnabled)
     }
 
     function syncVisualState() {
         var targetOpacity = (closing || selectedFile === "") ? 0 : 1
         var targetScale = (closing || selectedFile === "") ? 0.97 : 1
+        var expansionEnabled = Config.animationsEnabled && Config.animationExpansionEnabled
 
         visualTransition.stop()
 
@@ -88,13 +92,24 @@ Item {
             return
         }
 
-        var duration = Config.animationDuration(Config.animationTimerOptionsDuration, "expansion")
+        var baseDuration = Config.animationTimerOptionsDuration
+        var opacityDuration = Config.animationAppearanceEnabled
+            ? Config.animationDuration(baseDuration, "appearance") : 0
+        var scaleDuration = expansionEnabled
+            ? Config.animationDuration(baseDuration, "expansion") : 0
+
         showOpacityAnimation.from = opacity
         showOpacityAnimation.to = targetOpacity
-        showOpacityAnimation.duration = duration
+        showOpacityAnimation.duration = opacityDuration
         showScaleAnimation.from = scale
-        showScaleAnimation.to = targetScale
-        showScaleAnimation.duration = duration
+        showScaleAnimation.to = expansionEnabled ? targetScale : 1
+        showScaleAnimation.duration = scaleDuration
+        if (opacityDuration <= 0 && scaleDuration <= 0) {
+            opacity = targetOpacity
+            scale = targetScale
+            finishCloseOnce()
+            return
+        }
         visualTransition.start()
     }
 
@@ -102,6 +117,7 @@ Item {
         target: Config
         function onAnimationsEnabledChanged() { root.syncVisualState() }
         function onAnimationExpansionEnabledChanged() { root.syncVisualState() }
+        function onAnimationAppearanceEnabledChanged() { root.syncVisualState() }
     }
 
     // Closing on a click outside the mini-window is handled by the

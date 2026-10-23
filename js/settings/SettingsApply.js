@@ -7,7 +7,7 @@
 .import "SettingsApplyWeather.js" as Weather
 .import "SettingsApplyState.js" as State
 
-function applyObject(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames) {
+function applyObject(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled) {
     if (!o) return
 
     var legacyTimerIconOrder = Core.apply(owner, Config, o)
@@ -15,5 +15,5 @@ function applyObject(owner, Config, o, moduleNames, defaultModuleFrames, default
     SystemVisual.apply(Config, o)
     TimerPlayer.apply(Config, o, legacyTimerIconOrder)
     Weather.apply(Config, o)
-    State.apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames)
+    State.apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled)
 }

@@ -23,6 +23,9 @@ grep -Fq '"launcherDefaultMode"' "$RESETS"
 grep -Fq 'launcherBackground: "#e6000000"' "$DEFAULTS"
 grep -Fq 'label: "Фон окна настроек"' "$WINDOW"
 grep -Fq 'targetProperty: "settingsBackground"' "$WINDOW"
+grep -Fq 'label: "Цвет рамки окна настроек"' "$WINDOW"
+grep -Fq 'targetProperty: "settingsBorder"' "$WINDOW"
+grep -Fq 'border.color: Config.settingsBorder' "$ROOT/components/settings/SettingsWidget.qml"
 # The theme editor should no longer provide the settings-background field; it is now under Settings Window.
 if grep -Fq '"settingsBackground", "settingsBorder"' "$COLORS"; then
   echo 'Settings background color was not moved out of the theme editor' >&2

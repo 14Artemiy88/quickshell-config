@@ -18,14 +18,14 @@ python3 - "$MAIN" "$ROOT/Config.qml" "$ROOT/components/Player.qml" <<'PYCODE'
 from pathlib import Path
 import sys
 main, config, player = (Path(p).read_text() for p in sys.argv[1:])
-marker = 'onTriggered: root.refreshQueue()'
+marker = 'onTriggered: root.refreshPlaybackPosition()'
 index = main.find(marker)
 if index < 0:
-    raise SystemExit('Mopidy queue refresh timer is missing')
+    raise SystemExit('Mopidy lightweight position poll timer is missing')
 block_start = main.rfind('Timer {', 0, index)
 block = main[block_start:index]
 if 'interval: 1000' not in block:
-    raise SystemExit('Mopidy queue refresh is not configured for 1000 ms')
+    raise SystemExit('Mopidy position poll is not configured for 1000 ms')
 if 'property int playerUpdateInterval: 1000' not in config:
     raise SystemExit('Player default refresh interval is not 1000 ms')
 if 'interval: Config.playerUpdateInterval' not in player:

@@ -79,6 +79,27 @@ function apply(Config, o) {
                 validLauncherVisibility.push(o.launcherTabVisible[ltv] === undefined ? true : !!o.launcherTabVisible[ltv])
             Config.launcherTabVisible = validLauncherVisibility
         }
+        var defaultLauncherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
+        var defaultLauncherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
+        var sourceLauncherLabels = o.launcherTabLabels instanceof Array ? o.launcherTabLabels : defaultLauncherTabLabels
+        var validLauncherLabels = []
+        for (var ltl = 0; ltl < defaultLauncherTabLabels.length; ++ltl) {
+            var label = sourceLauncherLabels[ltl] === undefined
+                    ? defaultLauncherTabLabels[ltl]
+                    : String(sourceLauncherLabels[ltl]).replace(/[\r\n\t]/g, " ").trim().slice(0, 32)
+            validLauncherLabels.push(label || defaultLauncherTabLabels[ltl])
+        }
+        Config.launcherTabLabels = validLauncherLabels
+
+        var sourceLauncherIcons = o.launcherTabIcons instanceof Array ? o.launcherTabIcons : defaultLauncherTabIcons
+        var validLauncherIcons = []
+        for (var lti = 0; lti < defaultLauncherTabIcons.length; ++lti) {
+            var icon = sourceLauncherIcons[lti] === undefined
+                    ? defaultLauncherTabIcons[lti]
+                    : String(sourceLauncherIcons[lti]).replace(/[\r\n\t]/g, " ").slice(0, 16)
+            validLauncherIcons.push(icon)
+        }
+        Config.launcherTabIcons = validLauncherIcons
         if (o.launcherProjects instanceof Array)
             Config.launcherProjects = LauncherProjects.normalize(o.launcherProjects)
 

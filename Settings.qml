@@ -43,6 +43,7 @@ QtObject {
     property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
     property var moduleMonitors: ({})
     property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
+    property var moduleBlurEnabled: ({time:false, calendar:false, cpu:false, cpuGraph:false, topAppsCpu:false, topAppsRam:false, networkStat:false, weatherNow:false, weatherHourly:false, weatherDaily:false, timer:false, volumes:false, player:false, mopidy:false, cava:false, networks:false, launcher:false, settings:false})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
@@ -91,12 +92,20 @@ QtObject {
     readonly property var defaultModules: SettingsMetadata.defaultModules
     readonly property var defaultModuleFrames: SettingsMetadata.defaultModuleFrames
     readonly property var defaultModuleBackgrounds: SettingsMetadata.defaultModuleBackgrounds
+    readonly property var defaultModuleBlurEnabled: SettingsMetadata.defaultModuleBlurEnabled
     readonly property var defaultModuleMonitors: SettingsMetadata.defaultModuleMonitors
     signal changed()
     signal saved()
     signal resetUnavailable(string message)
 
-    function applyObject(o) { return SettingsApply.applyObject(root, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames) }
+    function applyObject(o) { return SettingsApply.applyObject(root, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled) }
+    function setModuleBlurEnabled(moduleName, enabled) {
+        var values = Object.assign({}, root.moduleBlurEnabled || {})
+        values[String(moduleName)] = !!enabled
+        root.moduleBlurEnabled = values
+        if (String(moduleName) === "player") Config.playerBlurEnabled = !!enabled
+        root.save()
+    }
 
     property var loader: null
     property var writer: null
@@ -274,7 +283,7 @@ QtObject {
 
     function resetModule(moduleName) { SettingsResets.resetModule(root, Config, moduleName) }
 
-    function resetModules() { SettingsResets.resetModules(root) }
+    function resetModules() { SettingsResets.resetModules(root, Config) }
 
     function resetColors(names) { SettingsResets.resetColors(root, Config, names, SettingsThemes, colorNames) }
 

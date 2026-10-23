@@ -41,14 +41,57 @@ Column {
         return result
     }
 
+    function tabLabel(tabId) {
+        var definition = root.tabDefinitions[tabId]
+        if (!definition) return ""
+        var saved = Config.launcherTabLabels
+        if (saved instanceof Array && tabId >= 0 && tabId < saved.length) {
+            var value = String(saved[tabId] === undefined ? "" : saved[tabId]).replace(/[\r\n\t]/g, " ").trim().slice(0, 32)
+            return value || definition.label
+        }
+        return definition.label
+    }
+
+    function tabIcon(tabId) {
+        var definition = root.tabDefinitions[tabId]
+        if (!definition) return ""
+        var saved = Config.launcherTabIcons
+        if (saved instanceof Array && tabId >= 0 && tabId < saved.length)
+            return String(saved[tabId] === undefined ? "" : saved[tabId]).replace(/[\r\n\t]/g, " ").slice(0, 16)
+        return definition.icon
+    }
+
+    function setTabLabel(tabId, value) {
+        if (tabId < 0 || tabId >= root.tabDefinitions.length) return
+        var next = Config.launcherTabLabels instanceof Array ? Config.launcherTabLabels.slice(0) : []
+        while (next.length < root.tabDefinitions.length) next.push(root.tabDefinitions[next.length].label)
+        var clean = String(value === undefined ? "" : value).replace(/[\r\n\t]/g, " ").trim().slice(0, 32)
+        next[tabId] = clean || root.tabDefinitions[tabId].label
+        Config.launcherTabLabels = next
+        root.settings.save()
+    }
+
+    function setTabIcon(tabId, value) {
+        if (tabId < 0 || tabId >= root.tabDefinitions.length) return
+        var next = Config.launcherTabIcons instanceof Array ? Config.launcherTabIcons.slice(0) : []
+        while (next.length < root.tabDefinitions.length) next.push(root.tabDefinitions[next.length].icon)
+        next[tabId] = String(value === undefined ? "" : value).replace(/[\r\n\t]/g, " ").slice(0, 16)
+        Config.launcherTabIcons = next
+        root.settings.save()
+    }
+
     readonly property var orderedTabRows: {
         var order = root.normalizedTabOrder()
         var visibility = Config.launcherTabVisible instanceof Array ? Config.launcherTabVisible : []
+        var labels = Config.launcherTabLabels instanceof Array ? Config.launcherTabLabels : []
+        var icons = Config.launcherTabIcons instanceof Array ? Config.launcherTabIcons : []
         var result = []
         for (var i = 0; i < order.length; ++i) {
             var id = order[i]
             var definition = root.tabDefinitions[id]
-            result.push({ id: id, label: definition.label, icon: definition.icon, visible: visibility[id] === undefined ? true : !!visibility[id] })
+            var label = labels[id] === undefined ? definition.label : String(labels[id]).replace(/[\r\n\t]/g, " ").trim().slice(0, 32)
+            var icon = icons[id] === undefined ? definition.icon : String(icons[id]).replace(/[\r\n\t]/g, " ").slice(0, 16)
+            result.push({ id: id, label: label || definition.label, icon: icon, visible: visibility[id] === undefined ? true : !!visibility[id] })
         }
         return result
     }
@@ -100,15 +143,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Поведение при открытии"
         padding: 8
         contentSpacing: 7
-
-        Text {
-            text: "Поведение при открытии"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Row {
             width: parent.width
@@ -183,15 +220,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Окно лаунчера"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            text: "Окно лаунчера"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Row {
             width: parent.width
@@ -276,15 +307,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Элемент списка"
         padding: 8
         contentSpacing: 7
-
-        Text {
-            text: "Элемент списка"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Row {
             width: parent.width
@@ -353,15 +378,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Заголовок лаунчера"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            text: "Заголовок лаунчера"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Row {
             width: parent.width
@@ -461,15 +480,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Строка поиска"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            text: "Строка поиска"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Row {
             width: parent.width
@@ -552,15 +565,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Сквозной поиск"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            text: "Сквозной поиск"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         SettingsCheckBox {
             text: "Искать проекты из Apps"
@@ -585,6 +592,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Настройка вкладок"
         padding: 8
         contentSpacing: 5
 
@@ -603,7 +611,7 @@ Column {
                 horizontalAlignment: Text.AlignHCenter
             }
             Text {
-                width: 28
+                width: 78
                 text: "Иконка"
                 color: Config.textMuted
                 font.family: Config.settingsFont
@@ -612,14 +620,14 @@ Column {
                 horizontalAlignment: Text.AlignHCenter
             }
             Text {
-                width: 150
-                text: "Вкладка"
+                width: 165
+                text: "Название вкладки"
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
             }
-            Item { width: Math.max(0, parent.width - 40 - 28 - 150 - 72 - 24); height: 1 }
+            Item { width: Math.max(0, parent.width - 40 - 78 - 165 - 72 - 4 * parent.spacing); height: 1 }
             Text {
                 width: 72
                 text: "Порядок"
@@ -651,28 +659,44 @@ Column {
                     onToggled: root.setTabVisible(launcherTabRow.modelData.id, checked)
                 }
 
-                Text {
-                    width: 28
-                    height: 30
+                SettingsTextField {
+                    id: launcherTabIconField
+                    width: 78
+                    height: 28
                     text: launcherTabRow.modelData.icon
+                    placeholderText: "Иконка"
                     color: Config.text
+                    selectionColor: Config.accent
+                    selectedTextColor: Config.black
                     font.family: "Symbols Nerd Font Mono"
-                    font.pixelSize: Config.settingsUiSize(15)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: Config.settingsUiSize(13)
+                    horizontalAlignment: TextInput.AlignHCenter
+                    activeFocusOnTab: true
+                    onEditingFinished: {
+                        root.setTabIcon(launcherTabRow.modelData.id, text)
+                        text = root.tabIcon(launcherTabRow.modelData.id)
+                    }
                 }
 
-                Text {
-                    width: 150
-                    height: 30
+                SettingsTextField {
+                    id: launcherTabLabelField
+                    width: 165
+                    height: 28
                     text: launcherTabRow.modelData.label
+                    placeholderText: "Название"
                     color: Config.text
+                    selectionColor: Config.accent
+                    selectedTextColor: Config.black
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
+                    activeFocusOnTab: true
+                    onEditingFinished: {
+                        root.setTabLabel(launcherTabRow.modelData.id, text)
+                        text = root.tabLabel(launcherTabRow.modelData.id)
+                    }
                 }
 
-                Item { width: Math.max(0, launcherTabRow.width - 40 - 28 - 150 - 44 - 5 * launcherTabRow.spacing); height: 1 }
+                Item { width: Math.max(0, launcherTabRow.width - 40 - 78 - 165 - 44 - 5 * launcherTabRow.spacing); height: 1 }
 
                 Item {
                     width: 22
@@ -714,15 +738,9 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Проекты"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            text: "Проекты"
-            color: Config.settingsSubheading
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(12)
-        }
 
         Repeater {
             model: Config.launcherProjects instanceof Array ? Config.launcherProjects.length : 0

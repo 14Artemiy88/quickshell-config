@@ -23,16 +23,9 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Стрелки навигации"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
-            text: "Стрелки навигации"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
@@ -341,16 +334,9 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Выходные и отмеченные дни"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
-            text: "Выходные и отмеченные дни"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
@@ -387,16 +373,9 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Прошедшие дни"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
-            text: "Прошедшие дни"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
@@ -555,16 +534,9 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 3
         width: parent.width
         showFrame: true
+        heading: "Анимация"
         padding: 8
         contentSpacing: 6
-
-        Text {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
-            text: "Анимация"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
 
         Row {
             visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3

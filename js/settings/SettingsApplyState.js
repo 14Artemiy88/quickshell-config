@@ -24,7 +24,7 @@ function splitLegacyTopAppsGeometry(geometry) {
     return [[x, y, width, sectionHeight], [x, y + sectionHeight + gap, width, sectionHeight]]
 }
 
-function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames) {
+function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled) {
         var presetSource = o.timerPresetDefaults instanceof Array ? o.timerPresetDefaults : o.timerPresets
         if (presetSource instanceof Array) {
             var presets = []
@@ -49,6 +49,22 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         // The launcher is a separate window, but shares the module-level background toggle.
         if (savedBackgrounds.launcher !== undefined) backgrounds.launcher = !!savedBackgrounds.launcher
         owner.moduleBackgrounds = backgrounds
+
+        // Individual blur toggles were introduced after the legacy Player-only
+        // switch. Prefer the new map when present; migrate old Player settings.
+        var blurEnabled = Object.assign({}, defaultModuleBlurEnabled || {})
+        var savedBlurEnabled = migrateLegacyTopAppsMap(o.moduleBlurEnabled || {})
+        var blurNames = moduleNames.concat(["launcher", "settings"])
+        for (var bli = 0; bli < blurNames.length; ++bli) {
+            var blurName = blurNames[bli]
+            if (savedBlurEnabled[blurName] !== undefined)
+                blurEnabled[blurName] = !!savedBlurEnabled[blurName]
+        }
+        if (savedBlurEnabled.player === undefined && o.playerBlurEnabled !== undefined)
+            blurEnabled.player = !!o.playerBlurEnabled
+        owner.moduleBlurEnabled = blurEnabled
+        Config.playerBlurEnabled = !!blurEnabled.player
+
         var monitors = {}
         var savedMonitors = migrateLegacyTopAppsMap(o.moduleMonitors || {})
         for (var mi=0; mi<moduleNames.length; ++mi) {

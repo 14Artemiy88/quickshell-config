@@ -19,7 +19,7 @@ reject() {
 
 expect components/settings/sections/SettingsWindowSection.qml "Интерфейс настроек"
 expect components/settings/sections/SettingsWindowSection.qml "Положение и размер окна"
-expect components/settings/sections/SettingsWindowSection.qml "Фон окна"
+expect components/settings/sections/SettingsWindowSection.qml "Фон и рамка окна настроек"
 expect components/settings/sections/SettingsWindowSection.qml "Профили настроек"
 expect components/settings/sections/SettingsGeneralSection.qml "Шрифты интерфейса"
 expect components/settings/sections/SettingsGeneralSection.qml "Рамки виджетов"

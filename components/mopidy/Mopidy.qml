@@ -18,6 +18,7 @@ Primitives.ModuleFrame {
     property bool mopidyLaunchCooldown: false
     property int currentTlid: -1
     property int currentPositionMs: 0
+    property int tracklistVersion: -1
     property int mopidyVolume: -1
     property int mopidyRestoreVolume: -1
     property bool mopidyMuted: false
@@ -353,6 +354,32 @@ Primitives.ModuleFrame {
         if (!Settings.mopidy || queueProcess.running) return
         root.rememberQueueScroll()
         queueProcess.running = true
+    }
+
+    function refreshPlaybackPosition() {
+        if (!Settings.mopidy || queuePositionProcess.running) return
+        queuePositionProcess.running = true
+    }
+
+    function applyPlaybackPositionSnapshot(data) {
+        if (!data || data.ok !== true) return false
+
+        var nextTlid = data.current_tlid === null || data.current_tlid === undefined
+            ? -1 : Number(data.current_tlid)
+        if (!isFinite(nextTlid)) nextTlid = -1
+        var nextPosition = Math.max(0, Number(data.position_ms ?? 0) || 0)
+        var version = data.tracklist_version === null || data.tracklist_version === undefined
+            ? -1 : Number(data.tracklist_version)
+        if (!isFinite(version) || version < 0) version = -1
+
+        var currentChanged = nextTlid !== Number(root.currentTlid)
+        var versionChanged = version >= 0 && version !== Number(root.tracklistVersion)
+        var refreshFullQueue = !root.queueAvailable || currentChanged || versionChanged
+
+        root.currentTlid = nextTlid
+        root.currentPositionMs = nextPosition
+        if (version >= 0) root.tracklistVersion = version
+        return refreshFullQueue
     }
 
     function requestMopidyStart() {
@@ -902,6 +929,27 @@ Primitives.ModuleFrame {
     }
 
     Process {
+        id: queuePositionProcess
+        command: [Quickshell.shellDir + "/scripts/mopidy/tracklist.sh", "position"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var refreshFullQueue = false
+                try {
+                    var data = JSON.parse(this.text.trim() || "{}")
+                    refreshFullQueue = root.applyPlaybackPositionSnapshot(data)
+                } catch (e) {
+                    // A failed lightweight poll must not clear a usable queue;
+                    // the next tick will retry and detect version/current-track changes.
+                }
+                queuePositionProcess.running = false
+                if (refreshFullQueue) root.refreshQueue()
+            }
+        }
+        stderr: StdioCollector {}
+    }
+
+    Process {
         id: queueProcess
         command: [Quickshell.shellDir + "/scripts/mopidy/tracklist.sh", "get"]
         running: false
@@ -912,6 +960,9 @@ Primitives.ModuleFrame {
                     root.queueAvailable = data.ok !== false
                     root.currentTlid = Number(data.current_tlid ?? -1)
                     root.currentPositionMs = Math.max(0, Number(data.position_ms ?? 0) || 0)
+                    var version = data.tracklist_version === null || data.tracklist_version === undefined
+                        ? -1 : Number(data.tracklist_version)
+                    root.tracklistVersion = isFinite(version) && version >= 0 ? version : -1
                     root.tracks = Array.isArray(data.tracks) ? data.tracks : []
                     root.restoreQueueScroll()
                     root.updateStickyAlbum()
@@ -919,6 +970,7 @@ Primitives.ModuleFrame {
                     root.queueAvailable = false
                     root.currentTlid = -1
                     root.currentPositionMs = 0
+                    root.tracklistVersion = -1
                     root.tracks = []
                     root.restoreQueueScroll()
                 }
@@ -1381,12 +1433,14 @@ Primitives.ModuleFrame {
     }
 
     Timer {
-        // Queue-derived remaining-time labels should refresh about once per second.
+        // Keep countdown labels smooth without downloading and rebuilding the
+        // complete queue every second. Queue data refreshes when its version or
+        // the current track changes.
         interval: 1000
         running: Settings.loaded && Settings.mopidy
         repeat: true
         triggeredOnStart: true
-        onTriggered: root.refreshQueue()
+        onTriggered: root.refreshPlaybackPosition()
     }
 
     Timer {
@@ -1418,6 +1472,7 @@ Primitives.ModuleFrame {
                 root.refreshMopidyStatus()
             } else {
                 if (queueProcess.running) queueProcess.running = false
+                if (queuePositionProcess.running) queuePositionProcess.running = false
                 if (queueActionProcess.running) queueActionProcess.running = false
                 if (mopidyStatusProcess.running) mopidyStatusProcess.running = false
                 if (mixerActionProcess.running) mixerActionProcess.running = false
@@ -1466,6 +1521,7 @@ Primitives.ModuleFrame {
                 root.tracks = []
                 root.currentTlid = -1
                 root.currentPositionMs = 0
+                root.tracklistVersion = -1
             }
         }
         function onLoadedChanged() {

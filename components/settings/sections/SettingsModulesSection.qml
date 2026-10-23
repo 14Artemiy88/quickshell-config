@@ -133,6 +133,7 @@ Item {
 
                         Text { width: 42; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         Text { width: 42; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 42; height: 18; text: "Блюр"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         Text { width: 42; height: 18; text: "Сброс"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
 
@@ -216,6 +217,19 @@ Item {
                                     settings.moduleBackgrounds = values
                                     settings.save()
                                 }
+                            }
+
+                            SettingsCheckBox {
+                                id: moduleBlurBox
+                                width: 42
+                                height: 30
+                                text: ""
+                                indicatorOnly: true
+                                checked: settings.moduleBlurEnabled[moduleRow.moduleName] === true
+                                ToolTip.visible: moduleBlurBox.pointerHovered
+                                ToolTip.text: "Блюр: " + settings.moduleLabels[moduleRow.moduleName]
+                                ToolTip.delay: 500
+                                onToggled: settings.setModuleBlurEnabled(moduleRow.moduleName, checked)
                             }
 
                             SettingsResetButton {
@@ -346,6 +360,19 @@ Item {
                                 settings.moduleBackgrounds = values
                                 settings.save()
                             }
+                        }
+
+                        SettingsCheckBox {
+                            id: launcherBlurBox
+                            width: 42
+                            height: 30
+                            text: ""
+                            indicatorOnly: true
+                            checked: settings.moduleBlurEnabled.launcher === true
+                            ToolTip.visible: launcherBlurBox.pointerHovered
+                            ToolTip.text: "Блюр лаунчера"
+                            ToolTip.delay: 500
+                            onToggled: settings.setModuleBlurEnabled("launcher", checked)
                         }
 
                         SettingsResetButton {

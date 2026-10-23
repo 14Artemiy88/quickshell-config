@@ -19,18 +19,17 @@ grep -Fq 'targetProperty: "launcherItemRadius"' "$SECTION"
 grep -Fq 'text: "Скругление элементов"' "$SECTION"
 
 # The list-item height and rounding are in their own frame; background color is grouped into Elements.
-grep -Fq 'text: "Элемент списка"' "$SECTION"
-grep -Fq 'text: "Окно лаунчера"' "$SECTION"
+grep -Fq 'heading: "Элемент списка"' "$SECTION"
+grep -Fq 'heading: "Окно лаунчера"' "$SECTION"
 grep -Fq 'label: "Фон окна лаунчера"' "$SECTION"
-grep -Fq 'text: "Окно лаунчера"' "$SECTION"
 # Window controls must appear before list-item height/radius controls.
 python3 - "$SECTION" <<'PY2'
 from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text()
-assert s.index('text: "Окно лаунчера"') < s.index('text: "Элемент списка"')
-window_start = s.index('text: "Окно лаунчера"')
-item_start = s.index('text: "Элемент списка"')
+assert s.index('heading: "Окно лаунчера"') < s.index('heading: "Элемент списка"')
+window_start = s.index('heading: "Окно лаунчера"')
+item_start = s.index('heading: "Элемент списка"')
 assert 'targetProperty: "launcherRadius"' in s[window_start:item_start]
 assert 'targetProperty: "launcherBackground"' in s[window_start:item_start]
 assert 'targetProperty: "launcherItemHeight"' in s[item_start:]

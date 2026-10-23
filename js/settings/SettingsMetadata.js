@@ -13,4 +13,6 @@ var defaultSettingsGeometry = [615,71,656,850]
 var defaultModules = {"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"mopidy":true,"cava":true,"networks":true,"calendar":true}
 var defaultModuleFrames = {"time":true,"calendar":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"mopidy":true,"cava":true,"networks":true,"launcher":true}
 var defaultModuleBackgrounds = {"time":true,"calendar":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"mopidy":true,"cava":true,"networks":true,"launcher":true}
+// Blur is opt-in for all modules; older Player-enabled values are migrated on load.
+var defaultModuleBlurEnabled = {"time":false,"calendar":false,"cpu":false,"cpuGraph":false,"topAppsCpu":false,"topAppsRam":false,"networkStat":false,"weatherNow":false,"weatherHourly":false,"weatherDaily":false,"timer":false,"volumes":false,"player":false,"mopidy":false,"cava":false,"networks":false,"launcher":false,"settings":false}
 var defaultModuleMonitors = ({})

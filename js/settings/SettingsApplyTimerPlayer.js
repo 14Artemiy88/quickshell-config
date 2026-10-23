@@ -55,11 +55,14 @@ function apply(Config, o, legacyTimerIconOrder) {
         }
         if (o.playerBoldArtist !== undefined) Config.playerBoldArtist = !!o.playerBoldArtist
         if (o.playerShowProgress !== undefined) Config.playerShowProgress = !!o.playerShowProgress
-        if (o.playerBlurEnabled !== undefined) Config.playerBlurEnabled = !!o.playerBlurEnabled
-        if (o.playerBlurRadius !== undefined) {
-            var pbr = Number(o.playerBlurRadius)
-            if (isFinite(pbr)) Config.playerBlurRadius = Math.max(0, Math.min(40, Math.round(pbr)))
+        // Shared compositor blur radius replaces the old Player-only radius.
+        var savedBlurRadius = o.backgroundBlurRadius !== undefined ? o.backgroundBlurRadius : o.playerBlurRadius
+        if (savedBlurRadius !== undefined) {
+            var pbr = Number(savedBlurRadius)
+            if (isFinite(pbr)) Config.backgroundBlurRadius = Math.max(0, Math.min(40, Math.round(pbr)))
         }
+        Config.playerBlurRadius = Config.backgroundBlurRadius // legacy in-memory alias only
+        if (o.playerBlurEnabled !== undefined) Config.playerBlurEnabled = !!o.playerBlurEnabled // migrated to moduleBlurEnabled in State.apply
         if (o.playerCoverOpacity !== undefined) {
             var pco = Number(o.playerCoverOpacity)
             if (isFinite(pco)) Config.playerCoverOpacity = Math.max(0, Math.min(1, pco))

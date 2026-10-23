@@ -25,6 +25,7 @@ assert 'String(appDelegate.itemData.project && appDelegate.itemData.project.icon
 assert 'id: runCommandFallback' in launcher and 'text: ">_"' in launcher, 'cross-search saved commands should show a font-independent terminal icon'
 assert 'id: projectFolderFallback' in launcher and 'project.icon || \"\"' in launcher, 'projects using the default glyph should show a font-independent folder icon'
 assert 'visible: appDelegate.itemData' in launcher and 'String(source).length > 0' in launcher, 'empty QML url must not suppress project/command fallback icons'
+assert 'Quickshell.iconPath(String(appDelegate.entry.icon), true)' in launcher, 'missing app theme icons must be resolved with iconPath existence checking'
 for name in ('launcherCrossSearchProjects','launcherCrossSearchRunHistory'):
     assert name in config and name in defaults and name in persist and name in apply and name in resets and name in settings, f'{name} must be persisted, profile-resettable and configurable'
 print('Launcher shared query, Pass Enter and Apps cross-search wiring: OK')

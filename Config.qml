@@ -53,6 +53,8 @@ QtObject {
     property color settingsBackground: "#e6000000"
     property color settingsBorder: "#00cccc"
     property color settingsSubheading: "#00cccc"
+    // Shared compositor blur radius used by every independently enabled module.
+    property int backgroundBlurRadius: 10
 
     // Launcher layout and dedicated window background; text, accent, and borders use the shared theme.
     property bool launcherEnabled: true
@@ -82,6 +84,8 @@ QtObject {
     property bool launcherCrossSearchRunHistory: true
     property var launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     property var launcherTabVisible: [true, true, true, true, true, true, true, true, true]
+    property var launcherTabLabels: ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
+    property var launcherTabIcons: ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
     property var launcherProjects: LauncherProjects.defaults()
 
     // Adaptive module minimum heights
@@ -245,6 +249,8 @@ QtObject {
     property string playerPlayingIcon: "\uF04C"
     property string playerPausedIcon: "\uF04B"
     property string playerNextIcon: "󰒭"
+    // Legacy fields retained only to migrate older settings files. Runtime blur
+    // enablement now lives in Settings.moduleBlurEnabled; the radius is shared.
     property bool playerBlurEnabled: false
     property int playerBlurRadius: 10
     property int playerMetadataXPadding: 0
@@ -525,8 +531,8 @@ QtObject {
     }
 
     function animationDuration(baseMs, category) {
-        if (!animationsEnabled) return 0
         category = category || "appearance"
+        if (!animationsEnabled) return 0
         if (category === "appearance" && !animationAppearanceEnabled) return 0
         if (category === "movement" && !animationMovementEnabled) return 0
         if (category === "size" && !animationSizeEnabled) return 0

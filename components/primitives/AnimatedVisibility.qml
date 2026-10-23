@@ -60,7 +60,12 @@ Item {
     }
 
     function animationAllowed() {
-        return Config.animationsEnabled && Config.animationAppearanceEnabled && root.activeAnimationStyle !== "none" && root.activeDuration > 0
+        // The global toggle disables every visibility transition, regardless of
+        // the per-module style or the animation-category switches.
+        return Config.animationsEnabled
+            && Config.animationAppearanceEnabled
+            && root.activeAnimationStyle !== "none"
+            && root.activeDuration > 0
     }
 
     function applyImmediate(visible) {
@@ -100,8 +105,13 @@ Item {
         // Do not rely only on the duration binding to notice a global toggle.
         // Some consumers may provide a fixed/custom duration. Turning animation
         // off must stop an already-running transition immediately in either case.
-        if (root.running && (!Config.animationsEnabled || !Config.animationAppearanceEnabled))
+        if (root.running && (!Config.animationsEnabled || !Config.animationAppearanceEnabled)) {
             applyImmediate(root.shown)
+        } else if (!root.running) {
+            activeAnimationStyle = root.animationStyle
+            activeDuration = root.duration
+            applyImmediate(root.shown)
+        }
     }
 
     Connections {

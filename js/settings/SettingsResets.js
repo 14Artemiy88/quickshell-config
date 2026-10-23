@@ -95,6 +95,12 @@ function resetSettingsWindowFromProfile(owner, config) {
     applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"])
     if (profile.colors && profile.colors.settingsBackground !== undefined)
         config.settingsBackground = profile.colors.settingsBackground
+    if (profile.colors && profile.colors.settingsBorder !== undefined)
+        config.settingsBorder = profile.colors.settingsBorder
+    var blur = Object.assign({}, owner.moduleBlurEnabled || {})
+    blur.settings = profile.moduleBlurEnabled && profile.moduleBlurEnabled.settings !== undefined
+        ? !!profile.moduleBlurEnabled.settings : !!(owner.defaultModuleBlurEnabled || {}).settings
+    owner.moduleBlurEnabled = blur
     owner.save()
 }
 
@@ -107,6 +113,7 @@ function resetModule(owner, config, moduleName) {
     var modules = profile.modules || {}
     var frames = profile.moduleFrames || {}
     var backgrounds = profile.moduleBackgrounds || {}
+    var blurEnabled = profile.moduleBlurEnabled || {}
     var profileMonitors = profile.moduleMonitors || {}
     var profileGeometry = profile.geometry || {}
 
@@ -127,6 +134,18 @@ function resetModule(owner, config, moduleName) {
     if (backgrounds[moduleName] !== undefined)
         b[moduleName] = !!backgrounds[moduleName]
     owner.moduleBackgrounds = b
+
+    var blur = Object.assign({}, owner.moduleBlurEnabled || {})
+    if (blurEnabled[moduleName] !== undefined) {
+        blur[moduleName] = !!blurEnabled[moduleName]
+    } else if (moduleName === "player" && profile.playerBlurEnabled !== undefined) {
+        // Backward compatibility for profiles created before per-module blur.
+        blur.player = !!profile.playerBlurEnabled
+    } else if ((owner.defaultModuleBlurEnabled || {})[moduleName] !== undefined) {
+        blur[moduleName] = !!owner.defaultModuleBlurEnabled[moduleName]
+    }
+    owner.moduleBlurEnabled = blur
+    if (moduleName === "player") config.playerBlurEnabled = !!blur.player
 
     var m = Object.assign({}, owner.moduleMonitors || {})
     if (profileMonitors[moduleName] !== undefined && String(profileMonitors[moduleName]).trim() !== "")
@@ -202,7 +221,7 @@ function resetModule(owner, config, moduleName) {
             "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress",
             "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize",
             "playerPlayingIconY", "playerPausedIconY", "playerNextIconY",
-            "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius",
+            "playerPlayingIcon", "playerPausedIcon", "playerNextIcon",
             "playerMetadataXPadding", "playerMetadataY", "playerProgressY",
             "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize",
             "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY",
@@ -217,7 +236,7 @@ function resetModule(owner, config, moduleName) {
     owner.save()
 }
 
-function resetModules(owner) {
+function resetModules(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
     var modules = profile.modules || {}
@@ -227,6 +246,16 @@ function resetModules(owner) {
     }
     owner.moduleFrames = Object.assign({}, profile.moduleFrames || owner.moduleFrames)
     owner.moduleBackgrounds = Object.assign({}, profile.moduleBackgrounds || owner.moduleBackgrounds)
+    var oldBlurValues = profile.moduleBlurEnabled || {}
+    var blurValues = Object.assign({}, owner.defaultModuleBlurEnabled || {}, oldBlurValues)
+    // Older profiles stored the Player flag directly; keep that choice when no new map exists.
+    if (oldBlurValues.player === undefined && profile.playerBlurEnabled !== undefined)
+        blurValues.player = !!profile.playerBlurEnabled
+    // Window blur is edited/reset in the Settings Window tab, not in the module list.
+    blurValues.settings = (owner.moduleBlurEnabled || {}).settings !== undefined
+        ? !!owner.moduleBlurEnabled.settings : !!(owner.defaultModuleBlurEnabled || {}).settings
+    owner.moduleBlurEnabled = blurValues
+    if (config) config.playerBlurEnabled = !!blurValues.player
     owner.moduleMonitors = Object.assign({}, profile.moduleMonitors || {})
     if (profile.geometry) owner.geometry = JSON.parse(JSON.stringify(profile.geometry))
     owner.save()
@@ -271,7 +300,7 @@ function resetTimerSettings(owner, config) {
 
 function resetPlayerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerBlurEnabled", "playerBlurRadius", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval"]); owner.save()
 }
 
 function resetMopidySettings(owner, config) {
@@ -298,7 +327,7 @@ function resetCavaSettings(owner, config) {
 
 function resetGeneralSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"]); owner.save()
 }
 
 function resetAnimationSettings(owner, config) {
@@ -313,7 +342,10 @@ function resetSettingsWindow(owner, config) {
 function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherTabOrder", "launcherTabVisible", "launcherProjects"])
+    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"])
+    // Older profiles predate editable launcher tab labels and icons.
+    if (profile.launcherTabLabels === undefined) config.launcherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
+    if (profile.launcherTabIcons === undefined) config.launcherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
     // Older full-profile snapshots predate the launcher title position/color fields.
     if (profile.launcherTitleY === undefined) config.launcherTitleY = 0
     if (profile.launcherTitleColor === undefined) config.launcherTitleColor = "#ffffff"
@@ -342,6 +374,10 @@ function resetLauncherSettings(owner, config) {
     var backgrounds = Object.assign({}, owner.moduleBackgrounds || {})
     backgrounds.launcher = profileBackgrounds.launcher !== undefined ? !!profileBackgrounds.launcher : true
     owner.moduleBackgrounds = backgrounds
+    var profileBlurEnabled = profile.moduleBlurEnabled || {}
+    var blurEnabled = Object.assign({}, owner.moduleBlurEnabled || {})
+    blurEnabled.launcher = profileBlurEnabled.launcher !== undefined ? !!profileBlurEnabled.launcher : !!(owner.defaultModuleBlurEnabled || {}).launcher
+    owner.moduleBlurEnabled = blurEnabled
     owner.save()
 }
 

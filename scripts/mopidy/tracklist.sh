@@ -21,7 +21,8 @@ get_queue() {
         -d '[
             {"jsonrpc":"2.0","id":1,"method":"core.tracklist.get_tl_tracks"},
             {"jsonrpc":"2.0","id":2,"method":"core.playback.get_current_tl_track"},
-            {"jsonrpc":"2.0","id":3,"method":"core.playback.get_time_position"}
+            {"jsonrpc":"2.0","id":3,"method":"core.playback.get_time_position"},
+            {"jsonrpc":"2.0","id":4,"method":"core.tracklist.get_version"}
         ]' \
         "$MOPIDY_RPC_URL" 2>/dev/null) || {
         printf '{"ok":false,"current_tlid":null,"tracks":[],"error":"offline"}\n'
@@ -41,8 +42,14 @@ get_queue() {
         . as $batch
         | ([$batch[] | select(.id == 2) | .result.tlid?][0] // null) as $current_tlid
         | ([$batch[] | select(.id == 3) | .result?][0] // 0 | nonnegative_int_or_zero) as $position_ms
+        | ([$batch[] | select(.id == 4) | .result?][0] // null) as $raw_version
         | {
             ok: true,
+            tracklist_version: (
+                if ($raw_version | type) == "number" and $raw_version >= 0 and ($raw_version | floor) == $raw_version then $raw_version
+                elif ($raw_version | type) == "string" and ($raw_version | test("^[0-9]+$")) then ($raw_version | tonumber)
+                else null end
+            ),
             current_tlid: (
                 if $current_tlid == null then null
                 elif ($current_tlid | type) == "number" then $current_tlid
@@ -59,6 +66,58 @@ get_queue() {
                 duration: (.track.length // 0),
                 uri: (.track.uri // "")
             }])
+        }
+    ' <<< "$response"
+}
+
+get_position_state() {
+    local response
+    response=$(curl -sS --connect-timeout 1 --max-time 2 \
+        -H 'Content-Type: application/json' \
+        -d '[
+            {"jsonrpc":"2.0","id":1,"method":"core.tracklist.get_version"},
+            {"jsonrpc":"2.0","id":2,"method":"core.playback.get_current_tl_track"},
+            {"jsonrpc":"2.0","id":3,"method":"core.playback.get_time_position"}
+        ]' \
+        "$MOPIDY_RPC_URL" 2>/dev/null) || {
+        printf '{"ok":false,"current_tlid":null,"position_ms":0,"tracklist_version":null,"error":"offline"}\n'
+        return 0
+    }
+
+    # The one-second UI countdown only needs the current track, playback
+    # position and tracklist version. Avoid serializing the whole queue on each
+    # tick; the caller fetches it only when the version or current tlid changes.
+    jq -c '
+        def nonnegative_int_or_zero:
+            if type == "number" then
+                if . >= 0 and floor == . then . else 0 end
+            elif type == "string" and test("^[0-9]+$") then tonumber
+            else 0 end;
+
+        . as $batch
+        | ([$batch[] | select(.id == 1) | .result?][0] // null) as $raw_version
+        | ([$batch[] | select(.id == 2) | .result.tlid?][0] // null) as $raw_tlid
+        | ([$batch[] | select(.id == 3) | .result?][0] // 0 | nonnegative_int_or_zero) as $position_ms
+        | {
+            ok: (
+                ((($raw_version | type) == "number" and $raw_version >= 0 and ($raw_version | floor) == $raw_version) or
+                 (($raw_version | type) == "string" and ($raw_version | test("^[0-9]+$")))) and
+                ([$batch[] | select(.id == 2)] | length) == 1 and
+                ([$batch[] | select(.id == 3)] | length) == 1 and
+                ([$batch[] | select((.id == 1 or .id == 2 or .id == 3) and .error? != null)] | length) == 0
+            ),
+            tracklist_version: (
+                if ($raw_version | type) == "number" and $raw_version >= 0 and ($raw_version | floor) == $raw_version then $raw_version
+                elif ($raw_version | type) == "string" and ($raw_version | test("^[0-9]+$")) then ($raw_version | tonumber)
+                else null end
+            ),
+            current_tlid: (
+                if $raw_tlid == null then null
+                elif ($raw_tlid | type) == "number" then $raw_tlid
+                elif ($raw_tlid | type) == "string" and ($raw_tlid | test("^[0-9]+$")) then ($raw_tlid | tonumber)
+                else null end
+            ),
+            position_ms: $position_ms
         }
     ' <<< "$response"
 }
@@ -118,6 +177,9 @@ case "${1:-get}" in
     get)
         get_queue
         ;;
+    position)
+        get_position_state
+        ;;
     play)
         play_track "${2:-}"
         ;;
@@ -137,7 +199,7 @@ case "${1:-get}" in
         remove_album "$@"
         ;;
     *)
-        printf 'usage: %s {get|play|remove|move|clear|stop|remove_album} [args...]\n' "$0" >&2
+        printf 'usage: %s {get|position|play|remove|move|clear|stop|remove_album} [args...]\n' "$0" >&2
         exit 2
         ;;
 esac
