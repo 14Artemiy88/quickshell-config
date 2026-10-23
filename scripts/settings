@@ -3,6 +3,7 @@ set -euo pipefail
 source "$(dirname "$0")/env"
 CFG_DIR="$QS_CONFIG_DIR"
 CFG="$CFG_DIR/settings.json"
+BACKUP="$CFG_DIR/.settings.json.bak"
 LOCK="$CFG_DIR/.settings.lock"
 mkdir -p "$CFG_DIR"
 DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
@@ -23,45 +24,222 @@ cleanup() {
 trap cleanup EXIT
 
 new_temp() {
-    tmp=$(mktemp "$CFG_DIR/.settings.json.XXXXXX")
-    chmod 600 "$tmp"
+    tmp=$(mktemp "$CFG_DIR/.settings.json.XXXXXX") || { tmp=''; return 1; }
+    if ! chmod 600 "$tmp"; then
+        rm -f -- "$tmp"
+        tmp=''
+        return 1
+    fi
 }
 
 publish_temp() {
     local target="$1"
-    mv -f -- "$tmp" "$target"
+    mv -f -- "$tmp" "$target" || return 1
     tmp=''
 }
 
-if [[ ! -f "$CFG" ]]; then
+is_json_object() {
+    local path="$1"
+    [[ -f "$path" ]] && jq -e 'type == "object"' "$path" >/dev/null 2>&1
+}
+
+initialize_defaults() {
     new_temp
     printf '%s\n' "$DEFAULT" > "$tmp"
     jq -e 'type == "object"' "$tmp" >/dev/null
     publish_temp "$CFG"
-fi
+}
 
-case "${1:-get}" in
-  get)
-    cat "$CFG"
-    ;;
-  set-json)
-    json="${2:-$DEFAULT}"
-    # Validate the payload before touching the current settings file.
-    printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
+# Keep the last known-good snapshot separate from the file being replaced.
+# Temporary and backup files remain private because settings may contain tokens.
+backup_current() {
+    if ! is_json_object "$CFG"; then
+        printf 'settings: refusing to back up an invalid current settings file\n' >&2
+        return 1
+    fi
+    new_temp || return 1
+    if ! cp -- "$CFG" "$tmp" || ! jq -e 'type == "object"' "$tmp" >/dev/null; then
+        rm -f -- "$tmp"
+        tmp=''
+        return 1
+    fi
+    publish_temp "$BACKUP"
+}
+
+# After a successful settings commit, keep the recovery snapshot in sync with
+# the newest known-good state. The pre-commit backup still protects the old
+# snapshot during the transaction; this refresh closes the one-write lag that
+# would otherwise recover an older configuration after later file damage.
+refresh_backup_if_stale() {
+    local preserved=''
+
+    if is_json_object "$BACKUP"; then
+        cmp -s -- "$CFG" "$BACKUP" && return 0
+    elif [[ -e "$BACKUP" || -L "$BACKUP" ]]; then
+        if preserved=$(preserve_invalid_file "$BACKUP" '.settings.json.backup-corrupt'); then
+            printf 'settings: invalid backup preserved at %s\n' "$preserved" >&2
+        else
+            printf 'settings: warning: invalid backup could not be preserved; keeping current settings\n' >&2
+            return 0
+        fi
+    fi
+
+    if ! backup_current; then
+        # The primary settings commit is already complete. Do not report that
+        # write as failed solely because refreshing the redundant backup failed.
+        printf 'settings: warning: could not refresh the latest known-good backup\n' >&2
+    fi
+    return 0
+}
+
+# Move a damaged file aside without truncating it; return the recovery copy path.
+preserve_invalid_file() {
+    local source="$1" prefix="$2" preserved
+    preserved=$(mktemp "$CFG_DIR/${prefix}.XXXXXX") || return 1
+    chmod 600 "$preserved"
+    if mv -f -- "$source" "$preserved"; then
+        chmod 600 "$preserved"
+        printf '%s' "$preserved"
+        return 0
+    fi
+    rm -f -- "$preserved"
+    return 1
+}
+
+ensure_settings_usable() {
+    local preserved='' backup_preserved=''
+
+    # A missing file is treated as an intentional reset. Atomic writes cannot
+    # expose a half-written target, so do not resurrect a stale backup here.
+    if [[ ! -e "$CFG" && ! -L "$CFG" ]]; then
+        rm -f -- "$BACKUP"
+        initialize_defaults
+        return 0
+    fi
+
+    if is_json_object "$CFG"; then
+        return 0
+    fi
+
+    # Stage and validate the recovery snapshot before moving the damaged file.
+    # A failed copy therefore leaves the original settings path untouched.
+    if is_json_object "$BACKUP"; then
+        new_temp
+        cp -- "$BACKUP" "$tmp"
+        jq -e 'type == "object"' "$tmp" >/dev/null
+        if ! preserved=$(preserve_invalid_file "$CFG" '.settings.json.corrupt'); then
+            rm -f -- "$tmp"
+            tmp=''
+            printf 'settings: current settings are invalid and could not be preserved\n' >&2
+            return 1
+        fi
+        publish_temp "$CFG"
+        printf 'settings: invalid JSON detected; original preserved at %s\n' "$preserved" >&2
+        printf 'settings: restored the last known-good settings snapshot\n' >&2
+        return 0
+    fi
+
+    if ! preserved=$(preserve_invalid_file "$CFG" '.settings.json.corrupt'); then
+        printf 'settings: current settings are invalid and could not be preserved\n' >&2
+        return 1
+    fi
+    printf 'settings: invalid JSON detected; original preserved at %s\n' "$preserved" >&2
+
+    if [[ -e "$BACKUP" || -L "$BACKUP" ]]; then
+        if backup_preserved=$(preserve_invalid_file "$BACKUP" '.settings.json.backup-corrupt'); then
+            printf 'settings: invalid backup preserved at %s\n' "$backup_preserved" >&2
+        else
+            printf 'settings: warning: invalid backup could not be preserved\n' >&2
+        fi
+    fi
+
+    initialize_defaults
+    printf 'settings: no valid backup was available; defaults initialized\n' >&2
+}
+
+commit_payload() {
+    local json="$1"
+    backup_current
     new_temp
     printf '%s\n' "$json" > "$tmp"
     jq -e 'type == "object"' "$tmp" >/dev/null
     publish_temp "$CFG"
+    refresh_backup_if_stale
+}
+
+case "${1:-get}" in
+  get)
+    ensure_settings_usable
+    # A backup may be missing, invalid, or one committed write behind if the
+    # process stopped immediately after publishing settings.json. Refresh it
+    # from the validated primary file before returning the current snapshot.
+    refresh_backup_if_stale
+    cat -- "$CFG"
+    ;;
+  set-json)
+    json="${2:-$DEFAULT}"
+    # Validate the supplied payload before any recovery or file changes.
+    printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
+    ensure_settings_usable
+    commit_payload "$json"
+    ;;
+  set-json-ui)
+    json="${2:-$DEFAULT}"
+    baseline_token="${3:-}"
+    # QML saves full snapshots frequently. Treat weatherToken as a separate
+    # read-modify-write field so a stale UI snapshot cannot undo a newer CLI
+    # token update when no token edit happened in that snapshot.
+    printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
+    ensure_settings_usable
+    current_token=$(jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end' "$CFG")
+    incoming_has_token=$(printf '%s\n' "$json" | jq -r 'has("weatherToken") and ((.weatherToken | type) == "string")')
+    incoming_token=$(printf '%s\n' "$json" | jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end')
+    if [[ "$incoming_has_token" != "true" || "$incoming_token" == "$baseline_token" ]]; then
+      chosen_token="$current_token"
+    elif [[ "$current_token" == "$baseline_token" ]]; then
+      chosen_token="$incoming_token"
+    else
+      # Both writers changed the token since the UI's baseline. The CLI update
+      # already committed to disk, so prefer it over this stale queued snapshot.
+      chosen_token="$current_token"
+    fi
+    # UI snapshots contain all fields known by this version, but they may not
+    # include fields written by a newer version or an external integration.
+    # Merge snapshot values into the current object so unknown root/nested
+    # settings survive a normal UI save. Collections managed as complete maps
+    # must be replaced wholesale: deleting a profile or a custom theme in the
+    # UI must not resurrect it from the previous disk snapshot.
+    json=$(jq -n --slurpfile current "$CFG" --argjson incoming "$json" '
+      def deepmerge($base; $overlay):
+        if (($base | type) == "object" and ($overlay | type) == "object") then
+          reduce ($overlay | keys_unsorted[]) as $key
+            ($base;
+              .[$key] = (if ($base | has($key))
+                         then deepmerge($base[$key]; $overlay[$key])
+                         else $overlay[$key]
+                         end))
+        else $overlay end;
+      deepmerge($current[0]; $incoming)
+      | if ($incoming | has("profiles")) then .profiles = $incoming.profiles else . end
+      | if ($incoming | has("customThemes")) then .customThemes = $incoming.customThemes else . end
+    ')
+    json=$(printf '%s\n' "$json" | jq --arg token "$chosen_token" '.weatherToken = $token')
+    commit_payload "$json"
+    # This output is consumed only by Settings.qml's StdioCollector and lets
+    # the UI advance its token baseline after a concurrent external update.
+    printf '%s' "$chosen_token"
     ;;
   token)
-    token="${2:-}"
+    ensure_settings_usable
+    backup_current
     new_temp
-    jq --arg t "$token" '.weatherToken=$t' "$CFG" > "$tmp"
+    jq --arg t "${2:-}" '.weatherToken=$t' "$CFG" > "$tmp"
     jq -e 'type == "object"' "$tmp" >/dev/null
     publish_temp "$CFG"
+    refresh_backup_if_stale
     ;;
   *)
-    echo "Usage: $0 {get|set-json|token}" >&2
+    echo "Usage: $0 {get|set-json|set-json-ui|token}" >&2
     exit 1
     ;;
 esac

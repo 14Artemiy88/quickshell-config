@@ -37,7 +37,8 @@ const state = {};
 vm.createContext(state);
 vm.runInContext(strip(fs.readFileSync(process.argv[2], 'utf8')), state);
 state.Profiles = { SPARSE_FORMAT: 'sparse-v1' };
-state.Schema = { normalizeSavedColor: (_value, fallback) => fallback };
+state.Schema = { normalizeSavedColor: (_value, fallback) => fallback, normalizeCustomThemes: themes => themes || {} };
+state.Themes = { builtinThemeNames: ['14 Theme'], palette: () => ({}) };
 const owner = {
   timerPresetDefaults: [5,7,15], timerPresets: [5,7,15],
   geometry: {}, moduleFrames: {time:true, launcher:true}, moduleBackgrounds: {time:true, launcher:true},

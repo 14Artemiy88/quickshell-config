@@ -19,6 +19,9 @@ QtObject {
     id: root
     property bool loaded: false
     property string weatherToken: ""
+    // Last weather token confirmed by disk load or a successful settings write.
+    // Full UI snapshots use this baseline to avoid overwriting a newer CLI update.
+    property string persistedWeatherToken: ""
     property var timerPresets: [5, 7, 15]
     property var timerPresetDefaults: [5, 7, 15]
     property bool time: true
@@ -99,6 +102,21 @@ QtObject {
     property var writer: null
     property bool pendingWriteRequested: false
 
+    function flushPendingWrite() {
+        if (!root.loaded || !root.pendingWriteRequested || !root.writer || root.writer.running)
+            return
+        // Defer until the current QML property-change stack has settled. If a
+        // newer save starts first, it captures the current complete snapshot.
+        Qt.callLater(function() {
+            SettingsPersistence.flushPendingWrite(root, Config)
+        })
+    }
+
+    onLoadedChanged: {
+        if (root.loaded)
+            root.flushPendingWrite()
+    }
+
     property Component loaderComponent: Component {
         Process {
             command: [Quickshell.shellDir + "/scripts/settings", "get"]
@@ -107,11 +125,13 @@ QtObject {
                 onStreamFinished: {
                     try {
                         root.applyObject(JSON.parse(this.text))
+                        root.persistedWeatherToken = String(root.weatherToken || "").trim()
                         if (root.profileMigrationPending) {
                             root.profileMigrationPending = false
                             Qt.callLater(function() { root.save() })
                         }
                     } catch (e) {
+                        root.persistedWeatherToken = String(root.weatherToken || "").trim()
                         root.loaded = true
                         root.changed()
                     }
@@ -124,20 +144,43 @@ QtObject {
         Process {
             id: writeProc
             property string payload: "{}"
-            command: [Quickshell.shellDir + "/scripts/settings", "set-json", payload]
-            stdout: StdioCollector {}
-            onRunningChanged: {
-                if (!running && root.pendingWriteRequested) {
-                    root.pendingWriteRequested = false
-                    Qt.callLater(function() {
-                        if (writeProc.running)
-                            return
-                        writeProc.payload = JSON.stringify(
-                            SettingsPersistence.payloadObject(root, Config)
-                        )
-                        writeProc.running = true
-                    })
+            property string commandMode: "set-json-ui"
+            property string tokenBaseline: ""
+            property string tokenRequested: ""
+            property string tokenResult: ""
+            property bool tokenOutputFinished: false
+            property bool processExited: false
+            property int writerExitCode: -1
+            command: [Quickshell.shellDir + "/scripts/settings", commandMode, payload, tokenBaseline]
+            function finalizeWriteIfReady() {
+                if (!writeProc.processExited || !writeProc.tokenOutputFinished)
+                    return
+                if (writeProc.writerExitCode === 0 && writeProc.commandMode === "set-json-ui") {
+                    var committedToken = String(writeProc.tokenResult || "").trim()
+                    var requestedToken = String(writeProc.tokenRequested || "").trim()
+                    // Reconcile the token returned by disk only if the user has
+                    // not edited the field again while this write was in flight.
+                    if (String(root.weatherToken || "").trim() === requestedToken)
+                        root.weatherToken = committedToken
+                    root.persistedWeatherToken = committedToken
                 }
+                writeProc.processExited = false
+                writeProc.tokenOutputFinished = false
+                writeProc.writerExitCode = -1
+                if (root.pendingWriteRequested)
+                    root.flushPendingWrite()
+            }
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    writeProc.tokenResult = this.text
+                    writeProc.tokenOutputFinished = true
+                    writeProc.finalizeWriteIfReady()
+                }
+            }
+            onExited: function(exitCode) {
+                writeProc.writerExitCode = exitCode
+                writeProc.processExited = true
+                writeProc.finalizeWriteIfReady()
             }
         }
     }

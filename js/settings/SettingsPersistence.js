@@ -127,19 +127,68 @@ function payloadObject(owner, config) {
     return payload
 }
 
-function save(owner, config) {
-    if (!owner.writer)
-        owner.writer = owner.writerComponent.createObject(owner)
+// Qt Quick Process.running may become false before StdioCollector emits
+// onStreamFinished (or vice versa). Keep the writer reserved until both
+// completion signals have been observed and finalizeWriteIfReady has reset
+// their flags; otherwise a second save can reuse the Process and erase the
+// first write's result/exit state.
+function writerBusy(writer) {
+    if (!writer)
+        return false
+    return !!writer.running || !!writer.processExited || !!writer.tokenOutputFinished
+}
 
-    if (owner.writer.running) {
-        // Defer one fresh snapshot until the in-flight write has completed.
+function save(owner, config) {
+    // The initial disk snapshot must be applied before any UI-triggered save.
+    // Otherwise a quick interaction during startup could overwrite existing
+    // settings with the QML defaults before the loader finishes.
+    if (!owner.loaded) {
         owner.pendingWriteRequested = true
         owner.saved()
         return
     }
 
+    if (!owner.writer)
+        owner.writer = owner.writerComponent.createObject(owner)
+
+    if (writerBusy(owner.writer)) {
+        // Defer one fresh snapshot until both the process exit and stdout
+        // completion callbacks have been observed and finalized.
+        owner.pendingWriteRequested = true
+        owner.saved()
+        return
+    }
+
+    // This current snapshot includes every request queued before the write
+    // started, so no extra stale pending write is needed.
+    owner.pendingWriteRequested = false
     owner.profileStorageFormat = "sparse-v1"
+    owner.writer.tokenBaseline = String(owner.persistedWeatherToken || "").trim()
+    owner.writer.tokenRequested = String(owner.weatherToken || "").trim()
+    owner.writer.tokenResult = ""
+    owner.writer.tokenOutputFinished = false
+    owner.writer.processExited = false
+    owner.writer.writerExitCode = -1
+    owner.writer.commandMode = "set-json-ui"
     owner.writer.payload = JSON.stringify(payloadObject(owner, config))
     owner.writer.running = true
     owner.saved()
+}
+
+function flushPendingWrite(owner, config) {
+    if (!owner.loaded || !owner.pendingWriteRequested || writerBusy(owner.writer))
+        return false
+
+    owner.pendingWriteRequested = false
+    owner.profileStorageFormat = "sparse-v1"
+    owner.writer.tokenBaseline = String(owner.persistedWeatherToken || "").trim()
+    owner.writer.tokenRequested = String(owner.weatherToken || "").trim()
+    owner.writer.tokenResult = ""
+    owner.writer.tokenOutputFinished = false
+    owner.writer.processExited = false
+    owner.writer.writerExitCode = -1
+    owner.writer.commandMode = "set-json-ui"
+    owner.writer.payload = JSON.stringify(payloadObject(owner, config))
+    owner.writer.running = true
+    return true
 }

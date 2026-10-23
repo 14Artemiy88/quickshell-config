@@ -29,6 +29,11 @@ function apply(Config, o, legacyTimerIconOrder) {
         }
 
         // Player tuning
+        // This field is persisted like the other Player settings, so restore it on load too.
+        if (o.playerTimeFont !== undefined) {
+            var playerTimeFontValue = String(o.playerTimeFont).trim()
+            if (playerTimeFontValue.length > 0) Config.playerTimeFont = playerTimeFontValue
+        }
         var playerNumberFields = [
             ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
             ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],

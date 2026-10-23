@@ -1,5 +1,7 @@
 .pragma library
 
+.import "SettingsProfiles.js" as Profiles
+
 function palette(owner, themes, name) {
     return themes.palette(name, owner.customThemes)
 }
@@ -81,8 +83,10 @@ function themeDraftValue(owner, Config, name) {
 }
 
 function setThemeDraftColor(owner, name, value) {
-    var v = String(value)
-    if (!(/^#[0-9a-fA-F]{6,8}$/.test(v) || v === "transparent")) return false
+    var v = String(value || "").trim().toLowerCase()
+    // Only accept valid six-digit RGB or eight-digit ARGB hex values. The old
+    // {6,8} quantifier accidentally accepted invalid seven-digit colors.
+    if (!(/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) || v === "transparent")) return false
     var next = Object.assign({}, owner.themeDraft || {})
     next[String(name)] = v
     owner.themeDraft = next
@@ -117,6 +121,9 @@ function renameCustomTheme(owner, themes, Config, oldName, newName) {
     next[newN] = next[oldN]
     delete next[oldN]
     owner.customThemes = next
+    // Profile snapshots keep color values even if the custom palette later
+    // changes; update only the theme reference so rename does not orphan them.
+    Profiles.rewriteThemeReferences(owner, themes, oldN, newN)
     owner.activeTheme = newN
     owner.themeDraftSource = newN
     owner.themeDraft = JSON.parse(JSON.stringify(next[newN]))
@@ -126,16 +133,53 @@ function renameCustomTheme(owner, themes, Config, oldName, newName) {
     return true
 }
 
+function findExactThemeForColors(owner, themes, colors) {
+    var names = (themes && themes.builtinThemeNames) ? themes.builtinThemeNames.slice() : []
+    Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
+        if (names.indexOf(name) < 0) names.push(name)
+    })
+    var colorNames = owner.colorNames || []
+    if (!colorNames.length) return ""
+
+    for (var i = 0; i < names.length; ++i) {
+        var candidateName = names[i]
+        var candidate = themes.palette(candidateName, owner.customThemes)
+        var matches = true
+        for (var j = 0; j < colorNames.length; ++j) {
+            var key = colorNames[j]
+            if (colors[key] === undefined || candidate[key] === undefined
+                    || String(colors[key]).trim().toLowerCase() !== String(candidate[key]).trim().toLowerCase()) {
+                matches = false
+                break
+            }
+        }
+        if (matches) return candidateName
+    }
+    return ""
+}
+
 function deleteCustomTheme(owner, themes, Config, name) {
     var n = String(name || "")
     if (!isCustomTheme(owner, n)) return false
+    var activeColors = owner.activeTheme === n
+        ? currentThemeColors(owner, owner.colorNames || [], Config)
+        : null
     var next = Object.assign({}, owner.customThemes || {})
     delete next[n]
     owner.customThemes = next
+    // The theme is global, but saved profiles also retain their palette colors.
+    // Retarget dangling references to an exact matching remaining theme when
+    // possible; otherwise use the default name and keep the profile colors.
+    Profiles.rewriteThemeReferences(owner, themes, n, "")
     if (owner.activeTheme === n) {
-        owner.activeTheme = "14 Theme"
+        var matchingName = findExactThemeForColors(owner, themes, activeColors)
+        owner.activeTheme = matchingName || (themes.builtinThemeNames.indexOf("14 Theme") >= 0
+            ? "14 Theme" : (themes.builtinThemeNames[0] || "14 Theme"))
+        // Do not replace the currently displayed colors with the fallback
+        // palette. If no remaining theme matches exactly, the color values are
+        // a valid user palette and should remain visible as (Changed), just as
+        // saved profiles preserve them when their custom theme is deleted.
         var p = themes.palette(owner.activeTheme, owner.customThemes)
-        for (var key in p) Config[key] = p[key]
         owner.themeDraftSource = owner.activeTheme
         owner.themeDraft = JSON.parse(JSON.stringify(p))
         owner.themeDraftRevision++

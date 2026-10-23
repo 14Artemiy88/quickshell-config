@@ -2,6 +2,7 @@
 
 .import "SettingsSchema.js" as Schema
 .import "SettingsProfiles.js" as Profiles
+.import "SettingsThemes.js" as Themes
 
 function migrateLegacyTopAppsMap(source) {
     var result = Object.assign({}, source || {})
@@ -105,9 +106,18 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                 owner.profiles = normalizedProfiles
                 owner.profileStorageFormat = Profiles.SPARSE_FORMAT
             } else {
-                // One-time migration: convert legacy full snapshots to sparse
-                // deltas against the defaults captured before settings load.
-                owner.profiles = Profiles.sparsifyProfiles(owner, normalizedProfiles)
+                // Legacy full snapshots can predate settings added by newer
+                // releases. Fill missing top-level and nested values from the
+                // captured defaults before diffing, so new launcher fields,
+                // module toggles, geometry, and colors inherit valid defaults
+                // instead of turning the entire old snapshot into a replacement.
+                var completedLegacyProfiles = {}
+                for (var legacyProfileName in normalizedProfiles) {
+                    if (!Object.prototype.hasOwnProperty.call(normalizedProfiles, legacyProfileName)) continue
+                    completedLegacyProfiles[legacyProfileName] = Profiles.completeLegacySnapshot(
+                        owner.profileDefaults || {}, normalizedProfiles[legacyProfileName])
+                }
+                owner.profiles = Profiles.sparsifyProfiles(owner, completedLegacyProfiles)
                 owner.profileStorageFormat = Profiles.SPARSE_FORMAT
                 owner.profileMigrationPending = true
             }
@@ -115,10 +125,71 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
         } else if (String(o.profileStorageFormat || "") === Profiles.SPARSE_FORMAT) {
             owner.profileStorageFormat = Profiles.SPARSE_FORMAT
         }
-        if (o.customThemes !== undefined && o.customThemes && typeof o.customThemes === "object")
-            owner.customThemes = o.customThemes
-        if (o.activeProfile !== undefined) owner.activeProfile = String(o.activeProfile)
-        if (o.activeTheme !== undefined) owner.activeTheme = String(o.activeTheme)
+        owner.customThemes = Schema.normalizeCustomThemes(
+            o.customThemes !== undefined ? o.customThemes : (owner.customThemes || {}),
+            Themes.palette("14 Theme", {}))
+
+        var requestedProfile = o.activeProfile !== undefined
+            ? String(o.activeProfile).trim()
+            : String(owner.activeProfile || "").trim()
+        // Older snapshots can retain an active-profile name after the profile
+        // was deleted, or after malformed profile entries were filtered out.
+        // Never leave the UI pointing at a profile that cannot be loaded/reset.
+        owner.activeProfile = requestedProfile !== ""
+                && owner.profiles
+                && Object.prototype.hasOwnProperty.call(owner.profiles, requestedProfile)
+            ? requestedProfile
+            : ""
+
+        // Old settings can retain the name of a custom theme that was renamed
+        // or deleted, or an active theme unavailable in the current release.
+        // Keep the loaded color values untouched: select an exact matching
+        // available palette when possible, otherwise use a valid default name
+        // and let the UI correctly represent those colors as modified.
+        var requestedTheme = o.activeTheme !== undefined
+            ? String(o.activeTheme)
+            : String(owner.activeTheme || "14 Theme")
+        var themeNames = Themes.builtinThemeNames.slice()
+        Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
+            if (themeNames.indexOf(name) < 0) themeNames.push(name)
+        })
+        if (themeNames.indexOf(requestedTheme) >= 0) {
+            owner.activeTheme = requestedTheme
+        } else {
+            var matchingTheme = ""
+            for (var ti = 0; ti < themeNames.length; ++ti) {
+                var candidatePalette = Themes.palette(themeNames[ti], owner.customThemes)
+                var matches = true
+                for (var ci = 0; ci < colorNames.length; ++ci) {
+                    var colorKey = colorNames[ci]
+                    // Older snapshots naturally lack color keys introduced in
+                    // later releases. Compare only colors actually persisted;
+                    // the missing keys are migrated from the resolved palette
+                    // below instead of preventing an otherwise exact match.
+                    if (colors[colorKey] === undefined) continue
+                    if (candidatePalette[colorKey] === undefined
+                            || String(Schema.normalizeSavedColor(colors[colorKey], String(Config[colorKey]))) !== String(candidatePalette[colorKey])) {
+                        matches = false
+                        break
+                    }
+                }
+                if (matches) {
+                    matchingTheme = themeNames[ti]
+                    break
+                }
+            }
+            owner.activeTheme = matchingTheme || "14 Theme"
+        }
+
+        // Color keys added in newer releases were absent from old root-level
+        // color maps. Initialize only those missing keys from the resolved
+        // active palette so a custom theme keeps its identity after upgrade.
+        var resolvedPalette = Themes.palette(owner.activeTheme, owner.customThemes)
+        for (var missingColorIndex = 0; missingColorIndex < colorNames.length; ++missingColorIndex) {
+            var missingColorName = colorNames[missingColorIndex]
+            if (colors[missingColorName] === undefined && resolvedPalette[missingColorName] !== undefined)
+                Config[missingColorName] = resolvedPalette[missingColorName]
+        }
         owner.rebuildProfileList()
         owner.loaded = true
         owner.themeStateRevision++

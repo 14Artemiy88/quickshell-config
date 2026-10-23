@@ -2,8 +2,6 @@
 
 Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** on Linux/Wayland. The project is written in QML/Qt Quick with Bash and JavaScript helpers. Settings, profiles, themes, and calendar notes are managed through the built-in UI; user data is stored outside the source tree.
 
-**Current baseline: v839.** The source archive contains generic defaults; launcher project paths, IDE locations, and API keys are kept in user configuration, not in the repository.
-
 ## Русский
 
 `quickshell-widgets` — набор виджетов рабочего стола и встроенный лаунчер для Quickshell. Проект рассчитан на Linux/Wayland; отдельные функции зависят от установленного рабочего стола и внешних утилит.
@@ -69,12 +67,13 @@ quickshell -c "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
 - Локальные проекты лаунчера редактируются в **Настройки → Лаунчер → Проекты**.
 - Публичная версия намеренно начинается с пустого списка проектов: пути к репозиториям и IDE зависят от конкретной машины. Добавьте свои записи через настройки; существующий пользовательский список в отдельном `settings.json` сохраняется.
 - Новые настройки входят в общую систему профилей. Ключ погоды хранится вне исходного кода и не включается в профили.
+- Последний корректный снимок настроек хранится в приватной резервной копии `.settings.json.bak`. Если `settings.json` повреждён, исходный файл сохраняется как `.settings.json.corrupt.*`, а настройки восстанавливаются из резервной копии; если её нет, создаются значения по умолчанию. Намеренное удаление самого `settings.json` по-прежнему сбрасывает настройки и не восстанавливает старую копию автоматически.
 
 Не добавляйте в Git пользовательский `settings.json`, токены, заметки календаря или другие приватные данные.
 
 ### Лаунчер и кейбинды Niri
 
-Вкладка «Лаунчер» расположена перед «Окно настроек». Из UI можно настроить стартовую вкладку, отображение вкладок, их порядок, размеры, прозрачность фона, текст и оформление заголовка, а также шрифт, размер, высоту, скругление и фон строки поиска. Во вкладке Power строка поиска скрыта, поскольку список действий фиксированный. Текст, акцент и рамки лаунчера берутся из общей темы; собственный цвет фона окна настраивается отдельно в «Настройки → Лаунчер». Цвет фона окна настроек доступен в «Настройки → Окно настроек», а не в списке цветов темы.
+Вкладка «Лаунчер» расположена перед «Окно настроек». Из UI можно настроить стартовую вкладку, отображение вкладок, их порядок, размеры, скругление окна и элементов списка, прозрачность фона, текст и оформление заголовка, а также шрифт, размер, высоту, скругление и фон строки поиска. Поисковый запрос сохраняется при переключении вкладок и очищается при закрытии лаунчера. Во вкладке Power строка поиска скрыта, поскольку список действий фиксированный. Текст, акцент и рамки лаунчера берутся из общей темы; собственный цвет фона окна настраивается отдельно в «Настройки → Лаунчер». Цвет фона окна настроек доступен в «Настройки → Окно настроек», а не в списке цветов темы.
 
 Для привязок Niri используется IPC текущего экземпляра Quickshell. Для стандартной конфигурации пример выглядит так:
 
@@ -106,6 +105,8 @@ bash CHECK.sh
 ```
 
 Для тестов требуются `jq`, `curl`, `file`, Python 3 и Node.js; тесты не запускают полноценную графическую сессию Quickshell, поэтому после изменений QML дополнительно проверьте соответствующий виджет в целевом окружении. Некоторые проверки используют контролируемые Linux-процессы и `/proc`.
+
+GitHub Actions запускает `CHECK.sh` при `push` и `pull_request`, по расписанию раз в неделю и вручную через **Actions → Checks → Run workflow**. При сбое workflow прикладывает `check.log` к запуску на 7 дней. Тест `test_ci_test_coverage.sh` проверяет, что каждый `tests/*.sh` включён в `CHECK.sh`; новые тестовые файлы нужно добавлять в основной список.
 
 Основные каталоги:
 
@@ -184,12 +185,13 @@ Use `qs` instead of `quickshell` if that is the executable installed on your sys
 - Launcher project entries are edited in **Settings → Launcher → Projects**.
 - The public source starts with an empty Projects catalogue intentionally: repository and IDE paths are machine-specific. Add your entries in Settings. An existing user catalogue stored in the external settings file is preserved.
 - Settings participate in the shared profile system. The weather API key stays outside the source code and is excluded from profiles.
+- The latest known-good settings snapshot is kept in the private `.settings.json.bak` file. If `settings.json` is malformed, the original bytes are preserved as `.settings.json.corrupt.*` and settings recover from the backup; if no valid backup exists, defaults are initialized. Intentionally deleting `settings.json` still resets settings rather than automatically resurrecting an old backup.
 
 Do not commit personal settings, API keys, calendar notes, or other private runtime data.
 
 ### Niri keybindings
 
-The Launcher settings are placed immediately before Settings Window. Its startup tab, visible tabs, tab order, geometry, backdrop opacity, and project catalogue are configurable. Launcher text, accent, and borders use the active shared theme; the launcher window background has its own setting under Settings → Launcher. The settings-window background is configured under Settings → Settings Window rather than in the theme color editor.
+The Launcher settings are placed immediately before Settings Window. Its startup tab, visible tabs, tab order, geometry, window and list-item rounding, backdrop opacity, and project catalogue are configurable. The search query is preserved across tab switches and cleared when the launcher closes. The launcher title has configurable color and vertical offset; other text, accent, and borders use the active shared theme; the launcher window background has its own setting under Settings → Launcher. The settings-window background is configured under Settings → Settings Window rather than in the theme color editor.
 
 Example bindings for a default Quickshell instance:
 
@@ -219,6 +221,8 @@ bash CHECK.sh
 ```
 
 Tests require `jq`, `curl`, `file`, Python 3, and Node.js. They do not launch a complete graphical Quickshell session, so visually verify affected QML widgets in the target environment. Some tests use Linux process and `/proc` fixtures.
+
+GitHub Actions runs `CHECK.sh` on pushes and pull requests, weekly, and on demand from **Actions → Checks → Run workflow**. Failed runs upload `check.log` for 7 days. The `test_ci_test_coverage.sh` guard ensures each `tests/*.sh` script is wired into `CHECK.sh`; add every new test to the main suite.
 
 Main directories: `components/` (widgets, launcher, shared QML primitives), `components/settings/` (settings UI), `js/settings/` (schema, defaults, persistence and profiles), `scripts/` (shell helpers), `services/` (Quickshell services), `tests/` (regression tests), and `benchmarks/` (fixture-based microbenchmarks and selected historical results). Microbenchmarks isolate code paths and do not represent total UI latency.
 

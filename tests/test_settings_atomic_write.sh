@@ -35,6 +35,7 @@ for i in $(seq 1 24); do
 done
 for pid in "${workers[@]}"; do wait "$pid" || fail 'concurrent token update failed'; done
 jq -e 'type == "object" and (.weatherToken | startswith("token-")) and .custom.value == 7 and .modules.time == true' "$CFG" >/dev/null || fail 'concurrent token updates corrupted or lost unrelated settings'
+cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup did not track the newest concurrent token update'
 
 # Concurrent whole-snapshot writes must publish one complete payload, never a
 # truncated/mixed JSON file. Which writer wins is deliberately unspecified.
@@ -46,8 +47,9 @@ for i in $(seq 1 16); do
 done
 for pid in "${workers[@]}"; do wait "$pid" || fail 'concurrent set-json write failed'; done
 jq -e 'type == "object" and (.writer | type == "number") and .modules.time == true' "$CFG" >/dev/null || fail 'concurrent set-json left invalid or partial JSON'
+cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup did not track the newest concurrent whole-snapshot write'
 
-if find "$XDG_CONFIG_HOME/quickshell-widgets" -maxdepth 1 -type f -name '.settings.json.*' | grep -q .; then
+if find "$XDG_CONFIG_HOME/quickshell-widgets" -maxdepth 1 -type f -name '.settings.json.*' ! -name '.settings.json.bak' | grep -q .; then
     fail 'temporary settings files leaked'
 fi
 [[ -f "$XDG_CONFIG_HOME/quickshell-widgets/.settings.lock" ]] || fail 'settings lock file missing'

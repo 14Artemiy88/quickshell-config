@@ -61,7 +61,7 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/mg, '');
-const context = { Profiles: { SPARSE_FORMAT: 'sparse-v1', normalizeProfiles: x => x, sparsifyProfiles: x => x }, Schema: { normalizeSavedColor: (v, f) => v === undefined ? f : v } };
+const context = { Profiles: { SPARSE_FORMAT: 'sparse-v1', normalizeProfiles: x => x, sparsifyProfiles: x => x }, Schema: { normalizeSavedColor: (v, f) => v === undefined ? f : v, normalizeCustomThemes: x => x || {} }, Themes: { builtinThemeNames: ['14 Theme'], palette: () => ({}) } };
 vm.createContext(context);
 vm.runInContext(source, context);
 const owner = {

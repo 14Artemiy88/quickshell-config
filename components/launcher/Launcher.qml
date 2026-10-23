@@ -32,6 +32,10 @@ PanelWindow {
 
     property int mode: modeApps
     property bool layoutEditMode: false
+    // Invalidates delayed asynchronous actions when the user closes, reopens,
+    // or switches the launcher to another tab while a request is in flight.
+    property int launcherInteractionGeneration: 0
+    property int pendingFocusInteractionGeneration: -1
     property bool layoutEditWasVisible: false
     property int layoutEditSavedMode: modeApps
     property bool layoutDragging: false
@@ -101,6 +105,8 @@ PanelWindow {
 
     function beginLayoutEdit() {
         if (!Config.launcherEnabled || root.layoutEditMode) return
+        root.launcherInteractionGeneration += 1
+        root.invalidateAllAsyncRequests()
         root.layoutEditWasVisible = root.visible
         root.layoutEditSavedMode = root.mode
         root.layoutEditMode = true
@@ -120,6 +126,7 @@ PanelWindow {
 
     function endLayoutEdit() {
         if (!root.layoutEditMode) return
+        root.launcherInteractionGeneration += 1
         root.cancelLayoutDrag()
         root.layoutEditMode = false
         root.visible = root.layoutEditWasVisible
@@ -292,8 +299,19 @@ PanelWindow {
     }
 
     function hideLauncher() {
+        // Invalidate completion callbacks from work started in the previous
+        // visible session so they cannot close a launcher reopened meanwhile.
+        root.launcherInteractionGeneration += 1
         // Keep the query while switching tabs, but start fresh after closing the launcher.
         searchField.text = ""
+        // Drop any pending/in-flight Nix search so its response cannot replace
+        // results from a later launcher session or a different query.
+        root.nixSearchGeneration += 1
+        nixSearchTimer.stop()
+        if (nixSearchProcess.running)
+            nixSearchProcess.running = false
+        root.nixSearching = false
+        root.invalidateAllAsyncRequests()
         root.visible = false
     }
 
@@ -323,6 +341,32 @@ PanelWindow {
         }
     }
 
+    // Async data processes carry request generations in their stdout. Leaving a
+    // mode or closing the launcher invalidates any output that has not committed yet.
+    function invalidateModeAsyncRequests(modeValue) {
+        if (modeValue === root.modeWindows) {
+            root.niriWindowsGeneration += 1
+            if (niriWindowsProcess.running)
+                niriWindowsProcess.running = false
+        } else if (modeValue === root.modeClipboard) {
+            root.clipboardGeneration += 1
+            clipboardReloadTimer.stop()
+            if (clipboardProcess.running)
+                clipboardProcess.running = false
+        } else if (modeValue === root.modePass) {
+            root.passGeneration += 1
+            root.passLoading = false
+            if (passListProcess.running)
+                passListProcess.running = false
+        }
+    }
+
+    function invalidateAllAsyncRequests() {
+        root.invalidateModeAsyncRequests(root.modeWindows)
+        root.invalidateModeAsyncRequests(root.modeClipboard)
+        root.invalidateModeAsyncRequests(root.modePass)
+    }
+
     // Entry point called by the host shell's IpcHandler. This keeps one
     // Quickshell process and lets Niri bind a separate key to every mode.
     function openMode(modeName) {
@@ -332,6 +376,18 @@ PanelWindow {
     }
 
     function setMode(newMode) {
+        // A new tab selection is a new launcher interaction context; delayed
+        // actions must not hide a different tab when they eventually complete.
+        if (root.mode !== newMode)
+            root.invalidateModeAsyncRequests(root.mode)
+        root.launcherInteractionGeneration += 1
+        // Results from the previous tab/search are no longer allowed to commit.
+        root.nixSearchGeneration += 1
+        nixSearchTimer.stop()
+        if (newMode !== root.modeNix && nixSearchProcess.running) {
+            nixSearchProcess.running = false
+            root.nixSearching = false
+        }
         root.mode = newMode
 
         // Keep a single query while switching tabs. Each tab applies the same
@@ -441,12 +497,19 @@ PanelWindow {
     // dependency on the external Niri 0.1 plugin. These processes only run
     // while the Windows tab is open.
     property var niriWindows: []
+    property int niriWindowsGeneration: 0
+    property int niriWindowsPendingGeneration: -1
     property string pendingFocusWindowId: ""
     property string niriCliError: ""
 
     Process {
         id: niriWindowsProcess
-        command: ["zsh", "-ic", "niri msg -j windows"]
+        command: [
+            "zsh", "-ic",
+            "niri msg -j windows; rc=$?; printf '\n__NIRI_WINDOWS_REQUEST__%s\n' \"$1\"; exit \"$rc\"",
+            "qs-launcher-windows",
+            String(root.niriWindowsPendingGeneration)
+        ]
 
         stdout: StdioCollector {
             onStreamFinished: root.acceptNiriWindows(this.text)
@@ -455,19 +518,16 @@ PanelWindow {
         stderr: StdioCollector {
             onStreamFinished: {
                 const message = String(this.text ?? "").trim()
-                if (message !== "")
-                    root.niriCliError = message
+                if (message !== "" && root.visible && root.mode === root.modeWindows)
+                    console.warn("Launcher: niri window query reported:", message)
             }
         }
 
         onExited: function(exitCode) {
-            if (exitCode !== 0) {
-                if (root.niriCliError === "")
-                    root.niriCliError = "niri msg -j windows exited with code " + exitCode
-                console.warn("Launcher: window list unavailable:", root.niriCliError)
-                root.niriWindows = []
-                root.rebuildWindowModel()
-            }
+            // Result handling is generation-gated in acceptNiriWindows(). Do not
+            // clear the current model here: an older process can exit late.
+            if (exitCode !== 0 && root.visible && root.mode === root.modeWindows)
+                console.warn("Launcher: niri msg -j windows exited with code", exitCode)
         }
     }
 
@@ -490,7 +550,13 @@ PanelWindow {
 
         onExited: function(exitCode) {
             if (exitCode === 0) {
-                root.hideLauncher()
+                // niri focus-window is asynchronous. Only close the same
+                // still-visible Windows launcher context that requested it;
+                // otherwise a delayed response can close a newly reopened UI.
+                if (root.visible && root.mode === root.modeWindows &&
+                    root.pendingFocusInteractionGeneration === root.launcherInteractionGeneration) {
+                    root.hideLauncher()
+                }
             } else {
                 console.warn("Launcher: focus-window action exited with code", exitCode)
             }
@@ -518,6 +584,15 @@ PanelWindow {
     }
 
     property var runHistoryEntries: []
+    property int runHistoryGeneration: 0
+    property int runHistoryPendingGeneration: -1
+    property bool runHistoryLoadPending: false
+    property var runHistoryPendingMutations: []
+    property bool runHistoryPersistAfterLoad: false
+    property string runHistoryWriteActivePayload: ""
+    property string runHistoryWriteQueuedPayload: ""
+    property bool runHistoryWriteHasQueuedPayload: false
+    property int runHistoryWriteSequence: 0
     property string runHistoryFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-run-history"
 
     Process {
@@ -526,15 +601,34 @@ PanelWindow {
         command: [
             "sh",
             "-c",
-            "cat -- \"$1\" 2>/dev/null",
+            "cat -- \"$1\" 2>/dev/null; status=$?; printf '\\n__RUN_HISTORY_REQUEST__%s\\n' \"$2\"; exit \"$status\"",
             "launcher-history",
-            root.runHistoryFile
+            root.runHistoryFile,
+            String(root.runHistoryPendingGeneration)
         ]
 
         stdout: StdioCollector {
-            onStreamFinished: {
-                root.loadRunHistory(this.text)
-            }
+            onStreamFinished: root.acceptRunHistory(this.text)
+        }
+    }
+
+    // Serialize persistence so concurrent edits cannot race on a shared temp
+    // file or let an older full-history snapshot overwrite a newer one.
+    Process {
+        id: runHistoryWriteProcess
+
+        command: [
+            "sh",
+            "-c",
+            "mkdir -p \"$HOME/.cache\" && tmp=\"$1.tmp.$$.$3\" && printf '%s\\n' \"$2\" > \"$tmp\" && mv \"$tmp\" \"$1\"",
+            "launcher-history-write",
+            root.runHistoryFile,
+            root.runHistoryWriteActivePayload,
+            String(root.runHistoryWriteSequence)
+        ]
+
+        onExited: function(exitCode) {
+            root.finishRunHistoryWrite(exitCode)
         }
     }
 
@@ -554,28 +648,82 @@ PanelWindow {
         }
     }
 
-    function loadRunHistory(output) {
+    function parseRunHistory(output) {
         const entries = []
         const seen = {}
-
         const lines = String(output ?? "").split("\n")
 
         // Newest first, with duplicates removed.
         for (let i = lines.length - 1; i >= 0; --i) {
             const command = lines[i].trim()
-
             if (command === "" || seen[command])
                 continue
-
             seen[command] = true
             entries.push(command)
-
             if (entries.length >= 100)
                 break
         }
+        return entries
+    }
 
+    function recordRunHistoryMutation(type, command) {
+        root.runHistoryGeneration += 1
+        if (!root.runHistoryLoadPending)
+            return
+
+        const mutations = Array.isArray(root.runHistoryPendingMutations)
+            ? root.runHistoryPendingMutations.slice()
+            : []
+        mutations.push({ type: String(type), command: String(command ?? "") })
+        root.runHistoryPendingMutations = mutations
+    }
+
+    function acceptRunHistory(output) {
+        const text = String(output ?? "")
+        const marker = "\n__RUN_HISTORY_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0) return
+
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration) ||
+            requestGeneration !== root.runHistoryPendingGeneration ||
+            !root.runHistoryLoadPending) {
+            return
+        }
+
+        // The file read may have started before a user launched/deleted a
+        // command or cleared history. Re-apply those recorded mutations to the
+        // disk snapshot instead of replacing newer in-memory intent with stale data.
+        const entries = root.parseRunHistory(text.slice(0, markerIndex))
+        const mutations = Array.isArray(root.runHistoryPendingMutations)
+            ? root.runHistoryPendingMutations.slice()
+            : []
+
+        for (const mutation of mutations) {
+            const type = String(mutation.type ?? "")
+            const command = String(mutation.command ?? "")
+
+            if (type === "clear") {
+                entries.length = 0
+            } else if (type === "delete" && command !== "") {
+                const index = entries.indexOf(command)
+                if (index >= 0) entries.splice(index, 1)
+            } else if (type === "remember" && command !== "") {
+                const index = entries.indexOf(command)
+                if (index >= 0) entries.splice(index, 1)
+                entries.unshift(command)
+                if (entries.length > 100) entries.length = 100
+            }
+        }
+
+        const shouldPersistMergedHistory = mutations.length > 0 || root.runHistoryPersistAfterLoad
         root.runHistoryEntries = entries
+        root.runHistoryLoadPending = false
+        root.runHistoryPendingMutations = []
+        root.runHistoryPersistAfterLoad = false
         root.rebuildRunHistoryModel()
+        if (shouldPersistMergedHistory)
+            root.persistRunHistory()
     }
 
     function rebuildRunHistoryModel() {
@@ -635,22 +783,56 @@ PanelWindow {
         if (runHistoryProcess.running)
             runHistoryProcess.running = false
 
+        root.runHistoryGeneration += 1
+        root.runHistoryPendingGeneration = root.runHistoryGeneration
+        root.runHistoryLoadPending = true
+        root.runHistoryPendingMutations = []
         runHistoryProcess.running = true
     }
 
-    function persistRunHistory() {
-        const data = root.runHistoryEntries.join("\n")
+    function startRunHistoryWrite(payload) {
+        root.runHistoryWriteActivePayload = String(payload ?? "")
+        root.runHistoryWriteSequence += 1
+        runHistoryWriteProcess.running = true
+    }
 
-        Quickshell.execDetached([
-            "sh",
-            "-c",
-            "mkdir -p \"$HOME/.cache\" && " +
-            "printf '%s\\n' \"$2\" > \"$1.tmp\" && " +
-            "mv \"$1.tmp\" \"$1\"",
-            "launcher-history-rewrite",
-            root.runHistoryFile,
-            data
-        ])
+    function finishRunHistoryWrite(exitCode) {
+        if (exitCode !== 0)
+            console.warn("Launcher: failed to persist Run history (exit code", exitCode, ")")
+
+        if (!root.runHistoryWriteHasQueuedPayload)
+            return
+
+        const latestPayload = root.runHistoryWriteQueuedPayload
+        root.runHistoryWriteQueuedPayload = ""
+        root.runHistoryWriteHasQueuedPayload = false
+        root.startRunHistoryWrite(latestPayload)
+    }
+
+    function persistRunHistory() {
+        // Startup loading merges the disk snapshot with any user mutations.
+        // Never write a partial in-memory list over the file before that merge.
+        if (root.runHistoryLoadPending) {
+            root.runHistoryPersistAfterLoad = true
+            return
+        }
+
+        // The parser treats file lines as oldest-first, while the in-memory
+        // model is newest-first; keep that disk format consistent for reloads.
+        const data = root.runHistoryEntries.slice().reverse().join("\n")
+        if (runHistoryWriteProcess.running) {
+            // Keep only the latest snapshot. Intermediate snapshots would be
+            // stale as soon as a later edit has already changed the model.
+            root.runHistoryWriteQueuedPayload = data
+            root.runHistoryWriteHasQueuedPayload = true
+            return
+        }
+
+        // If the process just exited but its completion callback has not yet
+        // consumed a queued payload, the current model snapshot takes priority.
+        root.runHistoryWriteQueuedPayload = ""
+        root.runHistoryWriteHasQueuedPayload = false
+        root.startRunHistoryWrite(data)
     }
 
     function deleteRunHistory(index) {
@@ -671,6 +853,7 @@ PanelWindow {
             return
 
         entries.splice(historyIndex, 1)
+        root.recordRunHistoryMutation("delete", command)
         root.runHistoryEntries = entries
         root.rebuildRunHistoryModel()
         root.rebuildRunModel()
@@ -678,6 +861,7 @@ PanelWindow {
     }
 
     function clearRunHistory() {
+        root.recordRunHistoryMutation("clear", "")
         root.runHistoryEntries = []
         root.rebuildRunHistoryModel()
         root.rebuildRunModel()
@@ -690,6 +874,7 @@ PanelWindow {
         if (command === "")
             return
 
+        root.recordRunHistoryMutation("remember", command)
         const entries = [command]
 
         for (const oldCommand of root.runHistoryEntries) {
@@ -703,19 +888,9 @@ PanelWindow {
         root.runHistoryEntries = entries
         root.rebuildRunHistoryModel()
 
-        // The command is passed as $1, so shell metacharacters inside the
-        // actual command are not interpreted by this shell invocation.
-        Quickshell.execDetached([
-            "sh",
-            "-c",
-            "mkdir -p \"$HOME/.cache\" && " +
-            "printf '%s\n' \"$2\" >> \"$1\" && " +
-            "tail -n 100 \"$1\" > \"$1.tmp\" && " +
-            "mv \"$1.tmp\" \"$1\"",
-            "launcher-history-write",
-            root.runHistoryFile,
-            command
-        ])
+        // Persist the whole canonical snapshot through the serialized writer;
+        // concurrent command launches collapse to the newest queued snapshot.
+        root.persistRunHistory()
     }
 
     property var appsUnifiedResults: root.buildAppsUnifiedResults()
@@ -840,23 +1015,38 @@ PanelWindow {
     }
 
     property string clipboardOutput: ""
+    property int clipboardGeneration: 0
+    property int clipboardPendingGeneration: -1
 
     Process {
         id: clipboardProcess
 
         command: [
-            "cliphist",
-            "list",
-            "-fields",
-            "id,mime,preview"
+            "sh", "-c",
+            "cliphist list -fields 'id,mime,preview'; status=$?; printf '\\n__CLIPHIST_REQUEST__%s\\n' \"$1\"; exit \"$status\"",
+            "launcher-clipboard",
+            String(root.clipboardPendingGeneration)
         ]
 
         stdout: StdioCollector {
-            onStreamFinished: {
-                root.clipboardOutput = this.text
-                root.updateClipboardModel(this.text)
-            }
+            onStreamFinished: root.finishClipboardLoad(this.text)
         }
+    }
+
+    function finishClipboardLoad(output) {
+        const text = String(output ?? "")
+        const marker = "\n__CLIPHIST_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0) return
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration) ||
+            requestGeneration !== root.clipboardGeneration ||
+            !root.visible || root.mode !== root.modeClipboard || root.layoutEditMode) {
+            return
+        }
+        const payload = text.slice(0, markerIndex)
+        root.clipboardOutput = payload
+        root.updateClipboardModel(payload)
     }
 
     function updateClipboardModel(output) {
@@ -913,9 +1103,12 @@ PanelWindow {
     }
 
     function loadClipboard() {
+        if (!root.visible || root.mode !== root.modeClipboard || root.layoutEditMode)
+            return
+        root.clipboardGeneration += 1
+        root.clipboardPendingGeneration = root.clipboardGeneration
         if (clipboardProcess.running)
             clipboardProcess.running = false
-
         clipboardProcess.running = true
     }
 
@@ -3583,17 +3776,30 @@ PanelWindow {
     }
 
     function refreshNiriWindows() {
-        if (!root.visible || root.mode !== root.modeWindows)
+        if (!root.visible || root.mode !== root.modeWindows || root.layoutEditMode)
             return
         if (!niriWindowsProcess.running) {
             root.niriCliError = ""
+            root.niriWindowsGeneration += 1
+            root.niriWindowsPendingGeneration = root.niriWindowsGeneration
             niriWindowsProcess.running = true
         }
     }
 
     function acceptNiriWindows(output) {
+        const text = String(output ?? "")
+        const marker = "\n__NIRI_WINDOWS_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0) return
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration) ||
+            requestGeneration !== root.niriWindowsGeneration ||
+            !root.visible || root.mode !== root.modeWindows || root.layoutEditMode) {
+            return
+        }
+        const payload = text.slice(0, markerIndex).trim()
         try {
-            const parsed = JSON.parse(String(output ?? "").trim())
+            const parsed = JSON.parse(payload)
             if (!Array.isArray(parsed))
                 throw new Error("niri windows response is not an array")
 
@@ -3735,6 +3941,9 @@ PanelWindow {
     property bool nixSearching: false
     property string nixSearchError: ""
     property int nixSchema: 48
+    // Monotonic request identity prevents out-of-order HTTP responses from
+    // overwriting results after query edits, tab switches, or launcher close.
+    property int nixSearchGeneration: 0
 
     Timer {
         id: nixSearchTimer
@@ -3762,6 +3971,9 @@ PanelWindow {
     }
 
     function scheduleNixSearch() {
+        // Invalidate the in-flight result immediately, before the debounce
+        // timer starts the request for the new query.
+        root.nixSearchGeneration += 1
         nixSearchTimer.restart()
     }
 
@@ -3854,6 +4066,8 @@ PanelWindow {
 
         const query = String(searchField.text ?? "").trim()
         if (query === "") {
+            if (nixSearchProcess.running)
+                nixSearchProcess.running = false
             root.nixResults = []
             root.nixSearching = false
             root.nixSearchError = ""
@@ -3863,6 +4077,7 @@ PanelWindow {
         if (nixSearchProcess.running)
             nixSearchProcess.running = false
 
+        const requestGeneration = root.nixSearchGeneration
         const payload = root.nixSearchPayload(query)
         // search.nixos.org uses the Bonsai Elasticsearch cluster directly.
         // The index has a wildcard version prefix, so we do not need to guess
@@ -3870,6 +4085,7 @@ PanelWindow {
         // commands with spaces makes `for ...; do` invalid in /bin/sh.
         const script = [
             'payload=$1',
+            'request_id=$2',
             'username="aWVSALXpZv"',
             'password="X8gPHnzL52wFEekuxsfQ9cSh"',
             'url="https://nixos-search-7-1733963800.us-east-1.bonsaisearch.net:443/latest-*-nixos-unstable/_search?request_cache=true"',
@@ -3877,10 +4093,10 @@ PanelWindow {
             'status=${response##*__STATUS__}',
             'body=${response%__STATUS__*}',
             'if [ "$status" = "200" ]; then',
-            '    printf "%s\\n__SCHEMA__WILDCARD" "$body"',
+            '    printf "%s\\n__SCHEMA__WILDCARD\\n__REQUEST__%s" "$body" "$request_id"',
             '    exit 0',
             'fi',
-            'printf "%s\\n__SCHEMA__ERROR" "${body:-{\\"error\\":\\"NixOS search backend HTTP $status\\"}}"'
+            'printf "%s\\n__SCHEMA__ERROR\\n__REQUEST__%s" "${body:-{\\"error\\":\\"NixOS search backend HTTP $status\\"}}" "$request_id"'
         ].join("\n")
 
         nixSearchProcess.command = [
@@ -3888,7 +4104,8 @@ PanelWindow {
             "-c",
             script,
             "launcher-nix-search",
-            payload
+            payload,
+            String(requestGeneration)
         ]
 
         root.nixSearching = true
@@ -3897,6 +4114,19 @@ PanelWindow {
     }
 
     function finishNixSearch(output) {
+        const rawOutput = String(output ?? "")
+        const requestMarker = "\n__REQUEST__"
+        const requestMarkerIndex = rawOutput.lastIndexOf(requestMarker)
+        if (requestMarkerIndex < 0)
+            return
+
+        const completedGeneration = Number(
+            rawOutput.slice(requestMarkerIndex + requestMarker.length).trim()
+        )
+        if (!Number.isSafeInteger(completedGeneration) ||
+            completedGeneration !== root.nixSearchGeneration) {
+            return
+        }
         if (root.mode !== root.modeNix)
             return
 
@@ -3910,14 +4140,14 @@ PanelWindow {
         const result = []
 
         try {
-            const rawOutput = String(output ?? "")
+            const responseOutput = rawOutput.slice(0, requestMarkerIndex)
             const marker = "\n__SCHEMA__"
-            const markerIndex = rawOutput.lastIndexOf(marker)
+            const markerIndex = responseOutput.lastIndexOf(marker)
             const jsonOutput = markerIndex >= 0
-                ? rawOutput.slice(0, markerIndex).trim()
-                : rawOutput.trim()
+                ? responseOutput.slice(0, markerIndex).trim()
+                : responseOutput.trim()
             const schemaMarker = markerIndex >= 0
-                ? rawOutput.slice(markerIndex + marker.length).trim()
+                ? responseOutput.slice(markerIndex + marker.length).trim()
                 : ""
             if (schemaMarker !== "" && schemaMarker !== "ERROR")
                 root.nixSchema = Number(schemaMarker) || root.nixSchema
@@ -4087,6 +4317,8 @@ PanelWindow {
     property var passResults: []
     property bool passLoading: false
     property string passError: ""
+    property int passGeneration: 0
+    property int passPendingGeneration: -1
 
     Process {
         id: passListProcess
@@ -4102,28 +4334,43 @@ PanelWindow {
                 "  printf '__PASS_ERROR__password store not found: %s\n' \"$store\"",
                 'else',
                 "  find \"$store\" -type f -name '*.gpg' -printf '%P\\n' | sed 's/\\.gpg$//'",
-                'fi'
+                'fi',
+                'printf "\\n__PASS_REQUEST__%s\\n" "$1"'
             ].join("\n"),
-            "launcher-pass-list"
+            "launcher-pass-list",
+            String(root.passPendingGeneration)
         ]
 
         stdout: StdioCollector {
-            onStreamFinished: {
-                root.finishPassEntries(this.text)
-            }
+            onStreamFinished: root.finishPassEntries(this.text)
         }
     }
 
     function loadPassEntries() {
+        if (!root.visible || root.mode !== root.modePass || root.layoutEditMode)
+            return
+        root.passGeneration += 1
+        root.passPendingGeneration = root.passGeneration
         root.passError = ""
         root.passLoading = true
 
-        passListProcess.running = false
+        if (passListProcess.running)
+            passListProcess.running = false
         passListProcess.running = true
     }
 
     function finishPassEntries(output) {
-        const lines = String(output ?? "").split("\n")
+        const text = String(output ?? "")
+        const marker = "\n__PASS_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0) return
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration) ||
+            requestGeneration !== root.passGeneration ||
+            !root.visible || root.mode !== root.modePass || root.layoutEditMode) {
+            return
+        }
+        const lines = text.slice(0, markerIndex).split("\n")
         const entries = []
         const seen = {}
         let explicitError = ""
@@ -4727,6 +4974,7 @@ PanelWindow {
 
         rememberWindowFocus(numericId)
         root.pendingFocusWindowId = String(numericId)
+        root.pendingFocusInteractionGeneration = root.launcherInteractionGeneration
         niriFocusProcess.running = true
     }
 

@@ -100,6 +100,24 @@ function profileNames(owner) {
     return owner.profileList
 }
 
+// Complete a legacy full snapshot with defaults that did not exist when the
+// profile was created. This is intentionally a recursive merge for plain
+// objects (module flags, geometry, colors); arrays and scalar values stored by
+// the legacy profile remain authoritative and replace the defaults atomically.
+function completeLegacySnapshot(defaults, profile) {
+    if (!isObject(defaults) || !isObject(profile)) return clone(profile)
+
+    var result = clone(defaults)
+    for (var key in profile) {
+        if (!Object.prototype.hasOwnProperty.call(profile, key)) continue
+        if (isObject(defaults[key]) && isObject(profile[key]))
+            result[key] = completeLegacySnapshot(defaults[key], profile[key])
+        else
+            result[key] = clone(profile[key])
+    }
+    return result
+}
+
 function sparseProfile(owner, fullSnapshot) {
     var full = clone(fullSnapshot || {})
     delete full.weatherToken
@@ -168,4 +186,50 @@ function deleteProfile(owner, name) {
     rebuildProfileList(owner)
     owner.save()
     return true
+}
+
+
+// Keep profiles valid when a referenced custom theme is renamed or deleted.
+// Saved color values remain profile-scoped, while the custom theme catalog is
+// global; a deleted theme therefore falls back to an exact matching palette
+// when possible, or the default theme while retaining the saved colors.
+function rewriteThemeReferences(owner, themes, oldName, newName) {
+    var current = owner.profiles || {}
+    var next = Object.assign({}, current)
+    var changed = false
+    var candidateNames = (themes && themes.builtinThemeNames ? themes.builtinThemeNames.slice() : [])
+    Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
+        if (candidateNames.indexOf(name) < 0) candidateNames.push(name)
+    })
+    var colorNames = owner.colorNames || []
+
+    function matchingTheme(profile) {
+        var colors = profile && profile.colors ? profile.colors : {}
+        for (var i = 0; i < candidateNames.length; ++i) {
+            var candidate = candidateNames[i]
+            var palette = themes.palette(candidate, owner.customThemes)
+            var matches = true
+            for (var j = 0; j < colorNames.length; ++j) {
+                var key = colorNames[j]
+                if (colors[key] === undefined) continue
+                if (String(colors[key]) !== String(palette[key] !== undefined ? palette[key] : "")) {
+                    matches = false
+                    break
+                }
+            }
+            if (matches) return candidate
+        }
+        return candidateNames.indexOf("14 Theme") >= 0 ? "14 Theme" : (candidateNames[0] || "14 Theme")
+    }
+
+    Object.keys(current).forEach(function(name) {
+        var full = expandProfile(owner, current[name])
+        if (!full || String(full.activeTheme || "") !== String(oldName)) return
+        full.activeTheme = newName ? String(newName) : matchingTheme(full)
+        next[name] = owner.profileStorageFormat === SPARSE_FORMAT ? sparseProfile(owner, full) : full
+        changed = true
+    })
+
+    if (changed) owner.profiles = next
+    return changed
 }

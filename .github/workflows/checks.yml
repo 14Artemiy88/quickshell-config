@@ -3,23 +3,57 @@ name: Checks
 on:
   push:
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1' # Weekly full regression run, Monday at 04:17 UTC.
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   regression-tests:
     name: Static and fixture-based regression tests
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+
       - name: Install test dependencies
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y jq curl file python3 nodejs gawk
-      - name: Run regression suite
-        run: bash CHECK.sh
+
+      - name: Run full regression suite
+        shell: bash
+        run: |
+          set -o pipefail
+          bash CHECK.sh 2>&1 | tee "$RUNNER_TEMP/check.log"
+
+      - name: Add CI summary
+        if: success()
+        shell: bash
+        run: |
+          count="$(find tests -maxdepth 1 -type f -name '*.sh' | wc -l | tr -d ' ')"
+          {
+            echo '## Regression checks passed'
+            echo
+            echo '- Entry point: `bash CHECK.sh`'
+            echo "- Regression test scripts wired into the suite: **${count}**"
+            echo '- Environment: `ubuntu-latest` with jq, curl, file, Python 3, Node.js and gawk'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test log on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: check-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/check.log
+          if-no-files-found: warn
+          retention-days: 7
