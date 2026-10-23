@@ -6,6 +6,11 @@
 # player presence across UI refreshes.
 declare -ag PLAYERCTL_ACTIVE_PLAYERS_CACHE=()
 declare -g PLAYERCTL_ACTIVE_PLAYERS_CACHE_LOADED=0
+# The Player dispatcher preflights browser metadata to give an active Jitsi/Talk
+# call priority over paused desktop players. Reuse that exact response if the
+# normal backend loop reaches the browser later in the same invocation.
+declare -g PLAYERCTL_PREFETCHED_PLAYER=""
+declare -g PLAYERCTL_PREFETCHED_METADATA=""
 
 load_playerctl_active_players() {
     [[ "$PLAYERCTL_ACTIVE_PLAYERS_CACHE_LOADED" == "1" ]] && return 0
@@ -42,7 +47,15 @@ get_mpris_player_metadata() {
     [[ -n "$player" ]] || return
     mpris_player_is_active "$player" || return
 
-    metadata=$(playerctl -p "$player" metadata -f "$params" 2>/dev/null)
+    if [[ "${PLAYERCTL_PREFETCHED_PLAYER:-}" == "$player" ]]; then
+        metadata="${PLAYERCTL_PREFETCHED_METADATA:-}"
+        # Consume once. If this response is incomplete during a track/service
+        # transition, a later fallback attempt can perform a fresh query.
+        PLAYERCTL_PREFETCHED_PLAYER=""
+        PLAYERCTL_PREFETCHED_METADATA=""
+    else
+        metadata=$(playerctl -p "$player" metadata -f "$params" 2>/dev/null)
+    fi
     [[ -z "$metadata" ]] && return
 
     # Parse fields from the complete metadata string rather than using `read`.

@@ -9,11 +9,13 @@ s = Path(sys.argv[1]).read_text()
 checks = {
     "first direct Text is used only as reactive title source": "var candidate = items[0]" in s and "candidate.text === undefined" in s,
     "source is removed from layout and hidden without deleting its bindings": "candidate.parent = root" in s and "candidate.opacity = 0" in s and "candidate.width = 0" in s and "candidate.height = 0" in s,
-    "visible legend is rendered by a separate Text item": "id: headingLabel" in s and "text: root.headingSource ? String(root.headingSource.text) : """ in s,
+    "visible legend is rendered by a separate Text item": "id: headingLabel" in s and "text: root.renderedHeading" in s,
+    "explicit headings bypass fragile child-order inference": 'if (root.heading.trim().length > 0)' in s,
     "legend color follows configurable mini-heading color": "color: Config.settingsSubheading" in s,
     "empty and hidden headings do not reserve legend space": (
         "readonly property bool hasHeading" in s
-        and 'String(root.headingSource.text || "").trim().length > 0' in s
+        and 'root.renderedHeading.trim().length > 0' in s
+        and 'root.headingSource.visible' in s
         and "visible: root.hasHeading" in s
         and "(root.hasHeading ? 8 : 0)" in s
     ),

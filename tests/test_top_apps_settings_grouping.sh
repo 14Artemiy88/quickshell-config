@@ -32,14 +32,22 @@ import sys
 s=Path(sys.argv[1]).read_text()
 checks = [
     ('Показывать заголовки CPU и памяти', 'Заголовки', 'Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
+    ('Показывать полосы нагрузки', 'Положение и размер полос', 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
     ('Показывать полосы нагрузки', 'Цвета полос нагрузки', 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
     ('Показывать строку «Система/прочее»', 'Строка «Система/прочее»', 'Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
 ]
 for toggle, group, guard in checks:
-    a=s.index('text: "'+toggle+'"')
-    b=s.index('text: "'+group+'"', a)
-    if b <= a: raise SystemExit(f'{group} does not follow its toggle')
-    if guard not in s[a:b]: raise SystemExit(f'{group} is not guarded by its controlling option')
+    if 'text: "'+toggle+'"' not in s:
+        raise SystemExit(f'missing controlling toggle: {toggle}')
+    if 'heading: "'+group+'"' not in s:
+        raise SystemExit(f'{group} is not declared as an explicit SettingsGroup legend')
+    # The legend remains visible with the frame; only dependent controls use the toggle guard.
+    heading_at = s.index('heading: "'+group+'"')
+    group_start = s.rfind('SettingsGroup {', 0, heading_at)
+    group_end = s.find('\n    }', heading_at)
+    group_block = s[group_start:group_end + 6]
+    if guard not in group_block:
+        raise SystemExit(f'{group} dependent controls are not guarded by their controlling option')
 # Each heading editor/size setting must collapse with the main header toggle.
 for label in ('Основной заголовок', 'Подзаголовок', 'Размер основного заголовка', 'Размер подзаголовка'):
     pos=s.index('text: "'+label+'"')

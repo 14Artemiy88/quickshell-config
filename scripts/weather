@@ -23,7 +23,9 @@ get_weather() {
     local force="${4:-false}"
     local cache_file lock_file attempt_file token cached_payload=""
 
-    cache_file=$(weather_cache_file "$cache_name" "$params")
+    # The cache key is deterministic; build it in the current shell rather than
+    # forking a command-substitution subshell on every weather poll.
+    cache_file="$WEATHER_CACHE_DIR/${cache_name}_${params//[^a-zA-Z0-9]/_}.json"
     lock_file="${cache_file}.lock"
     attempt_file="${cache_file}.attempt"
 
@@ -100,15 +102,18 @@ get_weather() {
     )
 }
 
+force=false
+[[ "${2:-}" == "--force" ]] && force=true
+
 case "${1:-}" in
     now)
-        get_weather "now" "current" "" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)"
+        get_weather "now" "current" "" "$force"
         ;;
     day)
-        get_weather "day" "forecast" "?days=2" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)"
+        get_weather "day" "forecast" "?days=2" "$force"
         ;;
     week)
-        get_weather "week" "forecast/aggregate" "?days=5" "$([[ "${2:-}" == "--force" ]] && echo true || echo false)"
+        get_weather "week" "forecast/aggregate" "?days=5" "$force"
         ;;
     *)
         echo "Usage: $0 {now|day|week} [--force]" >&2

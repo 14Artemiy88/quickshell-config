@@ -56,7 +56,9 @@ case "${1:-get}" in
       [[ -z "${tmp:-}" ]] || rm -f -- "$tmp"
     }
     trap cleanup_calendar_notes_tmp EXIT
-    if [[ -z "$(printf '%s' "$value" | tr -d '[:space:]')" ]]; then
+    # Bash can detect whether any non-whitespace character exists without
+    # starting printf and tr subprocesses for every note update.
+    if [[ ! "$value" =~ [^[:space:]] ]]; then
       jq --arg key "$key" 'del(.[$key])' "$FILE" > "$tmp"
     else
       jq --arg key "$key" --arg value "$value" '.[$key] = $value' "$FILE" > "$tmp"

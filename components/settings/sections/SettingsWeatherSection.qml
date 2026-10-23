@@ -18,16 +18,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Токен Gismeteo"
         padding: 8
         contentSpacing: 6
 
-                        Text {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
-                            text: "Токен Gismeteo"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(13)
-                        }
                         SettingsTextField {
                             visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
                             id: token
@@ -215,16 +209,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Иконка текущей погоды"
         padding: 8
         contentSpacing: 6
 
-                        Text {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
-                            text: "Иконка текущей погоды"
-                            color: Config.settingsSubheading
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                        }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 150; height: 24 }
                             Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -243,10 +231,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Стрелка ветра"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Стрелка ветра"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -265,10 +253,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Дополнительные параметры"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Дополнительные параметры"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 100; text: "Значение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -292,10 +280,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Положение элементов"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Положение элементов"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 6
                             Item { width: 210; height: 24 }
                             Text { width: 62; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -356,10 +344,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Размер стрелки ветра"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Размер стрелки ветра"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -376,10 +364,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        heading: "Давление"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; text: "Давление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
@@ -407,10 +395,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Почасовой блок"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; text: "Почасовой блок"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Количество часов"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whCount; width: 58; height: 30; value: Config.weatherHourlyCount; minimum: 1; maximum: 12; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyCount"; settingsObject: settings; saveOnEdit: true }
@@ -444,10 +432,10 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 3
         width: parent.width
         showFrame: true
+        heading: "Дневной прогноз"
         padding: 8
         contentSpacing: 6
 
-                        Text { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; text: "Дневной прогноз"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Количество дней"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdCount; width: 58; height: 30; value: Config.weatherDailyCount; minimum: 1; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyCount"; settingsObject: settings; saveOnEdit: true }

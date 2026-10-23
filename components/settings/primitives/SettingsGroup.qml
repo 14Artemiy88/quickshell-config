@@ -7,6 +7,11 @@ Item {
     property bool showFrame: false
     property real padding: showFrame ? 10 : 0
     property real contentSpacing: 5
+    // Explicit frame legend; avoids relying on child order or visibility.
+    property string heading: ""
+    readonly property string renderedHeading: root.heading.trim().length > 0
+        ? root.heading
+        : (root.headingSource ? String(root.headingSource.text || "") : "")
     property color backgroundColor: Config.settingsBackground
     property color borderColor: Config.baseColor
     property int borderWidth: 1
@@ -19,14 +24,16 @@ Item {
 
     // Hidden or empty heading Text nodes must not create a notch or vertical gap.
     readonly property bool hasHeading: root.showFrame
-        && root.headingSource
-        && root.headingSource.visible
-        && String(root.headingSource.text || "").trim().length > 0
+        && root.renderedHeading.trim().length > 0
+        && (root.heading.trim().length > 0
+            || (root.headingSource !== null && root.headingSource.visible))
 
     implicitHeight: contentColumn.implicitHeight + root.padding * 2 + (root.hasHeading ? 8 : 0)
     height: implicitHeight
 
     function adoptHeading() {
+        if (root.heading.trim().length > 0)
+            return
         if (!root.showFrame || root.headingSource || root.adoptingHeading)
             return
 
@@ -86,7 +93,7 @@ Item {
         font.family: Config.settingsFont
         font.pixelSize: Config.settingsUiSize(11)
         font.bold: false
-        text: root.headingSource ? String(root.headingSource.text) : ""
+        text: root.renderedHeading
     }
 
     Text {
@@ -97,7 +104,7 @@ Item {
         width: Math.max(0, Math.min(headingMetrics.advanceWidth,
                                     root.width - root.padding * 2 - 16))
         height: Config.settingsUiSize(14)
-        text: root.headingSource ? String(root.headingSource.text) : ""
+        text: root.renderedHeading
         color: Config.settingsSubheading
         font.family: Config.settingsFont
         font.pixelSize: Config.settingsUiSize(11)

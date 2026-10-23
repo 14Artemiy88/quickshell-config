@@ -4,10 +4,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 expect() {
     local file="$1" title="$2"
-    grep -Fq "text: \"$title\"" "$ROOT/$file" || {
+    if ! grep -Fq "text: \"$title\"" "$ROOT/$file" && ! grep -Fq "heading: \"$title\"" "$ROOT/$file"; then
         echo "Missing concise heading '$title' in $file" >&2
         exit 1
-    }
+    fi
 }
 reject() {
     local file="$1" title="$2"

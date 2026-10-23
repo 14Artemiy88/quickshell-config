@@ -25,15 +25,15 @@ from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
 toggle=s.index('text: "Показывать полосы нагрузки"')
-heading=s.index('text: "Цвета полос нагрузки"', toggle)
+heading=s.index('heading: "Цвета полос нагрузки"', toggle)
 other=s.index('text: "Показывать строку «Система/прочее»"', heading)
 if not (toggle < heading < other):
     raise SystemExit('bar colors are not located directly after the bar visibility toggle')
-expected=('Цвета полос нагрузки','Отдельные цвета для заполнения полос CPU и RAM.','CPU: цвет полосы','RAM: цвет полосы')
+expected=('Отдельные цвета для заполнения полос CPU и RAM.','CPU: цвет полосы','RAM: цвет полосы')
 for label in expected:
     at=s.index(label,heading,other)
     guard='visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'
-    if guard not in s[toggle:at]:
+    if label != 'Цвета полос нагрузки' and guard not in s[toggle:at]:
         raise SystemExit(f'{label} is not conditioned on Top Apps bar visibility')
 print('Top Apps bar color controls follow the Show bars option: OK')
 PYVIS

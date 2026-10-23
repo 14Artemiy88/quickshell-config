@@ -353,8 +353,10 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Заголовки"
         padding: 8
         contentSpacing: 6
+
 
             Row {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -365,15 +367,6 @@ Column {
                     checked: Config.topAppsShowHeaders
                     onToggled: { Config.topAppsShowHeaders = checked; settings.save() }
                 }
-            }
-
-
-            Text {
-                visible: Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Заголовки"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(12)
             }
 
 
@@ -491,8 +484,10 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Положение и размер полос"
         padding: 8
         contentSpacing: 6
+
 
             Row {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -505,14 +500,6 @@ Column {
                 }
             }
 
-
-            Text {
-                visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Положение и размер полос"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(12)
-            }
 
             Row {
                 visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -567,13 +554,16 @@ Column {
             }
 
 
-            Text {
-                visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Цвета полос нагрузки"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(12)
-            }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2 && Config.topAppsShowBars
+        width: parent.width
+        showFrame: true
+        heading: "Цвета полос нагрузки"
+        padding: 8
+        contentSpacing: 6
+
 
             Text {
                 visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -652,8 +642,10 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Строка «Система/прочее»"
         padding: 8
         contentSpacing: 6
+
 
             Row {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -666,14 +658,6 @@ Column {
                 }
             }
 
-
-            Text {
-                visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Строка «Система/прочее»"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(12)
-            }
 
             Row {
                 visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
@@ -710,16 +694,10 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        heading: "Список приложений"
         padding: 8
         contentSpacing: 6
 
-            Text {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
-                text: "Список приложений"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(12)
-            }
 
             Row {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2

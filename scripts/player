@@ -43,22 +43,34 @@ fi
 # is registered; otherwise keep the configured priority path untouched.
 prefer_active_jitsi_browser_call() {
     local player="plasma-browser-integration" metadata remaining s=$'\x1f' configured_backend
-    local status="" title="" url=""
+    local status="" title="" url="" field
+    local -a metadata_fields=()
     local browser_enabled=false
+    local params='{{status}}'"${s}"'{{title}}'"${s}"'{{artist}}'"${s}"'{{position}}'"${s}"'{{mpris:length}}'"${s}"'-{{duration(mpris:length - position)}}'"${s}"'{{mpris:artUrl}}'"${s}"'{{xesam:url}}'
     for configured_backend in "${player_priority[@]}"; do
         [[ "$configured_backend" == "$player" ]] && browser_enabled=true && break
     done
     [[ "$browser_enabled" == true ]] || return 1
     mpris_player_is_active "$player" || return 1
-    metadata=$(playerctl -p "$player" metadata -f '{{status}}'"${s}"'{{title}}'"${s}"'{{xesam:url}}' 2>/dev/null) || return 1
+
+    # Fetch the full backend payload once. The same response supplies the
+    # priority decision and is consumed by get_mpris_player_metadata if the
+    # browser wins, avoiding a second playerctl process on every browser poll.
+    metadata=$(playerctl -p "$player" metadata -f "$params" 2>/dev/null) || return 1
     [[ -n "$metadata" ]] || return 1
     remaining="$metadata"
-    [[ "$remaining" == *"$s"* ]] || return 1
-    status="${remaining%%"$s"*}"
-    remaining="${remaining#*"$s"}"
-    [[ "$remaining" == *"$s"* ]] || return 1
-    title="${remaining%%"$s"*}"
-    url="${remaining#*"$s"}"
+    while [[ "$remaining" == *"$s"* ]]; do
+        metadata_fields+=("${remaining%%"$s"*}")
+        remaining="${remaining#*"$s"}"
+    done
+    metadata_fields+=("$remaining")
+    [[ ${#metadata_fields[@]} -eq 8 ]] || return 1
+    status="${metadata_fields[0]}"
+    title="${metadata_fields[1]}"
+    url="${metadata_fields[7]}"
+    PLAYERCTL_PREFETCHED_PLAYER="$player"
+    PLAYERCTL_PREFETCHED_METADATA="$metadata"
+
     [[ "$status" == "Playing" ]] || return 1
     if [[ "$url" == *"talk.sima-team.ru" || "$title" == *" | Jitsi Meet" || "$title" == *" | Talk" ]]; then
         run_player_backend "$player"

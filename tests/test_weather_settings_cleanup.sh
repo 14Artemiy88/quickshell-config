@@ -15,15 +15,16 @@ assert 'cursorShape: Qt.PointingHandCursor' in section, 'group header must look 
 assert 'onClicked: weatherSection.windDirectionSettingsExpanded = !weatherSection.windDirectionSettingsExpanded' in section, 'group header does not toggle expanded state'
 assert 'text: "Иконки направления ветра"' in section, 'group label missing'
 assert 'Иконки и шрифты направления ветра' not in section, 'old expanded label should be removed'
-assert section.index('text: "Иконки направления ветра"') < section.index('text: "Иконка текущей погоды"'), 'wind icon dropdown must be first in the current-weather subtab'
+assert section.index('text: "Иконки направления ветра"') < section.index('heading: "Иконка текущей погоды"'), 'wind icon dropdown must be first in the current-weather subtab'
 assert '9 направлений · нажмите' not in section, 'dropdown title should not keep the old subtitle'
 assert section.count('WeatherWindDirectionSettingsRow {') == 9, 'all nine direction-specific rows must remain available'
 assert section.count('weatherSection.windDirectionSettingsExpanded') >= 11, 'the group state must control all direction settings and header'
 
 # Current-weather geometry uses consistent aligned table headers instead of labels embedded in each row.
-for heading in ('Y', 'Размер', 'Смещение Y', 'Зазор', 'Положение элементов', 'Ширина', 'Высота', 'Шрифт'):
+for heading in ('Y', 'Размер', 'Смещение Y', 'Зазор', 'Ширина', 'Высота', 'Шрифт'):
     assert f'text: "{heading}"' in section, f'missing table heading {heading}'
 assert 'text: "Иконка"' in section, 'icon geometry row missing'
+assert 'heading: "Положение элементов"' in section, 'position controls should use the frame heading'
 assert section.count('id: weatherIconYField') == 1 and section.count('id: weatherIconSizeField') == 1
 assert section.count('targetProperty: "weatherWindColumnX"') == 1, 'duplicate wind-column X editor must be removed'
 

@@ -139,9 +139,11 @@ for toggle, revealed, guard in control_groups:
     assert "host.currentOtherTab === 5" in outer_visible and guard not in outer_visible, f"Frame for {toggle!r} should remain visible when unchecked"
     assert guard in group, f"Revealed controls for {toggle!r} are not conditional"
 
-# CPU/RAM details use subheadings inside their owning header frame, not nested
-# rectangles. Bars geometry and colour settings likewise share one frame.
-assert sum("showFrame: true" in g for g in cg if "host.currentOtherTab === 5 && host.currentOtherSubTab === 2" in g) == 4, "Top Apps should have three toggle frames and one list-settings frame"
+# Top Apps keeps its three toggle frames, splits bar geometry from bar colours,
+# and retains a separate application-list settings frame.
+assert sum("showFrame: true" in g for g in cg if "host.currentOtherTab === 5 && host.currentOtherSubTab === 2" in g) == 5, "Top Apps should have three toggle frames, a separate bar-colour frame, and one list-settings frame"
+color_groups = [g for g in cg if 'heading: "Цвета полос нагрузки"' in g]
+assert len(color_groups) == 1 and re.search(r"visible:\s*host\s*&&.*Config\.topAppsShowBars", color_groups[0]), "Bar-colour frame must be separate and hidden with bars disabled"
 for title in ("topAppsCpuHeaderTitleField", "topAppsRamHeaderTitleField", "Положение и размер полос", "Цвета полос нагрузки", "Строка «Система/прочее»"):
     matches = [g for g in cg if title in g]
     assert len(matches) == 1, f"Expected {title!r} inside a single Top Apps group"
