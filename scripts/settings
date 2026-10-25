@@ -8,6 +8,7 @@ while :; do
     CFG_DIR="${CFG%/*}"
     [[ -n "$CFG_DIR" ]] || CFG_DIR="/"
     BACKUP="$CFG_DIR/.settings.json.bak"
+    TXN="$CFG_DIR/.settings-profile-transaction"
     PROFILES="$QS_PROFILES_FILE"
     PROFILES_DIR="${PROFILES%/*}"
     [[ -n "$PROFILES_DIR" ]] || PROFILES_DIR="/"
@@ -160,6 +161,82 @@ ensure_profiles_usable() {
     publish_temp "$PROFILES"
 }
 
+# Snapshot the current profile catalog to its recovery file. This is called
+# before creating a cross-file transaction marker, so a crash at any later
+# point can restore a consistent previous pair of settings/profiles.
+backup_profiles_current() {
+    local stage
+    is_json_object "$PROFILES" || return 1
+    mkdir -p "$PROFILES_DIR"
+    stage=$(mktemp "$PROFILES_DIR/.profiles.json.bak.XXXXXX") || return 1
+    if ! cp -- "$PROFILES" "$stage" || ! jq -e 'type == "object"' "$stage" >/dev/null 2>&1; then
+        rm -f -- "$stage"
+        return 1
+    fi
+    chmod 600 "$stage" || { rm -f -- "$stage"; return 1; }
+    mv -f -- "$stage" "$PROFILES_BACKUP" || { rm -f -- "$stage"; return 1; }
+}
+
+write_profile_transaction_state() {
+    local state="$1" stage
+    stage=$(mktemp "$CFG_DIR/.settings-profile-transaction.XXXXXX") || return 1
+    if ! printf '%s\n' "$state" > "$stage" || ! chmod 600 "$stage"; then
+        rm -f -- "$stage"
+        return 1
+    fi
+    mv -f -- "$stage" "$TXN" || { rm -f -- "$stage"; return 1; }
+}
+
+restore_json_snapshot() {
+    local source="$1" target="$2" target_dir="${2%/*}" stage
+    [[ -n "$target_dir" ]] || target_dir="/"
+    is_json_object "$source" || return 1
+    stage=$(mktemp "$target_dir/.settings-transaction-restore.XXXXXX") || return 1
+    if ! cp -- "$source" "$stage" || ! jq -e 'type == "object"' "$stage" >/dev/null 2>&1; then
+        rm -f -- "$stage"
+        return 1
+    fi
+    chmod 600 "$stage" || { rm -f -- "$stage"; return 1; }
+    mv -f -- "$stage" "$target" || { rm -f -- "$stage"; return 1; }
+}
+
+recover_profile_transaction() {
+    [[ -e "$TXN" || -L "$TXN" ]] || return 0
+    local state
+    state=$(cat -- "$TXN" 2>/dev/null || true)
+    case "$state" in
+      pending)
+        # The settings and profile catalog are one logical UI snapshot. Until
+        # the committed marker is atomically published, roll both files back.
+        restore_json_snapshot "$BACKUP" "$CFG" || {
+            printf 'settings: pending profile transaction could not restore settings; journal retained\n' >&2
+            return 1
+        }
+        restore_json_snapshot "$PROFILES_BACKUP" "$PROFILES" || {
+            printf 'settings: pending profile transaction could not restore profiles; journal retained\n' >&2
+            return 1
+        }
+        rm -f -- "$TXN"
+        printf 'settings: rolled back an interrupted profile/settings transaction\n' >&2
+        ;;
+      committed)
+        # Both primaries were published before this state was written. Finish
+        # refreshing recovery snapshots; leave the journal if that cannot be
+        # completed so a later invocation can retry safely.
+        is_json_object "$CFG" && is_json_object "$PROFILES" || {
+            printf 'settings: committed profile transaction has an invalid primary; journal retained\n' >&2
+            return 1
+        }
+        backup_current || return 1
+        rm -f -- "$TXN"
+        ;;
+      *)
+        printf 'settings: unknown profile transaction state; journal retained at %s\n' "$TXN" >&2
+        return 1
+        ;;
+    esac
+}
+
 publish_profiles() {
     local json="$1" stage
     mkdir -p "$PROFILES_DIR"
@@ -294,14 +371,18 @@ ensure_settings_usable() {
 }
 
 commit_payload() {
-    local json="$1"
+    local json="$1" refresh_backup="${2:-true}"
     backup_current
     new_temp
     printf '%s\n' "$json" > "$tmp"
     jq -e 'type == "object"' "$tmp" >/dev/null
     publish_temp "$CFG"
-    refresh_backup_if_stale
+    if [[ "$refresh_backup" == true ]]; then refresh_backup_if_stale; fi
 }
+
+# Recover any interrupted cross-file settings/profile save while both locks
+# are held, before ordinary reads can refresh a stale backup over the rollback.
+recover_profile_transaction
 
 case "${1:-get}" in
   get)
@@ -403,26 +484,28 @@ case "${1:-get}" in
     incoming_profiles=$(printf '%s\n' "$json" | jq -c 'if (.profiles | type) == "object" then .profiles else null end')
     profiles_changed=false
     if [[ "$incoming_profiles" != "null" ]]; then
-      publish_profiles "$incoming_profiles"
+      # Establish known-good rollback snapshots before the transaction marker
+      # becomes visible. A hard process termination is then recoverable.
+      backup_current
+      backup_profiles_current
+      write_profile_transaction_state pending
       profiles_changed=true
+      publish_profiles "$incoming_profiles"
     fi
     write_secret_token "$chosen_token"
     json=$(printf '%s\n' "$json" | jq 'del(.profiles, .weatherToken)')
-    if ! commit_payload "$json"; then
-      # The two files are one logical settings transaction. If the settings
-      # commit fails after profiles.json was published, restore the previous
-      # catalog from the backup created immediately before that publish.
-      if [[ "$profiles_changed" == true ]] && is_json_object "$PROFILES_BACKUP"; then
-        rollback_profiles=$(mktemp "$PROFILES_DIR/.profiles.json.rollback.XXXXXX") || exit 1
-        if cp -- "$PROFILES_BACKUP" "$rollback_profiles" && jq -e 'type == "object"' "$rollback_profiles" >/dev/null; then
-          chmod 600 "$rollback_profiles"
-          mv -f -- "$rollback_profiles" "$PROFILES"
-        else
-          rm -f -- "$rollback_profiles"
-          printf 'settings: warning: profile catalog rollback failed after settings commit error\n' >&2
-        fi
+    if [[ "$profiles_changed" == true ]]; then
+      if ! commit_payload "$json" false; then exit 1; fi
+      write_profile_transaction_state committed
+      # If either refresh fails, leave the committed journal in place; the
+      # next command retries the refresh before exposing settings to callers.
+      if backup_current; then
+        rm -f -- "$TXN"
+      else
+        printf 'settings: warning: committed profile transaction needs backup refresh; journal retained\n' >&2
       fi
-      exit 1
+    else
+      commit_payload "$json"
     fi
     # This output is consumed only by Settings.qml's StdioCollector and lets
     # the UI advance its token baseline after a concurrent external update.

@@ -71,3 +71,7 @@ secrets.json
 settings.json.before-launcher-project-recovery-*
 calendar-notes.json
 calendar-marks.json
+
+# Recoverable journal for an interrupted settings/profile transaction
+.settings-profile-transaction
+.settings-profile-transaction.*

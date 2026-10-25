@@ -121,6 +121,32 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
             if (sparseProfiles) {
                 owner.profiles = normalizedProfiles
                 owner.profileStorageFormat = Profiles.SPARSE_FORMAT
+
+                // Upgrade existing sparse profiles that omit colors. Older
+                // sparse profiles inherited these values from release defaults;
+                // pin their currently resolved palette once so future default
+                // changes cannot keep shifting the same profile on each launch.
+                var pinnedProfiles = {}
+                var needsColorPinning = false
+                for (var sparseProfileName in normalizedProfiles) {
+                    if (!Object.prototype.hasOwnProperty.call(normalizedProfiles, sparseProfileName)) continue
+                    var storedProfile = normalizedProfiles[sparseProfileName]
+                    var storedProfileColors = storedProfile && storedProfile.colors
+                    var missingProfileColor = false
+                    for (var colorIndex = 0; colorIndex < colorNames.length; ++colorIndex) {
+                        if (!storedProfileColors || storedProfileColors[colorNames[colorIndex]] === undefined) {
+                            missingProfileColor = true
+                            break
+                        }
+                    }
+                    if (missingProfileColor) needsColorPinning = true
+                    var expandedProfile = Profiles.expandProfile(owner, storedProfile)
+                    pinnedProfiles[sparseProfileName] = Profiles.sparseProfile(owner, expandedProfile)
+                }
+                if (needsColorPinning) {
+                    owner.profiles = pinnedProfiles
+                    owner.profileMigrationPending = true
+                }
             } else {
                 // Legacy full snapshots can predate settings added by newer
                 // releases. Fill missing top-level and nested values from the

@@ -177,7 +177,22 @@ function completeLegacySnapshot(defaults, profile) {
 function sparseProfile(owner, fullSnapshot) {
     var full = clone(fullSnapshot || {})
     delete full.weatherToken
-    return diffValue(profileBase(owner), full) || {}
+    var sparse = diffValue(profileBase(owner), full) || {}
+
+    // Colors are user-facing visual preferences. Keep a complete color map in
+    // each saved profile instead of inheriting colors that happen to equal the
+    // current release defaults. Otherwise a later release changing a default
+    // can silently change an existing profile on its next load.
+    if (isObject(full.colors)) {
+        sparse.colors = clone(full.colors)
+        var colorNames = owner && Array.isArray(owner.colorNames) ? owner.colorNames : []
+        for (var i = 0; i < colorNames.length; ++i) {
+            var colorName = colorNames[i]
+            if (full.colors[colorName] !== undefined)
+                sparse.colors[colorName] = String(full.colors[colorName])
+        }
+    }
+    return sparse
 }
 
 function sparsifyProfiles(owner, fullProfiles) {

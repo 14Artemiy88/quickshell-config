@@ -1,0 +1,16 @@
+{
+  "animationsEnabled": true,
+  "animationSpeed": 1,
+  "animationEasing": "OutCubic",
+  "animationAppearanceEnabled": true,
+  "animationMovementEnabled": true,
+  "animationSizeEnabled": true,
+  "animationExpansionEnabled": true,
+  "playerBlurEnabled": true,
+  "playerBlurRadius": 10,
+  "profileStorageFormat": "sparse-v1",
+  "activeProfile": "cava_on_player",
+  "customThemes": {},
+  "settingsPersistenceFormat": "profile-overrides-v1",
+  "profileOverrides": {}
+}

@@ -109,7 +109,18 @@ Item {
                 when: !field.activeFocus
             }
 
-            onEditingFinished: root.commit(text)
+            // Focus changes and programmatic text synchronization must never
+            // apply a color. Only a real user edit may commit on Enter/focus loss.
+            property bool userEdited: false
+            onTextEdited: userEdited = true
+            onEditingFinished: {
+                if (!userEdited) {
+                    field.text = String(root.value)
+                    return
+                }
+                userEdited = false
+                root.commit(text)
+            }
         }
     }
 }

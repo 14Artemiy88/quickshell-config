@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/config" "$TMP/cache/weather" "$TMP/data" "$TMP/state" "$TMP/home"
-printf '%s\n' '{"weatherToken":"test-token"}' > "$TMP/config/settings.json"
+printf '%s\n' '{"weatherToken":"test-token"}' > "$TMP/config/secrets.json"
 export CURL_CALL_LOG="$TMP/curl-calls.log"
 cat > "$TMP/bin/curl" <<'MOCK_CURL'
 #!/bin/bash

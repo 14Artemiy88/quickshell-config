@@ -216,6 +216,17 @@ function payloadObject(owner, config) {
     delete base.weatherToken
     var overrides = diffValue(base, state) || {}
 
+    // Without an active profile, colors are installation-level preferences.
+    // Persist the complete map even when a value equals today's defaults, so a
+    // future release changing its palette cannot silently replace the user's
+    // saved color. With an active profile, the profile owns its full palette
+    // and only deliberate differences remain in profileOverrides.
+    var activeProfileName = String(owner.activeProfile || "")
+    var hasActiveProfile = activeProfileName !== "" && owner.profiles
+        && Object.prototype.hasOwnProperty.call(owner.profiles, activeProfileName)
+    if (!hasActiveProfile && isPlainObject(state.colors))
+        overrides.colors = cloneValue(state.colors)
+
     // The writer removes these legacy full-snapshot keys before merging this
     // compact payload. Include keys for known maps separately so unknown future
     // nested entries can survive without retaining duplicate current values.

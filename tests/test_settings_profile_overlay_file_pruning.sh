@@ -12,6 +12,7 @@ export XDG_RUNTIME_DIR="$TMP_ROOT/runtime"
 mkdir -p "$HOME" "$XDG_RUNTIME_DIR"
 SETTINGS="$ROOT/scripts/settings"
 CFG="$XDG_CONFIG_HOME/quickshell-widgets/settings.json"
+PROFILES="$XDG_CONFIG_HOME/quickshell-widgets/profiles.json"
 fail() { printf 'profile overlay file pruning failed: %s\n' "$1" >&2; exit 1; }
 
 initial=$(jq -cn '{
@@ -41,8 +42,9 @@ jq -e '
   .geometry.futureWidget == [4,5,6,7] and (.geometry.time == null) and
   .colors.futureAccent == "#123456" and (.colors.accent == null) and
   .futureRoot.revision == 7 and .futureRoot.nested.keep == true and
-  (.profiles | keys == ["Work"])
+  (.profiles == null)
 ' "$CFG" >/dev/null || fail 'compact write retained duplicate settings or discarded unknown extensions'
+jq -e 'keys == ["Work"] and .Work.fontSize == 15' "$PROFILES" >/dev/null || fail 'profile catalog was not stored in profiles.json'
 
 # A later profile save must replace, not deep-merge, the prior override object.
 payload=$(jq -cn '{
@@ -53,6 +55,7 @@ payload=$(jq -cn '{
   managedNestedKeys:{modules:["time"],geometry:["time"],colors:["accent"]}
 }')
 "$SETTINGS" set-json-ui "$payload" base-token >/dev/null
-jq -e '.profileOverrides == {} and .profiles.Work.fontSize == 17 and .futureRoot.revision == 7 and .modules.futureSensor == true and .geometry.futureWidget == [4,5,6,7] and .colors.futureAccent == "#123456"' "$CFG" >/dev/null || fail 'empty overrides were merged with stale fields or unknown data was lost'
+jq -e '.profileOverrides == {} and (.profiles == null) and .futureRoot.revision == 7 and .modules.futureSensor == true and .geometry.futureWidget == [4,5,6,7] and .colors.futureAccent == "#123456"' "$CFG" >/dev/null || fail 'empty overrides were merged with stale fields or unknown data was lost'
+jq -e '.Work.fontSize == 17' "$PROFILES" >/dev/null || fail 'profile save did not replace the separate catalog'
 cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup does not track compact settings snapshot'
 echo 'Settings profile overlay pruning preserves unknown extensions and replaces override map: OK'

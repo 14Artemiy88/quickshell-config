@@ -2,6 +2,8 @@
 
 Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** on Linux/Wayland. The project is written in QML/Qt Quick with Bash and JavaScript helpers. Settings, profiles, themes, and calendar notes are managed through the built-in UI; user data is stored outside the source tree.
 
+**Current candidate: v900 — Recoverable Profile Transactions.** The source archive contains generic defaults; launcher project paths, IDE locations, and API keys are kept in user configuration, not in the repository.
+
 ## Русский
 
 `quickshell-widgets` — набор виджетов рабочего стола и встроенный лаунчер для Quickshell. Проект рассчитан на Linux/Wayland; отдельные функции зависят от установленного рабочего стола и внешних утилит.
@@ -62,18 +64,20 @@ quickshell -c "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
 
 ### Настройки и пользовательские данные
 
-- Конфигурация и токен погоды: `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/settings.json`.
+- Общие настройки: `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/settings.json`; профили: `profiles.json` (по умолчанию рядом с настройками).
+- Локальный токен погоды хранится отдельно в `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/secrets.json` с правами `600`; файл секретов и его резервные копии не предназначены для GitHub.
 - Заметки календаря: `${XDG_DATA_HOME:-~/.local/share}/quickshell-widgets/calendar-notes.json`.
 - Локальные проекты лаунчера редактируются в **Настройки → Лаунчер → Проекты**.
 - Публичная версия намеренно начинается с пустого списка проектов: пути к репозиториям и IDE зависят от конкретной машины. Добавьте свои записи через настройки; существующий пользовательский список в отдельном `settings.json` сохраняется.
-- Новые настройки входят в общую систему профилей. Ключ погоды хранится вне исходного кода и не включается в профили.
+- Новые настройки входят в общую систему профилей. Токен погоды не входит в профили и не сохраняется в `settings.json` или его резервной копии; старый токен автоматически переносится в `secrets.json` при первом чтении настроек.
 - Последний корректный снимок настроек хранится в приватной резервной копии `.settings.json.bak`. Если `settings.json` повреждён, исходный файл сохраняется как `.settings.json.corrupt.*`, а настройки восстанавливаются из резервной копии; если её нет, создаются значения по умолчанию. Намеренное удаление самого `settings.json` по-прежнему сбрасывает настройки и не восстанавливает старую копию автоматически.
+- В **Настройки → Общие → Хранилища** можно менять расположение только `settings.json`, `calendar-notes.json` и `calendar-marks.json`. Укажи абсолютный путь с исходным именем файла; перенос проверяет JSON, не перезаписывает существующее назначение и оставляет прежнюю копию с суффиксом `.qsw-backup-*`. При переносе `settings.json` его `.settings.json.bak` перемещается рядом. Реестр выбранных путей хранится в приватном `.storage-paths.conf` внутри канонического каталога конфигурации; после переноса рекомендуется перезапустить Quickshell.
 
-Не добавляйте в Git пользовательский `settings.json`, токены, заметки календаря или другие приватные данные.
+Для переноса через GitHub можно в **Настройки → Общие → Хранилища** указать пути к `settings.json` и `profiles.json` внутри рабочего клона репозитория, затем добавить эти два файла в Git после проверки их содержимого. `secrets.json` остаётся в локальном каталоге конфигурации и исключён из Git. Не добавляйте резервные/повреждённые копии, токены, заметки календаря или другие приватные данные. Если секрет уже попадал в Git, удалите его из индекса и при необходимости очистите историю.
 
 ### Лаунчер и кейбинды Niri
 
-Вкладка «Лаунчер» расположена перед «Окно настроек». Из UI можно настроить стартовую вкладку, отображение вкладок, их порядок, размеры, скругление окна и элементов списка, прозрачность фона, текст и оформление заголовка, а также шрифт, размер, высоту, скругление и фон строки поиска. Поисковый запрос сохраняется при переключении вкладок и очищается при закрытии лаунчера. Во вкладке Power строка поиска скрыта, поскольку список действий фиксированный. Текст, акцент и рамки лаунчера берутся из общей темы; собственный цвет фона окна настраивается отдельно в «Настройки → Лаунчер». Цвет фона окна настроек доступен в «Настройки → Окно настроек», а не в списке цветов темы.
+Вкладка «Лаунчер» расположена перед «Окно настроек». В подразделе «Вкладки» можно редактировать названия и Nerd Font-иконки вкладок, менять их порядок и видимость. Также из UI настраиваются стартовая вкладка, размеры, скругление окна и элементов списка, прозрачность фона, текст и оформление заголовка, а также шрифт, размер, высота, скругление и фон строки поиска. Поисковый запрос сохраняется при переключении вкладок и очищается при закрытии лаунчера. Во вкладке Power строка поиска скрыта, поскольку список действий фиксированный. Текст, акцент и рамки лаунчера берутся из общей темы; собственный цвет фона окна настраивается отдельно в «Настройки → Лаунчер». Цвет фона окна настроек доступен в «Настройки → Окно настроек», а не в списке цветов темы.
 
 Для привязок Niri используется IPC текущего экземпляра Quickshell. Для стандартной конфигурации пример выглядит так:
 
@@ -180,14 +184,15 @@ Use `qs` instead of `quickshell` if that is the executable installed on your sys
 
 ### Configuration and user data
 
-- Settings and the weather key: `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/settings.json`.
+- Shared settings: `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/settings.json`; profiles: `profiles.json` (next to settings by default).
+- The machine-local weather key is stored separately in `${XDG_CONFIG_HOME:-~/.config}/quickshell-widgets/secrets.json` with mode `600`; the secrets file and its backups are not for GitHub.
 - Calendar notes: `${XDG_DATA_HOME:-~/.local/share}/quickshell-widgets/calendar-notes.json`.
 - Launcher project entries are edited in **Settings → Launcher → Projects**.
 - The public source starts with an empty Projects catalogue intentionally: repository and IDE paths are machine-specific. Add your entries in Settings. An existing user catalogue stored in the external settings file is preserved.
-- Settings participate in the shared profile system. The weather API key stays outside the source code and is excluded from profiles.
+- Settings participate in the shared profile system. The weather token is excluded from profiles and is never written to `settings.json` or its backup; the legacy token is moved to `secrets.json` on the first settings read.
 - The latest known-good settings snapshot is kept in the private `.settings.json.bak` file. If `settings.json` is malformed, the original bytes are preserved as `.settings.json.corrupt.*` and settings recover from the backup; if no valid backup exists, defaults are initialized. Intentionally deleting `settings.json` still resets settings rather than automatically resurrecting an old backup.
 
-Do not commit personal settings, API keys, calendar notes, or other private runtime data.
+To transfer settings through GitHub, use **Settings → General → Storage** to point `settings.json` and `profiles.json` into your working repository clone, then review their contents before adding them to Git. `secrets.json` remains in the local config directory and is ignored by Git. Never commit backups/corrupt copies, API keys, calendar notes, or other private data. If a secret was already committed, remove it from the index and consider cleaning Git history as well.
 
 ### Niri keybindings
 
