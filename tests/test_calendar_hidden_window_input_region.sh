@@ -10,10 +10,14 @@ start = source.index('id: calendarWindow')
 end = source.index('\n    WidgetWindow {', start)
 calendar = source[start:end]
 
-# A top-layer calendar must not leave an invisible PanelWindow covering desktop
-# input after its close animation has completed. Keep it alive while visible,
-# animating, or in layout editing so both animation and repositioning still work.
-assert 'visible: Settings.calendar && (shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode)' in calendar
+# Keep the layer-shell surface alive while the module is enabled to avoid
+# compositor-owned fade animations. Its explicit input mask goes empty when the
+# content is hidden, and the blur region follows the animated child item.
+assert 'visible: Settings.calendar' in calendar
+assert 'manageInputMask: true' in calendar
+assert 'inputMaskEnabled: shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode' in calendar
+assert 'backgroundBlurVisible: shell.calendarVisible || calendarVisibility.running' in calendar
+assert 'backgroundBlurItem: calendarVisibility.blurRegionItem' in calendar
 assert 'shown: shell.calendarVisible' in calendar
 assert 'bottomLayer: false' in calendar
 assert 'id: calendarVisibility' in calendar

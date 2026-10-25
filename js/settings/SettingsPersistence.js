@@ -1,3 +1,94 @@
+var STORAGE_FORMAT = "profile-overrides-v1"
+var PROFILE_STORAGE_FORMAT = "sparse-v1"
+
+function cloneValue(value) {
+    if (value === undefined) return undefined
+    return JSON.parse(JSON.stringify(value))
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value)
+}
+
+function sameValue(a, b) {
+    if (a === b) return true
+    if (a === null || b === null || a === undefined || b === undefined) return a === b
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+        for (var i = 0; i < a.length; ++i) if (!sameValue(a[i], b[i])) return false
+        return true
+    }
+    if (isPlainObject(a) && isPlainObject(b)) {
+        var ak = Object.keys(a).sort()
+        var bk = Object.keys(b).sort()
+        if (ak.length !== bk.length) return false
+        for (var j = 0; j < ak.length; ++j) {
+            if (ak[j] !== bk[j] || !sameValue(a[ak[j]], b[bk[j]])) return false
+        }
+        return true
+    }
+    return false
+}
+
+function diffValue(base, current) {
+    if (sameValue(base, current)) return undefined
+    if (isPlainObject(base) && isPlainObject(current)) {
+        var baseKeys = Object.keys(base)
+        var currentKeys = Object.keys(current)
+        for (var m = 0; m < baseKeys.length; ++m) {
+            if (!Object.prototype.hasOwnProperty.call(current, baseKeys[m])) {
+                var replacement = {}
+                replacement.__profile_replace__ = cloneValue(current)
+                return replacement
+            }
+        }
+        var out = {}
+        for (var i = 0; i < currentKeys.length; ++i) {
+            var key = currentKeys[i]
+            var delta = diffValue(base[key], current[key])
+            if (delta !== undefined) out[key] = delta
+        }
+        return out
+    }
+    return cloneValue(current)
+}
+
+function activeProfileBase(owner) {
+    var base = cloneValue(owner.profileDefaults || {}) || {}
+    delete base.weatherToken
+    var name = String(owner.activeProfile || "")
+    if (!name || !owner.profiles || !Object.prototype.hasOwnProperty.call(owner.profiles, name))
+        return base
+    if (typeof owner.expandedProfileData === "function") {
+        var expanded = owner.expandedProfileData(name)
+        if (expanded && typeof expanded === "object") {
+            delete expanded.weatherToken
+            return cloneValue(expanded)
+        }
+    }
+    var profile = owner.profiles[name]
+    if (String(owner.profileStorageFormat || "") === PROFILE_STORAGE_FORMAT && isPlainObject(profile)) {
+        // Profiles.js uses this same recursive delta format. Arrays and scalar
+        // values replace their base; nested objects merge recursively.
+        return mergeProfileDelta(base, profile)
+    }
+    return cloneValue(profile || base)
+}
+
+function mergeProfileDelta(base, delta) {
+    if (isPlainObject(delta) && Object.keys(delta).length === 1 && Object.prototype.hasOwnProperty.call(delta, "__profile_replace__"))
+        return cloneValue(delta.__profile_replace__)
+    if (isPlainObject(base) && isPlainObject(delta)) {
+        var merged = cloneValue(base)
+        for (var key in delta) {
+            if (!Object.prototype.hasOwnProperty.call(delta, key)) continue
+            merged[key] = mergeProfileDelta(base[key], delta[key])
+        }
+        return merged
+    }
+    return cloneValue(delta)
+}
+
 function snapshotObject(owner, config) {
 
         var modules = {}
@@ -38,16 +129,10 @@ function snapshotObject(owner, config) {
             launcherProjects: JSON.parse(JSON.stringify(config.launcherProjects || [])),
             ledFont: config.ledFont,
             playerFont: config.playerFont, playerMetaFont: config.playerMetaFont, playerSilenceText: config.playerSilenceText,
-            animationsEnabled: config.animationsEnabled, animationSpeed: config.animationSpeed,
-            animationEasing: config.animationEasing,
             animationCalendarVisibilityStyle: config.animationCalendarVisibilityStyle,
             animationMopidyVisibilityStyle: config.animationMopidyVisibilityStyle,
             animationTimerVisibilityStyle: config.animationTimerVisibilityStyle,
             animationSettingsVisibilityStyle: config.animationSettingsVisibilityStyle,
-            animationAppearanceEnabled: config.animationAppearanceEnabled,
-            animationMovementEnabled: config.animationMovementEnabled,
-            animationSizeEnabled: config.animationSizeEnabled,
-            animationExpansionEnabled: config.animationExpansionEnabled,
             animationTimerOptionsDuration: config.animationTimerOptionsDuration, animationCalendarSlideDuration: config.animationCalendarSlideDuration, animationCalendarFadeDuration: config.animationCalendarFadeDuration,
             systemMonitorInterval: config.systemMonitorInterval, cpuUpdateInterval: config.cpuUpdateInterval, playerUpdateInterval: config.playerUpdateInterval,
             weatherNowIntervalMinutes: config.weatherNowIntervalMinutes, weatherHourlyIntervalMinutes: config.weatherHourlyIntervalMinutes, weatherDailyIntervalMinutes: config.weatherDailyIntervalMinutes, weatherRetryDelayMinutes: config.weatherRetryDelayMinutes, weatherManualRefreshCooldownSeconds: config.weatherManualRefreshCooldownSeconds,
@@ -98,7 +183,7 @@ function snapshotObject(owner, config) {
             weatherIconSize: config.weatherIconSize, weatherArrowSize: config.weatherArrowSize, weatherArrowYOffset: config.weatherArrowYOffset, weatherWindArrowGap: config.weatherWindArrowGap,
             weatherHourlyCount: config.weatherHourlyCount, weatherDailyCount: config.weatherDailyCount,
             weatherIconX: config.weatherIconX, weatherIconY: config.weatherIconY, weatherWindColumnX: config.weatherWindColumnX, weatherWindSpeedFontSize: config.weatherWindSpeedFontSize, weatherWindUnitFontSize: config.weatherWindUnitFontSize,
-            weatherPressureY: config.weatherPressureY, weatherDescriptionY: config.weatherDescriptionY, weatherDescriptionFontSize: config.weatherDescriptionFontSize, weatherTempFontSize: config.weatherTempFontSize, weatherComfortFontSize: config.weatherComfortFontSize, weatherShowComfort: config.weatherShowComfort,
+            weatherPressureY: config.weatherPressureY, weatherDescriptionY: config.weatherDescriptionY, weatherDescriptionFontSize: config.weatherDescriptionFontSize, weatherTempFontSize: config.weatherTempFontSize, weatherComfortFontSize: config.weatherComfortFontSize, weatherComfortOutlineColor: String(config.weatherComfortOutlineColor), weatherComfortOutlineWidth: config.weatherComfortOutlineWidth, weatherShowComfort: config.weatherShowComfort,
             weatherTempColumnWidth: config.weatherTempColumnWidth, weatherTempX: config.weatherTempX, weatherTempWidth: config.weatherTempWidth, weatherTempOffsetX: config.weatherTempOffsetX, weatherTempOffsetY: config.weatherTempOffsetY, weatherComfortY: config.weatherComfortY, weatherComfortOffsetX: config.weatherComfortOffsetX, weatherComfortOffsetY: config.weatherComfortOffsetY, weatherComfortHeight: config.weatherComfortHeight,
             weatherWindColumnWidth: config.weatherWindColumnWidth, weatherWindArrowWidth: config.weatherWindArrowWidth, weatherWindIcon: config.weatherWindIcon, weatherWindArrowHeight: config.weatherWindArrowHeight, weatherWindCalmIcon: config.weatherWindCalmIcon, weatherWindCalmFont: config.weatherWindCalmFont, weatherWindNIcon: config.weatherWindNIcon, weatherWindNFont: config.weatherWindNFont, weatherWindNEIcon: config.weatherWindNEIcon, weatherWindNEFont: config.weatherWindNEFont, weatherWindEIcon: config.weatherWindEIcon, weatherWindEFont: config.weatherWindEFont, weatherWindSEIcon: config.weatherWindSEIcon, weatherWindSEFont: config.weatherWindSEFont, weatherWindSIcon: config.weatherWindSIcon, weatherWindSFont: config.weatherWindSFont, weatherWindSWIcon: config.weatherWindSWIcon, weatherWindSWFont: config.weatherWindSWFont, weatherWindWIcon: config.weatherWindWIcon, weatherWindWFont: config.weatherWindWFont, weatherWindNWIcon: config.weatherWindNWIcon, weatherWindNWFont: config.weatherWindNWFont, weatherWindSpeedX: config.weatherWindSpeedX, weatherWindSpeedY: config.weatherWindSpeedY, weatherWindSpeedWidth: config.weatherWindSpeedWidth,
             weatherWindUnitX: config.weatherWindUnitX, weatherWindUnitY: config.weatherWindUnitY, weatherWindUnitWidth: config.weatherWindUnitWidth, weatherPressureValueWidth: config.weatherPressureValueWidth, weatherPressureFontSize: config.weatherPressureFontSize,
@@ -120,13 +205,41 @@ function snapshotObject(owner, config) {
 }
 
 function payloadObject(owner, config) {
-    var payload = snapshotObject(owner, config)
-    payload.profiles = owner.profiles || {}
-    payload.profileStorageFormat = "sparse-v1"
-    payload.activeProfile = owner.activeProfile
-    payload.customThemes = owner.customThemes || {}
-    payload.activeTheme = owner.activeTheme
-    return payload
+    // Settings.qml exposes the canonical snapshot through owner.snapshotObject();
+    // reuse it when available so profile capture and persistence compare the exact
+    // same effective key set (also useful for isolated persistence tests).
+    var full = typeof owner.snapshotObject === "function" ? owner.snapshotObject() : snapshotObject(owner, config)
+    var state = cloneValue(full)
+    delete state.weatherToken
+
+    var base = activeProfileBase(owner)
+    delete base.weatherToken
+    var overrides = diffValue(base, state) || {}
+
+    // The writer removes these legacy full-snapshot keys before merging this
+    // compact payload. Include keys for known maps separately so unknown future
+    // nested entries can survive without retaining duplicate current values.
+    var managedKeys = Object.keys(full);
+    ["playerControlIconSize", "timerFinishedImageTopMargin", "timerFinishedImageBottomMargin", "mopidyShowMoveButtons", "topApps", "timerPresets"].forEach(function(key) {
+        if (managedKeys.indexOf(key) < 0) managedKeys.push(key)
+    })
+    var managedNestedKeys = {};
+    ["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry", "colors"].forEach(function(key) {
+        var value = full[key]
+        managedNestedKeys[key] = value && typeof value === "object" && !Array.isArray(value) ? Object.keys(value) : []
+    })
+
+    return {
+        settingsPersistenceFormat: STORAGE_FORMAT,
+        weatherToken: String(full.weatherToken || "").trim(),
+        profiles: owner.profiles || {},
+        profileStorageFormat: PROFILE_STORAGE_FORMAT,
+        activeProfile: owner.activeProfile || "",
+        customThemes: owner.customThemes || {},
+        profileOverrides: overrides,
+        managedKeys: managedKeys,
+        managedNestedKeys: managedNestedKeys
+    }
 }
 
 // Qt Quick Process.running may become false before StdioCollector emits

@@ -133,9 +133,13 @@ QtObject {
             stdout: StdioCollector {
                 onStreamFinished: {
                     try {
-                        root.applyObject(JSON.parse(this.text))
+                        var diskObject = JSON.parse(this.text)
+                        var storageNeedsMigration = String(diskObject.settingsPersistenceFormat || "") !== SettingsPersistence.STORAGE_FORMAT
+                        if (!storageNeedsMigration)
+                            diskObject = SettingsProfiles.expandStoredSettings(root, diskObject)
+                        root.applyObject(diskObject)
                         root.persistedWeatherToken = String(root.weatherToken || "").trim()
-                        if (root.profileMigrationPending) {
+                        if (root.profileMigrationPending || storageNeedsMigration) {
                             root.profileMigrationPending = false
                             Qt.callLater(function() { root.save() })
                         }
@@ -306,7 +310,6 @@ QtObject {
 
     function resetGeneralSettings() { SettingsResets.resetGeneralSettings(root, Config) }
 
-    function resetAnimationSettings() { SettingsResets.resetAnimationSettings(root, Config) }
 
     function resetSettingsWindow() { SettingsResets.resetSettingsWindow(root, Config) }
 

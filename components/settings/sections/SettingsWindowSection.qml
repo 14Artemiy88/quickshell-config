@@ -286,14 +286,14 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
         padding: 8
         contentSpacing: 6
 
         Text {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 text: "Профили настроек"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
@@ -303,7 +303,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -380,7 +380,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -464,7 +464,7 @@ Column {
 
                             Item {
                                 id: profileActionFeedback
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 width: parent.width
                                 height: 22
 
@@ -493,7 +493,7 @@ Column {
                             }
 
                             Text {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 width: parent.width
                                 text: settings.activeProfile ? "Текущий профиль: " + settings.activeProfile : "Текущий профиль: по умолчанию"
                                 color: Config.textMuted
@@ -502,7 +502,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 8

@@ -21,7 +21,7 @@ baseline='{"weatherToken":"last-known-good","custom":{"preserve":42},"modules":{
 next='{"weatherToken":"newer-current","custom":{"preserve":99},"modules":{"time":false,"timer":true},"geometry":{"time":[8,9,310,60]}}'
 "$SETTINGS" set-json "$baseline"
 "$SETTINGS" set-json "$next"
-jq -e '.weatherToken == "newer-current" and .custom.preserve == 99 and .modules.time == false' "$BACKUP" >/dev/null || fail 'backup does not track the newest successful settings write'
+jq -e '(has("weatherToken") | not) and .custom.preserve == 99 and .modules.time == false' "$BACKUP" >/dev/null || fail 'backup does not track the newest successful settings write'
 cmp -s "$CFG" "$BACKUP" || fail 'backup and primary settings differ after a successful write'
 [[ "$(stat -c '%a' "$BACKUP")" == 600 ]] || fail 'backup file permissions are not 600'
 
@@ -29,7 +29,7 @@ cmp -s "$CFG" "$BACKUP" || fail 'backup and primary settings differ after a succ
 printf '{"weatherToken":"truncated","custom":' > "$CFG"
 recovered=$("$SETTINGS" get 2>"$TMP_ROOT/recovery.log")
 jq -e '.weatherToken == "newer-current" and .custom.preserve == 99 and .modules.time == false' <<<"$recovered" >/dev/null || fail 'truncated file did not recover the newest successful snapshot'
-cmp -s "$CFG" <(printf '%s\n' "$recovered") || fail 'recovered output and canonical file differ'
+cmp -s <(jq -S 'del(.weatherToken)' "$CFG") <(jq -S 'del(.weatherToken)' <<<"$recovered") || fail 'recovered output and canonical settings differ after secret overlay'
 corrupt_file=$(find "$(dirname "$CFG")" -maxdepth 1 -type f -name '.settings.json.corrupt.*' -print -quit)
 [[ -n "$corrupt_file" ]] || fail 'truncated source file was not preserved for manual recovery'
 grep -q '"truncated"' "$corrupt_file" || fail 'preserved damaged file does not contain original bytes'
@@ -47,11 +47,11 @@ jq -e '.weatherToken == "newer-current" and .custom.preserve == 99' <<<"$recover
 # the requested action without dropping unrelated keys from the backup.
 printf '{"weatherToken":"half-written"' > "$CFG"
 "$SETTINGS" token 'token-after-recovery'
-jq -e '.weatherToken == "token-after-recovery" and .custom.preserve == 99' "$CFG" >/dev/null || fail 'token update did not recover a corrupt source before applying the token'
+jq -e '(has("weatherToken") | not) and .custom.preserve == 99' "$CFG" && jq -e '.weatherToken == "token-after-recovery"' "$(dirname "$CFG")/secrets.json" >/dev/null || fail 'token update did not recover a corrupt source before applying the token'
 printf '{"weatherToken":"half-written-again"' > "$CFG"
 replacement='{"weatherToken":"fresh-write","migration":"set-json"}'
 "$SETTINGS" set-json "$replacement"
-jq -e '.weatherToken == "fresh-write" and .migration == "set-json"' "$CFG" >/dev/null || fail 'valid set-json update did not recover from a corrupt source'
+jq -e '(has("weatherToken") | not) and .migration == "set-json"' "$CFG" && jq -e '.weatherToken == "fresh-write"' "$(dirname "$CFG")/secrets.json" >/dev/null || fail 'valid set-json update did not recover from a corrupt source'
 
 # Invalid payloads must not trigger recovery, rotate backups, or alter the source.
 printf '{"still":"damaged"' > "$CFG"
@@ -63,11 +63,11 @@ cmp -s "$CFG" "$TMP_ROOT/before-invalid-payload.json" || fail 'invalid payload c
 # the old user configuration if the newly initialized defaults are damaged.
 rm -f "$CFG"
 reset_output=$("$SETTINGS" get)
-jq -e '.weatherToken == "" and .modules.time == true' <<<"$reset_output" >/dev/null || fail 'deleting settings did not reset to defaults'
-jq -e '.weatherToken == "" and .modules.time == true' "$BACKUP" >/dev/null || fail 'explicit reset retained a stale user backup'
+jq -e '.weatherToken == "fresh-write" and .modules.time == true' <<<"$reset_output" >/dev/null || fail 'deleting settings did not reset to defaults'
+jq -e '(has("weatherToken") | not) and .modules.time == true' "$BACKUP" >/dev/null || fail 'explicit reset retained a stale user backup'
 printf '{"weatherToken":"fresh-defaults-now-damaged' > "$CFG"
 reset_recovery=$("$SETTINGS" get 2>"$TMP_ROOT/reset-recovery.log")
-jq -e '.weatherToken == "" and .modules.time == true' <<<"$reset_recovery" >/dev/null || fail 'corrupted post-reset defaults resurrected old settings'
+jq -e '.weatherToken == "fresh-write" and .modules.time == true' <<<"$reset_recovery" >/dev/null || fail 'corrupted post-reset defaults resurrected old settings'
 
 # If there is no valid backup, preserve the bad bytes and initialize safe defaults.
 export XDG_CONFIG_HOME="$HOME/no-backup-config"
@@ -91,11 +91,11 @@ jq -e '.weatherToken == "" and .modules.time == true' <<<"$reset_output" >/dev/n
 
 # Valid but sparse object JSON is allowed; QML fills absent fields from defaults.
 printf '{}\n' | "$SETTINGS" set-json '{}'
-jq -e 'type == "object" and length == 0' < <("$SETTINGS" get) >/dev/null || fail 'valid sparse settings object was rejected'
+jq -e 'type == "object" and (has("weatherToken") | not) and length == 0' "$NO_BACKUP_CFG" >/dev/null || fail 'valid sparse settings object was rejected'
 
 # A later write must recreate a valid backup atomically.
 "$SETTINGS" token 'recovered-token' >/dev/null
-jq -e '.weatherToken == "recovered-token"' "$NO_BACKUP_CFG" >/dev/null || fail 'token update failed after recovery/reset scenarios'
+jq -e '.weatherToken == "recovered-token"' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json" >/dev/null || fail 'token update failed after recovery/reset scenarios'
 jq -e 'type == "object"' "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" >/dev/null || fail 'valid backup was not recreated after a successful write'
 
 if find "$(dirname "$NO_BACKUP_CFG")" -maxdepth 1 -type f -name '.settings.json.*' -name '*.tmp*' | grep -q .; then

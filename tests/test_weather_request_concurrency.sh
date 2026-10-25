@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/config" "$TMP/data" "$TMP/state" "$TMP/cache" "$TMP/home"
-printf '%s\n' '{"weatherToken":"test-token"}' > "$TMP/config/settings.json"
+printf '%s\n' '{"weatherToken":"test-token"}' > "$TMP/config/secrets.json"
 export HOME="$TMP/home"
 export QS_PROJECT_DIR="$ROOT"
 export QS_CONFIG_DIR="$TMP/config"

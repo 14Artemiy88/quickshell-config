@@ -121,13 +121,17 @@ owner.writer.writerExitCode = -1;
 assert.strictEqual(Persistence.flushPendingWrite(owner, config), true, 'queued profile reset should start after the old write is finalized');
 const finalPayload = JSON.parse(owner.writer.payload);
 assert.strictEqual(finalPayload.activeProfile, 'Work', 'the latest active profile must be stored');
-assert.strictEqual(finalPayload.launcherWidth, expectedProfile.launcherWidth, 'launcher width must be restored from the active profile');
-assert.strictEqual(finalPayload.launcherHeight, expectedProfile.launcherHeight, 'launcher height must be restored from the active profile');
-assert.strictEqual(finalPayload.launcherItemRadius, expectedProfile.launcherItemRadius, 'launcher radius must be restored from the active profile');
-assert.strictEqual(JSON.stringify(finalPayload.geometry.launcher), JSON.stringify(expectedProfile.geometry.launcher), 'launcher geometry must match the profile');
-assert.strictEqual(finalPayload.moduleFrames.launcher, expectedProfile.moduleFrames.launcher, 'launcher frame flag must match the profile');
-assert.strictEqual(finalPayload.moduleBackgrounds.launcher, expectedProfile.moduleBackgrounds.launcher, 'launcher background flag must match the profile');
-assert.strictEqual(finalPayload.moduleMonitors.launcher, expectedProfile.moduleMonitors.launcher, 'launcher monitor must match the profile');
+const effectiveState = Profiles.mergeValue(expectedProfile, finalPayload.profileOverrides || {});
+assert.strictEqual(effectiveState.launcherWidth, expectedProfile.launcherWidth, 'launcher width must be restored from the active profile');
+assert.strictEqual(effectiveState.launcherHeight, expectedProfile.launcherHeight, 'launcher height must be restored from the active profile');
+assert.strictEqual(effectiveState.launcherItemRadius, expectedProfile.launcherItemRadius, 'launcher radius must be restored from the active profile');
+assert.strictEqual(JSON.stringify(effectiveState.geometry.launcher), JSON.stringify(expectedProfile.geometry.launcher), 'launcher geometry must match the profile');
+assert.strictEqual(effectiveState.moduleFrames.launcher, expectedProfile.moduleFrames.launcher, 'launcher frame flag must match the profile');
+assert.strictEqual(effectiveState.moduleBackgrounds.launcher, expectedProfile.moduleBackgrounds.launcher, 'launcher background flag must match the profile');
+assert.strictEqual(effectiveState.moduleMonitors.launcher, expectedProfile.moduleMonitors.launcher, 'launcher monitor must match the profile');
+for (const key of ['launcherWidth','launcherHeight','launcherItemRadius','geometry','moduleFrames','moduleBackgrounds','moduleMonitors']) {
+  assert.strictEqual(Object.prototype.hasOwnProperty.call(finalPayload.profileOverrides || {}, key), false, `${key} must not be duplicated when it matches the active profile`);
+}
 assert.strictEqual(finalPayload.weatherToken, externalToken, 'profile load/reset must not revert an external weather-token update');
 assert.strictEqual(finalPayload.profiles.Work !== undefined, true, 'the saved profile itself must remain in the payload');
 assert.strictEqual(owner.pendingWriteRequested, false, 'pending queue should clear after launching the coalesced snapshot');

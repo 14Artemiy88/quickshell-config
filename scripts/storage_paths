@@ -1,0 +1,288 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/env"
+umask 077
+
+normalize_dir() {
+    realpath -m -- "$1"
+}
+normalize_file() {
+    realpath -m -- "$1"
+}
+json_result() {
+    local ok="$1" message="$2" path="${3:-}" rollback="${4:-}"
+    jq -cn --argjson ok "$ok" --arg message "$message" --arg path "$path" --arg rollback "$rollback" \
+        '{ok:$ok,message:$message,path:$path,rollbackPath:$rollback}'
+}
+fail() {
+    json_result false "$1" "${2:-}" "${3:-}"
+    exit 1
+}
+
+config_dir="$(normalize_dir "$QS_CONFIG_DIR")"
+data_dir="$(normalize_dir "$QS_DATA_DIR")"
+state_dir="$(normalize_dir "$QS_STATE_DIR")"
+cache_dir="$(normalize_dir "$QS_CACHE_DIR")"
+default_settings="$(normalize_file "$config_dir/settings.json")"
+default_notes="$(normalize_file "$data_dir/calendar-notes.json")"
+default_marks="$(normalize_file "$data_dir/calendar-marks.json")"
+settings_file="$(normalize_file "$QS_SETTINGS_FILE")"
+notes_file="$(normalize_file "$QS_CALENDAR_NOTES_FILE")"
+marks_file="$(normalize_file "$QS_CALENDAR_MARKS_FILE")"
+settings_parent="${settings_file%/*}"; [[ -n "$settings_parent" ]] || settings_parent="/"
+settings_backup="$settings_parent/.settings.json.bak"
+profiles_file="$(normalize_file "$QS_PROFILES_FILE")"
+weather_cache="$(normalize_dir "${WEATHER_CACHE_DIR:-$cache_dir/weather}")"
+mopidy_covers="$cache_dir/mopidy-covers"
+runtime_dir="$(normalize_dir "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}")"
+timer_runtime_dir="$runtime_dir/timer"
+launcher_history="$(normalize_file "$HOME/.cache/quickshell-launcher-run-history")"
+registry="$config_dir/.storage-paths.conf"
+registry_lock="$config_dir/.storage-paths.lock"
+
+emit_entries() {
+    jq -cn \
+      --arg configDir "$config_dir" \
+      --arg dataDir "$data_dir" \
+      --arg stateDir "$state_dir" \
+      --arg cacheDir "$cache_dir" \
+      --arg settingsFile "$settings_file" \
+      --arg settingsBackup "$settings_backup" \
+      --arg profilesFile "$profiles_file" \
+      --arg notesFile "$notes_file" \
+      --arg marksFile "$marks_file" \
+      --arg weatherCache "$weather_cache" \
+      --arg mopidyCovers "$mopidy_covers" \
+      --arg timerRuntimeDir "$timer_runtime_dir" \
+      --arg launcherHistory "$launcher_history" \
+      '{entries:[
+        {id:"settings", label:"Основные настройки", path:$settingsFile, kind:"file", editable:true, description:"Настройки модулей, темы и активный профиль. При переносе исходный файл сохраняется как резервная копия."},
+        {id:"profiles", label:"Профили", path:$profilesFile, kind:"file", editable:true, description:"Каталог профилей в JSON. Можно редактировать вручную; активный профиль и переопределения остаются в settings.json."},
+        {id:"settingsBackup", label:"Резервная копия настроек", path:$settingsBackup, kind:"file", description:"Последняя известная корректная копия settings.json; хранится рядом с выбранным settings.json."},
+        {id:"calendarNotes", label:"Заметки календаря", path:$notesFile, kind:"file", editable:true, description:"Текстовые заметки по датам."},
+        {id:"calendarMarks", label:"Отметки календаря", path:$marksFile, kind:"file", editable:true, description:"Отмеченные даты календаря."},
+        {id:"configDir", label:"Каталог конфигурации", path:$configDir, kind:"directory", description:"Канонический каталог конфигурации и реестр пользовательских путей."},
+        {id:"dataDir", label:"Каталог данных по умолчанию", path:$dataDir, kind:"directory", description:"Стандартный XDG-каталог данных; отдельные файлы могут находиться в другом месте."},
+        {id:"stateDir", label:"Каталог состояния", path:$stateDir, kind:"directory", description:"Временное состояние модулей, например сохранённая громкость Mopidy."},
+        {id:"cacheDir", label:"Каталог кэша", path:$cacheDir, kind:"directory", description:"Восстанавливаемые кэшированные данные."},
+        {id:"weatherCache", label:"Кэш погоды", path:$weatherCache, kind:"directory", description:"Кэшированные ответы погодного сервиса."},
+        {id:"mopidyCovers", label:"Кэш обложек Mopidy", path:$mopidyCovers, kind:"directory", description:"Загруженные изображения обложек."},
+        {id:"launcherHistory", label:"История команд лаунчера", path:$launcherHistory, kind:"file", description:"Недавно запущенные команды; сейчас расположение привязано к $HOME/.cache."},
+        {id:"timerRuntimeDir", label:"Состояние таймеров (временное)", path:$timerRuntimeDir, kind:"directory", description:"Рабочие файлы запущенных таймеров внутри XDG_RUNTIME_DIR; могут очищаться при завершении сеанса."}
+      ]}'
+}
+
+rollback_name() {
+    local source="$1" stamp candidate suffix=0
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    candidate="$source.qsw-backup-$stamp-$$"
+    while [[ -e "$candidate" || -L "$candidate" ]]; do
+        suffix=$((suffix + 1))
+        candidate="$source.qsw-backup-$stamp-$$-$suffix"
+    done
+    printf '%s' "$candidate"
+}
+
+move_path() {
+    local id="$1" requested="$2" base current target parent
+    local old_backup='' new_backup='' staged='' staged_backup='' registry_tmp=''
+    local old_lock='' data_lock_fd='' rollback='' rollback_backup=''
+    local old_file_retained='' old_backup_retained=''
+    local created_target=0 created_backup=0
+    local new_settings="$settings_file" new_profiles="$profiles_file" new_notes="$notes_file" new_marks="$marks_file"
+    local saved_settings saved_notes saved_marks
+
+    case "$id" in
+        settings) base="settings.json"; current="$settings_file" ;;
+        profiles) base="profiles.json"; current="$profiles_file" ;;
+        calendarNotes) base="calendar-notes.json"; current="$notes_file" ;;
+        calendarMarks) base="calendar-marks.json"; current="$marks_file" ;;
+        *) fail "Можно менять только settings.json, profiles.json, calendar-notes.json и calendar-marks.json." ;;
+    esac
+
+    [[ "$requested" == /* ]] || fail "Новый путь должен быть абсолютным."
+    [[ "$requested" != *$'\n'* && "$requested" != *$'\r'* && "$requested" != *$'\t'* ]] || fail "Путь не должен содержать переносы строк или табуляцию."
+    [[ "${requested##*/}" == "$base" ]] || fail "Имя файла должно оставаться $base; изменить можно только расположение."
+    parent="${requested%/*}"
+    [[ -n "$parent" ]] || parent="/"
+    parent="$(normalize_dir "$parent")" || fail "Не удалось нормализовать каталог назначения."
+    target="$parent/$base"
+    [[ ! -d "$target" ]] || fail "Вместо файла указан существующий каталог."
+    [[ "$target" != "$registry" && "$target" != "$registry_lock" ]] || fail "Путь зарезервирован для служебного реестра."
+
+    if [[ "$target" == "$current" ]]; then
+        json_result true "Этот путь уже используется." "$target"
+        return 0
+    fi
+    for other in "$settings_file" "$profiles_file" "$notes_file" "$marks_file"; do
+        if [[ "$(normalize_file "$other")" == "$target" ]]; then
+            fail "Новый путь совпадает с другим активным хранилищем."
+        fi
+    done
+    [[ ! -e "$target" && ! -L "$target" ]] || fail "В месте назначения уже существует файл. Выбери свободный путь, чтобы случайно не перезаписать данные."
+
+    mkdir -p -- "$parent" 2>/dev/null || fail "Не удалось создать каталог назначения."
+    [[ -d "$parent" && -w "$parent" ]] || fail "Каталог назначения недоступен для записи."
+
+    # Serialize path changes, then lock the active file so no read-modify-write
+    # operation can publish while its data is being copied.
+    exec {registry_fd}>"$registry_lock"
+    flock -x "$registry_fd"
+    case "$id" in
+        settings)
+            old_lock="${settings_file%/*}/.settings.lock"
+            old_backup="${settings_file%/*}/.settings.json.bak"
+            new_backup="$parent/.settings.json.bak"
+            if [[ ! -e "$current" && ( -e "$old_backup" || -L "$old_backup" ) ]]; then
+                fail "Основной settings.json отсутствует, но резервная копия существует. Сначала восстанови основные настройки, затем меняй путь."
+            fi
+            ;;
+        profiles)
+            old_lock="${profiles_file%/*}/.profiles.lock"
+            old_backup="${profiles_file%/*}/.profiles.json.bak"
+            new_backup="$parent/.profiles.json.bak"
+            if [[ ! -e "$current" && ( -e "$old_backup" || -L "$old_backup" ) ]]; then
+                fail "Основной profiles.json отсутствует, но резервная копия существует. Сначала восстанови файл, затем меняй путь."
+            fi
+            ;;
+        calendarNotes) old_lock="${notes_file%/*}/.calendar-notes.lock" ;;
+        calendarMarks) old_lock="${marks_file%/*}/.calendar-marks.lock" ;;
+    esac
+    [[ -n "$old_lock" ]] || old_lock="/.$base.lock"
+    exec {data_lock_fd}>"$old_lock"
+    flock -x "$data_lock_fd"
+
+    if [[ -e "$current" || -L "$current" ]]; then
+        [[ -f "$current" && ! -L "$current" ]] || fail "Исходное хранилище должно быть обычным файлом, не символической ссылкой."
+        jq -e 'type == "object"' "$current" >/dev/null 2>&1 || fail "Исходный файл содержит некорректный JSON. Перенос отменён, исходник не изменён."
+        staged="$(mktemp "$parent/.$base.migrate.XXXXXX")" || fail "Не удалось подготовить временный файл в каталоге назначения."
+        if ! cp -- "$current" "$staged" || ! jq -e 'type == "object"' "$staged" >/dev/null 2>&1; then
+            rm -f -- "$staged"
+            fail "Не удалось безопасно скопировать и проверить JSON. Исходник не изменён."
+        fi
+        chmod 600 "$staged" 2>/dev/null || true
+        mv -n -- "$staged" "$target" || { rm -f -- "$staged"; fail "Не удалось опубликовать файл в новом расположении."; }
+        if [[ -e "$staged" ]]; then rm -f -- "$staged"; fail "Файл назначения появился во время переноса; операция отменена."; fi
+        staged=''
+        created_target=1
+    fi
+
+    if [[ "$id" == settings || "$id" == profiles ]]; then
+        if [[ "$id" == settings ]]; then
+            old_backup="${settings_file%/*}/.settings.json.bak"
+            new_backup="$parent/.settings.json.bak"
+            backup_name=".settings.json.bak"
+        else
+            old_backup="${profiles_file%/*}/.profiles.json.bak"
+            new_backup="$parent/.profiles.json.bak"
+            backup_name=".profiles.json.bak"
+        fi
+        if [[ -e "$old_backup" || -L "$old_backup" ]]; then
+            [[ -f "$old_backup" && ! -L "$old_backup" ]] || { [[ "$created_target" == 0 ]] || rm -f -- "$target"; fail "Резервная копия настроек имеет неподдерживаемый тип."; }
+            jq -e 'type == "object"' "$old_backup" >/dev/null 2>&1 || { [[ "$created_target" == 0 ]] || rm -f -- "$target"; fail "Существующая резервная копия некорректна; сначала восстанови или убери её вручную."; }
+            staged_backup="$(mktemp "$parent/.${base%.json}-backup-migrate.XXXXXX")" || { [[ "$created_target" == 0 ]] || rm -f -- "$target"; fail "Не удалось подготовить резервную копию в новом каталоге."; }
+            if ! cp -- "$old_backup" "$staged_backup" || ! jq -e 'type == "object"' "$staged_backup" >/dev/null 2>&1; then
+                rm -f -- "$staged_backup"
+                [[ "$created_target" == 0 ]] || rm -f -- "$target"
+                fail "Не удалось скопировать резервную копию настроек."
+            fi
+            chmod 600 "$staged_backup" 2>/dev/null || true
+            mv -n -- "$staged_backup" "$new_backup" || { rm -f -- "$staged_backup"; [[ "$created_target" == 0 ]] || rm -f -- "$target"; fail "Не удалось опубликовать резервную копию."; }
+            if [[ -e "$staged_backup" ]]; then rm -f -- "$staged_backup"; [[ "$created_target" == 0 ]] || rm -f -- "$target"; fail "Резервная копия назначения появилась во время переноса."; fi
+            staged_backup=''
+            created_backup=1
+        fi
+    fi
+
+    case "$id" in
+        settings) new_settings="$target" ;;
+        profiles) new_profiles="$target" ;;
+        calendarNotes) new_notes="$target" ;;
+        calendarMarks) new_marks="$target" ;;
+    esac
+    registry_tmp="$(mktemp "$config_dir/.storage-paths.conf.XXXXXX")" || {
+        [[ "$created_target" == 0 ]] || rm -f -- "$target"
+        [[ "$created_backup" == 0 ]] || rm -f -- "$new_backup"
+        fail "Не удалось подготовить сохранение новых путей."
+    }
+    chmod 600 "$registry_tmp" 2>/dev/null || true
+    if [[ "$new_settings" != "$default_settings" ]]; then printf 'settings=%s\n' "$new_settings" >> "$registry_tmp"; fi
+    if [[ "$new_profiles" != "$(normalize_file "${new_settings%/*}/profiles.json")" ]]; then printf 'profiles=%s\n' "$new_profiles" >> "$registry_tmp"; fi
+    if [[ "$new_notes" != "$default_notes" ]]; then printf 'calendarNotes=%s\n' "$new_notes" >> "$registry_tmp"; fi
+    if [[ "$new_marks" != "$default_marks" ]]; then printf 'calendarMarks=%s\n' "$new_marks" >> "$registry_tmp"; fi
+    if ! mv -f -- "$registry_tmp" "$registry"; then
+        rm -f -- "$registry_tmp"
+        [[ "$created_target" == 0 ]] || rm -f -- "$target"
+        [[ "$created_backup" == 0 ]] || rm -f -- "$new_backup"
+        fail "Не удалось активировать новый путь; исходное расположение сохранено."
+    fi
+
+    # Keep the prior file as a dated rollback copy. If the move fails (e.g. a
+    # read-only source directory), leave it in place; the new target is active.
+    if [[ -f "$current" ]]; then
+        rollback="$(rollback_name "$current")"
+        if ! mv -- "$current" "$rollback" 2>/dev/null; then
+            old_file_retained="$current"
+            rollback=''
+        fi
+    fi
+    if [[ -n "$old_backup" && -f "$old_backup" ]]; then
+        rollback_backup="$(rollback_name "$old_backup")"
+        if ! mv -- "$old_backup" "$rollback_backup" 2>/dev/null; then
+            old_backup_retained="$old_backup"
+            rollback_backup=''
+        fi
+    fi
+
+    if [[ -n "$rollback" ]]; then
+        local message="Путь изменён. Старый файл сохранён для отката: $rollback."
+        [[ -z "$rollback_backup" ]] || message+=" Старая резервная копия: $rollback_backup."
+        [[ -z "$old_file_retained" ]] || message+=" Исходный файл также остался здесь: $old_file_retained."
+        [[ -z "$old_backup_retained" ]] || message+=" Исходная резервная копия осталась здесь: $old_backup_retained."
+        message+=" Рекомендуется перезапустить Quickshell."
+        json_result true "$message" "$target" "$rollback"
+    elif [[ -n "$old_file_retained" || -n "$old_backup_retained" ]]; then
+        json_result true "Путь изменён, но прежний файл остался в старом расположении ($old_file_retained $old_backup_retained). Проверь данные и перезапусти Quickshell." "$target"
+    elif [[ -e "$target" ]]; then
+        json_result true "Путь изменён. Проверь данные и перезапусти Quickshell." "$target"
+    else
+        json_result true "Путь сохранён; файл будет создан при первом обращении. Рекомендуется перезапустить Quickshell." "$target"
+    fi
+}
+
+if [[ "${1:-}" == "set" ]]; then
+    [[ $# -eq 3 ]] || fail "Использование: storage_paths set {settings|profiles|calendarNotes|calendarMarks} /absolute/path/<filename>.json"
+    move_path "$2" "$3"
+    exit 0
+fi
+
+jq -cn \
+  --arg configDir "$config_dir" \
+  --arg dataDir "$data_dir" \
+  --arg stateDir "$state_dir" \
+  --arg cacheDir "$cache_dir" \
+  --arg settingsFile "$settings_file" \
+  --arg settingsBackup "$settings_backup" \
+  --arg profilesFile "$profiles_file" \
+  --arg notesFile "$notes_file" \
+  --arg marksFile "$marks_file" \
+  --arg weatherCache "$weather_cache" \
+  --arg mopidyCovers "$mopidy_covers" \
+  --arg timerRuntimeDir "$timer_runtime_dir" \
+  --arg launcherHistory "$launcher_history" \
+  '{entries:[
+    {id:"settings", label:"Основные настройки", path:$settingsFile, kind:"file", editable:true, description:"Настройки модулей, темы и активный профиль. При переносе исходный файл сохраняется как резервная копия."},
+    {id:"profiles", label:"Профили", path:$profilesFile, kind:"file", editable:true, description:"Каталог профилей в JSON. Можно редактировать вручную; активный профиль и переопределения остаются в settings.json."},
+    {id:"settingsBackup", label:"Резервная копия настроек", path:$settingsBackup, kind:"file", description:"Последняя известная корректная копия settings.json; хранится рядом с выбранным settings.json."},
+    {id:"calendarNotes", label:"Заметки календаря", path:$notesFile, kind:"file", editable:true, description:"Текстовые заметки по датам."},
+    {id:"calendarMarks", label:"Отметки календаря", path:$marksFile, kind:"file", editable:true, description:"Отмеченные даты календаря."},
+    {id:"configDir", label:"Каталог конфигурации", path:$configDir, kind:"directory", description:"Канонический каталог конфигурации и реестр пользовательских путей."},
+    {id:"dataDir", label:"Каталог данных по умолчанию", path:$dataDir, kind:"directory", description:"Стандартный XDG-каталог данных; отдельные файлы могут находиться в другом месте."},
+    {id:"stateDir", label:"Каталог состояния", path:$stateDir, kind:"directory", description:"Временное состояние модулей, например сохранённая громкость Mopidy."},
+    {id:"cacheDir", label:"Каталог кэша", path:$cacheDir, kind:"directory", description:"Восстанавливаемые кэшированные данные."},
+    {id:"weatherCache", label:"Кэш погоды", path:$weatherCache, kind:"directory", description:"Кэшированные ответы погодного сервиса."},
+    {id:"mopidyCovers", label:"Кэш обложек Mopidy", path:$mopidyCovers, kind:"directory", description:"Загруженные изображения обложек."},
+    {id:"launcherHistory", label:"История команд лаунчера", path:$launcherHistory, kind:"file", description:"Недавно запущенные команды; сейчас расположение привязано к $HOME/.cache."},
+    {id:"timerRuntimeDir", label:"Состояние таймеров (временное)", path:$timerRuntimeDir, kind:"directory", description:"Рабочие файлы запущенных таймеров внутри XDG_RUNTIME_DIR; могут очищаться при завершении сеанса."}
+  ]}'

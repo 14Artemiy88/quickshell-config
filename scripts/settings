@@ -1,22 +1,47 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "$0")/env"
-CFG_DIR="$QS_CONFIG_DIR"
-CFG="$CFG_DIR/settings.json"
-BACKUP="$CFG_DIR/.settings.json.bak"
-LOCK="$CFG_DIR/.settings.lock"
-mkdir -p "$CFG_DIR"
+# Re-check the saved path after acquiring the lock. A second settings process
+# may have been queued on the old file while the user changed its location.
+while :; do
+    CFG="$QS_SETTINGS_FILE"
+    CFG_DIR="${CFG%/*}"
+    [[ -n "$CFG_DIR" ]] || CFG_DIR="/"
+    BACKUP="$CFG_DIR/.settings.json.bak"
+    PROFILES="$QS_PROFILES_FILE"
+    PROFILES_DIR="${PROFILES%/*}"
+    [[ -n "$PROFILES_DIR" ]] || PROFILES_DIR="/"
+    PROFILES_BACKUP="$PROFILES_DIR/.profiles.json.bak"
+    LOCK="$CFG_DIR/.settings.lock"
+    mkdir -p "$CFG_DIR"
+    exec {settings_lock_fd}>"$LOCK"
+    if ! command -v flock >/dev/null 2>&1; then
+        printf 'settings: flock is required for safe settings updates\n' >&2
+        exit 1
+    fi
+    flock -x "$settings_lock_fd"
+    previous_cfg="$CFG"
+    previous_profiles="$PROFILES"
+    qs_refresh_storage_file_paths
+    if [[ "$QS_SETTINGS_FILE" == "$previous_cfg" && "$QS_PROFILES_FILE" == "$previous_profiles" ]]; then
+        PROFILES_LOCK="$PROFILES_DIR/.profiles.lock"
+        mkdir -p "$PROFILES_DIR"
+        exec {profiles_lock_fd}>"$PROFILES_LOCK"
+        flock -x "$profiles_lock_fd"
+        # Verify the registry again after both locks are held; a queued move may
+        # have switched the profiles path while this writer waited.
+        qs_refresh_storage_file_paths
+        if [[ "$QS_SETTINGS_FILE" == "$previous_cfg" && "$QS_PROFILES_FILE" == "$previous_profiles" ]]; then break; fi
+        flock -u "$profiles_lock_fd"
+        exec {profiles_lock_fd}>&-
+    fi
+    flock -u "$settings_lock_fd"
+    exec {settings_lock_fd}>&-
+done
 DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
 
 # Serialize read-modify-write operations and publish complete JSON atomically.
 # The lock is kept next to the target so all writes happen on one filesystem.
-exec {settings_lock_fd}>"$LOCK"
-if ! command -v flock >/dev/null 2>&1; then
-    printf 'settings: flock is required for safe settings updates\n' >&2
-    exit 1
-fi
-flock -x "$settings_lock_fd"
-
 tmp=''
 cleanup() {
     [[ -z "$tmp" ]] || rm -f -- "$tmp"
@@ -43,6 +68,117 @@ is_json_object() {
     [[ -f "$path" ]] && jq -e 'type == "object"' "$path" >/dev/null 2>&1
 }
 
+# Secrets are machine-local and deliberately independent from movable/Git-managed
+# settings and profiles. The public settings command injects weatherToken only
+# into its stdout compatibility view; it is never stored in settings.json.
+SECRETS="$QS_CONFIG_DIR/secrets.json"
+SECRETS_BACKUP="$QS_CONFIG_DIR/.secrets.json.bak"
+secret_token() {
+    if is_json_object "$SECRETS"; then jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end' "$SECRETS"; else printf ''; fi
+}
+write_secret_token() {
+    local value="${1:-}" stage
+    mkdir -p "$QS_CONFIG_DIR"
+    stage=$(mktemp "$QS_CONFIG_DIR/.secrets.json.XXXXXX") || return 1
+    chmod 600 "$stage" || { rm -f -- "$stage"; return 1; }
+    if ! jq -n --arg token "$value" '{weatherToken:$token}' > "$stage"; then rm -f -- "$stage"; return 1; fi
+    if is_json_object "$SECRETS"; then
+        cp -- "$SECRETS" "$SECRETS_BACKUP.tmp" && chmod 600 "$SECRETS_BACKUP.tmp" && mv -f -- "$SECRETS_BACKUP.tmp" "$SECRETS_BACKUP" || { rm -f -- "$stage" "$SECRETS_BACKUP.tmp"; return 1; }
+    fi
+    mv -f -- "$stage" "$SECRETS"
+}
+ensure_secret_migrated() {
+    local old_token='' clean='' stage
+    if ! is_json_object "$SECRETS"; then
+        if is_json_object "$CFG"; then old_token=$(jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end' "$CFG"); fi
+        # A missing secret file is the one-time legacy migration case. If a
+        # secrets file exists but is invalid, preserve it and recover from its
+        # backup when possible rather than silently replacing the credential.
+        if [[ -e "$SECRETS" || -L "$SECRETS" ]]; then
+            if is_json_object "$SECRETS_BACKUP"; then cp -- "$SECRETS_BACKUP" "$SECRETS" && chmod 600 "$SECRETS" || return 1
+            else
+                local preserved
+                preserved=$(mktemp "$QS_CONFIG_DIR/.secrets.json.corrupt.XXXXXX") || return 1
+                mv -- "$SECRETS" "$preserved" || { rm -f "$preserved"; return 1; }
+                write_secret_token "$old_token" || return 1
+            fi
+        else
+            write_secret_token "$old_token" || return 1
+        fi
+    fi
+    # Scrub legacy credentials from primary settings and its recovery snapshot.
+    # Also avoid leaving a token in newly-created backups after the migration.
+    for target in "$CFG" "$BACKUP"; do
+        if is_json_object "$target" && jq -e 'has("weatherToken")' "$target" >/dev/null 2>&1; then
+            stage=$(mktemp "$CFG_DIR/.settings-scrub.XXXXXX") || return 1
+            jq 'del(.weatherToken)' "$target" > "$stage" && chmod 600 "$stage" && mv -f -- "$stage" "$target" || { rm -f -- "$stage"; return 1; }
+        fi
+    done
+}
+
+# Profile definitions are stored independently from installation-wide settings.
+# Migrate the legacy embedded catalog once, then always expose a merged view to
+# existing QML callers so this storage change does not alter the UI contract.
+ensure_profiles_usable() {
+    local preserved=''
+    if [[ ! -e "$PROFILES" && ! -L "$PROFILES" ]]; then
+        if is_json_object "$CFG" && jq -e '(.profiles? | type) == "object"' "$CFG" >/dev/null 2>&1; then
+            new_temp || return 1
+            jq '.profiles' "$CFG" > "$tmp" || return 1
+            jq -e 'type == "object"' "$tmp" >/dev/null || return 1
+            chmod 600 "$tmp"
+            mv -f -- "$tmp" "$PROFILES" || return 1
+            tmp=''
+            # The catalog is now authoritative in profiles.json.
+            new_temp || return 1
+            jq 'del(.profiles)' "$CFG" > "$tmp" || return 1
+            jq -e 'type == "object"' "$tmp" >/dev/null || return 1
+            publish_temp "$CFG"
+            backup_current || true
+        else
+            new_temp || return 1
+            printf '{}\n' > "$tmp"
+            publish_temp "$PROFILES"
+        fi
+        return 0
+    fi
+    if is_json_object "$PROFILES"; then return 0; fi
+    if is_json_object "$PROFILES_BACKUP"; then
+        preserved=$(preserve_invalid_file "$PROFILES" '.profiles.json.corrupt') || return 1
+        new_temp || return 1
+        cp -- "$PROFILES_BACKUP" "$tmp" || return 1
+        publish_temp "$PROFILES"
+        printf 'settings: invalid profiles file preserved at %s; restored backup\n' "$preserved" >&2
+        return 0
+    fi
+    if [[ -e "$PROFILES" || -L "$PROFILES" ]]; then
+        preserved=$(preserve_invalid_file "$PROFILES" '.profiles.json.corrupt') || return 1
+        printf 'settings: invalid profiles file preserved at %s; initialized empty catalog\n' "$preserved" >&2
+    fi
+    new_temp || return 1
+    printf '{}\n' > "$tmp"
+    publish_temp "$PROFILES"
+}
+
+publish_profiles() {
+    local json="$1" stage
+    mkdir -p "$PROFILES_DIR"
+    stage=$(mktemp "$PROFILES_DIR/.profiles.json.XXXXXX") || return 1
+    chmod 600 "$stage" || { rm -f -- "$stage"; return 1; }
+    if ! printf '%s\n' "$json" > "$stage" || ! jq -e 'type == "object"' "$stage" >/dev/null 2>&1; then
+        rm -f -- "$stage"
+        return 1
+    fi
+    if is_json_object "$PROFILES"; then
+        local backup_stage
+        backup_stage=$(mktemp "$PROFILES_DIR/.profiles.json.bak.XXXXXX") || { rm -f -- "$stage"; return 1; }
+        if ! cp -- "$PROFILES" "$backup_stage"; then rm -f -- "$stage" "$backup_stage"; return 1; fi
+        chmod 600 "$backup_stage"
+        mv -f -- "$backup_stage" "$PROFILES_BACKUP" || { rm -f -- "$stage" "$backup_stage"; return 1; }
+    fi
+    mv -f -- "$stage" "$PROFILES"
+}
+
 initialize_defaults() {
     new_temp
     printf '%s\n' "$DEFAULT" > "$tmp"
@@ -51,7 +187,7 @@ initialize_defaults() {
 }
 
 # Keep the last known-good snapshot separate from the file being replaced.
-# Temporary and backup files remain private because settings may contain tokens.
+# Temporary and backup files remain private; secrets are stored separately.
 backup_current() {
     if ! is_json_object "$CFG"; then
         printf 'settings: refusing to back up an invalid current settings file\n' >&2
@@ -170,17 +306,26 @@ commit_payload() {
 case "${1:-get}" in
   get)
     ensure_settings_usable
+    ensure_profiles_usable
+    ensure_secret_migrated
     # A backup may be missing, invalid, or one committed write behind if the
     # process stopped immediately after publishing settings.json. Refresh it
     # from the validated primary file before returning the current snapshot.
     refresh_backup_if_stale
-    cat -- "$CFG"
+    jq --arg token "$(secret_token)" --slurpfile profiles "$PROFILES" 'del(.weatherToken) | .weatherToken = $token | if (($profiles[0] // {}) | length) > 0 then .profiles = $profiles[0] else . end' "$CFG"
     ;;
   set-json)
     json="${2:-$DEFAULT}"
     # Validate the supplied payload before any recovery or file changes.
     printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
     ensure_settings_usable
+    ensure_profiles_usable
+    ensure_secret_migrated
+    if [[ "$(printf '%s\n' "$json" | jq -r 'has("weatherToken") and ((.weatherToken | type) == "string")')" == true ]]; then
+      supplied_token=$(printf '%s\n' "$json" | jq -r '.weatherToken')
+      write_secret_token "$supplied_token"
+    fi
+    json=$(printf '%s\n' "$json" | jq 'del(.profiles, .weatherToken)')
     commit_payload "$json"
     ;;
   set-json-ui)
@@ -191,7 +336,9 @@ case "${1:-get}" in
     # token update when no token edit happened in that snapshot.
     printf '%s\n' "$json" | jq -e 'type == "object"' >/dev/null
     ensure_settings_usable
-    current_token=$(jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end' "$CFG")
+    ensure_profiles_usable
+    ensure_secret_migrated
+    current_token=$(secret_token)
     incoming_has_token=$(printf '%s\n' "$json" | jq -r 'has("weatherToken") and ((.weatherToken | type) == "string")')
     incoming_token=$(printf '%s\n' "$json" | jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end')
     if [[ "$incoming_has_token" != "true" || "$incoming_token" == "$baseline_token" ]]; then
@@ -203,40 +350,89 @@ case "${1:-get}" in
       # already committed to disk, so prefer it over this stale queued snapshot.
       chosen_token="$current_token"
     fi
-    # UI snapshots contain all fields known by this version, but they may not
-    # include fields written by a newer version or an external integration.
-    # Merge snapshot values into the current object so unknown root/nested
-    # settings survive a normal UI save. Collections managed as complete maps
-    # must be replaced wholesale: deleting a profile or a custom theme in the
-    # UI must not resurrect it from the previous disk snapshot.
-    json=$(jq -n --slurpfile current "$CFG" --argjson incoming "$json" '
-      def deepmerge($base; $overlay):
-        if (($base | type) == "object" and ($overlay | type) == "object") then
-          reduce ($overlay | keys_unsorted[]) as $key
-            ($base;
-              .[$key] = (if ($base | has($key))
-                         then deepmerge($base[$key]; $overlay[$key])
-                         else $overlay[$key]
-                         end))
-        else $overlay end;
-      deepmerge($current[0]; $incoming)
-      | if ($incoming | has("profiles")) then .profiles = $incoming.profiles else . end
-      | if ($incoming | has("customThemes")) then .customThemes = $incoming.customThemes else . end
-    ')
-    json=$(printf '%s\n' "$json" | jq --arg token "$chosen_token" '.weatherToken = $token')
-    commit_payload "$json"
+    # Preserve unknown root/nested fields for forward compatibility. Compact
+    # profile-overlay snapshots additionally identify the legacy full-snapshot
+    # keys they replace, so those duplicate values can be pruned before merge.
+    if [[ "$(printf '%s\n' "$json" | jq -r '.settingsPersistenceFormat // ""')" == "profile-overrides-v1" ]]; then
+      json=$(jq -n --slurpfile current "$CFG" --argjson incoming "$json" '
+        def deepmerge($base; $overlay):
+          if (($base | type) == "object" and ($overlay | type) == "object") then
+            reduce ($overlay | keys_unsorted[]) as $key
+              ($base;
+                .[$key] = (if ($base | has($key))
+                           then deepmerge($base[$key]; $overlay[$key])
+                           else $overlay[$key]
+                           end))
+          else $overlay end;
+        def prune_known($value; $known):
+          if ($value | type) == "object" then
+            $value | with_entries(. as $entry | select(($known | index($entry.key)) == null))
+          else {} end;
+        ($current[0] // {}) as $disk
+        | ($incoming.managedKeys // []) as $managed
+        | ($incoming.managedNestedKeys // {}) as $nested
+        | (reduce $managed[] as $key
+            ($disk;
+              if ($nested | has($key)) then
+                .[$key] = prune_known(.[$key]; $nested[$key])
+                | if .[$key] == {} then del(.[$key]) else . end
+              else del(.[$key]) end)) as $clean
+        | deepmerge($clean; ($incoming | del(.managedKeys, .managedNestedKeys)))
+        | if ($incoming | has("profiles")) then .profiles = $incoming.profiles else . end
+        | if ($incoming | has("customThemes")) then .customThemes = $incoming.customThemes else . end
+        | if ($incoming | has("profileOverrides")) then .profileOverrides = $incoming.profileOverrides else . end
+      ')
+    else
+      json=$(jq -n --slurpfile current "$CFG" --argjson incoming "$json" '
+        def deepmerge($base; $overlay):
+          if (($base | type) == "object" and ($overlay | type) == "object") then
+            reduce ($overlay | keys_unsorted[]) as $key
+              ($base;
+                .[$key] = (if ($base | has($key))
+                           then deepmerge($base[$key]; $overlay[$key])
+                           else $overlay[$key]
+                           end))
+          else $overlay end;
+        deepmerge($current[0]; $incoming)
+        | if ($incoming | has("profiles")) then .profiles = $incoming.profiles else . end
+        | if ($incoming | has("customThemes")) then .customThemes = $incoming.customThemes else . end
+      ')
+    fi
+    # Keep profile definitions in their own file. The settings file still owns
+    # activeProfile, profileOverrides, global settings and customThemes.
+    incoming_profiles=$(printf '%s\n' "$json" | jq -c 'if (.profiles | type) == "object" then .profiles else null end')
+    profiles_changed=false
+    if [[ "$incoming_profiles" != "null" ]]; then
+      publish_profiles "$incoming_profiles"
+      profiles_changed=true
+    fi
+    write_secret_token "$chosen_token"
+    json=$(printf '%s\n' "$json" | jq 'del(.profiles, .weatherToken)')
+    if ! commit_payload "$json"; then
+      # The two files are one logical settings transaction. If the settings
+      # commit fails after profiles.json was published, restore the previous
+      # catalog from the backup created immediately before that publish.
+      if [[ "$profiles_changed" == true ]] && is_json_object "$PROFILES_BACKUP"; then
+        rollback_profiles=$(mktemp "$PROFILES_DIR/.profiles.json.rollback.XXXXXX") || exit 1
+        if cp -- "$PROFILES_BACKUP" "$rollback_profiles" && jq -e 'type == "object"' "$rollback_profiles" >/dev/null; then
+          chmod 600 "$rollback_profiles"
+          mv -f -- "$rollback_profiles" "$PROFILES"
+        else
+          rm -f -- "$rollback_profiles"
+          printf 'settings: warning: profile catalog rollback failed after settings commit error\n' >&2
+        fi
+      fi
+      exit 1
+    fi
     # This output is consumed only by Settings.qml's StdioCollector and lets
     # the UI advance its token baseline after a concurrent external update.
     printf '%s' "$chosen_token"
     ;;
   token)
     ensure_settings_usable
-    backup_current
-    new_temp
-    jq --arg t "${2:-}" '.weatherToken=$t' "$CFG" > "$tmp"
-    jq -e 'type == "object"' "$tmp" >/dev/null
-    publish_temp "$CFG"
-    refresh_backup_if_stale
+    ensure_profiles_usable
+    ensure_secret_migrated
+    write_secret_token "${2:-}"
     ;;
   *)
     echo "Usage: $0 {get|set-json|set-json-ui|token}" >&2

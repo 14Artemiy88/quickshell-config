@@ -80,6 +80,47 @@ if [[ ! -d "$QS_CONFIG_DIR" || ! -d "$QS_DATA_DIR" || ! -d "$QS_STATE_DIR" || ! 
     mkdir -p "$QS_CONFIG_DIR" "$QS_DATA_DIR" "$QS_STATE_DIR" "$QS_CACHE_DIR" 2>/dev/null || true
 fi
 
+# These three user-editable JSON files may be moved independently. The small
+# path registry stays in the canonical config directory so moving settings.json
+# does not move the pointer needed to find it again. XDG/QS_CONFIG_DIR/QS_DATA_DIR
+# determine the defaults; this registry is the single source for per-file paths.
+_qs_storage_paths_registry="$QS_CONFIG_DIR/.storage-paths.conf"
+
+qs_refresh_storage_file_paths() {
+    local _qs_path_line _qs_saved_path
+    QS_SETTINGS_FILE="$QS_CONFIG_DIR/settings.json"
+    QS_PROFILES_FILE="${QS_SETTINGS_FILE%/*}/profiles.json"
+    QS_CALENDAR_NOTES_FILE="$QS_DATA_DIR/calendar-notes.json"
+    QS_CALENDAR_MARKS_FILE="$QS_DATA_DIR/calendar-marks.json"
+    if [[ -r "$_qs_storage_paths_registry" ]]; then
+        while IFS= read -r _qs_path_line || [[ -n "$_qs_path_line" ]]; do
+            case "$_qs_path_line" in
+                settings=*)
+                    _qs_saved_path="${_qs_path_line#settings=}"
+                    if [[ "$_qs_saved_path" == /* ]]; then QS_SETTINGS_FILE="$_qs_saved_path"; fi
+                    ;;
+                profiles=*)
+                    _qs_saved_path="${_qs_path_line#profiles=}"
+                    if [[ "$_qs_saved_path" == /* ]]; then QS_PROFILES_FILE="$_qs_saved_path"; fi
+                    ;;
+                calendarNotes=*)
+                    _qs_saved_path="${_qs_path_line#calendarNotes=}"
+                    if [[ "$_qs_saved_path" == /* ]]; then QS_CALENDAR_NOTES_FILE="$_qs_saved_path"; fi
+                    ;;
+                calendarMarks=*)
+                    _qs_saved_path="${_qs_path_line#calendarMarks=}"
+                    if [[ "$_qs_saved_path" == /* ]]; then QS_CALENDAR_MARKS_FILE="$_qs_saved_path"; fi
+                    ;;
+            esac
+        done < "$_qs_storage_paths_registry"
+    fi
+}
+qs_refresh_storage_file_paths
+# File paths are local to each script sourcing env. Do not export the resolved
+# values: a child process must reread the registry so queued operations can
+# notice a path move that happened while they waited for a file lock.
+export -n QS_SETTINGS_FILE QS_PROFILES_FILE QS_CALENDAR_NOTES_FILE QS_CALENDAR_MARKS_FILE 2>/dev/null || true
+
 # Migrate legacy files only when a canonical destination does not exist.
 # Source files are deliberately retained as rollback copies. If the current
 # project directory has no legacy file, look for older Quickshell installs.
@@ -122,21 +163,21 @@ _qs_migrate_json_if_missing() {
     fi
 }
 
-_qs_migrate_json_if_missing "$QS_PROJECT_DIR/settings.json" "$QS_CONFIG_DIR/settings.json" settings
-if [[ ! -f "$QS_CONFIG_DIR/settings.json" ]]; then
+_qs_migrate_json_if_missing "$QS_PROJECT_DIR/settings.json" "$QS_SETTINGS_FILE" settings
+if [[ ! -f "$QS_SETTINGS_FILE" ]]; then
     for _qs_old in "$_qs_legacy_quickshell_dir/desktop-shell/settings.json" "$_qs_legacy_quickshell_dir"/*/settings.json; do
         [[ -f "$_qs_old" ]] || continue
-        _qs_migrate_json_if_missing "$_qs_old" "$QS_CONFIG_DIR/settings.json" settings
-        [[ -f "$QS_CONFIG_DIR/settings.json" ]] && break
+        _qs_migrate_json_if_missing "$_qs_old" "$QS_SETTINGS_FILE" settings
+        [[ -f "$QS_SETTINGS_FILE" ]] && break
     done
 fi
 
-_qs_migrate_json_if_missing "$QS_PROJECT_DIR/calendar-notes.json" "$QS_DATA_DIR/calendar-notes.json" calendar-notes
-if [[ ! -f "$QS_DATA_DIR/calendar-notes.json" ]]; then
+_qs_migrate_json_if_missing "$QS_PROJECT_DIR/calendar-notes.json" "$QS_CALENDAR_NOTES_FILE" calendar-notes
+if [[ ! -f "$QS_CALENDAR_NOTES_FILE" ]]; then
     for _qs_old in "$_qs_legacy_quickshell_dir/desktop-shell/calendar-notes.json" "$_qs_legacy_quickshell_dir"/*/calendar-notes.json; do
         [[ -f "$_qs_old" ]] || continue
-        _qs_migrate_json_if_missing "$_qs_old" "$QS_DATA_DIR/calendar-notes.json" calendar-notes
-        [[ -f "$QS_DATA_DIR/calendar-notes.json" ]] && break
+        _qs_migrate_json_if_missing "$_qs_old" "$QS_CALENDAR_NOTES_FILE" calendar-notes
+        [[ -f "$QS_CALENDAR_NOTES_FILE" ]] && break
     done
 fi
 unset -f _qs_migrate_json_if_missing

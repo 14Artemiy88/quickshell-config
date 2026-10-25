@@ -72,16 +72,15 @@ Item {
     }
 
     function animationsActive() {
-        // The master switch is authoritative: disabling animations must not
-        // silently replace the expansion transition with a fade.
-        return Config.animationsEnabled
-            && (Config.animationAppearanceEnabled || Config.animationExpansionEnabled)
+        // The timer module's explicit "none" option disables the entire popup
+        // transition instead of leaving an opacity-only fade behind.
+        return Config.animationTimerVisibilityStyle !== "none"
     }
 
     function syncVisualState() {
         var targetOpacity = (closing || selectedFile === "") ? 0 : 1
         var targetScale = (closing || selectedFile === "") ? 0.97 : 1
-        var expansionEnabled = Config.animationsEnabled && Config.animationExpansionEnabled
+        var expansionEnabled = Config.animationTimerVisibilityStyle !== "none"
 
         visualTransition.stop()
 
@@ -93,8 +92,7 @@ Item {
         }
 
         var baseDuration = Config.animationTimerOptionsDuration
-        var opacityDuration = Config.animationAppearanceEnabled
-            ? Config.animationDuration(baseDuration, "appearance") : 0
+        var opacityDuration = Config.animationDuration(baseDuration, "appearance")
         var scaleDuration = expansionEnabled
             ? Config.animationDuration(baseDuration, "expansion") : 0
 
@@ -115,9 +113,7 @@ Item {
 
     Connections {
         target: Config
-        function onAnimationsEnabledChanged() { root.syncVisualState() }
-        function onAnimationExpansionEnabledChanged() { root.syncVisualState() }
-        function onAnimationAppearanceEnabledChanged() { root.syncVisualState() }
+        function onAnimationTimerVisibilityStyleChanged() { root.syncVisualState() }
     }
 
     // Closing on a click outside the mini-window is handled by the

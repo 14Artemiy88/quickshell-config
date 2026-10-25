@@ -10,6 +10,14 @@ import "components/primitives" as Primitives
 
 ShellRoot {
     id: shell
+
+    // Prune only old, redundant launcher-recovery snapshots. The script is
+    // deliberately conservative and never removes active locks or user data.
+    Process {
+        id: storageCleanupProcess
+        command: [Quickshell.shellDir + "/scripts/cleanup_storage"]
+    }
+    Component.onCompleted: storageCleanupProcess.running = true
     Clock { id: clock; active: Settings.loaded && (Settings.time || (shell.calendarVisible && Settings.calendar)) }
     SystemMonitor { id: monitor }
     Loader {
@@ -532,10 +540,14 @@ ShellRoot {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "calendar"
         layoutEditMode: shell.layoutEditMode
-        // Keep the top-layer window alive while the calendar is open, animating,
-        // or being positioned. Once hidden, remove the empty surface so it cannot
-        // intercept pointer input intended for normal application windows.
-        visible: Settings.calendar && (shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode)
+        // Keep this transparent surface alive while the module is enabled.
+        // Otherwise the compositor can animate the layer-shell window itself,
+        // making the module's explicit "none" style look like a fade.
+        visible: Settings.calendar
+        manageInputMask: true
+        inputMaskEnabled: shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode
+        backgroundBlurVisible: shell.calendarVisible || calendarVisibility.running
+        backgroundBlurItem: calendarVisibility.blurRegionItem
         offsetX: Settings.geometryForLayout("calendar")[0]
         offsetY: Settings.geometryForLayout("calendar")[1]
         contentWidth: Settings.geometry.calendar[2]
@@ -549,8 +561,8 @@ ShellRoot {
             id: calendarVisibility
             anchors.fill: parent
             shown: shell.calendarVisible
-            animationStyle: Config.animationsEnabled ? Config.animationCalendarVisibilityStyle : "none"
-            duration: Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
+            animationStyle: Config.animationCalendarVisibilityStyle
+            duration: Config.animationCalendarVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
             CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }
         }
     }
@@ -595,10 +607,13 @@ ShellRoot {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "mopidy"
         layoutEditMode: shell.layoutEditMode
-        // When Mopidy is toggled closed, remove its transparent window surface
-        // after the hide animation so it cannot intercept desktop pointer input.
-        // Keep it alive while animating or editing the layout.
-        visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode)
+        // Keep the transparent surface alive while Mopidy is enabled; only
+        // its input and blur regions follow the module's visible/animated item.
+        visible: Settings.mopidy
+        manageInputMask: true
+        inputMaskEnabled: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode
+        backgroundBlurVisible: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running
+        backgroundBlurItem: mopidyVisibility.blurRegionItem
         offsetX: Settings.geometryForLayout("mopidy")[0]
         offsetY: Settings.geometryForLayout("mopidy")[1]
         contentWidth: Settings.geometry.mopidy[2]
@@ -609,8 +624,8 @@ ShellRoot {
             id: mopidyVisibility
             anchors.fill: parent
             shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible
-            animationStyle: Config.animationsEnabled ? Config.animationMopidyVisibilityStyle : "none"
-            duration: Config.animationDuration(280, "appearance")
+            animationStyle: Config.animationMopidyVisibilityStyle
+            duration: Config.animationMopidyVisibilityStyle === "none" ? 0 : Config.animationDuration(280, "appearance")
             MopidyComponents.Mopidy {
                 id: mopidyWidget
                 anchors.fill: parent
@@ -692,7 +707,14 @@ ShellRoot {
         layoutEditor: layoutEditorWindow
         normalWlrLayer: WlrLayer.Overlay
         editWlrLayer: WlrLayer.Overlay
-        visible: shell.settingsVisible || settingsVisibility.running
+        // Keep the transparent overlay surface alive to avoid compositor-owned
+        // fade-in/out animations; an empty mask passes all input through while
+        // the settings content is closed.
+        visible: true
+        manageInputMask: true
+        inputMaskEnabled: shell.settingsVisible || settingsVisibility.running
+        backgroundBlurVisible: shell.settingsVisible || settingsVisibility.running
+        backgroundBlurItem: settingsVisibility.blurRegionItem
         keyboardEnabled: shell.settingsVisible || settingsVisibility.running
         offsetX: Settings.settingsGeometry[0]
         offsetY: Settings.settingsGeometry[1]
@@ -704,8 +726,8 @@ ShellRoot {
             id: settingsVisibility
             anchors.fill: parent
             shown: shell.settingsVisible
-            animationStyle: Config.animationsEnabled ? Config.animationSettingsVisibilityStyle : "none"
-            duration: Config.animationDuration(300, "appearance")
+            animationStyle: Config.animationSettingsVisibilityStyle
+            duration: Config.animationSettingsVisibilityStyle === "none" ? 0 : Config.animationDuration(300, "appearance")
             SettingsWidget {
                 id: settingsWidget
             settingsMoveMode: shell.settingsMoveMode

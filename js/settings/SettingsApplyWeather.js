@@ -10,7 +10,7 @@ function apply(Config, o) {
             ["weatherWindColumnX", 0, 500], ["weatherWindSpeedFontSize", 8, 64],
             ["weatherWindUnitFontSize", 6, 48], ["weatherPressureY", 0, 100],
             ["weatherDescriptionY", 0, 120], ["weatherDescriptionFontSize", 6, 48],
-            ["weatherTempFontSize", 12, 96], ["weatherComfortFontSize", 8, 72],
+            ["weatherTempFontSize", 12, 96], ["weatherComfortFontSize", 8, 72], ["weatherComfortOutlineWidth", 0, 4],
             ["weatherTempColumnWidth", 40, 200], ["weatherTempX", 0, 200], ["weatherTempWidth", 20, 200],
             ["weatherTempOffsetX", -100, 100], ["weatherTempOffsetY", -100, 100],
             ["weatherComfortY", -20, 100], ["weatherComfortOffsetX", -100, 100], ["weatherComfortOffsetY", -100, 100], ["weatherComfortHeight", 10, 100], ["weatherWindColumnWidth", 60, 300],
@@ -62,6 +62,11 @@ function apply(Config, o) {
             var weatherWindFontKey = "weatherWind" + weatherWindDirectionKey + "Font"
             if (o[weatherWindIconKey] !== undefined) Config[weatherWindIconKey] = String(o[weatherWindIconKey]).slice(0, 16)
             if (o[weatherWindFontKey] !== undefined) Config[weatherWindFontKey] = String(o[weatherWindFontKey]).trim().slice(0, 128)
+        }
+        if (o.weatherComfortOutlineColor !== undefined) {
+            var comfortOutlineColor = String(o.weatherComfortOutlineColor).trim()
+            if (/^#[0-9a-fA-F]{6}$/.test(comfortOutlineColor))
+                Config.weatherComfortOutlineColor = comfortOutlineColor
         }
         if (o.weatherShowComfort !== undefined) Config.weatherShowComfort = !!o.weatherShowComfort
 

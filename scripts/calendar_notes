@@ -2,21 +2,31 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/env"
-CFG_DIR="$QS_DATA_DIR"
-FILE="$CFG_DIR/calendar-notes.json"
-LOCK="$CFG_DIR/.calendar-notes.lock"
-mkdir -p "$CFG_DIR"
-
-# Reads and read-modify-write updates share one stable lock. Without it, two
-# concurrent edits to different dates can both read the same old JSON object
-# and the later atomic rename silently loses the earlier edit.
 command -v flock >/dev/null 2>&1 || {
   printf 'calendar_notes: flock is required for safe note updates\n' >&2
   exit 1
 }
-exec {lock_fd}>"$LOCK"
-flock -x "$lock_fd"
+# Re-read the path after taking its lock so an operation queued during a
+# storage relocation follows the newly selected file instead of writing the
+# previous location.
+while :; do
+  FILE="${QS_CALENDAR_NOTES_FILE}"
+  CFG_DIR="${FILE%/*}"
+  [[ -n "$CFG_DIR" ]] || CFG_DIR="/"
+  LOCK="$CFG_DIR/.calendar-notes.lock"
+  mkdir -p "$CFG_DIR"
+  exec {lock_fd}>"$LOCK"
+  flock -x "$lock_fd"
+  previous_file="$FILE"
+  qs_refresh_storage_file_paths
+  if [[ "${QS_CALENDAR_NOTES_FILE}" == "$previous_file" ]]; then break; fi
+  flock -u "$lock_fd"
+  exec {lock_fd}>&-
+done
 
+# Reads and read-modify-write updates share one stable lock. Without it, two
+# concurrent edits to different dates can both read the same old JSON object
+# and the later atomic rename silently loses the earlier edit.
 : > "$CFG_DIR/.migration-calendar-notes-v1"
 chmod 600 "$CFG_DIR/.migration-calendar-notes-v1" 2>/dev/null || true
 

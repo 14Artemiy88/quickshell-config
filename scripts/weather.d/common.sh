@@ -18,8 +18,8 @@ declare -r WEATHER_CURL_CONNECT_TIMEOUT="${WEATHER_CURL_CONNECT_TIMEOUT:-5}"
 declare -r WEATHER_CURL_MAX_TIME="${WEATHER_CURL_MAX_TIME:-10}"
 
 weather_read_token() {
-    local settings_file="$QS_CONFIG_DIR/settings.json"
-    jq -r '.weatherToken // ""' "$settings_file" 2>/dev/null || true
+    local secrets_file="$QS_CONFIG_DIR/secrets.json"
+    jq -r 'if (.weatherToken | type) == "string" then .weatherToken else "" end' "$secrets_file" 2>/dev/null || true
 }
 
 weather_cache_file() {

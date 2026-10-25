@@ -100,19 +100,12 @@ QtObject {
     property bool cavaHideWhenSilent: false
     property bool cavaHideZeroBars: false
 
-    // General behaviour / update intervals
-    property bool animationsEnabled: true
-    property real animationSpeed: 1.0
-    property string animationEasing: "OutCubic"
+    // Module-specific appearance/disappearance settings. Shared global animation toggles were removed.
     // Per-module appearance/disappearance styles.
     property string animationCalendarVisibilityStyle: "fade"
     property string animationMopidyVisibilityStyle: "fade"
     property string animationTimerVisibilityStyle: "fade"
     property string animationSettingsVisibilityStyle: "fade"
-    property bool animationAppearanceEnabled: true
-    property bool animationMovementEnabled: true
-    property bool animationSizeEnabled: true
-    property bool animationExpansionEnabled: true
     property int animationTimerOptionsDuration: 280
     property int animationCalendarSlideDuration: 350
     property int animationCalendarFadeDuration: 250
@@ -401,6 +394,8 @@ QtObject {
     property int weatherDescriptionFontSize: 12
     property int weatherTempFontSize: 55
     property int weatherComfortFontSize: 35
+    property string weatherComfortOutlineColor: "#000000"
+    property int weatherComfortOutlineWidth: 1
     property bool weatherShowComfort: true
     property int weatherTempColumnWidth: 100
     property int weatherTempX: 10
@@ -530,33 +525,16 @@ QtObject {
         return Math.max(6, Math.round(base * size / 12))
     }
 
+    // Durations are controlled by each module's own animation settings.
+    // The optional category argument remains accepted for existing call sites,
+    // but no global category switch is allowed to override module choices.
     function animationDuration(baseMs, category) {
-        category = category || "appearance"
-        if (!animationsEnabled) return 0
-        if (category === "appearance" && !animationAppearanceEnabled) return 0
-        if (category === "movement" && !animationMovementEnabled) return 0
-        if (category === "size" && !animationSizeEnabled) return 0
-        if (category === "expansion" && !animationExpansionEnabled) return 0
-        var speed = Number(animationSpeed)
-        if (!isFinite(speed) || speed <= 0) speed = 1
         var ms = Number(baseMs)
         if (!isFinite(ms) || ms < 0) ms = 0
-        return Math.max(0, Math.round(ms / speed))
+        return Math.max(0, Math.round(ms))
     }
 
-    function easingType() {
-        switch (animationEasing) {
-        case "Linear": return Easing.Linear
-        case "InOutQuad": return Easing.InOutQuad
-        case "OutQuad": return Easing.OutQuad
-        case "InOutCubic": return Easing.InOutCubic
-        case "InCubic": return Easing.InCubic
-        case "OutCubic": return Easing.OutCubic
-        case "OutBack": return Easing.OutBack
-        case "InOutBack": return Easing.InOutBack
-        default: return Easing.OutCubic
-        }
-    }
+    function easingType() { return Easing.OutCubic }
 
     property string monitorName: "LCD195VXM+"
 }

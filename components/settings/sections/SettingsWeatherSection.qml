@@ -284,6 +284,39 @@ Column {
                                 Connections { target: Config; function onWeatherShowComfortChanged() { weatherShowComfortCheckBox.checked = Config.weatherShowComfort } }
                             }
                         }
+                        SettingsColorField {
+                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+                            width: parent.width
+                            label: "Цвет обводки комфортной температуры"
+                            value: String(Config.weatherComfortOutlineColor)
+                            targetObject: Config
+                            targetProperty: "weatherComfortOutlineColor"
+                            settingsObject: settings
+                            saveOnEdit: true
+                            allowAlpha: false
+                            allowTransparent: false
+                            labelWidth: 210
+                            fieldWidth: 120
+                        }
+                        Row {
+                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+                            width: parent.width
+                            height: 30
+                            spacing: 8
+                            Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                            SettingsNumberField {
+                                id: weatherComfortOutlineWidthField
+                                width: 100; height: 30
+                                value: Config.weatherComfortOutlineWidth
+                                minimum: 0; maximum: 4; step: 1; wheelStep: 1
+                                compact: true; fieldWidth: 100; fieldFontSize: 11
+                                inputMethodHints: Qt.ImhDigitsOnly
+                                targetObject: Config
+                                targetProperty: "weatherComfortOutlineWidth"
+                                settingsObject: settings
+                                saveOnEdit: true
+                            }
+                        }
     }
 
     SettingsGroup {

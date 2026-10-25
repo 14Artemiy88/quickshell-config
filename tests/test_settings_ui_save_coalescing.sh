@@ -42,8 +42,10 @@ assert.strictEqual(writer.payload, JSON.stringify({launcherItemRadius: 0}), 'que
 writer.running = false;
 assert.strictEqual(context.flushPendingWrite(owner, config), true, 'latest queued snapshot should launch after the active write');
 let payload = JSON.parse(writer.payload);
-assert.strictEqual(payload.launcherItemRadius, 11, 'coalesced write must capture the latest launcher value');
-assert.strictEqual(payload.font, 'C', 'coalesced write must capture the latest text setting');
+const payloadOverrides = value => value.profileOverrides && value.profileOverrides.__profile_replace__ ? value.profileOverrides.__profile_replace__ : (value.profileOverrides || {});
+assert.strictEqual(payload.settingsPersistenceFormat, 'profile-overrides-v1', 'settings must use the compact profile-overlay format');
+assert.strictEqual(payloadOverrides(payload).launcherItemRadius, 11, 'coalesced write must capture the latest launcher value as an override');
+assert.strictEqual(payloadOverrides(payload).font, 'C', 'coalesced write must capture the latest text setting as an override');
 assert.strictEqual(payload.activeProfile, 'day', 'latest profile selection must be preserved');
 assert.strictEqual(owner.pendingWriteRequested, false, 'the queued flag should clear after starting the latest snapshot');
 // Queue another burst while the second write is active, then confirm only the
@@ -54,7 +56,7 @@ assert.strictEqual(owner.pendingWriteRequested, true, 'second burst should queue
 writer.running = false;
 assert.strictEqual(context.flushPendingWrite(owner, config), true, 'second coalesced write should start');
 payload = JSON.parse(writer.payload);
-assert.strictEqual(payload.launcherItemRadius, 19, 'second burst must persist its last launcher value');
+assert.strictEqual(payloadOverrides(payload).launcherItemRadius, 19, 'second burst must persist its last launcher value as an override');
 assert.strictEqual(payload.activeProfile, 'day', 'second burst must persist its last profile');
 assert.strictEqual(savedSignals, 5, 'each user save request should still emit save feedback');
 const qml = fs.readFileSync(path.join(root, 'Settings.qml'), 'utf8');

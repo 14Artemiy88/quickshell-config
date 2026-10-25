@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell
+import Quickshell.Io
 import "../../.."
 import "../primitives"
 
@@ -8,6 +10,110 @@ Column {
 
     property var host
     property var settings: Settings
+    property var storagePathEntries: []
+    property var storagePathGroups: [
+        { title: "Настройки и профили", entryIds: ["settings", "profiles", "settingsBackup", "configDir"] },
+        { title: "Календарь", entryIds: ["calendarNotes", "calendarMarks", "dataDir"] },
+        { title: "Данные модулей и кэши", entryIds: ["stateDir", "cacheDir", "weatherCache", "mopidyCovers", "launcherHistory"] },
+        { title: "Временные данные", entryIds: ["timerRuntimeDir"] }
+    ]
+    property bool storagePathsLoaded: false
+    property string storagePathsError: ""
+    property string storagePathEditId: ""
+    property string storagePathEditValue: ""
+    property var storagePathDrafts: ({})
+    property string storagePathApplyMessage: ""
+    property bool storagePathApplyError: false
+
+    Component.onCompleted: storagePathsProcess.running = true
+
+    Process {
+        id: storagePathsProcess
+        command: [Quickshell.shellDir + "/scripts/storage_paths"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var parsed = JSON.parse(this.text)
+                    root.storagePathEntries = Array.isArray(parsed.entries) ? parsed.entries : []
+                    root.storagePathsLoaded = true
+                    root.storagePathsError = ""
+                } catch (e) {
+                    root.storagePathsLoaded = true
+                    root.storagePathsError = "Не удалось прочитать список путей."
+                }
+            }
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0 && !root.storagePathsLoaded) {
+                root.storagePathsLoaded = true
+                root.storagePathsError = "Не удалось определить пути (код " + exitCode + ")."
+            }
+        }
+    }
+
+    Process {
+        id: storagePathApplyProcess
+        command: [
+            Quickshell.shellDir + "/scripts/storage_paths",
+            "set",
+            root.storagePathEditId,
+            root.storagePathEditValue
+        ]
+        running: false
+        stdout: StdioCollector { id: storagePathApplyCollector }
+        onExited: function(exitCode) {
+            var result = {}
+            try { result = JSON.parse(storagePathApplyCollector.text) } catch (e) {}
+            root.storagePathApplyError = exitCode !== 0 || result.ok !== true
+            root.storagePathApplyMessage = String(result.message || ("Операция завершилась с кодом " + exitCode + "."))
+            if (!root.storagePathApplyError) {
+                var completedId = root.storagePathEditId
+                root.clearStoragePathDraft(completedId)
+                root.storagePathEditId = ""
+                root.storagePathEditValue = ""
+                storagePathsProcess.running = true
+            }
+        }
+    }
+
+    function updateStoragePathDraft(id, value) {
+        var updated = {}
+        var keys = Object.keys(root.storagePathDrafts)
+        for (var i = 0; i < keys.length; i++) updated[keys[i]] = root.storagePathDrafts[keys[i]]
+        var key = String(id || "")
+        var valueText = String(value || "")
+        if (valueText.length > 0) updated[key] = valueText
+        root.storagePathDrafts = updated
+    }
+
+    function clearStoragePathDraft(id) {
+        var updated = {}
+        var keys = Object.keys(root.storagePathDrafts)
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i] !== String(id || "")) updated[keys[i]] = root.storagePathDrafts[keys[i]]
+        }
+        root.storagePathDrafts = updated
+    }
+
+    function requestStoragePathMove(id, path) {
+        var candidate = String(path || "")
+        if (storagePathApplyProcess.running) return
+        if (candidate.trim().length === 0) {
+            storagePathApplyError = true
+            storagePathApplyMessage = "Укажи новый абсолютный путь к файлу."
+            return
+        }
+        storagePathApplyMessage = ""
+        storagePathApplyError = false
+        storagePathEditId = String(id || "")
+        storagePathEditValue = candidate
+        storagePathApplyProcess.running = true
+    }
+
+    function copyStoragePath(path) {
+        Quickshell.execDetached([Quickshell.shellDir + "/scripts/copy_text", String(path || "")])
+    }
 
     visible: host && host.currentOtherTab === 0
     width: parent ? parent.width : 0
@@ -153,156 +259,6 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-        width: parent.width
-        showFrame: true
-        padding: 8
-        contentSpacing: 6
-
-        Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-            width: parent.width
-            height: 30
-            spacing: 8
-            SettingsCheckBox {
-                id: animationsEnabledBox
-                width: 210; height: 30
-                text: "Анимации"
-                checked: Config.animationsEnabled
-                onToggled: { Config.animationsEnabled = checked; settings.save() }
-       
-            }
-            Text { text: Config.animationsEnabled ? "включены" : "выключены"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
-        }
-
-        Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-            width: parent.width
-            height: 30
-            spacing: 8
-            Text { width: 210; height: 30; text: "Скорость анимаций (×)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
-            id: animationSpeedField
-            width: 100
-            height: 30
-            value: Config.animationSpeed
-            minimum: 0.25
-            maximum: 4
-            step: 0.25
-            wheelStep: 0.25
-            decimals: 2
-            compact: true
-            fieldWidth: 100
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhFormattedNumbersOnly
-            targetObject: Config
-            targetProperty: "animationSpeed"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
-        }
-
-        Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-            width: parent.width
-            height: 30
-            spacing: 8
-            Text { width: 210; height: 30; text: "Сглаживание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsComboBox {
-                id: animationEasingBox
-                width: 180; height: 30
-                model: ["Linear", "InOutQuad", "OutQuad", "InOutCubic", "InCubic", "OutCubic", "OutBack", "InOutBack"]
-                currentIndex: Math.max(0, model.indexOf(Config.animationEasing))
-                onActivated: { Config.animationEasing = currentText; settings.save() }
-                background: Rectangle { color: Config.settingsBackground; border.color: (animationEasingBox.activeFocus || animationEasingBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: animationEasingBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-            }
-        }
-
-
-        Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-            width: parent.width
-            height: 60
-            spacing: 8
-            Column {
-                width: 210; spacing: 3
-                Text { text: "Типы анимаций"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11) }
-                Text { text: "Можно отключить отдельные категории"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9) }
-            }
-            Column {
-                spacing: 2
-                Row {
-                    spacing: 12
-                    SettingsCheckBox {
-                        id: animationAppearanceBox
-                        labelFontSize: 10
-                        labelLeftPadding: 4
-                        text: "Появление"
-                        checked: Config.animationAppearanceEnabled
-                        onToggled: {
-                            Config.animationAppearanceEnabled = checked
-                            settings.save()
-                        }
-                    }
-                    SettingsCheckBox {
-                        id: animationMovementBox
-                        labelFontSize: 10
-                        labelLeftPadding: 4
-                        text: "Движение"
-                        checked: Config.animationMovementEnabled
-                        onToggled: {
-                            Config.animationMovementEnabled = checked
-                            settings.save()
-                        }
-                    }
-                }
-                Row {
-                    spacing: 12
-                    SettingsCheckBox {
-                        id: animationSizeBox
-                        labelFontSize: 10
-                        labelLeftPadding: 4
-                        text: "Размер"
-                        checked: Config.animationSizeEnabled
-                        onToggled: {
-                            Config.animationSizeEnabled = checked
-                            settings.save()
-                        }
-                    }
-                    SettingsCheckBox {
-                        id: animationExpansionBox
-                        labelFontSize: 10
-                        labelLeftPadding: 4
-                        text: "Раскрытие"
-                        checked: Config.animationExpansionEnabled
-                        onToggled: {
-                            Config.animationExpansionEnabled = checked
-                            settings.save()
-                        }
-                    }
-                }
-            }
-        }
-
-        Text {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-            text: "Единая скорость и длительности встроенных анимаций. 0 мс отключает конкретную анимацию."
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
-            wrapMode: Text.WordWrap
-            width: parent.width
-        }
-    }
-
-
-
-
-
-
-
-    SettingsGroup {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
@@ -391,6 +347,180 @@ Column {
             settingsObject: root.settings
             saveOnEdit: true
         }
+        }
+    }
+
+    Text {
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+        width: parent.width
+        text: "Пути вычисляются автоматически. Перемещать можно settings.json, profiles.json, calendar-notes.json и calendar-marks.json. Файл переносится с проверкой JSON; старый вариант сохраняется как резервная копия. После смены расположения рекомендуется перезапустить Quickshell."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+        wrapMode: Text.WordWrap
+    }
+
+    Text {
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && !root.storagePathsLoaded
+        width: parent.width
+        text: "Определение путей хранения…"
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+    }
+
+    Text {
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && root.storagePathsError.length > 0
+        width: parent.width
+        text: root.storagePathsError
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+        wrapMode: Text.WordWrap
+    }
+
+    Text {
+        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && root.storagePathApplyMessage.length > 0
+        width: parent.width
+        text: root.storagePathApplyMessage
+        color: root.storagePathApplyError ? "#e06c75" : Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+        wrapMode: Text.WordWrap
+    }
+
+    Repeater {
+        model: root.storagePathGroups
+
+        delegate: SettingsGroup {
+            id: storagePathsGroup
+            required property var modelData
+            property var groupEntryIds: modelData.entryIds
+
+            visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+            width: parent.width
+            showFrame: true
+            heading: modelData.title
+            padding: 8
+            contentSpacing: 8
+
+            Repeater {
+                model: root.storagePathEntries.filter(function(entry) {
+                    return storagePathsGroup.groupEntryIds.indexOf(entry.id) >= 0
+                })
+
+                delegate: Column {
+                    required property var modelData
+                    width: parent.width
+                    spacing: 3
+
+                    Row {
+                        width: parent.width
+                        height: 28
+                        spacing: 8
+
+                        Text {
+                            width: parent.width - copyButton.width - parent.spacing
+                            height: parent.height
+                            text: modelData.label
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            font.bold: true
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        SettingsButton {
+                            id: copyButton
+                            width: 82
+                            height: 26
+                            text: "Копировать"
+                            fontSize: 9
+                            tooltip: "Копировать путь в буфер обмена"
+                            onClicked: root.copyStoragePath(modelData.path)
+                        }
+                    }
+
+                    TextArea {
+                        width: parent.width
+                        height: Math.max(20, contentHeight)
+                        text: modelData.path
+                        readOnly: true
+                        selectByMouse: true
+                        color: Config.textMuted
+                        selectionColor: Config.baseColor
+                        selectedTextColor: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        wrapMode: TextArea.WrapAnywhere
+                        padding: 0
+                        background: null
+                    }
+
+                    Column {
+                        visible: modelData.editable === true
+                        width: parent.width
+                        spacing: 4
+
+                        Text {
+                            width: parent.width
+                            text: "Новое расположение (имя файла не меняется)"
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(9)
+                        }
+
+                        Row {
+                            width: parent.width
+                            height: 30
+                            spacing: 8
+
+                            SettingsTextField {
+                                id: storagePathTargetField
+                                width: parent.width - relocatePathButton.width - parent.spacing
+                                height: 30
+                                text: root.storagePathDrafts[modelData.id] || ""
+                                placeholderText: "Абсолютный путь к " + String(modelData.path || "").split("/").pop()
+                                selectByMouse: true
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(10)
+                                enabled: !storagePathApplyProcess.running
+                                onTextChanged: root.updateStoragePathDraft(modelData.id, text)
+                                onAccepted: root.requestStoragePathMove(modelData.id, text)
+                            }
+
+                            SettingsButton {
+                                id: relocatePathButton
+                                width: 94
+                                height: 28
+                                text: "Перенести"
+                                fontSize: 9
+                                enabled: !storagePathApplyProcess.running
+                                tooltip: "Проверить JSON, скопировать файл и переключить расположение"
+                                onClicked: root.requestStoragePathMove(modelData.id, storagePathTargetField.text)
+                            }
+                        }
+                    }
+
+                    Text {
+                        visible: String(modelData.description || "").length > 0
+                        width: parent.width
+                        text: String(modelData.description || "")
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(9)
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Config.baseColor
+                        opacity: 0.55
+                    }
+                }
+            }
         }
     }
 

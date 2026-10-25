@@ -2,12 +2,6 @@
 
 function apply(Config, o) {
         // General behaviour / update intervals
-        if (o.animationsEnabled !== undefined) Config.animationsEnabled = !!o.animationsEnabled
-        if (o.animationSpeed !== undefined) {
-            var as = Number(o.animationSpeed)
-            if (isFinite(as)) Config.animationSpeed = Math.max(0.25, Math.min(4.0, as))
-        }
-        if (o.animationEasing !== undefined) Config.animationEasing = String(o.animationEasing)
         var allowedVisibilityStyles = ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
         var legacyAnimationStyle = o.animationVisibilityStyle !== undefined ? String(o.animationVisibilityStyle) : ""
         if (allowedVisibilityStyles.indexOf(legacyAnimationStyle) < 0) legacyAnimationStyle = ""
@@ -22,10 +16,6 @@ function apply(Config, o) {
             var styleValue = o[styleKey] !== undefined ? String(o[styleKey]) : legacyAnimationStyle
             if (allowedVisibilityStyles.indexOf(styleValue) >= 0) Config[styleKey] = styleValue
         }
-        if (o.animationAppearanceEnabled !== undefined) Config.animationAppearanceEnabled = !!o.animationAppearanceEnabled
-        if (o.animationMovementEnabled !== undefined) Config.animationMovementEnabled = !!o.animationMovementEnabled
-        if (o.animationSizeEnabled !== undefined) Config.animationSizeEnabled = !!o.animationSizeEnabled
-        if (o.animationExpansionEnabled !== undefined) Config.animationExpansionEnabled = !!o.animationExpansionEnabled
         var animationNumberFields = [
             ["animationTimerOptionsDuration", 0, 5000],
             ["animationCalendarSlideDuration", 0, 5000],

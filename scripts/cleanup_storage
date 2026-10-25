@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "$0")/env"
+
+# Only prune the narrowly-scoped one-off snapshots made before launcher
+# project recovery. Never touch live locks, migration markers, primary backups,
+# secrets, corrupt-file recovery snapshots, or application data.
+qs_refresh_storage_file_paths
+settings_dir="${QS_SETTINGS_FILE%/*}"
+[[ -n "$settings_dir" ]] || settings_dir="/"
+[[ -d "$settings_dir" ]] || exit 0
+
+# Keep at least the newest three snapshots, and only consider snapshots older
+# than 14 days for removal. Filenames are fixed to the exact known pattern.
+mapfile -t snapshots < <(find "$settings_dir" -maxdepth 1 -type f \
+    -name 'settings.json.before-launcher-project-recovery-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]' \
+    -printf '%T@\t%p\n' 2>/dev/null | sort -nr | cut -f2-)
+
+removed=0
+for ((i=3; i<${#snapshots[@]}; i++)); do
+    file="${snapshots[$i]}"
+    [[ -f "$file" && ! -L "$file" ]] || continue
+    # Recheck age immediately before deletion; keep recent recovery snapshots.
+    if find "$file" -maxdepth 0 -type f -mmin +20160 -print -quit 2>/dev/null | grep -q .; then
+        if rm -f -- "$file"; then ((removed+=1)); fi
+    fi
+done
+if ((removed > 0)); then
+    printf 'cleanup_storage: removed %d old launcher recovery snapshot(s)\n' "$removed"
+fi

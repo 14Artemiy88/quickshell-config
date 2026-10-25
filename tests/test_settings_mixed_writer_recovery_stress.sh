@@ -33,14 +33,14 @@ for i in $(seq 1 24); do
     ) & workers+=("$!")
 done
 for pid in "${workers[@]}"; do wait "$pid" || fail 'concurrent token/UI/read transaction failed'; done
-jq -e 'type == "object" and (.weatherToken | startswith("external-token-")) and (.uiRevision | type == "number") and .stable.value == "preserved" and .modules.time == true' "$CFG" >/dev/null || fail 'mixed writes lost token or UI snapshot fields'
+jq -e 'type == "object" and (has("weatherToken") | not) and (.uiRevision | type == "number") and .stable.value == "preserved" and .modules.time == true' "$CFG" >/dev/null || fail 'mixed writes lost UI snapshot fields'; jq -e '.weatherToken | startswith("external-token-")' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json" >/dev/null || fail 'mixed writes lost token'
 cmp -s "$CFG" "$BACKUP" || fail 'backup diverged after concurrent mixed writes'
 [[ "$(stat -c '%a' "$CFG")" == 600 && "$(stat -c '%a' "$BACKUP")" == 600 ]] || fail 'settings or backup permissions are not 600'
 
 # Recovery runs under the same transaction lock. A read that discovers a
 # damaged primary, a token update, and a stale UI snapshot must converge to the
 # last committed token without returning to malformed JSON or losing fields.
-baseline=$(jq -r '.weatherToken' "$CFG")
+baseline=$(jq -r '.weatherToken' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json")
 printf '{truncated json\n' > "$CFG"
 payload=$(jq -cn --arg token "$baseline" '{weatherToken:$token,uiRevision:777,stable:{value:"preserved"},modules:{time:true},geometry:{}}')
 workers=()
@@ -48,7 +48,7 @@ workers=()
 "$SETTINGS" token recovery-token >/dev/null & workers+=("$!")
 "$SETTINGS" set-json-ui "$payload" "$baseline" >/dev/null & workers+=("$!")
 for pid in "${workers[@]}"; do wait "$pid" || fail 'concurrent recovery/read/token/UI transaction failed'; done
-jq -e 'type == "object" and .weatherToken == "recovery-token" and .uiRevision == 777 and .stable.value == "preserved" and .modules.time == true' "$CFG" >/dev/null || fail 'recovery race lost the final token or the latest UI state'
+jq -e 'type == "object" and (has("weatherToken") | not) and .uiRevision == 777 and .stable.value == "preserved" and .modules.time == true' "$CFG" >/dev/null || fail 'recovery race lost the latest UI state'; jq -e '.weatherToken == "recovery-token"' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json" >/dev/null || fail 'recovery race lost final token'
 cmp -s "$CFG" "$BACKUP" || fail 'backup diverged after recovery race'
 jq -e 'type == "object"' "$TMP_ROOT/recovered-read.json" >/dev/null || fail 'concurrent reader observed malformed JSON'
 compgen -G "$DIR/.settings.json.corrupt.*" >/dev/null || fail 'damaged settings file was not preserved'

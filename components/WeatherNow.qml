@@ -58,25 +58,64 @@ Primitives.ModuleFrame {
             horizontalAlignment: Text.AlignHCenter
         }
 
-        Text {
-            visible: Config.weatherShowComfort
+        Item {
+            id: weatherComfortLabel
             x: Config.weatherTempX + Config.weatherComfortOffsetX
             y: Config.weatherComfortY + Config.weatherComfortOffsetY
             width: Config.weatherTempWidth
             height: Config.weatherComfortHeight
-            text: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
-                  ? (root.weather.temperature?.comfort?.C ?? "") : ""
-            color: Config.textMuted
-            style: Text.Outline
-            // Use the theme's opaque foreground contrast color: Config.background
-            // is intentionally translucent and could not separate close digits.
-            styleColor: Config.black
-            font.family: Config.ledFont
-            font.pixelSize: Config.weatherComfortFontSize
-            lineHeight: Config.weatherComfortHeight
-            lineHeightMode: Text.FixedHeight
-            verticalAlignment: Text.AlignTop
-            horizontalAlignment: Text.AlignHCenter
+            property string comfortValue: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
+                                          ? String(root.weather.temperature?.comfort?.C ?? "") : ""
+            visible: Config.weatherShowComfort && comfortValue !== ""
+            // QtQuick Text.Outline exposes a color but not a stroke width. Build a
+            // smoother outline from evenly spaced fractional offsets behind the fill.
+            // One UI step maps to a 0.5 px radius (about a 1 px total stroke), rather
+            // than a full 1 px radius which made the thinnest setting look too heavy.
+            property var outlineOffsets: {
+                var offsets = []
+                var thickness = Math.max(0, Math.min(4, Math.round(Number(Config.weatherComfortOutlineWidth) || 0)))
+                if (thickness <= 0)
+                    return offsets
+                var radius = thickness * 0.5
+                var sampleCount = 8
+                for (var i = 0; i < sampleCount; ++i) {
+                    var angle = (Math.PI * 2 * i) / sampleCount
+                    offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+                }
+                return offsets
+            }
+
+            Repeater {
+                model: weatherComfortLabel.outlineOffsets
+                delegate: Text {
+                    z: -1
+                    x: modelData.x
+                    y: modelData.y
+                    width: weatherComfortLabel.width
+                    height: weatherComfortLabel.height
+                    text: weatherComfortLabel.comfortValue
+                    color: Config.weatherComfortOutlineColor
+                    font.family: Config.ledFont
+                    font.pixelSize: Config.weatherComfortFontSize
+                    lineHeight: Config.weatherComfortHeight
+                    lineHeightMode: Text.FixedHeight
+                    verticalAlignment: Text.AlignTop
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
+
+            Text {
+                z: 1
+                anchors.fill: parent
+                text: weatherComfortLabel.comfortValue
+                color: Config.textMuted
+                font.family: Config.ledFont
+                font.pixelSize: Config.weatherComfortFontSize
+                lineHeight: Config.weatherComfortHeight
+                lineHeightMode: Text.FixedHeight
+                verticalAlignment: Text.AlignTop
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
     }
 

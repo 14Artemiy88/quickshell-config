@@ -39,6 +39,7 @@ function makeOwner() {
   return {owner, writer};
 }
 
+const payloadOverrides = value => value.profileOverrides && value.profileOverrides.__profile_replace__ ? value.profileOverrides.__profile_replace__ : (value.profileOverrides || {});
 for (const signalOrder of ['process-exit-first', 'stdout-first']) {
   const {owner, writer} = makeOwner();
   const config = {launcherItemRadius: 4, font: 'initial'};
@@ -62,7 +63,7 @@ for (const signalOrder of ['process-exit-first', 'stdout-first']) {
   writer.tokenOutputFinished = false;
   assert.strictEqual(context.flushPendingWrite(owner, config), true, `${signalOrder}: newest queued snapshot should start once finalized`);
   const payload = JSON.parse(writer.payload);
-  assert.strictEqual(payload.font, 'newest-' + signalOrder, `${signalOrder}: queued write must include the latest setting`);
+  assert.strictEqual(payloadOverrides(payload).font, 'newest-' + signalOrder, `${signalOrder}: queued write must include the latest setting as an override`);
   assert.strictEqual(writer.running, true, `${signalOrder}: queued writer should now be active`);
 }
 

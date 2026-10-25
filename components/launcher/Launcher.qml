@@ -1212,18 +1212,18 @@ PanelWindow {
 
             Behavior on y {
                 NumberAnimation {
-                    duration: Config.animationsEnabled ? Config.animationDuration(180, "movement") : 0
+                    duration: Config.animationDuration(180, "movement")
                     easing.type: Easing.OutCubic
                 }
             }
         }
 
         Behavior on scale {
-            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(180, "size") : 0; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Config.animationDuration(180, "size"); easing.type: Easing.OutCubic }
         }
 
         Behavior on opacity {
-            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(140, "appearance") : 0; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: Config.animationDuration(140, "appearance"); easing.type: Easing.OutCubic }
         }
 
         Component.onCompleted: entranceTimer.start()
@@ -1456,7 +1456,7 @@ PanelWindow {
                         border.width: root.mode === modelData.mode ? 1 : 0
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         ToolTip.text: modelData.label
@@ -1509,7 +1509,7 @@ PanelWindow {
                 border.width: 1
 
                 Behavior on border.color {
-                    ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(140, "appearance") : 0; easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: Config.animationDuration(140, "appearance"); easing.type: Easing.OutCubic }
                 }
 
 
@@ -1942,7 +1942,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
                         }
 
                         width: appList.width
@@ -1960,11 +1960,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         property var itemData: modelData
@@ -1998,7 +1998,7 @@ PanelWindow {
                                         : theme.surface)
 
                                 Behavior on color {
-                                    ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                                    ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                                 }
 
                                 Image {
@@ -2224,7 +2224,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
                         }
 
                         width: runList.width
@@ -2241,11 +2241,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         RowLayout {
@@ -2380,7 +2380,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
                         }
 
                         width: windowList.width
@@ -2615,7 +2615,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationsEnabled ? Config.animationDuration(110, "size") : 0; easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
                         }
 
                         width: clipboardList.width
@@ -2633,11 +2633,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         RowLayout {
@@ -3276,8 +3276,8 @@ PanelWindow {
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
                         border.width: ListView.isCurrentItem ? 1 : 0
 
-                        Behavior on color { ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 } }
-                        Behavior on border.color { ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 } }
+                        Behavior on color { ColorAnimation { duration: Config.animationDuration(120, "appearance") } }
+                        Behavior on border.color { ColorAnimation { duration: Config.animationDuration(120, "appearance") } }
 
                         RowLayout {
                             anchors.fill: parent
@@ -3449,11 +3449,11 @@ PanelWindow {
                         border.width: ListView.isCurrentItem ? 1 : 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationsEnabled ? Config.animationDuration(120, "appearance") : 0 }
+                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
                         }
 
                         Rectangle {

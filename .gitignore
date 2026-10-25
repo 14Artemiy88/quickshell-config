@@ -17,9 +17,57 @@ __pycache__/
 .venv/
 
 # User data copied into the project root by mistake (runtime data is normally outside the repo)
-/settings.json
 /calendar-notes.json
 
 # Local build/release output
 /build/
 /dist/
+
+# Machine-local credentials; never commit these.
+secrets.json
+.secrets.json*
+
+# Local runtime settings/storage artifacts (including when testing in the repo root)
+/calendar-notes.json
+/calendar-marks.json
+/secrets.json
+/.settings.json.bak
+/.profiles.json.bak
+/.secrets.json.bak
+/.settings.lock
+/.profiles.lock
+/.storage-paths.conf
+/.storage-paths.lock
+/.calendar-notes.lock
+/.calendar-marks.lock
+/.migration-settings-v1
+/.migration-calendar-notes-v1
+/.migration-calendar-marks-v1
+/settings.json.before-launcher-project-recovery-*
+/.profiles.lock
+/.settings.json.corrupt.*
+/.profiles.json.corrupt.*
+/.secrets.json.corrupt.*
+
+# Storage sidecars must stay local even when settings/profiles are stored in a
+# nested directory inside a Git checkout. The primary settings.json and
+# profiles.json remain intentionally trackable for configuration sync.
+.settings.json.bak
+.profiles.json.bak
+.secrets.json.bak
+.settings.lock
+.profiles.lock
+.storage-paths.conf
+.storage-paths.lock
+.calendar-notes.lock
+.calendar-marks.lock
+.migration-settings-v1
+.migration-calendar-notes-v1
+.migration-calendar-marks-v1
+.settings.json.corrupt.*
+.settings.json.backup-corrupt.*
+.profiles.json.corrupt.*
+.secrets.json.corrupt.*
+settings.json.before-launcher-project-recovery-*
+calendar-notes.json
+calendar-marks.json

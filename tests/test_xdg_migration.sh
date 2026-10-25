@@ -33,13 +33,13 @@ notes_output="$("$fixture/scripts/calendar_notes" get)"
 [[ -f "$fixture/settings.json" && -f "$fixture/calendar-notes.json" ]]
 
 # Existing canonical data must never be overwritten by the retained legacy copy.
-printf '%s\n' '{"weatherToken":"canonical-value"}' > "$XDG_CONFIG_HOME/quickshell-widgets/settings.json"
+"$ROOT/scripts/settings" token 'canonical-value'
 settings_output="$("$fixture/scripts/settings" get)"
 [[ "$(jq -r '.weatherToken' <<< "$settings_output")" == "canonical-value" ]]
 # A reset/removal after migration must not resurrect the retained legacy file.
 rm -f "$XDG_CONFIG_HOME/quickshell-widgets/settings.json"
 settings_output="$("$fixture/scripts/settings" get)"
-[[ "$(jq -r '.weatherToken' <<< "$settings_output")" == "" ]]
+[[ "$(jq -r '.weatherToken' <<< "$settings_output")" == "canonical-value" ]]
 rm -f "$XDG_DATA_HOME/quickshell-widgets/calendar-notes.json"
 notes_output="$("$fixture/scripts/calendar_notes" get)"
 [[ "$(jq -r 'length' <<< "$notes_output")" == "0" ]]
@@ -79,7 +79,10 @@ printf '%s\n' '{"2025-04-01":"installer note"}' > "$install_config/quickshell/de
 HOME="$install_home" XDG_CONFIG_HOME="$install_config" XDG_DATA_HOME="$install_data" \
     XDG_STATE_HOME="$install_home/state" XDG_CACHE_HOME="$install_home/cache" \
     "$ROOT/install.sh" > "$TMP_ROOT/install.log"
-[[ "$(jq -r '.weatherToken' "$install_config/quickshell-widgets/settings.json")" == "installer-token" ]]
+HOME="$install_home" XDG_CONFIG_HOME="$install_config" XDG_DATA_HOME="$install_data" \
+    XDG_STATE_HOME="$install_home/state" XDG_CACHE_HOME="$install_home/cache" \
+    "$ROOT/scripts/settings" get > /dev/null
+[[ "$(jq -r '.weatherToken' "$install_config/quickshell-widgets/secrets.json")" == "installer-token" ]]
 [[ "$(jq -r '."2025-04-01"' "$install_data/quickshell-widgets/calendar-notes.json")" == "installer note" ]]
 [[ -f "$install_config/quickshell/desktop-shell/settings.json" && -f "$install_config/quickshell/desktop-shell/calendar-notes.json" ]]
 

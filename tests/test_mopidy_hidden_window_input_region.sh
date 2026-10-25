@@ -10,9 +10,14 @@ start = source.index('id: mopidyWindow')
 end = source.index('\n    WidgetWindow {', start)
 window = source[start:end]
 
-# A toggled-off Mopidy surface must not remain above desktop applications after
-# the hide animation. Layout editing still needs the window for positioning.
-assert 'visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode)' in window
+# Keep a transparent layer surface while Mopidy is enabled so the compositor
+# cannot override module `none` with its own fade. Empty mask is click-through;
+# blur follows the actual animated content item.
+assert 'visible: Settings.mopidy' in window
+assert 'manageInputMask: true' in window
+assert 'inputMaskEnabled: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode' in window
+assert 'backgroundBlurVisible: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running' in window
+assert 'backgroundBlurItem: mopidyVisibility.blurRegionItem' in window
 assert 'shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible' in window
 assert 'id: mopidyVisibility' in window
 

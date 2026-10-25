@@ -80,7 +80,7 @@ Item {
 
     readonly property var currentOtherSubTabs: {
         switch (root.currentOtherTab) {
-        case 0: return ["Интерфейс", "Анимации", "Профили"]
+        case 0: return ["Интерфейс", "Профили", "Хранилища"]
         case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации"]
         case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
         case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
@@ -275,11 +275,10 @@ Item {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
-                                    visible: !(root.currentOtherTab === 0 && root.currentOtherSubTab === 2)
+                                    visible: !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))
                                     tooltip: "Сбросить текущую вкладку"
                                     onClicked: {
                                         if (root.currentOtherTab === 0 && root.currentOtherSubTab === 0) settings.resetGeneralSettings()
-                                        else if (root.currentOtherTab === 0 && root.currentOtherSubTab === 1) settings.resetAnimationSettings()
                                         else if (root.currentOtherTab === 1) settings.resetTimerSettings()
                                         else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
                                         else if (root.currentOtherTab === 3) settings.resetWeatherSettings()

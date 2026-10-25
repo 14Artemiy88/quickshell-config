@@ -20,7 +20,7 @@ CFG="$XDG_CONFIG_HOME/quickshell-widgets/settings.json"
 
 valid='{"weatherToken":"old","custom":{"value":7},"modules":{"time":true},"geometry":{}}'
 "$SETTINGS" set-json "$valid"
-jq -e '.weatherToken == "old" and .custom.value == 7' "$CFG" >/dev/null || fail 'valid set-json payload was not written'
+jq -e 'has("weatherToken") | not' "$CFG" && jq -e '.weatherToken == "old" and .custom.value == 7' <("$SETTINGS" get) >/dev/null || fail 'valid set-json payload was not written'
 cp "$CFG" "$TMP_ROOT/before.json"
 if "$SETTINGS" set-json '{invalid' >/dev/null 2>&1; then fail 'malformed JSON was accepted'; fi
 if "$SETTINGS" set-json '[]' >/dev/null 2>&1; then fail 'non-object JSON was accepted'; fi
@@ -34,8 +34,8 @@ for i in $(seq 1 24); do
     workers+=("$!")
 done
 for pid in "${workers[@]}"; do wait "$pid" || fail 'concurrent token update failed'; done
-jq -e 'type == "object" and (.weatherToken | startswith("token-")) and .custom.value == 7 and .modules.time == true' "$CFG" >/dev/null || fail 'concurrent token updates corrupted or lost unrelated settings'
-cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup did not track the newest concurrent token update'
+jq -e 'type == "object" and .custom.value == 7 and .modules.time == true and (has("weatherToken") | not)' "$CFG" >/dev/null || fail 'concurrent token updates corrupted or lost unrelated settings'; jq -e '.weatherToken | startswith("token-")' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json" >/dev/null || fail 'concurrent token updates lost the secret'
+cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup did not track the newest settings state'
 
 # Concurrent whole-snapshot writes must publish one complete payload, never a
 # truncated/mixed JSON file. Which writer wins is deliberately unspecified.

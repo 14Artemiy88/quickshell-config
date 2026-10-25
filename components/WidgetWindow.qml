@@ -13,6 +13,14 @@ PanelWindow {
     property bool keyboardEnabled: false
     property bool backgroundBlurEnabled: root.moduleName !== "" && Settings.moduleBlurEnabled[root.moduleName] === true
     property int backgroundBlurRadius: Config.backgroundBlurRadius
+    // Animated module windows keep their transparent layer-shell surface alive
+    // to avoid compositor-level open/close fades overriding the module's
+    // explicit "none" animation style. An empty input region makes a hidden
+    // surface click-through, while blur follows the actually moving content.
+    property bool manageInputMask: false
+    property bool inputMaskEnabled: true
+    property Item backgroundBlurItem: contentHost
+    property bool backgroundBlurVisible: true
     property string moduleName: ""
     property bool layoutEditMode: false
     property bool settingsDragMode: false
@@ -95,6 +103,15 @@ PanelWindow {
     margins.left: root.offsetX
     margins.top: root.offsetY
     WlrLayershell.layer: root.layoutEditMode ? root.editWlrLayer : root.normalWlrLayer
+    mask: root.manageInputMask ? managedInputMask : null
+
+    Region {
+        id: managedInputMask
+        item: root.inputMaskEnabled ? contentHost : null
+        // Null item + empty geometry is an explicitly empty click-through mask.
+        width: 0
+        height: 0
+    }
 
     default property alias contentData: contentHost.data
 
@@ -250,7 +267,7 @@ PanelWindow {
     // Blur what is behind this layer-shell surface, not its own contents.
     // Requires compositor support for ext-background-effect-v1.
     BackgroundEffect.blurRegion: Region {
-        item: root.backgroundBlurEnabled ? contentHost : null
+        item: root.backgroundBlurEnabled && root.backgroundBlurVisible ? root.backgroundBlurItem : null
         radius: Math.max(0, root.backgroundBlurRadius)
     }
 }

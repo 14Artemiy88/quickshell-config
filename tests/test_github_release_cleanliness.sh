@@ -17,7 +17,9 @@ for section in '## Русский' '## English' '### Требования' '### 
     grep -Fq "$section" "$README" || { echo "README missing section: $section" >&2; exit 1; }
 done
 
-grep -Fqx '/settings.json' "$GITIGNORE"
+! grep -Fqx '/settings.json' "$GITIGNORE"
+! grep -Fqx '/profiles.json' "$GITIGNORE"
+grep -Fq 'secrets.json' "$GITIGNORE"
 grep -Fqx '/calendar-notes.json' "$GITIGNORE"
 grep -Fq 'XDG_CONFIG_HOME' "$ROOT/install.sh"
 

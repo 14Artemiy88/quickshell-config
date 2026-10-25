@@ -82,6 +82,62 @@ function profileBase(owner) {
     return base
 }
 
+
+var STORAGE_FORMAT = "profile-overrides-v1"
+
+// Expand the compact settings file back into the effective flat snapshot used
+// by the existing QML settings adapters. The active profile is the base;
+// profileOverrides contains only deliberate differences from that profile.
+function expandStoredSettings(owner, stored) {
+    if (!stored || typeof stored !== "object" || stored.settingsPersistenceFormat !== STORAGE_FORMAT)
+        return clone(stored)
+
+    var defaults = profileBase(owner)
+    var profiles = clone(stored.profiles || {})
+    var sparse = String(stored.profileStorageFormat || "") === SPARSE_FORMAT
+
+    // New-format files are written with sparse profiles. If a hand-edited or
+    // interrupted migration leaves a legacy profile representation under the
+    // new marker, normalize it to sparse deltas before choosing the base.
+    if (!sparse) {
+        var migrated = {}
+        for (var legacyName in profiles) {
+            if (!Object.prototype.hasOwnProperty.call(profiles, legacyName)) continue
+            var completed = completeLegacySnapshot(defaults, profiles[legacyName])
+            migrated[legacyName] = sparseProfile(owner, completed)
+        }
+        profiles = migrated
+    }
+
+    var requested = String(stored.activeProfile || "").trim()
+    var active = requested && Object.prototype.hasOwnProperty.call(profiles, requested) ? requested : ""
+    var base = clone(defaults)
+    if (active)
+        base = mergeValue(base, profiles[active])
+
+    var overrides = isObject(stored.profileOverrides) ? clone(stored.profileOverrides) : {}
+    var reserved = [
+        "settingsPersistenceFormat", "profileOverrides", "managedKeys", "managedNestedKeys",
+        "weatherToken", "profiles", "profileStorageFormat", "activeProfile", "customThemes"
+    ]
+    // Preserve unrecognized top-level fields from newer app versions. They
+    // are passthrough extensions, not part of this version's active schema.
+    var extras = {}
+    for (var key in stored) {
+        if (!Object.prototype.hasOwnProperty.call(stored, key) || reserved.indexOf(key) >= 0) continue
+        extras[key] = clone(stored[key])
+    }
+
+    var effective = mergeValue(base, overrides)
+    effective = mergeValue(effective, extras)
+    effective.weatherToken = String(stored.weatherToken || "").trim()
+    effective.profiles = profiles
+    effective.profileStorageFormat = SPARSE_FORMAT
+    effective.activeProfile = active
+    effective.customThemes = clone(stored.customThemes || {})
+    return effective
+}
+
 function captureDefaults(owner) {
     var base = clone(owner.snapshotObject())
     delete base.weatherToken

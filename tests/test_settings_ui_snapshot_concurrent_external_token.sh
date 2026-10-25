@@ -24,7 +24,7 @@ for i in $(seq 1 24); do
     workers+=("$!")
 done
 for pid in "${workers[@]}"; do wait "$pid" || fail 'a concurrent token/UI-snapshot update failed'; done
-jq -e 'type == "object" and (.weatherToken | startswith("external-token-")) and (.uiRevision | type == "number") and .stable.value == 42' "$CFG" >/dev/null || fail 'stale UI snapshot erased the final external token or corrupted other fields'
+jq -e 'type == "object" and (has("weatherToken") | not) and (.uiRevision | type == "number") and .stable.value == 42' "$CFG" >/dev/null || fail 'concurrent UI snapshots corrupted settings'; jq -e '.weatherToken | startswith("external-token-")' "$XDG_CONFIG_HOME/quickshell-widgets/secrets.json" >/dev/null || fail 'stale UI snapshot erased the final external token'
 cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup diverged after concurrent UI/token writes'
 if jq -e 'type == "object"' "$CFG" >/dev/null 2>&1; then :; else fail 'concurrent writes left invalid JSON'; fi
 echo 'Settings UI snapshots preserve concurrent external token updates: OK'

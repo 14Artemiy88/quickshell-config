@@ -52,7 +52,9 @@ assert.strictEqual(context.flushPendingWrite(owner, config), true, 'queued save 
 assert.strictEqual(writer.running, true, 'flush should start exactly one write');
 assert.strictEqual(owner.pendingWriteRequested, false, 'flush should clear the queued flag');
 let payload = JSON.parse(writer.payload);
-assert.strictEqual(payload.launcherItemRadius, 13, 'latest UI values should be captured');
+const payloadOverrides = value => value.profileOverrides && value.profileOverrides.__profile_replace__ ? value.profileOverrides.__profile_replace__ : (value.profileOverrides || {});
+assert.strictEqual(payload.settingsPersistenceFormat, 'profile-overrides-v1', 'write should use compact profile-overlay storage');
+assert.strictEqual(payloadOverrides(payload).launcherItemRadius, 13, 'latest UI values should be captured as an override');
 assert.strictEqual(payload.activeProfile, 'night', 'latest active profile should be captured');
 assert.strictEqual(payload.profileStorageFormat, 'sparse-v1', 'write should use canonical profile format');
 
@@ -60,11 +62,11 @@ assert.strictEqual(payload.profileStorageFormat, 'sparse-v1', 'write should use 
 writer.running = true;
 context.save(owner, {...config, launcherItemRadius: 19});
 assert.strictEqual(owner.pendingWriteRequested, true, 'save during a write must queue a fresh snapshot');
-assert.strictEqual(JSON.parse(writer.payload).launcherItemRadius, 13, 'in-flight payload must not be mutated');
+assert.strictEqual(payloadOverrides(JSON.parse(writer.payload)).launcherItemRadius, 13, 'in-flight payload must not be mutated');
 writer.running = false;
 assert.strictEqual(context.flushPendingWrite(owner, {...config, launcherItemRadius: 19}), true, 'latest queued snapshot should flush');
 payload = JSON.parse(writer.payload);
-assert.strictEqual(payload.launcherItemRadius, 19, 'queued write must capture the latest state');
+assert.strictEqual(payloadOverrides(payload).launcherItemRadius, 19, 'queued write must capture the latest state as an override');
 
 const qml = fs.readFileSync(path.join(root, 'Settings.qml'), 'utf8');
 assert(/onLoadedChanged:\s*\{\s*if \(root\.loaded\)\s*root\.flushPendingWrite\(\)/.test(qml), 'QML must flush queued saves when startup load completes');

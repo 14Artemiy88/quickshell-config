@@ -52,7 +52,7 @@ jq -e '
   .colors.accent == "#fedcba" and .colors.futureAccent == "#123456" and
   (.customThemes | keys == ["NewTheme"]) and
   (.profiles | keys == ["NewProfile"])
-' "$CFG" >/dev/null || fail 'UI snapshot lost unknown settings or failed to apply intentional collection replacements'
+' < <("$SETTINGS" get) >/dev/null || fail 'UI snapshot lost unknown settings or failed to apply intentional collection replacements'
 
 cmp -s "$CFG" "$XDG_CONFIG_HOME/quickshell-widgets/.settings.json.bak" || fail 'backup did not follow the merged snapshot'
 echo 'Settings UI snapshot preserves unknown fields and intentional collection deletions: OK'

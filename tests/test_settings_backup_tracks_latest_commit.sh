@@ -22,7 +22,7 @@ second='{"weatherToken":"second","prefs":{"revision":2},"modules":{"time":false}
 cmp -s "$CFG" "$BACKUP" || fail 'backup was not synchronized after first committed write'
 "$SETTINGS" set-json "$second"
 cmp -s "$CFG" "$BACKUP" || fail 'backup lagged behind the second committed write'
-jq -e '.weatherToken == "second" and .prefs.revision == 2 and .modules.time == false' "$BACKUP" >/dev/null || fail 'backup does not contain the latest snapshot'
+jq -e '(has("weatherToken") | not) and .prefs.revision == 2 and .modules.time == false' "$BACKUP" >/dev/null || fail 'backup does not contain the latest snapshot'
 
 # A valid current file paired with an older valid backup must refresh the backup
 # on read, covering a process stop between primary publish and backup refresh.
@@ -33,7 +33,7 @@ cmp -s "$CFG" "$BACKUP" || fail 'get did not refresh a stale but valid backup'
 
 # Token updates also need to leave both copies at the newly committed state.
 "$SETTINGS" token 'third' 
-jq -e '.weatherToken == "third" and .prefs.revision == 2' "$CFG" >/dev/null || fail 'token update was not applied'
+jq -e '(has("weatherToken") | not) and .prefs.revision == 2' "$CFG" && jq -e '.weatherToken == "third"' "$DIR/secrets.json" >/dev/null || fail 'token update was not applied'
 cmp -s "$CFG" "$BACKUP" || fail 'backup lagged behind token update'
 
 # Damage after the successful write must restore the latest state, not the one

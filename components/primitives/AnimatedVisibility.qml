@@ -12,6 +12,11 @@ Item {
     property string activeAnimationStyle: "fade"
     property int activeDuration: 250
     readonly property bool running: showTransition.running || hideTransition.running
+    // Expose the actual animated item so a parent layer-shell window can tie
+    // its compositor blur region to the content instead of the stationary
+    // window rectangle. Using x/y (rather than a Translate transform) makes
+    // Region observe geometry changes during slide transitions.
+    readonly property Item blurRegionItem: contentHost
 
     default property alias contentData: contentHost.data
 
@@ -23,15 +28,12 @@ Item {
 
         Item {
             id: contentHost
-            anchors.fill: parent
+            width: parent.width
+            height: parent.height
+            x: 0
+            y: 0
             visible: true
             enabled: root.shown
-
-            transform: Translate {
-                id: contentTransform
-                x: 0
-                y: 0
-            }
         }
     }
 
@@ -60,12 +62,9 @@ Item {
     }
 
     function animationAllowed() {
-        // The global toggle disables every visibility transition, regardless of
-        // the per-module style or the animation-category switches.
-        return Config.animationsEnabled
-            && Config.animationAppearanceEnabled
-            && root.activeAnimationStyle !== "none"
-            && root.activeDuration > 0
+        // Each module's own style is authoritative: "none" means immediate
+        // visibility changes, with no fallback to fade or other transitions.
+        return root.activeAnimationStyle !== "none" && root.activeDuration > 0
     }
 
     function applyImmediate(visible) {
@@ -73,16 +72,23 @@ Item {
         hideTransition.stop()
         contentHost.visible = visible
         contentHost.enabled = visible
-        exitHost.x = 0
-        exitHost.y = 0
-        contentTransform.x = visible ? 0 : hiddenX()
-        contentTransform.y = visible ? 0 : hiddenY()
+        contentHost.x = visible ? 0 : hiddenX()
+        contentHost.y = visible ? 0 : hiddenY()
         contentHost.opacity = (visible || !usesOpacity()) ? 1 : 0
     }
 
     function handleAnimationStyleChange() {
-        // Keep the active style until the current transition ends. The new style
-        // is applied to the next transition without an opacity/position jump.
+        // Selecting "none" is an explicit request to stop all current motion too.
+        // Do not let an already-running fade/slide finish after the user disables it.
+        if (root.animationStyle === "none") {
+            activeAnimationStyle = "none"
+            // Zero is an explicit second guard: even if a visibility change
+            // races with the style binding, no transition can run.
+            activeDuration = 0
+            applyImmediate(root.shown)
+            return
+        }
+        // Keep other style changes stable during an in-flight transition.
         if (root.running) return
         activeAnimationStyle = root.animationStyle
         activeDuration = root.duration
@@ -94,37 +100,23 @@ Item {
         // was disabled (or set to zero) while moving, settle immediately so the
         // window does not keep animating against the user's new preference.
         if (root.running) {
-            if (root.duration <= 0 || !Config.animationsEnabled || !Config.animationAppearanceEnabled)
+            if (root.duration <= 0)
                 applyImmediate(root.shown)
             return
         }
         activeDuration = root.duration
     }
 
-    function handleAnimationAvailabilityChange() {
-        // Do not rely only on the duration binding to notice a global toggle.
-        // Some consumers may provide a fixed/custom duration. Turning animation
-        // off must stop an already-running transition immediately in either case.
-        if (root.running && (!Config.animationsEnabled || !Config.animationAppearanceEnabled)) {
-            applyImmediate(root.shown)
-        } else if (!root.running) {
-            activeAnimationStyle = root.animationStyle
-            activeDuration = root.duration
-            applyImmediate(root.shown)
-        }
-    }
-
-    Connections {
-        target: Config
-        function onAnimationsEnabledChanged() {
-            root.handleAnimationAvailabilityChange()
-        }
-        function onAnimationAppearanceEnabledChanged() {
-            root.handleAnimationAvailabilityChange()
-        }
-    }
-
     function startTransition() {
+        // Handle `none` before capturing the current transition state. This
+        // removes any ordering dependency between Config changes and `shown`.
+        if (root.animationStyle === "none") {
+            activeAnimationStyle = "none"
+            activeDuration = 0
+            applyImmediate(root.shown)
+            return
+        }
+
         var wasRunning = root.running
         var wasVisible = contentHost.visible
         if (!wasRunning) {
@@ -150,19 +142,15 @@ Item {
         if (root.shown) {
             contentHost.visible = true
             contentHost.enabled = true
-            exitHost.x = 0
-            exitHost.y = 0
             if (!wasVisible) {
-                contentTransform.x = hiddenX()
-                contentTransform.y = hiddenY()
+                contentHost.x = hiddenX()
+                contentHost.y = hiddenY()
                 contentHost.opacity = usesOpacity() ? 0 : 1
             }
             showTransition.start()
         } else {
             contentHost.visible = true
             contentHost.enabled = false
-            exitHost.x = 0
-            exitHost.y = 0
             hideTransition.start()
         }
     }
@@ -177,14 +165,14 @@ Item {
             easing.type: Config.easingType()
         }
         NumberAnimation {
-            target: contentTransform
+            target: contentHost
             property: "x"
             to: 0
             duration: root.usesHorizontalSlide() ? root.activeDuration : 0
             easing.type: Config.easingType()
         }
         NumberAnimation {
-            target: contentTransform
+            target: contentHost
             property: "y"
             to: 0
             duration: root.usesVerticalSlide() ? root.activeDuration : 0
@@ -194,8 +182,8 @@ Item {
             if (root.shown) {
                 contentHost.visible = true
                 contentHost.enabled = true
-                contentTransform.x = 0
-                contentTransform.y = 0
+                contentHost.x = 0
+                contentHost.y = 0
                 if (root.usesOpacity()) contentHost.opacity = 1
             }
         }
@@ -206,7 +194,8 @@ Item {
         // Slide transitions must keep the content opaque. A zero-duration
         // opacity animation to 0 used to make slide-out disappear instantly,
         // even though the host's position was meant to animate. Fade alone
-        // owns opacity; slides animate the same Translate transform as entry.
+        // owns opacity; slides animate the same content x/y geometry on entry
+        // and exit so window blur/input regions can track the moving content.
         NumberAnimation {
             target: contentHost
             property: "opacity"
@@ -215,14 +204,14 @@ Item {
             easing.type: Config.easingType()
         }
         NumberAnimation {
-            target: contentTransform
+            target: contentHost
             property: "x"
             to: root.hiddenX()
             duration: root.usesHorizontalSlide() ? root.activeDuration : 0
             easing.type: Config.easingType()
         }
         NumberAnimation {
-            target: contentTransform
+            target: contentHost
             property: "y"
             to: root.hiddenY()
             duration: root.usesVerticalSlide() ? root.activeDuration : 0
@@ -232,14 +221,12 @@ Item {
             if (!root.shown) {
                 contentHost.visible = false
                 contentHost.enabled = false
-                // Keep the translate at the hidden endpoint so the next show
-                // starts from the same off-screen position. exitHost remains
-                // anchored to the wrapper and is never the animated target.
-                contentTransform.x = root.hiddenX()
-                contentTransform.y = root.hiddenY()
+                // Keep the content item at the hidden endpoint so the next
+                // show starts from the same off-screen position. The actual
+                // x/y geometry also keeps the compositor blur region in sync.
+                contentHost.x = root.hiddenX()
+                contentHost.y = root.hiddenY()
                 contentHost.opacity = root.usesOpacity() ? 0 : 1
-                exitHost.x = 0
-                exitHost.y = 0
             }
         }
     }
