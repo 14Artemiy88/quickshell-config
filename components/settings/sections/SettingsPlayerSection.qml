@@ -102,6 +102,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerFont", "playerSilenceFontSize", "playerSilenceLongFontSize", "playerSilenceText", "playerSilenceWidth"] })
         padding: 8
         contentSpacing: 6
 
@@ -269,6 +270,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerPriority"] })
         padding: 8
         contentSpacing: 6
 
@@ -366,6 +368,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerTimeFont", "playerTimeFontSize", "playerTimeRightPadding", "playerTimeY"] })
         padding: 8
         contentSpacing: 6
 
@@ -447,6 +450,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 3
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerBoldArtist", "playerMetaFont", "playerMetaFontSize", "playerMetaLineSpacing", "playerMetaSecondaryFontSize", "playerMetadataXPadding", "playerMetadataY", "playerTextOutlineColor", "playerTextOutlineEnabled"] })
         padding: 8
         contentSpacing: 6
 
@@ -661,6 +665,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 4
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerNextIcon", "playerNextIconSize", "playerNextIconY", "playerPausedIcon", "playerPausedIconSize", "playerPausedIconY", "playerPlayingIcon", "playerPlayingIconSize", "playerPlayingIconY"] })
         padding: 8
         contentSpacing: 6
 
@@ -815,6 +820,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 5
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerShowProgress", "playerProgressTrackHeight", "playerProgressTrackOffsetY", "playerProgressY"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } })
         padding: 8
         contentSpacing: 6
 
@@ -906,6 +912,7 @@ Column {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 6
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["playerCoverOpacity"], nested: { colors: ["playerOverlay"] } })
         padding: 8
         contentSpacing: 6
 

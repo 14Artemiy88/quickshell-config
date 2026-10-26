@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyQueueDurationAlignment", "mopidyQueueDurationColor", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationMode", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyShowQueueTotalDuration"] })
         heading: "Время очереди"
         padding: 8
         contentSpacing: 6
@@ -106,6 +107,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyShowAlbumRemaining", "mopidyShowTrackRemaining"] })
         heading: "Время треков и альбомов"
         padding: 8
         contentSpacing: 6
@@ -135,6 +137,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyTrackRowHeight"] })
         heading: "Название и исполнитель"
         padding: 8
         contentSpacing: 6
@@ -257,6 +260,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyTrackFont", "mopidyTrackFontSize"] })
         heading: "Шрифты очереди"
         padding: 8
         contentSpacing: 6

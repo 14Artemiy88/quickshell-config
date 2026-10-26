@@ -15,10 +15,10 @@ calendar = source[start:end]
 # content is hidden, and the blur region follows the animated child item.
 assert 'visible: Settings.calendar' in calendar
 assert 'manageInputMask: true' in calendar
-assert 'inputMaskEnabled: shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode' in calendar
-assert 'backgroundBlurVisible: shell.calendarVisible || calendarVisibility.running' in calendar
+assert 'inputMaskEnabled: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running || shell.layoutEditMode' in calendar
+assert 'backgroundBlurVisible: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running' in calendar
 assert 'backgroundBlurItem: calendarVisibility.blurRegionItem' in calendar
-assert 'shown: shell.calendarVisible' in calendar
+assert 'shown: shell.calendarVisible || Config.calendarAlwaysVisible' in calendar
 assert 'bottomLayer: false' in calendar
 assert 'id: calendarVisibility' in calendar
 

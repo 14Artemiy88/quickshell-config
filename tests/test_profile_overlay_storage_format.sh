@@ -18,7 +18,9 @@ const Profiles = load('js/settings/SettingsProfiles.js');
 const Persistence = load('js/settings/SettingsPersistence.js');
 const settingsQml = fs.readFileSync(path.join(root, 'Settings.qml'), 'utf8');
 assert(settingsQml.includes('SettingsProfiles.expandStoredSettings(root, diskObject)'), 'startup must expand compact profile overlays before applying settings');
-assert(settingsQml.includes('storageNeedsMigration'), 'legacy flat snapshots must be marked for compact-format migration');
+assert(settingsQml.includes('storageFormatNeedsMigration'), 'legacy flat snapshots must be marked for compact-format migration');
+assert(settingsQml.includes('schemaNeedsMigration'), 'old compact settings must be marked for schema migration');
+assert(Persistence.SETTINGS_SCHEMA_VERSION === 1, 'settings schema version should be exposed to the loader');
 const clone = value => JSON.parse(JSON.stringify(value));
 const defaults = {
   font:'JetBrainsMono Nerd Font', fontSize:12, activeTheme:'14 Theme',
@@ -40,6 +42,7 @@ const owner = {
 owner.profiles.Work = Profiles.sparseProfile(owner, savedWork);
 const payload = Persistence.payloadObject(owner, {});
 assert.strictEqual(payload.settingsPersistenceFormat, 'profile-overrides-v1');
+assert.strictEqual(payload.settingsSchemaVersion, 1, 'settings schema version must persist to disk');
 assert.strictEqual(payload.activeProfile, 'Work');
 assert.strictEqual(payload.weatherToken, 'global-token', 'credentials remain installation-global');
 assert.strictEqual(payload.fontSize, undefined, 'effective setting must not remain duplicated at root');

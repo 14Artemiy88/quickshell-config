@@ -196,6 +196,7 @@ function apply(Config, o) {
         if (o.calendarWeekdayFont !== undefined) Config.calendarWeekdayFont = String(o.calendarWeekdayFont)
         if (o.calendarDayFont !== undefined) Config.calendarDayFont = String(o.calendarDayFont)
         if (o.calendarPastDaysColorEnabled !== undefined) Config.calendarPastDaysColorEnabled = !!o.calendarPastDaysColorEnabled
+        if (o.calendarAlwaysVisible !== undefined) Config.calendarAlwaysVisible = !!o.calendarAlwaysVisible
         if (o.calendarAdjacentDaysColor !== undefined) {
             var adjacentDaysColor = String(o.calendarAdjacentDaysColor)
             Config.calendarAdjacentDaysColor = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(adjacentDaysColor) ? adjacentDaysColor : "#777777"

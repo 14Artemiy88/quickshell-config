@@ -54,6 +54,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Время обновлений"
+        changeKeys: ({ keys: ["weatherDailyIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherManualRefreshCooldownSeconds", "weatherNowIntervalMinutes", "weatherRetryDelayMinutes"] })
         padding: 8
         contentSpacing: 6
 
@@ -88,6 +89,7 @@ Column {
         visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["weatherWindCalmFont", "weatherWindCalmIcon", "weatherWindEFont", "weatherWindEIcon", "weatherWindNEFont", "weatherWindNEIcon", "weatherWindNFont", "weatherWindNIcon", "weatherWindNWFont", "weatherWindNWIcon", "weatherWindSEFont", "weatherWindSEIcon", "weatherWindSFont", "weatherWindSIcon", "weatherWindSWFont", "weatherWindSWIcon", "weatherWindWFont", "weatherWindWIcon"] })
         padding: 8
         contentSpacing: 6
 
@@ -107,11 +109,12 @@ Column {
                                 anchors.rightMargin: 8
                                 spacing: 8
                                 Text {
-                                    width: 18
+                                    width: 24
+                                    height: parent.height
                                     text: weatherSection.windDirectionSettingsExpanded ? "▾" : "▸"
                                     color: windDirectionSettingsMouse.containsMouse ? Config.accent : Config.text
                                     font.family: Config.settingsFont
-                                    font.pixelSize: Config.settingsUiSize(13)
+                                    font.pixelSize: Config.settingsUiSize(17)
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
                                 }
@@ -220,17 +223,18 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Иконка текущей погоды"
+        changeKeys: ({ keys: ["weatherIconSize", "weatherIconX", "weatherIconY"] })
         padding: 8
         contentSpacing: 6
 
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
-                            Item { width: 150; height: 24 }
+                            Item { width: 210; height: 24 }
                             Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                            Text { width: 150; height: 30; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                            Text { width: 210; height: 30; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: weatherIconXField; width: 70; height: 30; value: Config.weatherIconX; minimum: 0; maximum: 500; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherIconX"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherIconYField; width: 70; height: 30; value: Config.weatherIconY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherIconY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherIconSizeField; width: 70; height: 30; value: Config.weatherIconSize; minimum: 16; maximum: 128; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherIconSize"; settingsObject: settings; saveOnEdit: true }
@@ -242,17 +246,12 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Стрелка ветра"
+        changeKeys: ({ keys: ["weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap"] })
         padding: 8
         contentSpacing: 6
 
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
-                            Item { width: 210; height: 24 }
-                            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                            Text { width: 210; height: 30; text: "Стрелка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                            Item { width: 210; height: 30 }
                             SettingsNumberField { id: weatherWindGapField; width: 70; height: 30; value: Config.weatherWindArrowGap; minimum: -20; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindArrowGap"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherArrowYField; width: 70; height: 30; value: Config.weatherArrowYOffset; minimum: -40; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherArrowYOffset"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherArrowSizeField; width: 70; height: 30; value: Config.weatherArrowSize; minimum: 8; maximum: 64; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherArrowSize"; settingsObject: settings; saveOnEdit: true }
@@ -264,6 +263,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Дополнительные параметры"
+        changeKeys: ({ keys: ["weatherDescriptionFontSize"] })
         padding: 8
         contentSpacing: 6
 
@@ -271,48 +271,93 @@ Column {
                             Text { width: 210; height: 30; text: "Размер текста описания"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherDescSizeField; width: 100; height: 30; value: Config.weatherDescriptionFontSize; minimum: 6; maximum: 48; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDescriptionFontSize"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                            Text { width: 210; height: 30; text: "Показывать температуру комфорта"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                            SettingsCheckBox {
-                                id: weatherShowComfortCheckBox
-                                width: 100; height: 30; indicatorOnly: true; checked: Config.weatherShowComfort
-                                onToggled: { Config.weatherShowComfort = checked; settings.save() }
-                                Connections { target: Config; function onWeatherShowComfortChanged() { weatherShowComfortCheckBox.checked = Config.weatherShowComfort } }
-                            }
-                        }
-                        SettingsColorField {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
-                            width: parent.width
-                            label: "Цвет обводки комфортной температуры"
-                            value: String(Config.weatherComfortOutlineColor)
-                            targetObject: Config
-                            targetProperty: "weatherComfortOutlineColor"
-                            settingsObject: settings
-                            saveOnEdit: true
-                            allowAlpha: false
-                            allowTransparent: false
-                            labelWidth: 210
-                            fieldWidth: 120
-                        }
-                        Row {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
-                            width: parent.width
-                            height: 30
-                            spacing: 8
-                            Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                            SettingsNumberField {
-                                id: weatherComfortOutlineWidthField
-                                width: 100; height: 30
-                                value: Config.weatherComfortOutlineWidth
-                                minimum: 0; maximum: 4; step: 1; wheelStep: 1
-                                compact: true; fieldWidth: 100; fieldFontSize: 11
-                                inputMethodHints: Qt.ImhDigitsOnly
-                                targetObject: Config
-                                targetProperty: "weatherComfortOutlineWidth"
-                                settingsObject: settings
-                                saveOnEdit: true
-                            }
-                        }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        width: parent.width
+        showFrame: true
+        heading: "Температура комфорта"
+        changeKeys: ({ keys: ["weatherShowComfort", "weatherComfortFontSize", "weatherComfortHeight", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherComfortOffsetY", "weatherComfortOffsetX"] })
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Показывать"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsCheckBox {
+                id: weatherShowComfortCheckBox
+                width: 24; height: 30; indicatorOnly: true; checked: Config.weatherShowComfort
+                onToggled: { Config.weatherShowComfort = checked; settings.save() }
+                Connections { target: Config; function onWeatherShowComfortChanged() { weatherShowComfortCheckBox.checked = Config.weatherShowComfort } }
+            }
+        }
+        SettingsColorField {
+            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            width: parent.width
+            label: "Цвет обводки"
+            value: String(Config.weatherComfortOutlineColor)
+            targetObject: Config
+            targetProperty: "weatherComfortOutlineColor"
+            settingsObject: settings
+            saveOnEdit: true
+            allowAlpha: false
+            allowTransparent: false
+            labelWidth: 210
+            fieldWidth: 120
+        }
+        Row {
+            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField {
+                id: weatherComfortOutlineWidthField
+                width: 100; height: 30
+                value: Config.weatherComfortOutlineWidth
+                minimum: 0; maximum: 4; step: 1; wheelStep: 1
+                compact: true; fieldWidth: 100; fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "weatherComfortOutlineWidth"
+                settingsObject: settings
+                saveOnEdit: true
+            }
+        }
+        Row {
+            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Положение Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField {
+                id: weatherComfortYField
+                width: 100; height: 30
+                value: Config.weatherComfortY + Config.weatherComfortOffsetY
+                minimum: -120; maximum: 200; step: 1; wheelStep: 1
+                compact: true; fieldWidth: 100; fieldFontSize: 11
+                inputMethodHints: Qt.ImhFormattedNumbersOnly
+                valueWriter: function(n) {
+                    var baseY = Math.max(-20, Math.min(100, n))
+                    Config.weatherComfortY = baseY
+                    Config.weatherComfortOffsetY = n - baseY
+                }
+                settingsObject: settings
+                saveOnEdit: true
+            }
+        }
+        Row {
+            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Смещение X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsNumberField { id: weatherComfortOffsetXField; width: 100; height: 30; value: Config.weatherComfortOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetX"; settingsObject: settings; saveOnEdit: true }
+        }
     }
 
     SettingsGroup {
@@ -320,6 +365,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Положение элементов"
+        changeKeys: ({ prefixes: ["weatherTemp", "weatherWindColumn", "weatherWindSpeed", "weatherWindUnit"] })
         padding: 8
         contentSpacing: 6
 
@@ -330,33 +376,15 @@ Column {
                             Text { width: 62; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
-                            Text { width: 210; height: 30; text: "Температурная колонка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                            Item { width: 62; height: 30 }
-                            Item { width: 62; height: 30 }
-                            SettingsNumberField { id: weatherTempColumnWidthField; width: 62; height: 30; value: Config.weatherTempColumnWidth; minimum: 40; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherTempColumnWidth"; settingsObject: settings; saveOnEdit: true }
-                        }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
                             Text { width: 210; height: 30; text: "Температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherTempXField; width: 62; height: 30; value: Config.weatherTempX; minimum: 0; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherTempX"; settingsObject: settings; saveOnEdit: true }
                             Item { width: 62; height: 30 }
                             SettingsNumberField { id: weatherTempWidthField; width: 62; height: 30; value: Config.weatherTempWidth; minimum: 20; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherTempWidth"; settingsObject: settings; saveOnEdit: true }
                         }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
-                            Text { width: 210; height: 30; text: "Комфорт: позиция Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                            Item { width: 62; height: 30 }
-                            SettingsNumberField { id: weatherComfortYField; width: 62; height: 30; value: Config.weatherComfortY; minimum: -20; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortY"; settingsObject: settings; saveOnEdit: true }
-                            Item { width: 62; height: 30 }
-                        }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
                             Text { width: 210; height: 30; text: "Основная температура: отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherTempOffsetXField; width: 62; height: 30; value: Config.weatherTempOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherTempOffsetX"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherTempOffsetYField; width: 62; height: 30; value: Config.weatherTempOffsetY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherTempOffsetY"; settingsObject: settings; saveOnEdit: true }
-                            Item { width: 62; height: 30 }
-                        }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
-                            Text { width: 210; height: 30; text: "Температура комфорта: отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                            SettingsNumberField { id: weatherComfortOffsetXField; width: 62; height: 30; value: Config.weatherComfortOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetX"; settingsObject: settings; saveOnEdit: true }
-                            SettingsNumberField { id: weatherComfortOffsetYField; width: 62; height: 30; value: Config.weatherComfortOffsetY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetY"; settingsObject: settings; saveOnEdit: true }
                             Item { width: 62; height: 30 }
                         }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
@@ -384,6 +412,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Давление"
+        changeKeys: ({ keys: ["weatherPressureFontSize", "weatherPressureUnitFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureValueWidth"] })
         padding: 8
         contentSpacing: 6
 
@@ -415,6 +444,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Почасовой блок"
+        changeKeys: ({ keys: ["weatherHourlyCount", "weatherHourlyDayFontSize", "weatherHourlyDayY", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempFontSize", "weatherHourlyTempY", "weatherHourlyTopPadding"] })
         padding: 8
         contentSpacing: 6
 
@@ -452,6 +482,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Дневной прогноз"
+        changeKeys: ({ keys: ["weatherDailyCount", "weatherDailyDayFontSize", "weatherDailyDayY", "weatherDailyHighTempFontSize", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyLowTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyTopPadding"] })
         padding: 8
         contentSpacing: 6
 

@@ -1,5 +1,6 @@
 var STORAGE_FORMAT = "profile-overrides-v1"
 var PROFILE_STORAGE_FORMAT = "sparse-v1"
+var SETTINGS_SCHEMA_VERSION = 1
 
 function cloneValue(value) {
     if (value === undefined) return undefined
@@ -135,6 +136,7 @@ function snapshotObject(owner, config) {
             animationCalendarVisibilityStyle: config.animationCalendarVisibilityStyle,
             animationMopidyVisibilityStyle: config.animationMopidyVisibilityStyle,
             animationTimerVisibilityStyle: config.animationTimerVisibilityStyle,
+            animationTimerOptionsVisibilityStyle: config.animationTimerOptionsVisibilityStyle,
             animationSettingsVisibilityStyle: config.animationSettingsVisibilityStyle,
             animationTimerOptionsDuration: config.animationTimerOptionsDuration, animationCalendarSlideDuration: config.animationCalendarSlideDuration, animationCalendarFadeDuration: config.animationCalendarFadeDuration,
             systemMonitorInterval: config.systemMonitorInterval, cpuUpdateInterval: config.cpuUpdateInterval, playerUpdateInterval: config.playerUpdateInterval,
@@ -181,6 +183,7 @@ function snapshotObject(owner, config) {
             calendarAdjacentDaysColor: config.calendarAdjacentDaysColor,
             calendarWeekendColor: config.calendarWeekendColor,
             calendarPastDaysColorEnabled: config.calendarPastDaysColorEnabled, calendarPastDaysColor: config.calendarPastDaysColor,
+            calendarAlwaysVisible: config.calendarAlwaysVisible,
             calendarNoteMarkerStyle: config.calendarNoteMarkerStyle,
             calendarNoteMarkerPosition: config.calendarNoteMarkerPosition, calendarNoteFrameColor: config.calendarNoteFrameColor,
             weatherIconSize: config.weatherIconSize, weatherArrowSize: config.weatherArrowSize, weatherArrowYOffset: config.weatherArrowYOffset, weatherWindArrowGap: config.weatherWindArrowGap,
@@ -254,6 +257,7 @@ function payloadObject(owner, config) {
 
     return {
         settingsPersistenceFormat: STORAGE_FORMAT,
+        settingsSchemaVersion: SETTINGS_SCHEMA_VERSION,
         weatherToken: String(full.weatherToken || "").trim(),
         profiles: owner.profiles || {},
         profileStorageFormat: PROFILE_STORAGE_FORMAT,

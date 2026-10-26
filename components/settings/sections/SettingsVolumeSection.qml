@@ -18,6 +18,7 @@ Column {
         visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["volumeIcon", "volumeMutedIcon"] })
         padding: 8
         contentSpacing: 6
 
@@ -35,6 +36,7 @@ Column {
         visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["volumeHorizontalPadding", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeUpdateInterval"] })
         padding: 8
         contentSpacing: 6
 
@@ -145,6 +147,7 @@ Column {
         visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["volumeMainTrackHeight", "volumeMainTrackOffsetY", "volumeMainTrackWidth", "volumeStreamTrackHeight", "volumeVerticalPadding"] })
         padding: 8
         contentSpacing: 6
 
@@ -248,6 +251,7 @@ Column {
         visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["volumeMainIconWidth", "volumeShowStreams", "volumeStreamLabelFontSize", "volumeStreamTrackOffsetY", "volumeTrackRadius"] })
         padding: 8
         contentSpacing: 6
 
@@ -337,6 +341,7 @@ Column {
         visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 4
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["volumeMaxHeight", "volumeMinHeight"] })
         padding: 8
         contentSpacing: 6
 

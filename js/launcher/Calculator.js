@@ -6,11 +6,14 @@ function evaluate(expression) {
     var displayExpression = String(expression === undefined || expression === null ? "" : expression).trim()
     if (displayExpression.length === 0 || displayExpression.length > 128)
         return null
-    // Accept common typographic math operators as well as ASCII keyboard keys.
+    // Accept typographic operators and a decimal comma as well as ASCII keyboard keys.
+    // Commas are decimal separators only; thousands separators and argument lists
+    // are deliberately unsupported to keep the grammar unambiguous.
     var source = displayExpression
         .replace(/[−–]/g, "-")
         .replace(/×/g, "*")
         .replace(/÷/g, "/")
+        .replace(/,/g, ".")
     if (!/^[0-9+\-*/%^().\s]+$/.test(source))
         return null
 

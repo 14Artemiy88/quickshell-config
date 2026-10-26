@@ -9,11 +9,19 @@ function apply(Config, o) {
             "animationCalendarVisibilityStyle",
             "animationMopidyVisibilityStyle",
             "animationTimerVisibilityStyle",
+            "animationTimerOptionsVisibilityStyle",
             "animationSettingsVisibilityStyle"
         ]
         for (var ask = 0; ask < animationStyleKeys.length; ++ask) {
             var styleKey = animationStyleKeys[ask]
             var styleValue = o[styleKey] !== undefined ? String(o[styleKey]) : legacyAnimationStyle
+            // Before the options popup gained an independent animation setting,
+            // it shared animationTimerVisibilityStyle. Preserve that behavior
+            // for existing settings files and profiles on their first load.
+            if (styleKey === "animationTimerOptionsVisibilityStyle"
+                    && o[styleKey] === undefined
+                    && o.animationTimerVisibilityStyle !== undefined)
+                styleValue = String(o.animationTimerVisibilityStyle)
             if (allowedVisibilityStyles.indexOf(styleValue) >= 0) Config[styleKey] = styleValue
         }
         var animationNumberFields = [

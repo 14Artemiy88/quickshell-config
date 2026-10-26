@@ -42,6 +42,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY"] })
         padding: 8
         contentSpacing: 6
 
@@ -122,6 +123,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyTopIconOrder"] })
         padding: 8
         contentSpacing: 6
 
@@ -228,6 +230,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyMutedIcon", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowAddIcon", "mopidyShowClearIcon", "mopidyShowMoveDownIcon", "mopidyShowMoveUpIcon", "mopidyShowOpenAddIcon", "mopidyShowPlaylistDeleteIcon", "mopidyShowRefreshIcon", "mopidyShowRepeatIcon", "mopidyShowShuffleIcon", "mopidyShowStopIcon", "mopidyShowSwitchPlaylistIcon", "mopidyShowVolumeIcon", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyVolumeIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY"] })
         padding: 8
         contentSpacing: 6
 

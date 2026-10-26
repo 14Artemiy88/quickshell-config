@@ -144,6 +144,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherDefaultMode", "launcherShowResultCount"] })
         heading: "Поведение при открытии"
         padding: 8
         contentSpacing: 7
@@ -221,6 +222,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherBackdropOpacity", "launcherBackground", "launcherRadius"] })
         heading: "Окно лаунчера"
         padding: 8
         contentSpacing: 6
@@ -308,6 +310,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherItemHeight", "launcherItemRadius"] })
         heading: "Элемент списка"
         padding: 8
         contentSpacing: 7
@@ -379,6 +382,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] })
         heading: "Заголовок лаунчера"
         padding: 8
         contentSpacing: 6
@@ -481,6 +485,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius"] })
         heading: "Строка поиска"
         padding: 8
         contentSpacing: 6
@@ -566,6 +571,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] })
         heading: "Сквозной поиск"
         padding: 8
         contentSpacing: 6
@@ -602,6 +608,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons"] })
         heading: "Настройка вкладок"
         padding: 8
         contentSpacing: 5
@@ -748,6 +755,7 @@ Column {
         visible: root.host && root.host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["launcherProjects"] })
         heading: "Проекты"
         padding: 8
         contentSpacing: 6

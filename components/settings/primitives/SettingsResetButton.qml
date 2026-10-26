@@ -13,7 +13,8 @@ Item {
     property string tooltip: "Сбросить"
     property bool emphasized: false
     property bool emphasizedHoverOnly: false
-    property color emphasizedColor: Config.accent
+    property color emphasizedColor: "#ff9999"
+    property color emphasizedHoverColor: "#ff6666"
     property bool fillOnHover: false
     property bool borderOnHover: true
     property color backgroundColor: Config.settingsBackground
@@ -39,14 +40,16 @@ Item {
         fillOnHover: root.fillOnHover
         borderOnHover: root.borderOnHover
         accentColor: root.emphasized
-            ? (root.hovered ? "#ff6666" : "#ff9999")
+            ? (root.hovered ? root.emphasizedHoverColor : root.emphasizedColor)
             : Config.accent
-        outlineColor: root.emphasized ? (root.hovered ? "#ff6666" : "#ff9999") : Config.baseColor
+        outlineColor: root.emphasized
+            ? (root.hovered ? root.emphasizedHoverColor : root.emphasizedColor)
+            : Config.baseColor
         disabledBorderColor: root.emphasized ? "#ff593d3d" : Config.baseColor
         disabledTextColor: root.emphasized ? "#ff9999" : Config.textMuted
         backgroundColor: root.backgroundColor
         textColor: root.emphasized
-            ? (root.hovered ? "#ff6666" : "#ff9999")
+            ? (root.hovered ? root.emphasizedHoverColor : root.emphasizedColor)
             : Config.text
         hoverTextColor: Config.black
         fontSize: root.fontSize

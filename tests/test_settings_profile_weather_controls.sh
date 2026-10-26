@@ -14,7 +14,7 @@ general = (root / "components/settings/sections/SettingsGeneralSection.qml").rea
 profile_area = window[window.index('text: "Активный профиль"'):window.index('id: profileActionFeedback')]
 assert 'iconText: "\\uf019"' in profile_area, "Load profile button should use a Nerd Font download icon"
 assert 'SettingsResetButton {' in profile_area and 'tooltip: "Удалить выбранный профиль"' in profile_area, "Profile deletion should use the red reset/delete primitive"
-assert 'emphasizedHoverOnly: false' in profile_area and 'emphasizedColor: "#ff6666"' in profile_area, "Profile deletion button should keep a red border"
+assert 'emphasizedHoverOnly: true' in profile_area and 'emphasizedColor: "#660000"' in profile_area and 'emphasizedHoverColor: "#aa0000"' in profile_area, "Profile deletion should use #660000 idle and #aa0000 on hover"
 load_area = profile_area.split('iconText: \"\\uf019\"', 1)[0]
 assert 'text: ""' in load_area and 'width: 30' in load_area, "Load profile button should be icon-only"
 assert 'enabled: root.enabled' in reset, "Reset/delete primitive must forward its enabled state"

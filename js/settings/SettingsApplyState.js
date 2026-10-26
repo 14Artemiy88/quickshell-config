@@ -156,8 +156,16 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                 var completedLegacyProfiles = {}
                 for (var legacyProfileName in normalizedProfiles) {
                     if (!Object.prototype.hasOwnProperty.call(normalizedProfiles, legacyProfileName)) continue
-                    completedLegacyProfiles[legacyProfileName] = Profiles.completeLegacySnapshot(
+                    var completedLegacyProfile = Profiles.completeLegacySnapshot(
                         owner.profileDefaults || {}, normalizedProfiles[legacyProfileName])
+                    if (Number(o.settingsSchemaVersion || 0) < 1
+                            && normalizedProfiles[legacyProfileName].animationTimerOptionsVisibilityStyle === undefined) {
+                        completedLegacyProfile.animationTimerOptionsVisibilityStyle = String(
+                            completedLegacyProfile.animationTimerVisibilityStyle !== undefined
+                                ? completedLegacyProfile.animationTimerVisibilityStyle
+                                : (Config.animationTimerOptionsVisibilityStyle || "fade"))
+                    }
+                    completedLegacyProfiles[legacyProfileName] = completedLegacyProfile
                 }
                 owner.profiles = Profiles.sparsifyProfiles(owner, completedLegacyProfiles)
                 owner.profileStorageFormat = Profiles.SPARSE_FORMAT

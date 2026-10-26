@@ -19,6 +19,13 @@ Item {
     // The first direct Text child is promoted to a consistent fieldset legend.
     property var headingSource: null
     property bool adoptingHeading: false
+    // Optional precise change selector. Frames without a selector remain unchanged.
+    property var settings: Settings
+    property var changeKeys: null
+    readonly property bool modified: root.changeKeys !== null
+        && root.settings !== null && root.settings !== undefined
+        && root.settings.hasResetChanges("keys", root.changeKeys)
+    property color modifiedColor: Config.accent
 
     default property alias contentData: contentColumn.data
 
@@ -82,7 +89,7 @@ Item {
         visible: root.hasHeading
         x: headingLabel.x - 4
         y: headingLabel.y
-        width: headingLabel.width + 8
+        width: headingLabel.width + 8 + (root.modified ? 9 : 0)
         height: headingLabel.height
         color: root.backgroundColor
         z: 1
@@ -102,7 +109,7 @@ Item {
         x: root.padding + 8
         y: -Math.ceil(Config.settingsUiSize(11) / 2)
         width: Math.max(0, Math.min(headingMetrics.advanceWidth,
-                                    root.width - root.padding * 2 - 16))
+                                    root.width - root.padding * 2 - 16 - (root.modified ? 10 : 0)))
         height: Config.settingsUiSize(14)
         text: root.renderedHeading
         color: Config.settingsSubheading
@@ -113,6 +120,34 @@ Item {
         elide: Text.ElideRight
         verticalAlignment: Text.AlignVCenter
         z: 2
+    }
+
+    Rectangle {
+        visible: root.hasHeading && root.modified
+        width: 5
+        height: 5
+        radius: width / 2
+        x: headingLabel.x + headingLabel.width + 5
+        y: headingLabel.y + Math.max(0, (headingLabel.height - height) / 2)
+        color: root.modifiedColor
+        border.width: 0
+        antialiasing: true
+        z: 3
+    }
+
+    // Frames without an adoptable legend still need a visible dirty marker.
+    // Some older groups start with a Row/Column instead of a Text heading.
+    Rectangle {
+        visible: root.showFrame && root.modified && !root.hasHeading
+        width: 6
+        height: 6
+        radius: width / 2
+        x: Math.max(4, root.width - Math.max(10, root.padding + 4) - width)
+        y: 3
+        color: root.modifiedColor
+        border.width: 0
+        antialiasing: true
+        z: 3
     }
 
     Column {

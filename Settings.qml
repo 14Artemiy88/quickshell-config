@@ -139,12 +139,13 @@ QtObject {
                         var diskObject = JSON.parse(this.text)
                         root.resetOverrides = diskObject.profileOverrides && typeof diskObject.profileOverrides === "object"
                             ? diskObject.profileOverrides : ({})
-                        var storageNeedsMigration = String(diskObject.settingsPersistenceFormat || "") !== SettingsPersistence.STORAGE_FORMAT
-                        if (!storageNeedsMigration)
+                        var storageFormatNeedsMigration = String(diskObject.settingsPersistenceFormat || "") !== SettingsPersistence.STORAGE_FORMAT
+                        var schemaNeedsMigration = Number(diskObject.settingsSchemaVersion || 0) < SettingsPersistence.SETTINGS_SCHEMA_VERSION
+                        if (!storageFormatNeedsMigration)
                             diskObject = SettingsProfiles.expandStoredSettings(root, diskObject)
                         root.applyObject(diskObject)
                         root.persistedWeatherToken = String(root.weatherToken || "").trim()
-                        if (root.profileMigrationPending || storageNeedsMigration) {
+                        if (root.profileMigrationPending || storageFormatNeedsMigration || schemaNeedsMigration) {
                             root.profileMigrationPending = false
                             Qt.callLater(function() { root.save() })
                         }
@@ -309,9 +310,11 @@ QtObject {
                 if (present(overrides, keys[i]) && hasLeaves(overrides[keys[i]])) return true
             return false
         }
-        function hasPrefixed(prefixes) {
+        function hasPrefixed(prefixes, excludedKeys) {
             var keys = Object.keys(overrides)
+            var exclusions = excludedKeys || []
             for (var i = 0; i < keys.length; ++i) {
+                if (exclusions.indexOf(keys[i]) >= 0) continue
                 if (prefixes.some(function(prefix) { return keys[i].indexOf(prefix) === 0 })
                     && hasLeaves(overrides[keys[i]])) return true
             }
@@ -322,6 +325,25 @@ QtObject {
                 && hasLeaves(overrides[mapName][key])
         }
 
+        if (scope === "keys") {
+            // Lightweight selector for subtab and frame indicators. It reads only
+            // the sparse cached override map; it never builds a settings snapshot.
+            var spec = argument || {}
+            if (hasAny(Array.isArray(spec.keys) ? spec.keys : [])) return true
+            var prefixList = Array.isArray(spec.prefixes) ? spec.prefixes : []
+            if (prefixList.length > 0 && hasPrefixed(prefixList, Array.isArray(spec.exclude) ? spec.exclude : [])) return true
+            var nestedSpec = spec.nested || {}
+            var nestedRoots = Object.keys(nestedSpec)
+            for (var ni = 0; ni < nestedRoots.length; ++ni) {
+                var nestedRootName = nestedRoots[ni]
+                var nestedRootValue = overrides[nestedRootName]
+                var nestedNames = Array.isArray(nestedSpec[nestedRootName]) ? nestedSpec[nestedRootName] : []
+                for (var nj = 0; nj < nestedNames.length; ++nj)
+                    if (hasNested(nestedRootName, nestedNames[nj])) return true
+                if (nestedNames.length === 0 && hasLeaves(nestedRootValue)) return true
+            }
+            return false
+        }
         if (scope === "colors") {
             var names = argument || []
             var colors = overrides.colors || {}
@@ -329,24 +351,47 @@ QtObject {
                 if (present(colors, names[c])) return true
             return false
         }
-        if (scope === "modules")
-            return hasAny(["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"])
+        if (scope === "modules") {
+            // The module-list reset deliberately preserves Settings-window blur;
+            // do not show this button for that setting alone. Launcher blur is
+            // included because resetModules restores the launcher module map too.
+            if (hasAny(["modules", "moduleFrames", "moduleBackgrounds", "moduleMonitors", "geometry"]))
+                return true
+            var blurOverrides = overrides.moduleBlurEnabled || {}
+            var blurKeys = Object.keys(blurOverrides)
+            for (var b = 0; b < blurKeys.length; ++b)
+                if (blurKeys[b] !== "settings" && hasLeaves(blurOverrides[blurKeys[b]])) return true
+            return false
+        }
         if (scope === "module") {
             var moduleName = String(argument || "")
             if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"]
                     .some(function(mapName) { return hasNested(mapName, moduleName) })) return true
             var prefixes = {
-                calendar: ["calendar", "animationCalendar"], cpu: ["cpu", "cpuGraph", "topApps"], cpuGraph: ["cpuGraph"],
+                calendar: ["calendar", "animationCalendar"], cpu: ["cpu"], cpuGraph: ["cpuGraph"],
                 topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
-                weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"], timer: ["timer", "animationTimer"],
-                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], time: ["time"]
+                weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"], timer: ["timer"],
+                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"],
+                // The clock module has no clock-prefixed configuration keys;
+                // "time" would also match "timer..." and show a false reset action.
+                time: []
             }[moduleName] || [moduleName]
-            return hasPrefixed(prefixes)
+            // The individual CPU row resets shared graph geometry but not the
+            // graph mode itself; that belongs to the CPU Graph row's reset.
+            var excludedKeys = moduleName === "cpu" ? ["cpuGraphMode"] : []
+            return hasPrefixed(prefixes, excludedKeys)
         }
         if (scope === "launcher")
             return hasResetChanges("module", "launcher") || hasPrefixed(["launcher"])
+        if (scope === "themes") {
+            // Theme identity can change while keeping an identical palette, so
+            // include activeTheme as well as any changed palette color.
+            return hasAny(["activeTheme"]) || hasResetChanges("colors", colorNames)
+        }
         if (scope === "all") {
-            return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "modules"].some(function(item) {
+            // A theme can change its identity while producing the same effective
+            // palette, so activeTheme must be considered in addition to colors.
+            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "modules"].some(function(item) {
                 return hasResetChanges(item)
             }) || hasResetChanges("colors", colorNames)
         }
@@ -359,7 +404,13 @@ QtObject {
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
             settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"]
         }
-        if (scope === "settingsWindow" && hasNested("moduleBlurEnabled", "settings")) return true
+        if (scope === "settingsWindow") {
+            if (hasNested("moduleBlurEnabled", "settings")) return true
+            // These two settings live in the colors map in settings.json but
+            // are reset by resetSettingsWindowFromProfile().
+            var windowColors = overrides.colors || {}
+            if (present(windowColors, "settingsBackground") || present(windowColors, "settingsBorder")) return true
+        }
         if (scope === "timer" && present(overrides, "timerPresetDefaults")) return true
         return hasPrefixed(prefixesByScope[scope] || [String(scope)])
     }
@@ -453,6 +504,10 @@ QtObject {
 
     function saveProfile(name) {
         return SettingsProfiles.saveProfile(root, name)
+    }
+
+    function saveProfileScope(name, scope, argument) {
+        return SettingsProfiles.saveProfileScope(root, name, scope, argument)
     }
 
     function loadProfile(name) {

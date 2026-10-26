@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyHoverColor", "mopidyHoverMode", "mopidyToggleWithPlayerRightClick"] })
         heading: "Поведение"
         padding: 8
         contentSpacing: 6
@@ -94,6 +95,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyBackground"] })
         heading: "Внешний вид"
         padding: 8
         contentSpacing: 6
@@ -133,6 +135,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyGroupAlbums", "mopidyShowTrackNumbers"] })
         heading: "Очередь"
         padding: 8
         contentSpacing: 6
@@ -232,6 +235,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyShowVolumePercent", "mopidyVolumeStep"] })
         heading: "Громкость"
         padding: 8
         contentSpacing: 6
@@ -264,6 +268,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["animationMopidyVisibilityStyle"] })
         heading: "Анимация"
         padding: 8
         contentSpacing: 6

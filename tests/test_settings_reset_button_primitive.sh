@@ -13,7 +13,9 @@ grep -Fq 'borderOnHover: root.borderOnHover' "$RESET" || { echo 'Reset button do
 grep -Fq 'tooltip: root.tooltip' "$RESET" || { echo 'Tooltip was not delegated to SettingsButton' >&2; exit 1; }
 grep -Fq 'disabledBorderColor: root.emphasized ? "#ff593d3d" : Config.baseColor' "$RESET" || { echo 'Disabled destructive button must use a muted red border' >&2; exit 1; }
 grep -Fq 'disabledTextColor: root.emphasized ? "#ff9999" : Config.textMuted' "$RESET" || { echo 'Disabled destructive button text must use the muted idle red shade' >&2; exit 1; }
-grep -Fq '(root.hovered ? "#ff6666" : "#ff9999")' "$RESET" || { echo 'Destructive button must use #ff9999 idle and #ff6666 hover' >&2; exit 1; }
+grep -Fq 'property color emphasizedColor: "#ff9999"' "$RESET" || { echo 'Default destructive idle color must preserve #ff9999' >&2; exit 1; }
+grep -Fq 'property color emphasizedHoverColor: "#ff6666"' "$RESET" || { echo 'Default destructive hover color must preserve #ff6666' >&2; exit 1; }
+grep -Fq '(root.hovered ? root.emphasizedHoverColor : root.emphasizedColor)' "$RESET" || { echo 'Destructive button must use configurable idle/hover colors' >&2; exit 1; }
 grep -Fq 'property bool fontBold: true' "$RESET" || { echo 'Reset arrow should stay bold regardless of hover state' >&2; exit 1; }
 if grep -Eq 'MouseArea|ToolTip|Rectangle[[:space:]]*\{' "$RESET"; then
     echo 'Reset button duplicates rendering or hover interaction already owned by HoverButtonSurface' >&2; exit 1

@@ -18,6 +18,8 @@ Item {
     property color normalBorderColor: Config.baseColor
     property color hoverBorderColor: Config.accent
     property bool hovered: false
+    property bool modified: false
+    property color modifiedColor: Config.accent
 
     signal clicked()
 
@@ -32,7 +34,7 @@ Item {
         Text {
             anchors.fill: parent
             anchors.leftMargin: root.horizontalPadding
-            anchors.rightMargin: root.horizontalPadding
+            anchors.rightMargin: root.horizontalPadding + (root.modified ? 10 : 0)
             text: root.text
             color: root.selected ? root.selectedTextColor : root.normalTextColor
             font.family: Config.settingsFont
@@ -41,6 +43,18 @@ Item {
             horizontalAlignment: root.leftAligned ? Text.AlignLeft : Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
+        }
+
+        Rectangle {
+            visible: root.modified
+            width: 5
+            height: 5
+            radius: width / 2
+            x: parent.width - width - 5
+            y: 5
+            color: root.selected ? root.selectedTextColor : root.modifiedColor
+            border.width: 0
+            antialiasing: true
         }
 
         HoverHandler {

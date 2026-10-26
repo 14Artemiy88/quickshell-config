@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing", "cpuUpdateInterval"] })
         padding: 8
         contentSpacing: 6
 
@@ -246,6 +247,7 @@ Column {
         visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["cpuGraphBarWidth", "cpuGraphMode", "cpuGraphSegmentSlotWidth", "cpuShowRam"] })
         padding: 8
         contentSpacing: 6
 
@@ -354,6 +356,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Заголовки"
+        changeKeys: ({ keys: ["topAppsCpuHeaderSubtitle", "topAppsCpuHeaderTitle", "topAppsHeaderSubtitleFontSize", "topAppsHeaderTitleFontSize", "topAppsRamHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsShowHeaders"] })
         padding: 8
         contentSpacing: 6
 
@@ -485,6 +488,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Положение и размер полос"
+        changeKeys: ({ keys: ["topAppsBarHeight", "topAppsBarWidth", "topAppsBarX", "topAppsBarY", "topAppsShowBars"] })
         padding: 8
         contentSpacing: 6
 
@@ -561,6 +565,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Цвета полос нагрузки"
+        changeKeys: ({ nested: { colors: ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"] } })
         padding: 8
         contentSpacing: 6
 
@@ -643,6 +648,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Строка «Система/прочее»"
+        changeKeys: ({ keys: ["topAppsShowSystemRemainder", "topAppsSystemRemainderLabel"] })
         padding: 8
         contentSpacing: 6
 
@@ -695,6 +701,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Список приложений"
+        changeKeys: ({ keys: ["topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"] })
         padding: 8
         contentSpacing: 6
 

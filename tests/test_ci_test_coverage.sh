@@ -27,3 +27,4 @@ printf 'CI test coverage: all %s shell tests are wired into CHECK.sh\n' "$count"
 
 # Calculator and pointer-hover regression coverage is part of CHECK.sh.
 grep -q "test_launcher_calculator_and_pointer_hover.sh" "$ROOT/CHECK.sh"
+grep -q "test_launcher_calculator_edge_cases.sh" "$ROOT/CHECK.sh"

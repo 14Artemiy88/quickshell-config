@@ -45,6 +45,7 @@ Column {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["timerPresetDefaults"] })
         padding: 8
         contentSpacing: 6
 
@@ -136,6 +137,7 @@ Column {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["timerFinishedBackgroundColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBorderUsesTimerColor", "timerFinishedImageEnabled", "timerFinishedImageMargin", "timerFinishedImagePath", "timerFinishedImageWidth", "timerFinishedTitleAlignment", "timerFinishedTitleColor", "timerFinishedTitleFont", "timerFinishedTitleFontSize", "timerFinishedTitleUsesTimerColor"] })
         padding: 8
         contentSpacing: 6
 
@@ -395,6 +397,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Иконки таймера и будильника"
+        changeKeys: ({ keys: ["timerAlarmIcon", "timerIcon"] })
         padding: 8
         contentSpacing: 6
 
@@ -555,6 +558,7 @@ Column {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 3
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerWheelStep"] })
         padding: 8
         contentSpacing: 6
 
@@ -739,8 +743,33 @@ Column {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 4
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["animationTimerVisibilityStyle", "timerButtonFadeDuration", "timerButtonIconFadeDuration", "timerButtonSlideDuration"] })
         padding: 8
         contentSpacing: 6
+
+
+        Row {
+            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Стиль анимации таймера"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsComboBox {
+                id: timerWidgetVisibilityBox
+                width: 180
+                height: 30
+                property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                currentIndex: Math.max(0, values.indexOf(Config.animationTimerVisibilityStyle))
+                onItemChosen: function(index) { Config.animationTimerVisibilityStyle = values[index]; root.settings.save() }
+                Connections {
+                    target: Config
+                    function onAnimationTimerVisibilityStyleChanged() { timerWidgetVisibilityBox.currentIndex = Math.max(0, timerWidgetVisibilityBox.values.indexOf(Config.animationTimerVisibilityStyle)) }
+                }
+                background: Rectangle { color: Config.settingsBackground; border.color: (timerWidgetVisibilityBox.activeFocus || timerWidgetVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                contentItem: Text { text: timerWidgetVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+            }
+        }
 
                     Row { width: parent.width; height: 30; spacing: 8
                         visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
@@ -814,22 +843,16 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 4
+        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 5
         width: parent.width
         showFrame: true
+        heading: "Анимация окна опций"
+        changeKeys: ({ keys: ["animationTimerOptionsDuration", "animationTimerOptionsVisibilityStyle"] })
         padding: 8
         contentSpacing: 6
 
-        Text {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
-            text: "Анимация"
-            color: Config.accent
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(13)
-        }
-
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
             width: parent.width
             height: 30
             spacing: 8
@@ -840,11 +863,11 @@ Column {
                 height: 30
                 property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
                 model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
-                currentIndex: Math.max(0, values.indexOf(Config.animationTimerVisibilityStyle))
-                onItemChosen: function(index) { Config.animationTimerVisibilityStyle = values[index]; settings.save() }
+                currentIndex: Math.max(0, values.indexOf(Config.animationTimerOptionsVisibilityStyle))
+                onItemChosen: function(index) { Config.animationTimerOptionsVisibilityStyle = values[index]; settings.save() }
                 Connections {
                     target: Config
-                    function onAnimationTimerVisibilityStyleChanged() { animationTimerVisibilityBox.currentIndex = Math.max(0, animationTimerVisibilityBox.values.indexOf(Config.animationTimerVisibilityStyle)) }
+                    function onAnimationTimerOptionsVisibilityStyleChanged() { animationTimerVisibilityBox.currentIndex = Math.max(0, animationTimerVisibilityBox.values.indexOf(Config.animationTimerOptionsVisibilityStyle)) }
                 }
                 background: Rectangle { color: Config.settingsBackground; border.color: (animationTimerVisibilityBox.activeFocus || animationTimerVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
                 contentItem: Text { text: animationTimerVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
@@ -852,7 +875,7 @@ Column {
         }
 
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
             width: parent.width
             height: 30
             spacing: 8

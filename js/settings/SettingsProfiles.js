@@ -1,6 +1,7 @@
 .pragma library
 
 var SPARSE_FORMAT = "sparse-v1"
+var PROFILE_SETTINGS_SCHEMA_VERSION = 1
 var REPLACE_MARKER = "__profile_replace__"
 
 function clone(value) {
@@ -95,6 +96,7 @@ function expandStoredSettings(owner, stored) {
     var defaults = profileBase(owner)
     var profiles = clone(stored.profiles || {})
     var sparse = String(stored.profileStorageFormat || "") === SPARSE_FORMAT
+    var needsTimerOptionsStyleMigration = Number(stored.settingsSchemaVersion || 0) < PROFILE_SETTINGS_SCHEMA_VERSION
 
     // New-format files are written with sparse profiles. If a hand-edited or
     // interrupted migration leaves a legacy profile representation under the
@@ -109,6 +111,23 @@ function expandStoredSettings(owner, stored) {
         profiles = migrated
     }
 
+    // Prior releases used animationTimerVisibilityStyle for both the timer
+    // widget and its options popup. Migrate old sparse profiles once, before
+    // expanding the active profile, so their previous popup style is retained.
+    if (needsTimerOptionsStyleMigration) {
+        var migratedTimerStyles = {}
+        for (var timerStyleProfileName in profiles) {
+            if (!Object.prototype.hasOwnProperty.call(profiles, timerStyleProfileName)) continue
+            var timerStyleProfile = mergeValue(defaults, profiles[timerStyleProfileName])
+            timerStyleProfile.animationTimerOptionsVisibilityStyle = String(
+                timerStyleProfile.animationTimerVisibilityStyle !== undefined
+                    ? timerStyleProfile.animationTimerVisibilityStyle
+                    : (defaults.animationTimerOptionsVisibilityStyle || "fade"))
+            migratedTimerStyles[timerStyleProfileName] = sparseProfile(owner, timerStyleProfile)
+        }
+        profiles = migratedTimerStyles
+    }
+
     var requested = String(stored.activeProfile || "").trim()
     var active = requested && Object.prototype.hasOwnProperty.call(profiles, requested) ? requested : ""
     var base = clone(defaults)
@@ -118,7 +137,7 @@ function expandStoredSettings(owner, stored) {
     var overrides = isObject(stored.profileOverrides) ? clone(stored.profileOverrides) : {}
     var reserved = [
         "settingsPersistenceFormat", "profileOverrides", "managedKeys", "managedNestedKeys",
-        "weatherToken", "profiles", "profileStorageFormat", "activeProfile", "customThemes"
+        "weatherToken", "profiles", "profileStorageFormat", "activeProfile", "customThemes", "settingsSchemaVersion"
     ]
     // Preserve unrecognized top-level fields from newer app versions. They
     // are passthrough extensions, not part of this version's active schema.
@@ -130,6 +149,12 @@ function expandStoredSettings(owner, stored) {
 
     var effective = mergeValue(base, overrides)
     effective = mergeValue(effective, extras)
+    if (needsTimerOptionsStyleMigration) {
+        effective.animationTimerOptionsVisibilityStyle = String(
+            effective.animationTimerVisibilityStyle !== undefined
+                ? effective.animationTimerVisibilityStyle
+                : (defaults.animationTimerOptionsVisibilityStyle || "fade"))
+    }
     effective.weatherToken = String(stored.weatherToken || "").trim()
     effective.profiles = profiles
     effective.profileStorageFormat = SPARSE_FORMAT
@@ -219,16 +244,206 @@ function expandedProfileByName(owner, name) {
     return profile ? expandProfile(owner, profile) : null
 }
 
+function updateResetOverrideCache(owner, profileBaseline, currentSnapshot) {
+    if (!owner) return
+    var current = clone(currentSnapshot || owner.snapshotObject() || {})
+    delete current.weatherToken
+    var next = diffValue(profileBaseline || {}, current) || {}
+    var existing = isObject(owner.resetOverrides) ? owner.resetOverrides : {}
+    if (!sameValue(existing, next)) owner.resetOverrides = clone(next)
+}
+
 function saveProfile(owner, name) {
     var n = String(name || "").trim()
     if (!n) return false
     n = n.slice(0, 32)
+    var current = owner.snapshotObject()
     var next = Object.assign({}, owner.profiles || {})
-    next[n] = sparseProfile(owner, owner.snapshotObject())
+    next[n] = sparseProfile(owner, current)
     owner.profiles = next
     owner.profileStorageFormat = SPARSE_FORMAT
     owner.activeProfile = n
     rebuildProfileList(owner)
+    // Hide Save/Reset controls immediately, even if a previous settings write
+    // is still in flight and the disk writer has to queue the next snapshot.
+    updateResetOverrideCache(owner, expandedProfileByName(owner, n), current)
+    owner.save()
+    return true
+}
+
+function collectChangedPaths(delta, path, output) {
+    if (delta === undefined) return
+    if (isObject(delta)) {
+        var keys = Object.keys(delta)
+        if (keys.length === 1 && keys[0] === REPLACE_MARKER) {
+            output.push(path.slice())
+            return
+        }
+        if (keys.length === 0) return
+        for (var i = 0; i < keys.length; ++i)
+            collectChangedPaths(delta[keys[i]], path.concat([keys[i]]), output)
+        return
+    }
+    output.push(path.slice())
+}
+
+function startsWithAny(value, prefixes) {
+    for (var i = 0; i < prefixes.length; ++i)
+        if (String(value).indexOf(prefixes[i]) === 0) return true
+    return false
+}
+
+function modulePathMatches(path, moduleName) {
+    var root = path[0]
+    var mapRoots = ["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"]
+    if (mapRoots.indexOf(root) >= 0)
+        return path.length > 1 && String(path[1]) === String(moduleName)
+
+    var prefixes = {
+        calendar: ["calendar", "animationCalendar"],
+        cpu: ["cpu"],
+        cpuGraph: ["cpuGraph"],
+        topAppsCpu: ["topApps"], topAppsRam: ["topApps"],
+        networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
+        weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"],
+        timer: ["timer"], volumes: ["volume"], player: ["player"],
+        mopidy: ["mopidy", "animationMopidy"], cava: ["cava"], launcher: ["launcher"]
+    }[String(moduleName)] || []
+    if (String(moduleName) === "cpu" && root === "cpuGraphMode") return false
+    return startsWithAny(root, prefixes)
+}
+
+function profileSavePathMatches(owner, scope, argument, path) {
+    if (!path || !path.length || path[0] === "weatherToken") return false
+    var root = String(path[0])
+    var child = path.length > 1 ? String(path[1]) : ""
+
+    if (scope === "all") return true
+    if (scope === "themes") return root === "activeTheme" || root === "colors"
+    if (scope === "colors") {
+        if (root !== "colors") return false
+        if (path.length < 2) return true
+        return Array.isArray(argument) && argument.indexOf(child) >= 0
+    }
+    if (scope === "modules") {
+        if (["modules", "moduleFrames", "moduleBackgrounds", "moduleMonitors", "geometry"].indexOf(root) >= 0)
+            return true
+        if (root === "moduleBlurEnabled") return path.length < 2 || child !== "settings"
+        return false
+    }
+    if (scope === "module") return modulePathMatches(path, argument)
+    if (scope === "launcher") {
+        if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
+            return path.length < 2 || child === "launcher"
+        return startsWithAny(root, ["launcher"])
+    }
+    if (scope === "settingsWindow") {
+        if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
+        if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings"])
+    }
+    if (scope === "general")
+        return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0
+
+    var prefixesByScope = {
+        timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"],
+        cava: ["cava"], cpu: ["cpu", "cpuGraph", "topApps"],
+        network: ["network", "systemMonitor"], volume: ["volume"],
+        calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"]
+    }
+    var prefixes = prefixesByScope[scope]
+    if (prefixes) return startsWithAny(root, prefixes)
+    return false
+}
+
+function currentValueAtPath(value, path) {
+    var current = value
+    for (var i = 0; i < path.length; ++i) {
+        if (current === null || current === undefined) return undefined
+        current = current[path[i]]
+    }
+    return current
+}
+
+function assignValueAtPath(target, path, value) {
+    if (!path.length) return
+    var current = target
+    for (var i = 0; i < path.length - 1; ++i) {
+        var key = path[i]
+        if (!isObject(current[key]) && !Array.isArray(current[key])) current[key] = {}
+        current = current[key]
+    }
+    current[path[path.length - 1]] = clone(value)
+}
+
+function expandRootReplacementPaths(owner, scope, argument, path, current, output) {
+    if (path.length !== 1) {
+        if (profileSavePathMatches(owner, scope, argument, path)) output.push(path)
+        return
+    }
+    var root = path[0]
+    var currentMap = current[root]
+    var mapRoots = ["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"]
+
+    if (root === "colors" && (scope === "colors" || scope === "settingsWindow")) {
+        var names = scope === "settingsWindow" ? ["settingsBackground", "settingsBorder"] : (Array.isArray(argument) ? argument : [])
+        for (var c = 0; c < names.length; ++c)
+            if (currentMap && Object.prototype.hasOwnProperty.call(currentMap, names[c])) output.push(["colors", names[c]])
+        return
+    }
+    if (mapRoots.indexOf(root) >= 0) {
+        if (scope === "module" && currentMap && Object.prototype.hasOwnProperty.call(currentMap, String(argument))) {
+            output.push([root, String(argument)])
+            return
+        }
+        if ((scope === "launcher" || scope === "settingsWindow") && currentMap) {
+            var specialKey = scope === "launcher" ? "launcher" : "settings"
+            if (Object.prototype.hasOwnProperty.call(currentMap, specialKey)) output.push([root, specialKey])
+            return
+        }
+        if (scope === "modules" && currentMap) {
+            var keys = Object.keys(currentMap)
+            for (var m = 0; m < keys.length; ++m)
+                if (root !== "moduleBlurEnabled" || keys[m] !== "settings") output.push([root, keys[m]])
+            return
+        }
+    }
+    if (profileSavePathMatches(owner, scope, argument, path)) output.push(path)
+}
+
+// Save only the changed paths belonging to the selected module/section. Other
+// unsaved differences remain in the active settings snapshot and stay visible
+// through the sparse reset/save cache when owner.save() prepares the next write.
+function saveProfileScope(owner, name, scope, argument) {
+    var n = String(name || "").trim()
+    if (!n || !owner.profiles || !Object.prototype.hasOwnProperty.call(owner.profiles, n)) return false
+    n = n.slice(0, 32)
+    var current = owner.snapshotObject()
+    var base = expandedProfileByName(owner, n) || profileBase(owner)
+    var delta = diffValue(base, current) || {}
+    var changedPaths = []
+    collectChangedPaths(delta, [], changedPaths)
+    var selectedPaths = []
+    for (var i = 0; i < changedPaths.length; ++i)
+        expandRootReplacementPaths(owner, String(scope || ""), argument, changedPaths[i], current, selectedPaths)
+
+    // A scoped Save action is intentionally a no-op when the section has no
+    // changed paths; it must never silently save the entire profile as fallback.
+    if (!selectedPaths.length) return false
+
+    var updatedFullProfile = clone(base)
+    for (var p = 0; p < selectedPaths.length; ++p) {
+        var selectedPath = selectedPaths[p]
+        assignValueAtPath(updatedFullProfile, selectedPath, currentValueAtPath(current, selectedPath))
+    }
+
+    var next = Object.assign({}, owner.profiles || {})
+    next[n] = sparseProfile(owner, updatedFullProfile)
+    owner.profiles = next
+    owner.profileStorageFormat = SPARSE_FORMAT
+    owner.activeProfile = n
+    rebuildProfileList(owner)
+    updateResetOverrideCache(owner, expandedProfileByName(owner, n), current)
     owner.save()
     return true
 }

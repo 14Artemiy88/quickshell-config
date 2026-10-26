@@ -12,5 +12,6 @@
   "activeProfile": "cava_on_player",
   "customThemes": {},
   "settingsPersistenceFormat": "profile-overrides-v1",
-  "profileOverrides": {}
+  "profileOverrides": {},
+  "settingsSchemaVersion": 1
 }

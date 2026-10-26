@@ -23,7 +23,34 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        heading: "Показ"
+        changeKeys: ({ keys: ["calendarAlwaysVisible"] })
+        padding: 8
+        contentSpacing: 6
+
+        SettingsCheckBox {
+            id: calendarAlwaysVisibleCheck
+            width: parent.width
+            height: 30
+            text: "Показывать календарь всегда"
+            checked: Config.calendarAlwaysVisible
+            onToggled: {
+                Config.calendarAlwaysVisible = checked
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onCalendarAlwaysVisibleChanged() { calendarAlwaysVisibleCheck.checked = Config.calendarAlwaysVisible }
+            }
+        }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
         heading: "Стрелки навигации"
+        changeKeys: ({ keys: ["calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX"] })
         padding: 8
         contentSpacing: 6
 
@@ -155,6 +182,7 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] })
         padding: 8
         contentSpacing: 6
 
@@ -306,6 +334,7 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["calendarAdjacentDaysColor"] })
         padding: 8
         contentSpacing: 6
 
@@ -335,6 +364,7 @@ Item {
         width: parent.width
         showFrame: true
         heading: "Выходные и отмеченные дни"
+        changeKeys: ({ keys: ["calendarWeekendColor"] })
         padding: 8
         contentSpacing: 6
 
@@ -374,6 +404,7 @@ Item {
         width: parent.width
         showFrame: true
         heading: "Прошедшие дни"
+        changeKeys: ({ keys: ["calendarPastDaysColor", "calendarPastDaysColorEnabled"] })
         padding: 8
         contentSpacing: 6
 
@@ -426,6 +457,7 @@ Item {
         visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 2
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["calendarNoteFrameColor", "calendarNoteMarkerPosition", "calendarNoteMarkerStyle"] })
         padding: 8
         contentSpacing: 6
 
@@ -535,6 +567,7 @@ Item {
         width: parent.width
         showFrame: true
         heading: "Анимация"
+        changeKeys: ({ keys: ["animationCalendarFadeDuration", "animationCalendarSlideDuration", "animationCalendarVisibilityStyle"] })
         padding: 8
         contentSpacing: 6
 

@@ -24,6 +24,6 @@ assert 'duration: Config.animationMopidyVisibilityStyle === "none" ? 0 :' in she
 assert 'duration: Config.animationSettingsVisibilityStyle === "none" ? 0 :' in shell
 assert timer.count('duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(') >= 2
 assert 'if (!animationsActive())' in options and 'opacity = targetOpacity' in options
-assert 'Config.animationTimerVisibilityStyle !== "none"' in options
+assert 'Config.animationTimerOptionsVisibilityStyle !== "none"' in options
 print("Animation style `none` forces zero duration and immediate state for every module: OK")
 PY

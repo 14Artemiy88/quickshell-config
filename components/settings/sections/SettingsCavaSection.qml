@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars", "cavaMode"] })
         padding: 8
         contentSpacing: 6
 
@@ -115,42 +116,7 @@ Column {
             }
         }
 
-        Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
-            width: parent.width
-            height: 30
-            spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Количество полос CAVA"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
-            SettingsNumberField {
-            id: cavaBarsField
-            width: 100
-            height: 30
-            value: Config.cavaBars
-            minimum: 8
-            maximum: 120
-            step: 1
-            wheelStep: 1
-            decimals: 0
-            compact: true
-            fieldWidth: 100
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhDigitsOnly
-            targetObject: Config
-            targetProperty: "cavaBars"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
-        }
 
         Row {
             visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
@@ -194,8 +160,46 @@ Column {
         visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["cavaBars", "cavaBarWidthRatio", "cavaRowSpacing"] })
         padding: 8
         contentSpacing: 6
+
+        Row {
+            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1
+            width: parent.width
+            height: 30
+            spacing: 8
+
+            Text {
+                width: 210
+                height: 30
+                text: "Количество полос CAVA"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsNumberField {
+            id: cavaBarsField
+            width: 100
+            height: 30
+            value: Config.cavaBars
+            minimum: 8
+            maximum: 120
+            step: 1
+            wheelStep: 1
+            decimals: 0
+            compact: true
+            fieldWidth: 100
+            fieldFontSize: 11
+            inputMethodHints: Qt.ImhDigitsOnly
+            targetObject: Config
+            targetProperty: "cavaBars"
+            settingsObject: root.settings
+            saveOnEdit: true
+        }
+        }
 
         Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }

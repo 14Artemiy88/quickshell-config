@@ -123,6 +123,7 @@ Column {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["font", "fontSize", "ledFont"] })
         padding: 8
         contentSpacing: 6
 
@@ -209,6 +210,7 @@ Column {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["backgroundBlurRadius"] })
         heading: "Размытие фона"
         padding: 8
         contentSpacing: 6
@@ -262,6 +264,7 @@ Column {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["frameBorderWidth", "frameRadius"] })
         padding: 8
         contentSpacing: 6
 

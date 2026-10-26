@@ -28,7 +28,7 @@ expect components/settings/sections/SettingsTimersSection.qml "Минуты кн
 expect components/settings/sections/SettingsTimersSection.qml "Оформление и показ"
 expect components/settings/sections/SettingsCpuRamSection.qml "Полосы CPU и RAM"
 expect components/settings/sections/SettingsCpuRamSection.qml "Список приложений"
-expect components/settings/sections/SettingsWeatherSection.qml "Размер стрелки ветра"
+expect components/settings/sections/SettingsWeatherSection.qml "Температура комфорта"
 expect components/settings/sections/SettingsWeatherSection.qml "Дневной прогноз"
 expect components/settings/sections/SettingsVolumeSection.qml "Полоса и аудиопотоки"
 expect components/settings/sections/mopidy/SettingsMopidyTimeSection.qml "Название и исполнитель"

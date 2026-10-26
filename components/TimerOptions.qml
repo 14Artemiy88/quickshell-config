@@ -50,10 +50,17 @@ Item {
     // still produce a visual transition when the popup is created/destroyed.
     // The popup is animated only by these explicit animations.
     property bool closeSignalSent: false
+    // Distinguish the initial empty state from a popup that is being dismissed.
+    property bool popupHasBeenShown: false
 
-    // Drive opacity/scale with one animation group so the popup's lifetime is
-    // tied to the real visual transition rather than a separate Timer. This
-    // avoids timing drift when duration/settings change during the close.
+    // Drive whichever visual properties the chosen timer animation style uses
+    // through one group so popup lifetime follows actual transition completion.
+    transform: Translate {
+        id: popupTranslation
+        x: 0
+        y: 0
+    }
+
     ParallelAnimation {
         id: visualTransition
         NumberAnimation {
@@ -68,43 +75,93 @@ Item {
             property: "scale"
             easing.type: Config.easingType()
         }
+        NumberAnimation {
+            id: showXAnimation
+            target: popupTranslation
+            property: "x"
+            easing.type: Config.easingType()
+        }
+        NumberAnimation {
+            id: showYAnimation
+            target: popupTranslation
+            property: "y"
+            easing.type: Config.easingType()
+        }
         onFinished: root.finishCloseOnce()
     }
 
     function animationsActive() {
-        // The timer module's explicit "none" option disables the entire popup
-        // transition instead of leaving an opacity-only fade behind.
-        return Config.animationTimerVisibilityStyle !== "none"
+        return Config.animationTimerOptionsVisibilityStyle !== "none"
+    }
+
+    function slideOffsetX(style) {
+        if (style === "slideLeft") return -root.width
+        if (style === "slideRight") return root.width
+        return 0
+    }
+
+    function slideOffsetY(style) {
+        if (style === "slideUp") return -root.height
+        if (style === "slideDown") return root.height
+        return 0
     }
 
     function syncVisualState() {
-        var targetOpacity = (closing || selectedFile === "") ? 0 : 1
-        var targetScale = (closing || selectedFile === "") ? 0.97 : 1
-        var expansionEnabled = Config.animationTimerVisibilityStyle !== "none"
+        var hidden = closing || selectedFile === ""
+        var style = Config.animationTimerOptionsVisibilityStyle
+        var fadeEnabled = style === "fade"
+        var targetOpacity = hidden && (fadeEnabled || style === "none") ? 0 : 1
+        var targetScale = hidden && fadeEnabled ? 0.97 : 1
+        var targetX = hidden ? slideOffsetX(style) : 0
+        var targetY = hidden ? slideOffsetY(style) : 0
 
         visualTransition.stop()
+
+        // An unselected popup is already hidden. Place it at its endpoint
+        // directly rather than animating a phantom transition at startup.
+        if (!closing && selectedFile === "" && !popupHasBeenShown) {
+            opacity = targetOpacity
+            scale = targetScale
+            popupTranslation.x = targetX
+            popupTranslation.y = targetY
+            return
+        }
 
         if (!animationsActive()) {
             opacity = targetOpacity
             scale = targetScale
+            popupTranslation.x = targetX
+            popupTranslation.y = targetY
             finishCloseOnce()
             return
         }
 
-        var baseDuration = Config.animationTimerOptionsDuration
-        var opacityDuration = Config.animationDuration(baseDuration, "appearance")
-        var scaleDuration = expansionEnabled
-            ? Config.animationDuration(baseDuration, "expansion") : 0
+        var baseDuration = Math.max(0, Number(Config.animationTimerOptionsDuration) || 0)
+        var duration = Config.animationDuration(baseDuration, "appearance")
+        var slideXEnabled = style === "slideLeft" || style === "slideRight"
+        var slideYEnabled = style === "slideUp" || style === "slideDown"
 
         showOpacityAnimation.from = opacity
         showOpacityAnimation.to = targetOpacity
-        showOpacityAnimation.duration = opacityDuration
+        showOpacityAnimation.duration = fadeEnabled ? duration : 0
         showScaleAnimation.from = scale
-        showScaleAnimation.to = expansionEnabled ? targetScale : 1
-        showScaleAnimation.duration = scaleDuration
-        if (opacityDuration <= 0 && scaleDuration <= 0) {
+        showScaleAnimation.to = targetScale
+        showScaleAnimation.duration = fadeEnabled ? duration : 0
+        showXAnimation.from = popupTranslation.x
+        showXAnimation.to = targetX
+        showXAnimation.duration = slideXEnabled ? duration : 0
+        showYAnimation.from = popupTranslation.y
+        showYAnimation.to = targetY
+        showYAnimation.duration = slideYEnabled ? duration : 0
+
+        if (showOpacityAnimation.duration <= 0
+                && showScaleAnimation.duration <= 0
+                && showXAnimation.duration <= 0
+                && showYAnimation.duration <= 0) {
             opacity = targetOpacity
             scale = targetScale
+            popupTranslation.x = targetX
+            popupTranslation.y = targetY
             finishCloseOnce()
             return
         }
@@ -113,7 +170,7 @@ Item {
 
     Connections {
         target: Config
-        function onAnimationTimerVisibilityStyleChanged() { root.syncVisualState() }
+        function onAnimationTimerOptionsVisibilityStyleChanged() { root.syncVisualState() }
     }
 
     // Closing on a click outside the mini-window is handled by the
@@ -278,6 +335,7 @@ Item {
     function finishCloseOnce() {
         if (!closing || closeSignalSent) return
         closeSignalSent = true
+        popupHasBeenShown = false
         closeFinished()
     }
 
@@ -299,9 +357,21 @@ Item {
     }
     onSelectedFileChanged: {
         updateSelected()
-        if (!closing) syncVisualState()
+        if (selectedFile !== "") {
+            popupHasBeenShown = true
+            if (!closing) syncVisualState()
+        } else if (!closing && popupHasBeenShown) {
+            // A cleared selection after opening is a real close transition,
+            // not the initial hidden state at startup.
+            startClose()
+        } else if (!closing) {
+            syncVisualState()
+        }
     }
     onTimersChanged: updateSelected()
 
-    Component.onCompleted: syncVisualState()
+    Component.onCompleted: {
+        if (selectedFile !== "") popupHasBeenShown = true
+        syncVisualState()
+    }
 }

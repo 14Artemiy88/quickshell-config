@@ -28,15 +28,15 @@ grep -Fq 'visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2' 
 grep -Fq 'visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3' "$ROOT/components/settings/sections/SettingsCalendarSection.qml"
 
 # Subtabs must match the controls that are actually grouped under them.
-grep -Fq 'case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации"]' "$WIDGET"
+grep -Fq 'case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"]' "$WIDGET"
 grep -Fq 'case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность"]' "$WIDGET"
 
-# Timer layout rows must reference host state; animation controls live together in subtab 4.
+# Timer layout rows use host state; timer options popup animation controls live in dedicated subtab 5.
 ! grep -Eq 'visible: root\.currentOtherTab|visible: root\.currentOtherSubTab' "$TIMERS"
 grep -Fq 'id: timerRowSpacingField' "$TIMERS"
 grep -Fq 'visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3' "$TIMERS"
 grep -Fq 'targetProperty: "timerButtonFadeDuration"' "$TIMERS"
-grep -Fq 'visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4' "$TIMERS"
+grep -Fq 'visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5' "$TIMERS"
 grep -Fq 'targetProperty: "animationTimerOptionsDuration"' "$TIMERS"
 ! grep -Fq 'visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0' "$TIMERS"
 ! grep -Fq 'text: "Окно окончания таймера"' "$TIMERS"

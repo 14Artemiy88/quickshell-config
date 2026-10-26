@@ -18,7 +18,7 @@ ShellRoot {
         command: [Quickshell.shellDir + "/scripts/cleanup_storage"]
     }
     Component.onCompleted: storageCleanupProcess.running = true
-    Clock { id: clock; active: Settings.loaded && (Settings.time || (shell.calendarVisible && Settings.calendar)) }
+    Clock { id: clock; active: Settings.loaded && (Settings.time || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
     SystemMonitor { id: monitor }
     Loader {
         id: weatherLoader
@@ -315,10 +315,12 @@ ShellRoot {
         // This prevents the compositor from animating the mini-window itself.
         PopupWindow {
             id: timerOptionsOverlay
-            // Keep the popup surface alive for the lifetime of the timer widget.
-            // This prevents the compositor from treating every open/close as a
-            // newly created surface and applying its own appearance animation.
-            visible: false
+            // Keep the native popup surface alive while the timer module is enabled.
+            // Only its input mask and TimerOptions content change visibility. If the
+            // native surface is destroyed/recreated for every open, the compositor
+            // can add its own fade even when the selected QML animation is "none".
+            property bool surfaceActive: false
+            visible: surfaceActive
             color: "transparent"
             surfaceFormat.opaque: false
             anchor.window: timerWindow
@@ -326,8 +328,9 @@ ShellRoot {
             anchor.rect.y: Settings.geometry.timerOptions[1] - Settings.geometryForLayout("timer")[1]
             implicitWidth: Settings.geometry.timerOptions[2]
             implicitHeight: Settings.geometry.timerOptions[3]
-            // grabFocus lets the popup detect a click outside itself and close.
-            grabFocus: true
+            // Grab focus only while the options panel is open; the transparent,
+            // empty-masked popup remains alive but click-through while hidden.
+            grabFocus: shell.timerOptionsVisible && surfaceActive
             mask: Region { item: popupInputRegion }
 
             Item {
@@ -351,15 +354,37 @@ ShellRoot {
                     timerWidget.selectedFile = ""
                     shell.timerOptionsVisible = false
                     timerOptionsPopup.closing = false
-                    timerOptionsOverlay.visible = false
+                    // Keep the transparent native surface alive while the timer
+                    // module is enabled. Hiding it here causes compositor-level
+                    // fades that override animation style "none".
                 }
             }
 
+            Component.onCompleted: {
+                surfaceActive = Settings.timer
+            }
+
             onVisibleChanged: {
-                if (!visible && shell.timerOptionsVisible) {
-                    timerWidget.selectedFile = ""
-                    shell.timerOptionsVisible = false
-                    timerOptionsPopup.closing = false
+                if (!visible) {
+                    if (Settings.timer) {
+                        // PopupWindow's focus grab can dismiss the native surface on
+                        // outside clicks. Restore the persistent surface even if the
+                        // content was already hidden, otherwise the next open would
+                        // accidentally toggle the native surface and reintroduce fade.
+                        var wasOptionsVisible = shell.timerOptionsVisible
+                        surfaceActive = false
+                        surfaceActive = true
+                        if (wasOptionsVisible && !timerOptionsPopup.closing)
+                            timerOptionsPopup.startClose()
+                    } else {
+                        // Disabling the timer is an immediate teardown, not a
+                        // user-driven popup transition.
+                        shell.timerOptionsVisible = false
+                        timerOptionsPopup.popupHasBeenShown = false
+                        timerOptionsPopup.closing = false
+                        timerWidget.selectedFile = ""
+                        surfaceActive = false
+                    }
                 }
             }
 
@@ -514,13 +539,14 @@ ShellRoot {
         function onSelectedFileChanged() {
             if (timerWidget.selectedFile !== "") {
                 shell.timerOptionsVisible = true
-                timerOptionsOverlay.visible = true
                 timerOptionsPopup.closing = false
+                timerOptionsOverlay.surfaceActive = true
+                timerOptionsPopup.syncVisualState()
             } else if (shell.timerOptionsVisible && !timerOptionsPopup.closing) {
-                // Close the popup through the same window-level path used by
-                // an outside click. This keeps both close interactions visually
-                // identical instead of mixing popup-surface and content animations.
-                timerOptionsOverlay.visible = false
+                // Keep the native popup surface alive until the explicit content
+                // transition finishes. Hiding it here would bypass slide-out and
+                // let the compositor replace the selected style with a fade.
+                timerOptionsPopup.startClose()
             }
         }
     }
@@ -528,11 +554,16 @@ ShellRoot {
     Connections {
         target: Settings
         function onTimerChanged() {
-            if (!Settings.timer && timerOptionsOverlay.visible) {
-                timerOptionsOverlay.visible = false
-                timerWidget.selectedFile = ""
+            if (!Settings.timer) {
                 shell.timerOptionsVisible = false
+                timerOptionsPopup.popupHasBeenShown = false
                 timerOptionsPopup.closing = false
+                timerWidget.selectedFile = ""
+                timerOptionsOverlay.surfaceActive = false
+            } else {
+                // Pre-create the transparent native surface before the first
+                // options panel opens, avoiding compositor appearance animations.
+                timerOptionsOverlay.surfaceActive = true
             }
         }
     }
@@ -546,8 +577,8 @@ ShellRoot {
         // making the module's explicit "none" style look like a fade.
         visible: Settings.calendar
         manageInputMask: true
-        inputMaskEnabled: shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode
-        backgroundBlurVisible: shell.calendarVisible || calendarVisibility.running
+        inputMaskEnabled: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running || shell.layoutEditMode
+        backgroundBlurVisible: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running
         backgroundBlurItem: calendarVisibility.blurRegionItem
         offsetX: Settings.geometryForLayout("calendar")[0]
         offsetY: Settings.geometryForLayout("calendar")[1]
@@ -561,7 +592,7 @@ ShellRoot {
         Primitives.AnimatedVisibility {
             id: calendarVisibility
             anchors.fill: parent
-            shown: shell.calendarVisible
+            shown: shell.calendarVisible || Config.calendarAlwaysVisible
             animationStyle: Config.animationCalendarVisibilityStyle
             duration: Config.animationCalendarVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
             CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }

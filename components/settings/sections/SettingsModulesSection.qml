@@ -97,12 +97,39 @@ Item {
                         width: parent.width
                         height: 32
                         Text {
-                            width: parent.width - 38
+                            width: parent.width
+                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all") ? 38 : 0)
+                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules") ? 38 : 0)
+                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules") ? 38 : 0)
                             text: "Модули и их расположение"
                             color: Config.accent
                             font.family: Config.settingsFont
                             font.pixelSize: Config.settingsUiSize(15)
                             verticalAlignment: Text.AlignVCenter
+                        }
+                        SettingsButton {
+                            width: 30
+                            height: 30
+                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
+                            enabled: visible
+                            text: ""
+                            iconText: "󰆔"
+                            fontSize: 11
+                            tooltip: "Сохранить всё в активный профиль"
+                            backgroundColor: Config.settingsBackground
+                            onClicked: settings.saveProfile(settings.activeProfile)
+                        }
+                        SettingsButton {
+                            width: 30
+                            height: 30
+                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules")
+                            enabled: visible
+                            text: ""
+                            iconText: "\uf0c7"
+                            fontSize: 11
+                            tooltip: "Сохранить расположение и параметры модулей"
+                            backgroundColor: Config.settingsBackground
+                            onClicked: settings.saveProfileScope(settings.activeProfile, "modules")
                         }
                         SettingsResetButton {
                             enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
@@ -117,12 +144,12 @@ Item {
                         height: 18
                         spacing: 6
 
-                        Item { width: 110; height: 18 }
+                        Item { width: 96; height: 18 }
 
                         Repeater {
                             model: ["X", "Y", "Width", "Height"]
                             delegate: Text {
-                                width: 60
+                                width: 48
                                 height: 18
                                 text: modelData
                                 color: Config.textMuted
@@ -133,10 +160,11 @@ Item {
                             }
                         }
 
-                        Text { width: 42; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 42; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 42; height: 18; text: "Блюр"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 42; height: 18; text: "Сброс"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Блюр"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Сохр."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Сброс"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
 
                     Repeater {
@@ -151,7 +179,7 @@ Item {
 
                             SettingsCheckBox {
                                 id: enabledBox
-                                width: 110
+                                width: 96
                                 height: 30
                                 text: settings.moduleLabels[moduleRow.moduleName]
                                 checked: settings[moduleRow.moduleName]
@@ -166,7 +194,7 @@ Item {
 
                                 delegate: SettingsNumberField {
                                     id: geometryField
-                                    width: 60
+                                    width: 48
                                     height: 30
                                     value: Number(settings.geometry[moduleRow.moduleName][index])
                                     minimum: index >= 2 ? 1 : -Infinity
@@ -174,7 +202,7 @@ Item {
                                     step: 1
                                     wheelStep: 1
                                     compact: true
-                                    fieldWidth: 60
+                                    fieldWidth: 48
                                     fieldFontSize: 10
                                     inputMethodHints: Qt.ImhFormattedNumbersOnly
                                     valueWriter: function(n) {
@@ -193,7 +221,7 @@ Item {
 
                             SettingsCheckBox {
                                 id: frameBox
-                                width: 42
+                                width: 30
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
@@ -208,7 +236,7 @@ Item {
 
                             SettingsCheckBox {
                                 id: backgroundBox
-                                width: 42
+                                width: 30
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
@@ -223,7 +251,7 @@ Item {
 
                             SettingsCheckBox {
                                 id: moduleBlurBox
-                                width: 42
+                                width: 30
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
@@ -234,8 +262,20 @@ Item {
                                 onToggled: settings.setModuleBlurEnabled(moduleRow.moduleName, checked)
                             }
 
+                            SettingsButton {
+                                width: 30
+                                height: 30
+                                visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("module", moduleRow.moduleName)
+                                enabled: visible
+                                text: ""
+                                iconText: "\uf0c7"
+                                fontSize: 11
+                                tooltip: "Сохранить настройки модуля: " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
+                                backgroundColor: Config.settingsBackground
+                                onClicked: settings.saveProfileScope(settings.activeProfile, "module", moduleRow.moduleName)
+                            }
                             SettingsResetButton {
-                                width: 42
+                                width: 30
                                 height: 30
                                 enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
                                 actionAvailable: settings.hasResetChanges("module", moduleRow.moduleName)
@@ -256,7 +296,7 @@ Item {
 
                         SettingsCheckBox {
                             id: launcherEnabledBox
-                            width: 110
+                            width: 96
                             height: 30
                             text: "Лаунчер"
                             checked: Config.launcherEnabled
@@ -276,10 +316,10 @@ Item {
                             model: ["X", "Y"]
                             delegate: SettingsNumberField {
                                 id: launcherCoordinateField
-                                width: 60
+                                width: 48
                                 height: 30
                                 compact: true
-                                fieldWidth: 60
+                                fieldWidth: 48
                                 fieldFontSize: 10
                                 value: modulesSection.launcherCoordinate(index)
                                 minimum: -10000
@@ -296,10 +336,10 @@ Item {
 
                         SettingsNumberField {
                             id: launcherWidthField
-                            width: 60
+                            width: 48
                             height: 30
                             compact: true
-                            fieldWidth: 60
+                            fieldWidth: 48
                             fieldFontSize: 10
                             value: Config.launcherWidth
                             minimum: 500
@@ -314,10 +354,10 @@ Item {
 
                         SettingsNumberField {
                             id: launcherHeightField
-                            width: 60
+                            width: 48
                             height: 30
                             compact: true
-                            fieldWidth: 60
+                            fieldWidth: 48
                             fieldFontSize: 10
                             value: Config.launcherHeight
                             minimum: 400
@@ -332,7 +372,7 @@ Item {
 
                         SettingsCheckBox {
                             id: launcherFrameBox
-                            width: 42
+                            width: 30
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -350,7 +390,7 @@ Item {
 
                         SettingsCheckBox {
                             id: launcherBackgroundBox
-                            width: 42
+                            width: 30
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -368,7 +408,7 @@ Item {
 
                         SettingsCheckBox {
                             id: launcherBlurBox
-                            width: 42
+                            width: 30
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -379,8 +419,20 @@ Item {
                             onToggled: settings.setModuleBlurEnabled("launcher", checked)
                         }
 
+                        SettingsButton {
+                            width: 30
+                            height: 30
+                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("launcher")
+                            enabled: visible
+                            text: ""
+                            iconText: "\uf0c7"
+                            fontSize: 11
+                            tooltip: "Сохранить настройки лаунчера"
+                            backgroundColor: Config.settingsBackground
+                            onClicked: settings.saveProfileScope(settings.activeProfile, "launcher")
+                        }
                         SettingsResetButton {
-                            width: 42
+                            width: 30
                             height: 30
                             enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
                             actionAvailable: settings.hasResetChanges("launcher")

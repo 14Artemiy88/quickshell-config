@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 10
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyEmptyQueueText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth", "mopidyUnavailableText"] })
         padding: 8
         contentSpacing: 6
 

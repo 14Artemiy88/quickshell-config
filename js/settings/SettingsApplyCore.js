@@ -10,7 +10,10 @@ function normalizeSettingsTabOrder(source) {
     var seen = ({})
     if (source instanceof Array) {
         for (var i = 0; i < source.length; ++i) {
-            var id = String(source[i] || "")
+            // Accept only canonical string IDs. Avoid coercing malformed JSON
+            // objects into strings while settings are being loaded.
+            if (typeof source[i] !== "string") continue
+            var id = source[i]
             if (SETTINGS_TAB_IDS.indexOf(id) >= 0 && !seen[id]) {
                 seen[id] = true
                 result.push(id)
@@ -24,15 +27,28 @@ function normalizeSettingsTabOrder(source) {
     return result
 }
 
+function normalizeSettingsTabLabel(value, fallback) {
+    // Labels must remain simple strings. Ignore malformed objects/arrays instead
+    // of turning them into UI text such as "[object Object]".
+    if (typeof value !== "string") return fallback
+    var label = value.trim().slice(0, 32)
+    return label || fallback
+}
+
 function normalizeSettingsTabLabels(source, current) {
-    var result = Object.assign({}, DEFAULT_SETTINGS_TAB_LABELS, current || {})
-    if (source && typeof source === "object" && !(source instanceof Array)) {
-        for (var i = 0; i < SETTINGS_TAB_IDS.length; ++i) {
-            var id = SETTINGS_TAB_IDS[i]
-            if (source[id] === undefined) continue
-            var label = String(source[id] === null ? "" : source[id]).trim().slice(0, 32)
-            result[id] = label || DEFAULT_SETTINGS_TAB_LABELS[id]
-        }
+    // Rebuild the map from the supported IDs only. This drops stale/unknown
+    // keys from edited files and prevents bad values from leaking across
+    // profile switches while still allowing partial updates to preserve labels.
+    var result = ({})
+    var currentIsObject = current && typeof current === "object" && !(current instanceof Array)
+    var sourceIsObject = source && typeof source === "object" && !(source instanceof Array)
+    for (var i = 0; i < SETTINGS_TAB_IDS.length; ++i) {
+        var id = SETTINGS_TAB_IDS[i]
+        var fallback = DEFAULT_SETTINGS_TAB_LABELS[id]
+        var currentLabel = currentIsObject && Object.prototype.hasOwnProperty.call(current, id)
+            ? normalizeSettingsTabLabel(current[id], fallback) : fallback
+        result[id] = sourceIsObject && Object.prototype.hasOwnProperty.call(source, id)
+            ? normalizeSettingsTabLabel(source[id], fallback) : currentLabel
     }
     return result
 }

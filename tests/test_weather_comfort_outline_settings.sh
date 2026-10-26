@@ -21,7 +21,7 @@ assert 'weatherComfortOutlineWidth: config.weatherComfortOutlineWidth' in persis
 assert '["weatherComfortOutlineWidth", 0, 4]' in apply_weather
 assert 'Config.weatherComfortOutlineColor = comfortOutlineColor' in apply_weather
 assert '"weatherComfortOutlineColor", "weatherComfortOutlineWidth"' in resets
-assert 'label: "Цвет обводки комфортной температуры"' in ui
+assert 'label: "Цвет обводки"' in ui
 assert 'targetProperty: "weatherComfortOutlineColor"' in ui
 assert 'text: "Толщина обводки"' in ui
 assert 'targetProperty: "weatherComfortOutlineWidth"' in ui

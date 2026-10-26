@@ -19,6 +19,13 @@ Item {
     property int currentOtherTab: 0
     property int currentOtherSubTab: 0
     property bool settingsMoveMode: false
+    readonly property bool quickSaveProfileAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
+    readonly property string currentOtherSaveScope: {
+        if (root.currentOtherTab === 0) return root.currentOtherSubTab === 0 ? "general" : ""
+        return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher"][root.currentOtherTab] || ""
+    }
+    readonly property bool quickSaveSectionAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
+    readonly property bool currentOtherResetAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2)) && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
     signal layoutEditRequested()
     signal settingsMoveRequested()
     signal closeRequested()
@@ -98,7 +105,10 @@ Item {
         var saved = Config.settingsTabOrder
         if (saved instanceof Array) {
             for (var i = 0; i < saved.length; ++i) {
-                var id = String(saved[i] || "")
+                // Runtime guard mirrors the loader normalization in case a
+                // damaged settings object is assigned before normalization.
+                if (typeof saved[i] !== "string") continue
+                var id = saved[i]
                 var known = false
                 for (var d = 0; d < root.settingsTabDefinitions.length; ++d)
                     if (root.settingsTabDefinitions[d].id === id) { known = true; break }
@@ -124,6 +134,111 @@ Item {
         if (id === "modules") return root.currentTab === 0
         if (id === "themes") return root.currentTab === 1
         return root.currentTab === 2 && root.otherTabSettingsIds.indexOf(id) === root.currentOtherTab
+    }
+
+    // Subtabs and frames use narrow selectors against the same cached sparse
+    // overrides as sidebar indicators. Keep selectors explicit so unrelated
+    // sibling fields don't light up every subtab.
+    function settingsSubTabChangeSpec(tab, sub) {
+        var specs = {
+            0: [
+                { keys: ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"] },
+                null,
+                null
+            ],
+            1: [
+                { keys: ["timerWheelStep", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerPresetDefaults"] },
+                { prefixes: ["timerFinished"] },
+                { prefixes: ["timerIcon", "timerAlarmIcon"], keys: ["timerIconOrder"] },
+                { keys: ["timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth"] },
+                { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
+                { keys: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
+            ],
+            2: [
+                { keys: ["playerPriority", "playerFont", "playerBoldArtist", "playerUpdateInterval"] },
+                { prefixes: ["playerSilence"] },
+                { prefixes: ["playerTime"] },
+                { prefixes: ["playerMeta", "playerMetadata"], keys: ["playerFont", "playerBoldArtist", "playerTextOutlineColor", "playerTextOutlineEnabled"] },
+                { prefixes: ["playerNextIcon", "playerPausedIcon", "playerPlayingIcon"] },
+                { prefixes: ["playerProgress"], keys: ["playerShowProgress"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } },
+                { prefixes: ["playerCover"], nested: { colors: ["playerOverlay"] } }
+            ],
+            3: [
+                { keys: ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds"] },
+                { prefixes: ["weatherIcon", "weatherWind", "weatherArrow"], keys: ["weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherDescriptionFontSize", "weatherShowComfort", "weatherPressureFontSize", "weatherPressureUnitFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureValueWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherTempWidth", "weatherTempX"] },
+                { prefixes: ["weatherHourly"], exclude: ["weatherHourlyIntervalMinutes"] },
+                { prefixes: ["weatherDaily"], exclude: ["weatherDailyIntervalMinutes"] }
+            ],
+            4: [
+                { keys: ["cavaMode", "cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars"] },
+                { keys: ["cavaBars", "cavaRowSpacing", "cavaBarWidthRatio"] }
+            ],
+            5: [
+                { keys: ["cpuUpdateInterval", "cpuShowRam", "cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing"] },
+                { prefixes: ["cpuGraph"] },
+                { prefixes: ["topApps"], nested: { colors: ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"] } }
+            ],
+            6: [
+                { keys: ["systemMonitorInterval"] },
+                { prefixes: ["network"] }
+            ],
+            7: [
+                { keys: ["volumeIcon", "volumeMutedIcon"] },
+                { keys: ["volumeUpdateInterval", "volumeShowStreams", "volumeMaxHeight", "volumeMinHeight"] },
+                { prefixes: ["volumeMainTrack", "volumeStreamTrack", "volumeTrack"], keys: ["volumeMainIconWidth", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeStreamLabelFontSize"], nested: { colors: ["volumeTrack", "volumeFill"] } },
+                { prefixes: ["volumeStream"] , keys: ["volumeShowStreams"] },
+                { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] }
+            ],
+            8: [
+                { keys: ["calendarAlwaysVisible", "calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] },
+                { keys: ["calendarAdjacentDaysColor", "calendarPastDaysColor", "calendarPastDaysColorEnabled", "calendarWeekendColor", "calendarNoteFrameColor"], nested: { colors: ["calendarBackground"] } },
+                { prefixes: ["calendarNote"], keys: ["calendarNoteMarkerPosition", "calendarNoteMarkerStyle", "calendarNoteFrameColor"] },
+                { prefixes: ["animationCalendar"] }
+            ],
+            9: [
+                { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] },
+                { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
+                { keys: ["settingsTabOrder", "settingsTabLabels"] }
+            ],
+            10: [
+                { keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyBackground", "mopidyGroupAlbums", "mopidyHoverColor", "mopidyHoverMode", "mopidyShowTrackNumbers", "mopidyShowVolumePercent", "mopidyToggleWithPlayerRightClick", "mopidyVolumeStep", "animationMopidyVisibilityStyle"] },
+                { prefixes: ["mopidyTrack", "mopidyArtist", "mopidyAlbum", "mopidyDuration", "mopidyQueueDuration"], keys: ["mopidyShowAlbumRemaining", "mopidyShowQueueTotalDuration", "mopidyShowTrackRemaining"] },
+                { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyMoveDownIcon", "mopidyMoveUpIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
+                { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] }
+            ],
+            11: [
+                { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
+                { keys: ["launcherTabIcons", "launcherTabLabels", "launcherTabOrder", "launcherTabVisible", "launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] },
+                { keys: ["launcherProjects"] }
+            ]
+        }
+        var row = specs[Number(tab)]
+        if (!row || Number(sub) < 0 || Number(sub) >= row.length) return null
+        return row[Number(sub)]
+    }
+
+    function settingsSubTabHasChanges(tab, sub) {
+        var spec = root.settingsSubTabChangeSpec(tab, sub)
+        return spec !== null && settings.hasResetChanges("keys", spec)
+    }
+
+    // Use the cached sparse profile overrides to mark sections with changes.
+    // This deliberately reuses hasResetChanges() so indicators do not trigger
+    // their own full settings snapshot/diff calculations.
+    function settingsTabHasChanges(id) {
+        if (!settings || !settings.activeProfile || !settings.profiles
+                || settings.activeProfile.length === 0
+                || settings.profiles[settings.activeProfile] === undefined)
+            return false
+        var scopes = {
+            modules: "modules", themes: "themes", general: "general",
+            timers: "timer", player: "player", mopidy: "mopidy",
+            weather: "weather", cava: "cava", cpuRam: "cpu",
+            network: "network", volume: "volume", calendar: "calendar",
+            launcher: "launcher", settingsWindow: "settingsWindow"
+        }
+        var scope = scopes[String(id)] || ""
+        return scope !== "" && settings.hasResetChanges(scope)
     }
 
     function selectSettingsTab(id) {
@@ -167,7 +282,7 @@ Item {
     readonly property var currentOtherSubTabs: {
         switch (root.currentOtherTab) {
         case 0: return ["Интерфейс", "Профили", "Хранилища"]
-        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации"]
+        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"]
         case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
         case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
         case 4: return ["Основные", "Полосы"]
@@ -282,6 +397,7 @@ Item {
                     delegate: SettingsSubTab {
                         width: mainSettingsTabs.width
                         selected: root.isSettingsTabSelected(modelData.id)
+                        modified: root.settingsTabHasChanges(modelData.id)
                         text: modelData.label
                         leftAligned: true
                         horizontalPadding: 8
@@ -339,16 +455,40 @@ Item {
                                 width: parent.width
                                 height: 30
                                 Text {
-                                    width: parent.width - 38
+                                    width: parent.width - (root.quickSaveProfileAvailable ? 38 : 0) - (root.quickSaveSectionAvailable ? 38 : 0) - (root.currentOtherResetAvailable ? 38 : 0)
                                     text: root.currentOtherTabTitle
                                     color: Config.accent
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(15)
                                     verticalAlignment: Text.AlignVCenter
                                 }
+                                SettingsButton {
+                                    width: 30
+                                    height: 30
+                                    visible: root.quickSaveProfileAvailable
+                                    enabled: root.quickSaveProfileAvailable
+                                    text: ""
+                                    iconText: "󰆔"
+                                    fontSize: 11
+                                    tooltip: "Сохранить всё в активный профиль"
+                                    backgroundColor: Config.settingsBackground
+                                    onClicked: settings.saveProfile(settings.activeProfile)
+                                }
+                                SettingsButton {
+                                    width: 30
+                                    height: 30
+                                    visible: root.quickSaveSectionAvailable
+                                    enabled: visible
+                                    text: ""
+                                    iconText: "\uf0c7"
+                                    fontSize: 11
+                                    tooltip: "Сохранить изменения этого раздела в активный профиль"
+                                    backgroundColor: Config.settingsBackground
+                                    onClicked: settings.saveProfileScope(settings.activeProfile, root.currentOtherSaveScope)
+                                }
                                 SettingsResetButton {
                                     enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                    visible: enabled && actionAvailable && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))
+                                    visible: root.currentOtherResetAvailable
                                     actionAvailable: root.currentOtherTab === 0 ? settings.hasResetChanges("general")
                                         : root.currentOtherTab === 1 ? settings.hasResetChanges("timer")
                                         : root.currentOtherTab === 2 ? settings.hasResetChanges("player")
@@ -391,6 +531,7 @@ Item {
                                     delegate: SettingsSubTab {
                                         width: (parent.width - (root.currentOtherSubTabs.length - 1) * 5) / root.currentOtherSubTabs.length
                                         selected: root.currentOtherSubTab === index
+                                        modified: root.settingsSubTabHasChanges(root.currentOtherTab, index)
                                         text: modelData
                                         onClicked: {
                                             root.clearSettingsFocus()

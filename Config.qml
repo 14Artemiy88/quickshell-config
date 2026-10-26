@@ -44,6 +44,7 @@ QtObject {
     property string calendarAdjacentDaysColor: "#777777"
     property string calendarWeekendColor: "#d98282"
     property bool calendarPastDaysColorEnabled: false
+    property bool calendarAlwaysVisible: false
     property string calendarPastDaysColor: "#888888"
     property string calendarNoteMarkerStyle: "dot"
     property string calendarNoteMarkerPosition: "bottomCenter"
@@ -114,6 +115,7 @@ QtObject {
     property string animationCalendarVisibilityStyle: "fade"
     property string animationMopidyVisibilityStyle: "fade"
     property string animationTimerVisibilityStyle: "fade"
+    property string animationTimerOptionsVisibilityStyle: "fade"
     property string animationSettingsVisibilityStyle: "fade"
     property int animationTimerOptionsDuration: 280
     property int animationCalendarSlideDuration: 350

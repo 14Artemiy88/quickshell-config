@@ -16,6 +16,7 @@ Column {
         visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["systemMonitorInterval"] })
         padding: 8
         contentSpacing: 6
 
@@ -58,6 +59,7 @@ Column {
         visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["networkHorizontalPadding", "networkIconColumnWidth", "networkIconLeftPadding", "networkIconSize", "networkRightPadding", "networkRowHeight", "networkRowSpacing", "networkShowDownload", "networkShowUpload", "networkValueFontSize"] })
         padding: 8
         contentSpacing: 6
 

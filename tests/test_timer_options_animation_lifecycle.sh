@@ -19,8 +19,10 @@ assert 'closeSignalSent = true' in finish
 close=options.split('function startClose()',1)[1].split('function updateSelected()',1)[0]
 assert 'closeSignalSent = false' in close and 'closing = true' in close and 'syncVisualState()' in close
 assert 'closeTimer' not in options, 'separate timing source must be removed'
-assert 'function onAnimationTimerVisibilityStyleChanged() { root.syncVisualState() }' in options
-assert 'Config.animationTimerVisibilityStyle !== "none"' in options
+assert 'function onAnimationTimerOptionsVisibilityStyleChanged() { root.syncVisualState() }' in options
+assert 'Config.animationTimerOptionsVisibilityStyle !== "none"' in options
+
+assert 'animationTimerOptionsVisibilityStyle' in options, 'popup uses a dedicated animation style'
 # The host still waits for the closeFinished signal before removing the popup surface.
 assert 'onCloseFinished: {' in shell and 'shell.timerOptionsVisible = false' in shell
 print('TimerOptions animation lifecycle and popup-close synchronization: OK')

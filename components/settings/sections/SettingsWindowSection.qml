@@ -28,6 +28,7 @@ Column {
         visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 0
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] })
         padding: 8
         contentSpacing: 6
 
@@ -146,6 +147,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Положение и размер окна"
+        changeKeys: ({ keys: ["settingsGeometry", "settingsMonitorName"] })
         padding: 8
         contentSpacing: 6
 
@@ -255,6 +257,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Фон и рамка окна настроек"
+        changeKeys: ({ keys: ["settingsBackground", "settingsBorder"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } })
         padding: 8
         contentSpacing: 6
 
@@ -304,6 +307,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Вкладки панели настроек"
+        changeKeys: ({ keys: ["settingsTabOrder", "settingsTabLabels"] })
         padding: 8
         contentSpacing: 6
 
@@ -325,12 +329,12 @@ Column {
 
                 delegate: Row {
                     width: parent.width
-                    height: 29
+                    height: 30
                     spacing: 5
 
                     Text {
                         width: 19
-                        height: 28
+                        height: 30
                         text: String(index + 1)
                         color: Config.textMuted
                         font.family: Config.settingsFont
@@ -341,7 +345,7 @@ Column {
 
                     SettingsTextField {
                         width: Math.max(80, parent.width - 19 - 28 - 28 - 15)
-                        height: 28
+                        height: 30
                         text: modelData.label
                         maximumLength: 32
                         selectByMouse: true
@@ -358,7 +362,7 @@ Column {
 
                     Item {
                         width: 28
-                        height: 28
+                        height: 30
                         SettingsButton {
                             anchors.fill: parent
                             visible: index > 0
@@ -372,7 +376,7 @@ Column {
 
                     Item {
                         width: 28
-                        height: 28
+                        height: 30
                         SettingsButton {
                             anchors.fill: parent
                             visible: host && index < host.settingsNavigationItems.length - 1
@@ -547,7 +551,8 @@ Column {
                                     tooltip: "Удалить выбранный профиль"
                                     emphasized: true
                                     emphasizedHoverOnly: true
-                                    emphasizedColor: "#ff9999"
+                                    emphasizedColor: "#660000"
+                                    emphasizedHoverColor: "#aa0000"
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
                                     onClicked: {
                                         if (settings.deleteProfile(profileCombo.currentText))
@@ -588,7 +593,7 @@ Column {
 
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1 && settings.hasResetChanges("all")
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -613,6 +618,7 @@ Column {
         visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["animationSettingsVisibilityStyle"] })
         padding: 8
         contentSpacing: 6
 
