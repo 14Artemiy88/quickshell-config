@@ -5,6 +5,20 @@ import "../primitives"
 
 Column {
     id: settingsWindowColumn
+
+    function syncProfileComboToActiveProfile() {
+        var names = settings.profileNames()
+        var idx = names.indexOf(String(settings.activeProfile || ""))
+        profileCombo.currentIndex = idx >= 0 ? idx : -1
+    }
+
+    Connections {
+        target: settings
+        function onProfilesRevisionChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }
+        function onActiveProfileChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }
+    }
+
+    Component.onCompleted: Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile)
     property var host
     property var settings: Settings
 
@@ -286,6 +300,95 @@ Column {
         }
     }
     SettingsGroup {
+        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+        width: parent.width
+        showFrame: true
+        heading: "Вкладки панели настроек"
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            width: parent.width
+            text: "Изменяйте названия и порядок вкладок левой панели. Изменения сохраняются автоматически."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            wrapMode: Text.WordWrap
+        }
+
+        Column {
+            width: parent.width
+            spacing: 5
+
+            Repeater {
+                model: host ? host.settingsNavigationItems : []
+
+                delegate: Row {
+                    width: parent.width
+                    height: 29
+                    spacing: 5
+
+                    Text {
+                        width: 19
+                        height: 28
+                        text: String(index + 1)
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        horizontalAlignment: Text.AlignRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    SettingsTextField {
+                        width: Math.max(80, parent.width - 19 - 28 - 28 - 15)
+                        height: 28
+                        text: modelData.label
+                        maximumLength: 32
+                        selectByMouse: true
+                        color: Config.text
+                        selectionColor: Config.accent
+                        selectedTextColor: Config.black
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        placeholderText: host.defaultSettingsTabLabel(modelData.id)
+                        onEditingFinished: {
+                            if (host) host.setSettingsTabLabel(modelData.id, text)
+                        }
+                    }
+
+                    Item {
+                        width: 28
+                        height: 28
+                        SettingsButton {
+                            anchors.fill: parent
+                            visible: index > 0
+                            enabled: index > 0
+                            iconText: "↑"
+                            fontSize: 10
+                            tooltip: "Переместить выше"
+                            onClicked: if (host) host.moveSettingsTab(modelData.id, -1)
+                        }
+                    }
+
+                    Item {
+                        width: 28
+                        height: 28
+                        SettingsButton {
+                            anchors.fill: parent
+                            visible: host && index < host.settingsNavigationItems.length - 1
+                            enabled: host && index < host.settingsNavigationItems.length - 1
+                            iconText: "↓"
+                            fontSize: 10
+                            tooltip: "Переместить ниже"
+                            onClicked: if (host) host.moveSettingsTab(modelData.id, 1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
         visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 1
         width: parent.width
         showFrame: true
@@ -294,7 +397,7 @@ Column {
 
         Text {
                                 visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-                                text: "Профили настроек"
+                                text: settings.activeProfile ? "Активный профиль: " + settings.activeProfile : "Активный профиль: по умолчанию"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
                                 font.pixelSize: Config.settingsUiSize(10)
@@ -418,43 +521,34 @@ Column {
                                         border.width: 1
                                         radius: Config.frameRadius
                                     }
-                                    currentIndex: {
-                                        var names = settings.profileNames()
-                                        var idx = names.indexOf(settings.activeProfile)
-                                        return idx >= 0 ? idx : -1
-                                    }
+                                    currentIndex: -1
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(11)
                                 }
 
                                 SettingsButton {
-                                    width: 85
+                                    width: 30
                                     height: 30
-                                    text: "Загрузить"
-                                    fontSize: 10
+                                    text: ""
+                                    iconText: "\uf019"
+                                    fontSize: 11
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                                    fillOnHover: false
-                                    borderOnHover: true
-                                    accentColor: Config.accent
-                                    backgroundColor: "transparent"
-                                    textColor: Config.accent
                                     onClicked: {
                                         if (settings.loadProfile(profileCombo.currentText))
                                             profileActionFeedback.showMessage("✓ профиль загружен")
                                     }
                                 }
 
-                                SettingsButton {
-                                    width: 85
+                                SettingsResetButton {
+                                    width: 30
                                     height: 30
-                                    text: "Удалить"
-                                    fontSize: 10
+                                    label: ""
+                                    iconText: "\uf1f8"
+                                    tooltip: "Удалить выбранный профиль"
+                                    emphasized: true
+                                    emphasizedHoverOnly: true
+                                    emphasizedColor: "#ff9999"
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
-                                    fillOnHover: false
-                                    borderOnHover: true
-                                    accentColor: Config.accent
-                                    backgroundColor: "transparent"
-                                    textColor: Config.accent
                                     onClicked: {
                                         if (settings.deleteProfile(profileCombo.currentText))
                                             profileActionFeedback.showMessage("✓ профиль удалён")
@@ -492,14 +586,6 @@ Column {
                                 }
                             }
 
-                            Text {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
-                                width: parent.width
-                                text: settings.activeProfile ? "Текущий профиль: " + settings.activeProfile : "Текущий профиль: по умолчанию"
-                                color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(10)
-                            }
 
                             Row {
                                 visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
@@ -515,6 +601,8 @@ Column {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
+                                    enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                                    actionAvailable: settings.hasResetChanges("all")
                                     tooltip: "Сбросить все параметры"
                                     onClicked: settings.resetAllSettings()
                                 }

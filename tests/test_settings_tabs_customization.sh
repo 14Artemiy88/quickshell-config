@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
+CONFIG="$ROOT/Config.qml"
+PERSIST="$ROOT/js/settings/SettingsPersistence.js"
+APPLY="$ROOT/js/settings/SettingsApplyCore.js"
+RESETS="$ROOT/js/settings/SettingsResets.js"
+SETTINGS="$ROOT/Settings.qml"
+DEFAULTS="$ROOT/js/settings/SettingsDefaults.js"
+
+grep -Fq 'property var settingsTabOrder:' "$CONFIG"
+grep -Fq 'property var settingsTabLabels:' "$CONFIG"
+grep -Fq 'settingsTabOrder: cloneValue(config.settingsTabOrder' "$PERSIST"
+grep -Fq 'settingsTabLabels: cloneValue(config.settingsTabLabels' "$PERSIST"
+grep -Fq 'Config.settingsTabOrder = normalizeSettingsTabOrder(o.settingsTabOrder)' "$APPLY"
+grep -Fq 'Config.settingsTabLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)' "$APPLY"
+grep -Fq '"settingsTabOrder", "settingsTabLabels"' "$RESETS"
+grep -Fq '"settingsTabOrder", "settingsTabLabels"' "$SETTINGS"
+grep -Fq 'settingsTabOrder:' "$DEFAULTS"
+grep -Fq 'settingsTabLabels:' "$DEFAULTS"
+
+grep -Fq 'case 9: return ["Интерфейс", "Окно настроек", "Вкладки"]' "$WIDGET"
+grep -Fq 'readonly property var settingsNavigationItems:' "$WIDGET"
+grep -Fq 'function moveSettingsTab(id, delta)' "$WIDGET"
+grep -Fq 'function setSettingsTabLabel(id, value)' "$WIDGET"
+grep -Fq 'model: root.settingsNavigationItems' "$WIDGET"
+grep -Fq 'heading: "Вкладки панели настроек"' "$WINDOW"
+grep -Fq 'visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 2' "$WINDOW"
+grep -Fq 'host.setSettingsTabLabel(modelData.id, text)' "$WINDOW"
+grep -Fq 'host.moveSettingsTab(modelData.id, -1)' "$WINDOW"
+grep -Fq 'host.moveSettingsTab(modelData.id, 1)' "$WINDOW"
+
+echo 'settings sidebar labels/order customization and persistence: OK'

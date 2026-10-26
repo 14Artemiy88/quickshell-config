@@ -247,15 +247,15 @@ Column {
 
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
+                            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 70; text: "Смещение Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 70; text: "Зазор"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Стрелка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                            SettingsNumberField { id: weatherArrowSizeField; width: 70; height: 30; value: Config.weatherArrowSize; minimum: 8; maximum: 64; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherArrowSize"; settingsObject: settings; saveOnEdit: true }
-                            SettingsNumberField { id: weatherArrowYField; width: 70; height: 30; value: Config.weatherArrowYOffset; minimum: -40; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherArrowYOffset"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherWindGapField; width: 70; height: 30; value: Config.weatherWindArrowGap; minimum: -20; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindArrowGap"; settingsObject: settings; saveOnEdit: true }
+                            SettingsNumberField { id: weatherArrowYField; width: 70; height: 30; value: Config.weatherArrowYOffset; minimum: -40; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherArrowYOffset"; settingsObject: settings; saveOnEdit: true }
+                            SettingsNumberField { id: weatherArrowSizeField; width: 70; height: 30; value: Config.weatherArrowSize; minimum: 8; maximum: 64; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherArrowSize"; settingsObject: settings; saveOnEdit: true }
                         }
     }
 
@@ -267,10 +267,6 @@ Column {
         padding: 8
         contentSpacing: 6
 
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
-                            Item { width: 210; height: 24 }
-                            Text { width: 100; text: "Значение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        }
                         Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Размер текста описания"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherDescSizeField; width: 100; height: 30; value: Config.weatherDescriptionFontSize; minimum: 6; maximum: 48; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDescriptionFontSize"; settingsObject: settings; saveOnEdit: true }
@@ -380,26 +376,6 @@ Column {
                             SettingsNumberField { id: weatherWindUnitXExtraField; width: 62; height: 30; value: Config.weatherWindUnitX; minimum: 0; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindUnitX"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherWindUnitYExtraField; width: 62; height: 30; value: Config.weatherWindUnitY; minimum: -20; maximum: 80; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindUnitY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: weatherWindUnitWidthExtraField; width: 62; height: 30; value: Config.weatherWindUnitWidth; minimum: 10; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindUnitWidth"; settingsObject: settings; saveOnEdit: true }
-                        }
-    }
-
-    SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
-        width: parent.width
-        showFrame: true
-        heading: "Размер стрелки ветра"
-        padding: 8
-        contentSpacing: 6
-
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
-                            Item { width: 210; height: 24 }
-                            Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 70; text: "Высота"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-                            Text { width: 210; height: 30; text: "Глиф направления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                            SettingsNumberField { id: weatherWindArrowWidthField; width: 70; height: 30; value: Config.weatherWindArrowWidth; minimum: 8; maximum: 50; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindArrowWidth"; settingsObject: settings; saveOnEdit: true }
-                            SettingsNumberField { id: weatherWindArrowHeightField; width: 70; height: 30; value: Config.weatherWindArrowHeight; minimum: 15; maximum: 80; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindArrowHeight"; settingsObject: settings; saveOnEdit: true }
                         }
     }
 

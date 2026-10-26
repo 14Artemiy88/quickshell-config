@@ -42,7 +42,7 @@ fi
 [[ "$(grep -Fc 'targetProperty: "launcherItemHeight"' "$SECTION")" -eq 1 ]]
 
 # Every top-level launcher list delegate uses the new common radius setting.
-[[ "$(grep -Fc 'radius: Config.launcherItemRadius' "$LAUNCHER")" -eq 9 ]]
+[[ "$(grep -Fc 'radius: Config.launcherItemRadius' "$LAUNCHER")" -eq 10 ]]
 
 # Closing clears the query; tab switching itself must continue to preserve it.
 python3 - "$LAUNCHER" <<'PY'

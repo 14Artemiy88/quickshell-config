@@ -53,7 +53,7 @@ function apply(Config, o) {
         if (o.launcherDefaultMode !== undefined) {
             var launcherMode = Number(o.launcherDefaultMode)
             Config.launcherDefaultMode = isFinite(launcherMode)
-                    ? Math.max(0, Math.min(8, Math.round(launcherMode))) : 0
+                    ? Math.max(0, Math.min(9, Math.round(launcherMode))) : 0
         }
         if (o.launcherShowResultCount !== undefined)
             Config.launcherShowResultCount = !!o.launcherShowResultCount
@@ -61,26 +61,28 @@ function apply(Config, o) {
             Config.launcherCrossSearchProjects = !!o.launcherCrossSearchProjects
         if (o.launcherCrossSearchRunHistory !== undefined)
             Config.launcherCrossSearchRunHistory = !!o.launcherCrossSearchRunHistory
+        if (o.launcherCrossSearchCalculator !== undefined)
+            Config.launcherCrossSearchCalculator = !!o.launcherCrossSearchCalculator
         if (o.launcherTabOrder instanceof Array) {
             var validLauncherOrder = []
             for (var lto = 0; lto < o.launcherTabOrder.length; ++lto) {
                 var tabId = Number(o.launcherTabOrder[lto])
-                if (isFinite(tabId) && Math.floor(tabId) === tabId && tabId >= 0 && tabId <= 8 && validLauncherOrder.indexOf(tabId) < 0)
+                if (isFinite(tabId) && Math.floor(tabId) === tabId && tabId >= 0 && tabId <= 9 && validLauncherOrder.indexOf(tabId) < 0)
                     validLauncherOrder.push(tabId)
             }
-            for (var lta = 0; lta < 9; ++lta) {
+            for (var lta = 0; lta < 10; ++lta) {
                 if (validLauncherOrder.indexOf(lta) < 0) validLauncherOrder.push(lta)
             }
             Config.launcherTabOrder = validLauncherOrder
         }
         if (o.launcherTabVisible instanceof Array) {
             var validLauncherVisibility = []
-            for (var ltv = 0; ltv < 9; ++ltv)
+            for (var ltv = 0; ltv < 10; ++ltv)
                 validLauncherVisibility.push(o.launcherTabVisible[ltv] === undefined ? true : !!o.launcherTabVisible[ltv])
             Config.launcherTabVisible = validLauncherVisibility
         }
-        var defaultLauncherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
-        var defaultLauncherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
+        var defaultLauncherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
+        var defaultLauncherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
         var sourceLauncherLabels = o.launcherTabLabels instanceof Array ? o.launcherTabLabels : defaultLauncherTabLabels
         var validLauncherLabels = []
         for (var ltl = 0; ltl < defaultLauncherTabLabels.length; ++ltl) {

@@ -26,7 +26,7 @@ jq -e '.profiles.Work.fontSize == 16 and .profiles.Games.fontSize == 20 and .act
 # Invalid catalog data is preserved before a safe empty catalog is created.
 printf '{bad json' > "$PROFILES"
 merged=$("$SETTINGS" get 2>"$TMP_ROOT/recovery.log")
-jq -e '(.profiles.Work.fontSize == 15) and ((.profiles | has("Games")) | not) and .activeProfile == "Games"' <<<"$merged" >/dev/null
+jq -e '.profiles.Work.fontSize == 16 and .profiles.Games.fontSize == 20 and .activeProfile == "Games"' <<<"$merged" >/dev/null || { echo 'profile recovery did not restore the latest committed catalog' >&2; exit 1; }
 find "$(dirname "$PROFILES")" -maxdepth 1 -type f -name '.profiles.json.corrupt.*' | grep -q .
 grep -q 'invalid profiles file preserved' "$TMP_ROOT/recovery.log" || grep -q 'invalid profiles file preserved' "$TMP_ROOT/recovery.log"
 # Storage overview points to the independent editable catalog.

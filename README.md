@@ -2,7 +2,6 @@
 
 Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** on Linux/Wayland. The project is written in QML/Qt Quick with Bash and JavaScript helpers. Settings, profiles, themes, and calendar notes are managed through the built-in UI; user data is stored outside the source tree.
 
-**Current candidate: v900 — Recoverable Profile Transactions.** The source archive contains generic defaults; launcher project paths, IDE locations, and API keys are kept in user configuration, not in the repository.
 
 ## Русский
 
@@ -18,8 +17,8 @@ Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** o
 - Календарь с заметками, отметками дат, навигацией по соседним месяцам и настройками анимации.
 - Текущая погода, почасовой и дневной прогнозы через Gismeteo API.
 - Громкость основного выхода и аудиопотоков, состояние сети и активные подключения.
-- Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass и Projects; запуск по Enter, сохранённые команды и проекты.
-- Сквозной поиск из Apps по установленным приложениям, проектам и сохранённым командам с отдельными переключателями источников; результаты показывают соответствующие иконки.
+- Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects и Calculator; запуск по Enter, сохранённые команды и проекты.
+- Сквозной поиск из Apps по установленным приложениям, проектам, сохранённым командам и арифметическим выражениям; источники можно включать отдельно. Калькулятор поддерживает скобки, унарные знаки, +, −, ×, ÷, остаток и степень.
 - Общая система настроек, тем, цветов, профилей и рамочных групп; развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
 
 ### Требования
@@ -92,11 +91,12 @@ Alt+6 { spawn "qs" "ipc" "call" "launcher" "openNetwork"; }
 Alt+7 { spawn "qs" "ipc" "call" "launcher" "openPackages"; }
 Alt+8 { spawn "qs" "ipc" "call" "launcher" "openPass"; }
 Alt+9 { spawn "qs" "ipc" "call" "launcher" "openProjects"; }
+Alt+0 { spawn "qs" "ipc" "call" "launcher" "openCalculator"; }
 ```
 
 Если Quickshell запущен с нестандартным каталогом конфигурации через `-c`, указывайте этот же путь в аргументах `qs` у кейбиндов, иначе IPC может обратиться к экземпляру конфигурации по умолчанию. Пример: `spawn "qs" "-c" "/absolute/path/to/desktop-shell" "ipc" "call" "launcher" "toggle"`. Примеры выше не меняют Niri config автоматически.
 
-Внутри лаунчера доступны переключение вкладок клавиатурой, нечёткий поиск, тематическая подсветка совпадений и управление списком проектов. Вкладка Apps может искать не только приложения, но и проекты и сохранённые команды из истории Run; включение каждого дополнительного источника настраивается отдельно. Результаты помечаются типом и имеют свою иконку. Запуск проекта передаёт путь и исполняемый файл IDE отдельными аргументами, без `eval`.
+Внутри лаунчера доступны переключение вкладок клавиатурой, нечёткий поиск, тематическая подсветка совпадений и управление списком проектов. Вкладка Apps может искать проекты, сохранённые команды из истории Run и результаты вычислений; включение каждого источника настраивается отдельно. В отдельной вкладке Calculator можно вводить арифметические выражения и копировать результат нажатием Enter или кликом. Выражение разбирается ограниченным арифметическим парсером, а не выполняется как код. Результаты поиска помечаются типом и имеют свою иконку. Запуск проекта передаёт путь и исполняемый файл IDE отдельными аргументами, без `eval`. Наведение на строку учитывается после реального движения курсора, поэтому перестроение списка не активирует случайно оказавшуюся под указателем строку.
 
 В настройках темы можно включить «Развернуть», чтобы увидеть список тем вместе с цветовыми образцами. В компактном режиме остаётся прежний выбор темы и связанная с ним логика изменений (`Changed`).
 
@@ -140,8 +140,8 @@ MIT. См. [`LICENSE`](LICENSE).
 - Calendar notes, date markers, adjacent-month navigation, and animation options.
 - Current weather plus hourly and daily forecasts via the Gismeteo API.
 - Output/stream volume, network statistics, and active connections.
-- Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, and Projects, including keyboard activation, saved commands, and project launching.
-- Apps cross-search across installed applications, configured projects, and saved Run commands, with configurable source toggles and per-result icons.
+- Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects, and Calculator, including keyboard activation, saved commands, and project launching.
+- Apps cross-search across installed applications, configured projects, saved Run commands, and arithmetic expressions, with configurable source toggles and per-result icons. The separate Calculator tab supports parentheses, unary signs, +, −, ×, ÷, modulo, and exponentiation.
 - Shared settings, themes, color palette, profiles, and reusable framed settings groups; an expanded theme palette previews each theme before selection.
 
 ### Requirements
@@ -211,11 +211,12 @@ Alt+6 { spawn "qs" "ipc" "call" "launcher" "openNetwork"; }
 Alt+7 { spawn "qs" "ipc" "call" "launcher" "openPackages"; }
 Alt+8 { spawn "qs" "ipc" "call" "launcher" "openPass"; }
 Alt+9 { spawn "qs" "ipc" "call" "launcher" "openProjects"; }
+Alt+0 { spawn "qs" "ipc" "call" "launcher" "openCalculator"; }
 ```
 
 If Quickshell is launched with a non-default configuration directory (`-c`), pass that same directory to the `qs` IPC command in the binding. The examples do not edit your Niri configuration automatically.
 
-The Apps tab can also search configured projects and saved Run commands. Each source can be toggled in launcher settings; cross-search results are labelled by type and display a corresponding icon. The Settings → Colors page has an optional expanded theme list with color previews; disable it to return to the compact selector.
+The Apps tab can also search configured projects, saved Run commands, and valid arithmetic expressions. Each cross-search source can be toggled in launcher settings; results are labelled by type and display a corresponding icon. The separate Calculator tab copies a valid result with Enter or a click and uses a restricted arithmetic parser rather than evaluating entered text as code. Hover selection is activated by actual pointer motion, not merely by a row moving under a stationary cursor. The Settings → Colors page has an optional expanded theme list with color previews; disable it to return to the compact selector.
 
 ### Development and tests
 

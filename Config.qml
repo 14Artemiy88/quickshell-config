@@ -53,6 +53,14 @@ QtObject {
     property color settingsBackground: "#e6000000"
     property color settingsBorder: "#00cccc"
     property color settingsSubheading: "#00cccc"
+    // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
+    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "settingsWindow"]
+    property var settingsTabLabels: ({
+        modules: "Модули", themes: "Темы", general: "Общие", timers: "Таймеры",
+        player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
+        cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
+        launcher: "Лаунчер", settingsWindow: "Окно настроек"
+    })
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
 
@@ -82,10 +90,11 @@ QtObject {
     property bool launcherShowResultCount: true
     property bool launcherCrossSearchProjects: true
     property bool launcherCrossSearchRunHistory: true
-    property var launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8]
-    property var launcherTabVisible: [true, true, true, true, true, true, true, true, true]
-    property var launcherTabLabels: ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
-    property var launcherTabIcons: ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
+    property bool launcherCrossSearchCalculator: true
+    property var launcherTabOrder: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    property var launcherTabVisible: [true, true, true, true, true, true, true, true, true, true]
+    property var launcherTabLabels: ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
+    property var launcherTabIcons: ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
     property var launcherProjects: LauncherProjects.defaults()
 
     // Adaptive module minimum heights

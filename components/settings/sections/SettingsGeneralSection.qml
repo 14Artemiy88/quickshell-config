@@ -250,7 +250,7 @@ Column {
         Text {
             visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
             width: parent.width
-            text: "Общий радиус для всех модулей с включённым блюром; требуется поддержка композитора."
+            text: "Для работы блюра требуется поддержка композитора."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(9)

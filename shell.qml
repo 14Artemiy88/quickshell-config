@@ -167,6 +167,7 @@ ShellRoot {
         function openPackages(): void { shell.showLauncherMode("packages") }
         function openPass(): void { shell.showLauncherMode("pass") }
         function openProjects(): void { shell.showLauncherMode("projects") }
+        function openCalculator(): void { shell.showLauncherMode("calculator") }
     }
 
     property bool timerOptionsVisible: false

@@ -92,7 +92,7 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels"])
     if (profile.colors && profile.colors.settingsBackground !== undefined)
         config.settingsBackground = profile.colors.settingsBackground
     if (profile.colors && profile.colors.settingsBorder !== undefined)
@@ -337,10 +337,11 @@ function resetSettingsWindow(owner, config) {
 function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"])
-    // Older profiles predate editable launcher tab labels and icons.
-    if (profile.launcherTabLabels === undefined) config.launcherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"]
-    if (profile.launcherTabIcons === undefined) config.launcherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""]
+    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherCrossSearchCalculator", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"])
+    // Older profiles predate calculator cross-search and editable launcher tabs.
+    if (profile.launcherCrossSearchCalculator === undefined) config.launcherCrossSearchCalculator = true
+    if (profile.launcherTabLabels === undefined) config.launcherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
+    if (profile.launcherTabIcons === undefined) config.launcherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
     // Older full-profile snapshots predate the launcher title position/color fields.
     if (profile.launcherTitleY === undefined) config.launcherTitleY = 0
     if (profile.launcherTitleColor === undefined) config.launcherTitleColor = "#ffffff"

@@ -63,6 +63,9 @@ QtObject {
     property var profiles: ({})
     property var profileList: []
     property string activeProfile: ""
+    // Cached sparse overrides used by reset-button visibility. Recomputed once
+    // when the settings snapshot is prepared for persistence, never per button.
+    property var resetOverrides: ({})
     property int profilesRevision: 0
     // Profiles store deltas relative to this immutable startup baseline.
     property var profileDefaults: ({})
@@ -134,6 +137,8 @@ QtObject {
                 onStreamFinished: {
                     try {
                         var diskObject = JSON.parse(this.text)
+                        root.resetOverrides = diskObject.profileOverrides && typeof diskObject.profileOverrides === "object"
+                            ? diskObject.profileOverrides : ({})
                         var storageNeedsMigration = String(diskObject.settingsPersistenceFormat || "") !== SettingsPersistence.STORAGE_FORMAT
                         if (!storageNeedsMigration)
                             diskObject = SettingsProfiles.expandStoredSettings(root, diskObject)
@@ -274,6 +279,90 @@ QtObject {
     }
 
     function resetConfigKeys(names) { SettingsResets.resetConfigKeys(root, Config, names) }
+
+    // Reset-button visibility follows the sparse profileOverrides payload used by
+    // settings.json: a present override means the setting differs from the active
+    // profile baseline. This keeps the UI aligned with the actual persistence model.
+    function hasResetChanges(scope, argument) {
+        var name = String(activeProfile || "")
+        if (!name || !profiles || profiles[name] === undefined) return false
+
+        // Read a cached reference: calling payloadObject here used to clone and
+        // diff the entire settings snapshot once per reset-button binding on each
+        // dependency change, which made the Settings window severely sluggish.
+        var overrides = root.resetOverrides || {}
+        function present(object, key) {
+            return object !== null && object !== undefined
+                && Object.prototype.hasOwnProperty.call(object, key)
+        }
+        function hasLeaves(value) {
+            if (value === null || value === undefined) return false
+            if (Array.isArray(value)) return value.length > 0
+            if (typeof value !== "object") return true
+            var keys = Object.keys(value)
+            for (var i = 0; i < keys.length; ++i)
+                if (hasLeaves(value[keys[i]])) return true
+            return false
+        }
+        function hasAny(keys) {
+            for (var i = 0; i < keys.length; ++i)
+                if (present(overrides, keys[i]) && hasLeaves(overrides[keys[i]])) return true
+            return false
+        }
+        function hasPrefixed(prefixes) {
+            var keys = Object.keys(overrides)
+            for (var i = 0; i < keys.length; ++i) {
+                if (prefixes.some(function(prefix) { return keys[i].indexOf(prefix) === 0 })
+                    && hasLeaves(overrides[keys[i]])) return true
+            }
+            return false
+        }
+        function hasNested(mapName, key) {
+            return present(overrides[mapName], key)
+                && hasLeaves(overrides[mapName][key])
+        }
+
+        if (scope === "colors") {
+            var names = argument || []
+            var colors = overrides.colors || {}
+            for (var c = 0; c < names.length; ++c)
+                if (present(colors, names[c])) return true
+            return false
+        }
+        if (scope === "modules")
+            return hasAny(["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"])
+        if (scope === "module") {
+            var moduleName = String(argument || "")
+            if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"]
+                    .some(function(mapName) { return hasNested(mapName, moduleName) })) return true
+            var prefixes = {
+                calendar: ["calendar", "animationCalendar"], cpu: ["cpu", "cpuGraph", "topApps"], cpuGraph: ["cpuGraph"],
+                topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
+                weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"], timer: ["timer", "animationTimer"],
+                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], time: ["time"]
+            }[moduleName] || [moduleName]
+            return hasPrefixed(prefixes)
+        }
+        if (scope === "launcher")
+            return hasResetChanges("module", "launcher") || hasPrefixed(["launcher"])
+        if (scope === "all") {
+            return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "modules"].some(function(item) {
+                return hasResetChanges(item)
+            }) || hasResetChanges("colors", colorNames)
+        }
+        if (scope === "general")
+            return hasAny(["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"])
+
+        var prefixesByScope = {
+            timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"], cava: ["cava"],
+            cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
+            calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"]
+        }
+        if (scope === "settingsWindow" && hasNested("moduleBlurEnabled", "settings")) return true
+        if (scope === "timer" && present(overrides, "timerPresetDefaults")) return true
+        return hasPrefixed(prefixesByScope[scope] || [String(scope)])
+    }
 
     function activeProfileData() { return SettingsResets.activeProfileData(root) }
 

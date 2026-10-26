@@ -22,7 +22,8 @@ Column {
         { id: 5, label: "Network", icon: "󰖩" },
         { id: 6, label: "Packages", icon: "󱄅" },
         { id: 7, label: "Pass", icon: "󰌋" },
-        { id: 8, label: "Projects", icon: "" }
+        { id: 8, label: "Projects", icon: "" },
+        { id: 9, label: "Calculator", icon: "󰃬" }
     ]
 
     function normalizedTabOrder() {
@@ -106,7 +107,7 @@ Column {
     }
 
     function setTabVisible(tabId, value) {
-        var next = Config.launcherTabVisible instanceof Array ? Config.launcherTabVisible.slice(0) : [true, true, true, true, true, true, true, true, true]
+        var next = Config.launcherTabVisible instanceof Array ? Config.launcherTabVisible.slice(0) : [true, true, true, true, true, true, true, true, true, true]
         while (next.length < root.tabDefinitions.length) next.push(true)
         if (!value && next[tabId] !== false && root.visibleTabCount() <= 1) {
             // Keep at least one visible entry so the tab selector cannot become unusable.
@@ -166,16 +167,16 @@ Column {
                 id: launcherDefaultModeCombo
                 width: 235
                 height: 30
-                model: ["Apps — Приложения", "Run — Команды", "Windows — Окна", "Clipboard — Буфер обмена", "Power — Питание", "Network — Сети", "Packages — Nix", "Pass — Пароли", "Projects — Проекты"]
-                currentIndex: Math.max(0, Math.min(8, Number(Config.launcherDefaultMode) || 0))
+                model: ["Apps — Приложения", "Run — Команды", "Windows — Окна", "Clipboard — Буфер обмена", "Power — Питание", "Network — Сети", "Packages — Nix", "Pass — Пароли", "Projects — Проекты", "Calculator — Калькулятор"]
+                currentIndex: Math.max(0, Math.min(9, Number(Config.launcherDefaultMode) || 0))
                 onItemChosen: index => {
-                    Config.launcherDefaultMode = Math.max(0, Math.min(8, index))
+                    Config.launcherDefaultMode = Math.max(0, Math.min(9, index))
                     root.settings.save()
                 }
                 Connections {
                     target: Config
                     function onLauncherDefaultModeChanged() {
-                        launcherDefaultModeCombo.currentIndex = Math.max(0, Math.min(8, Number(Config.launcherDefaultMode) || 0))
+                        launcherDefaultModeCombo.currentIndex = Math.max(0, Math.min(9, Number(Config.launcherDefaultMode) || 0))
                     }
                 }
             }
@@ -583,6 +584,15 @@ Column {
             checked: Config.launcherCrossSearchRunHistory
             onToggled: {
                 Config.launcherCrossSearchRunHistory = checked
+                root.settings.save()
+            }
+        }
+
+        SettingsCheckBox {
+            text: "Искать вычисления из Apps"
+            checked: Config.launcherCrossSearchCalculator
+            onToggled: {
+                Config.launcherCrossSearchCalculator = checked
                 root.settings.save()
             }
         }

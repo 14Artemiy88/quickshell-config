@@ -51,7 +51,7 @@ for name in sys.argv[1:]:
         match = re.search(rf'{key}:\s*\[([^\]]*)\]', text)
         assert match, f'{name}: missing {key} defaults'
         values = re.findall(r'"((?:[^"\\]|\\.)*)"', match.group(1))
-        assert len(values) == 9, f'{name}: {key} should have nine entries, got {len(values)}'
+        assert len(values) == 10, f'{name}: {key} should have ten entries, got {len(values)}'
 print('Launcher tab label/icon defaults and persistence wiring: OK')
 PY
 printf 'launcher tab label/icon customization and Player rollback: OK\n'

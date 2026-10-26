@@ -8,6 +8,7 @@ import "../.."
 import "./modules/common"
 import "./theme"
 import "./models"
+import "../../js/launcher/Calculator.js" as Calculator
 
 
 PanelWindow {
@@ -177,17 +178,24 @@ PanelWindow {
     // One pointer identity for every list: no stale per-delegate hover flags.
     property real trackedPointerX: 0
     property real trackedPointerY: 0
+    property real trackedGlobalPointerX: 0
+    property real trackedGlobalPointerY: 0
+    property bool pointerGlobalPositionKnown: false
+    property bool pointerHoverMotionArmed: false
     property bool pointerInsideLauncher: false
     property int pointerHoveredMode: -1
     property int pointerHoveredIndex: -1
 
-    onModeChanged: modeHoverRefreshTimer.restart()
+    onModeChanged: {
+        root.disarmPointerHover()
+        modeHoverRefreshTimer.restart()
+    }
 
     Timer {
         id: modeHoverRefreshTimer
         interval: 20
         repeat: false
-        onTriggered: root.refreshHoverForMode()
+        onTriggered: root.refreshHoverVisualsForMode()
     }
 
     readonly property int modeApps: 0
@@ -199,6 +207,7 @@ PanelWindow {
     readonly property int modeNix: 6
     readonly property int modePass: 7
     readonly property int modeProjects: 8
+    readonly property int modeCalculator: 9
 
     readonly property var defaultModeTabs: [
         { id: 0, icon: "󰀻", label: "Apps", mode: root.modeApps },
@@ -209,7 +218,8 @@ PanelWindow {
         { id: 5, icon: "󰖩", label: "Network", mode: root.modeNetwork },
         { id: 6, icon: "󱄅", label: "Packages", mode: root.modeNix },
         { id: 7, icon: "󰌋", label: "Pass", mode: root.modePass },
-        { id: 8, icon: "", label: "Projects", mode: root.modeProjects }
+        { id: 8, icon: "", label: "Projects", mode: root.modeProjects },
+        { id: 9, icon: "󰃬", label: "Calculator", mode: root.modeCalculator }
     ]
 
     readonly property var allModeTabs: {
@@ -273,13 +283,14 @@ PanelWindow {
         case modeNix: return nixList.count
         case modePass: return passList.count
         case modeProjects: return projectList.count
+        case modeCalculator: return calculatorList.count
         default: return 0
         }
     }
 
     function configuredDefaultMode() {
         const value = Number(Config.launcherDefaultMode)
-        if (!isFinite(value) || value < 0 || value > 8)
+        if (!isFinite(value) || value < 0 || value > 9)
             return root.modeApps
         const modeValue = Math.round(value)
         const visibility = Config.launcherTabVisible instanceof Array ? Config.launcherTabVisible : []
@@ -334,6 +345,8 @@ PanelWindow {
         case "pass": return root.modePass
         case "project":
         case "projects": return root.modeProjects
+        case "calculator":
+        case "calc": return root.modeCalculator
         default: return root.modeApps
         }
     }
@@ -424,6 +437,9 @@ PanelWindow {
         if (root.mode === root.modeProjects)
             root.rebuildProjectsModel()
 
+        if (root.mode === root.modeCalculator)
+            calculatorList.currentIndex = root.calculatorResults.length > 0 ? 0 : -1
+
         if (root.mode === root.modePower)
             launcherBox.forceActiveFocus()
         else
@@ -441,15 +457,21 @@ PanelWindow {
         case root.modePass: return passList
         case root.modePower: return powerList
         case root.modeProjects: return projectList
+        case root.modeCalculator: return calculatorList
         default: return null
         }
     }
 
-    function setPointerHoveredItem(modeValue, indexValue) {
-        if (root.mode !== modeValue)
-            return
-        root.pointerHoveredMode = modeValue
-        root.pointerHoveredIndex = indexValue
+    function clearPointerHover() {
+        root.pointerHoveredMode = -1
+        root.pointerHoveredIndex = -1
+    }
+
+    function disarmPointerHover() {
+        // Geometry, filtering, scrolling and tab switches must not turn a row
+        // under a stationary cursor into a hover target.
+        root.pointerHoverMotionArmed = false
+        root.clearPointerHover()
     }
 
     function pointerIndexForList(activeList) {
@@ -462,32 +484,70 @@ PanelWindow {
         return index >= 0 && index < activeList.count ? index : -1
     }
 
-    function refreshHoverForMode() {
-        if (!root.visible || !root.pointerInsideLauncher) {
-            root.pointerHoveredMode = -1
-            root.pointerHoveredIndex = -1
+    function activatePointerHoverAtCurrentPosition() {
+        if (!root.visible || !root.pointerInsideLauncher || !root.pointerHoverMotionArmed) {
+            root.clearPointerHover()
             return
         }
         const activeList = root.activeListForMode(root.mode)
         const hoveredIndex = root.pointerIndexForList(activeList)
         root.pointerHoveredMode = hoveredIndex >= 0 ? root.mode : -1
         root.pointerHoveredIndex = hoveredIndex
-        // When a tab changes under a stationary pointer, select the item now
-        // beneath it. Later keyboard movement remains independent of hover.
-        if (hoveredIndex >= 0)
+        if (hoveredIndex >= 0 && activeList.currentIndex !== hoveredIndex)
             activeList.currentIndex = hoveredIndex
     }
 
+    // Retained for existing call sites; refreshing visuals never chooses a new
+    // item. Only a physical pointer move may do that.
+    function refreshHoverForMode() {
+        root.refreshHoverVisualsForMode()
+    }
+
     function refreshHoverVisualsForMode() {
-        if (!root.visible || !root.pointerInsideLauncher) {
-            root.pointerHoveredMode = -1
-            root.pointerHoveredIndex = -1
+        if (!root.visible || !root.pointerInsideLauncher || !root.pointerHoverMotionArmed) {
+            root.clearPointerHover()
             return
         }
         const activeList = root.activeListForMode(root.mode)
         const hoveredIndex = root.pointerIndexForList(activeList)
-        root.pointerHoveredMode = hoveredIndex >= 0 ? root.mode : -1
-        root.pointerHoveredIndex = hoveredIndex
+        // If layout or scrolling moved a different row under the cursor, clear
+        // the old hover instead of silently activating the new row.
+        if (hoveredIndex < 0 || root.pointerHoveredMode !== root.mode || hoveredIndex !== root.pointerHoveredIndex) {
+            root.disarmPointerHover()
+            return
+        }
+        root.pointerHoveredMode = root.mode
+    }
+
+    function updatePointerPosition(point) {
+        if (!point)
+            return
+        const localX = Number(point.position.x)
+        const localY = Number(point.position.y)
+        let globalX = NaN
+        let globalY = NaN
+        if (point.globalPosition) {
+            globalX = Number(point.globalPosition.x)
+            globalY = Number(point.globalPosition.y)
+        } else if (point.scenePosition) {
+            globalX = Number(point.scenePosition.x)
+            globalY = Number(point.scenePosition.y)
+        }
+        const moved = root.pointerGlobalPositionKnown && isFinite(globalX) && isFinite(globalY)
+            && (Math.abs(globalX - root.trackedGlobalPointerX) > 0.5
+                || Math.abs(globalY - root.trackedGlobalPointerY) > 0.5)
+        root.trackedPointerX = localX
+        root.trackedPointerY = localY
+        if (isFinite(globalX) && isFinite(globalY)) {
+            root.trackedGlobalPointerX = globalX
+            root.trackedGlobalPointerY = globalY
+            root.pointerGlobalPositionKnown = true
+        }
+        if (moved && root.visible && root.pointerInsideLauncher) {
+            root.pointerHoverMotionArmed = true
+            root.activatePointerHoverAtCurrentPosition()
+        }
+        return moved
     }
 
     // Window discovery uses the niri CLI so the launcher has no hard QML
@@ -890,6 +950,16 @@ PanelWindow {
         root.persistRunHistory()
     }
 
+    readonly property var calculatorEvaluation: Calculator.evaluate(searchField.text)
+    property var calculatorResults: root.buildCalculatorResults()
+
+    function buildCalculatorResults() {
+        const parsed = root.calculatorEvaluation
+        if (!parsed)
+            return []
+        return [{ kind: "calculator", expression: parsed.expression, result: parsed.text, value: parsed.value }]
+    }
+
     property var appsUnifiedResults: root.buildAppsUnifiedResults()
 
     function buildAppsUnifiedResults() {
@@ -918,6 +988,20 @@ PanelWindow {
 
         if (query === "")
             return results
+
+        if (Config.launcherCrossSearchCalculator !== false && Calculator.hasOperators(query)) {
+            const calculation = Calculator.evaluate(query)
+            if (calculation) {
+                results.push({
+                    kind: "calculator",
+                    expression: calculation.expression,
+                    result: calculation.text,
+                    value: calculation.value,
+                    score: 1000000000,
+                    order: -1
+                })
+            }
+        }
 
         if (Config.launcherCrossSearchProjects !== false) {
             const projects = Array.isArray(Config.launcherProjects) ? Config.launcherProjects : []
@@ -972,7 +1056,7 @@ PanelWindow {
             // Rank all result types together. AppModel's relative order is
             // preserved for equal-ranked app entries; a project/command can
             // only rise above an app when its own match is more relevant.
-            const kindRank = { app: 0, project: 1, run: 2 }
+            const kindRank = { calculator: 0, app: 1, project: 2, run: 3 }
             results.sort(function(a, b) {
                 if (b.score !== a.score) return b.score - a.score
                 if (a.kind === "app" && b.kind === "app") return a.order - b.order
@@ -995,6 +1079,29 @@ PanelWindow {
         }
         if (result.kind === "run") {
             root.runCommand(result.command)
+            return
+        }
+        if (result.kind === "calculator")
+            root.copyCalculatorResult(result.result)
+    }
+
+    property string calculatorCopyPending: ""
+
+    function copyCalculatorResult(value) {
+        const text = String(value === undefined || value === null ? "" : value).trim()
+        if (!text || calculatorCopyProcess.running)
+            return
+        root.calculatorCopyPending = text
+        calculatorCopyProcess.running = true
+        root.hideLauncher()
+    }
+
+    Process {
+        id: calculatorCopyProcess
+        command: ["sh", "-c", "printf '%s' \"$1\" | wl-copy", "launcher-calculator-copy", root.calculatorCopyPending]
+        onExited: function(exitCode) {
+            if (exitCode !== 0)
+                console.warn("Launcher: calculator result copy failed with exit code", exitCode)
         }
     }
     AppModel {
@@ -1303,6 +1410,7 @@ PanelWindow {
                 case Qt.Key_Asterisk: shortcutIndex = 7; break
                 case Qt.Key_9:
                 case Qt.Key_ParenLeft: shortcutIndex = 8; break
+                case Qt.Key_0: shortcutIndex = 9; break
                 }
                 if (shortcutIndex >= 0 && shortcutIndex < root.displayedModeTabs.length) {
                     root.setMode(root.displayedModeTabs[shortcutIndex].mode)
@@ -1320,22 +1428,19 @@ PanelWindow {
         HoverHandler {
             id: launcherPointerTracker
 
-            onPointChanged: {
-                root.trackedPointerX = point.position.x
-                root.trackedPointerY = point.position.y
-                root.refreshHoverVisualsForMode()
-            }
+            onPointChanged: root.updatePointerPosition(point)
 
             onHoveredChanged: {
                 root.pointerInsideLauncher = hovered
                 if (hovered) {
-                    root.trackedPointerX = point.position.x
-                    root.trackedPointerY = point.position.y
+                    const moved = root.updatePointerPosition(point)
+                    if (!moved)
+                        root.disarmPointerHover()
                 } else {
-                    root.pointerHoveredMode = -1
-                    root.pointerHoveredIndex = -1
+                    root.disarmPointerHover()
+                    if (!root.visible)
+                        root.pointerGlobalPositionKnown = false
                 }
-                root.refreshHoverVisualsForMode()
             }
         }
 
@@ -1582,6 +1687,16 @@ PanelWindow {
                             return
                         }
 
+                        if (
+                            root.mode === root.modeCalculator &&
+                            (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+                        ) {
+                            if (root.calculatorResults.length > 0)
+                                root.copyCalculatorResult(root.calculatorResults[0].result)
+                            event.accepted = true
+                            return
+                        }
+
                         // Pass: Enter copies the selected password entry just
                         // like a click on the selected row.
                         if (
@@ -1647,7 +1762,7 @@ PanelWindow {
                             return
                         }
 
-                        // Alt+1..9 follow the visible tab order. Explicit IPC
+                        // Alt+1..9 and Alt+0 follow the visible tab order. Explicit IPC
                         // methods remain stable and can still open hidden tabs.
                         if (event.modifiers & Qt.AltModifier) {
                             let shortcutIndex = -1
@@ -1670,6 +1785,7 @@ PanelWindow {
                             case Qt.Key_Asterisk: shortcutIndex = 7; break
                             case Qt.Key_9:
                             case Qt.Key_ParenLeft: shortcutIndex = 8; break
+                            case Qt.Key_0: shortcutIndex = 9; break
                             }
                             if (shortcutIndex >= 0 && shortcutIndex < root.displayedModeTabs.length) {
                                 root.setMode(root.displayedModeTabs[shortcutIndex].mode)
@@ -1863,6 +1979,7 @@ PanelWindow {
                     }
 
                     onTextChanged: {
+                        root.disarmPointerHover()
                         if (root.mode === root.modeRun) {
                             // Rebuild the history model first. runResults is
                             // derived from it, so doing this in the opposite
@@ -1929,8 +2046,10 @@ PanelWindow {
 
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: appDelegate
@@ -1971,10 +2090,18 @@ PanelWindow {
                         property var entry: itemData && itemData.kind === "app" ? itemData.entry : null
                         property string displayName: itemData && itemData.kind === "project"
                             ? String(itemData.project.name || "")
-                            : (itemData && itemData.kind === "run" ? String(itemData.command || "") : String(entry && entry.name || ""))
+                            : (itemData && itemData.kind === "run"
+                                ? String(itemData.command || "")
+                                : (itemData && itemData.kind === "calculator"
+                                    ? String(itemData.expression || "") + " = " + String(itemData.result || "")
+                                    : String(entry && entry.name || "")))
                         property string displaySubtitle: itemData && itemData.kind === "project"
                             ? ("ПРОЕКТ · " + String(itemData.project.path || ""))
-                            : (itemData && itemData.kind === "run" ? "КОМАНДА · сохранённая" : String(entry && (entry.genericName || entry.comment) || ""))
+                            : (itemData && itemData.kind === "run"
+                                ? "КОМАНДА · сохранённая"
+                                : (itemData && itemData.kind === "calculator"
+                                    ? "КАЛЬКУЛЯТОР · нажмите Enter, чтобы скопировать"
+                                    : String(entry && (entry.genericName || entry.comment) || "")))
 
                         RowLayout {
                             anchors.fill: parent
@@ -2121,6 +2248,17 @@ PanelWindow {
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 22
                                 }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "calculator"
+                                    text: "󰃬"
+                                    color: ListView.isCurrentItem ? theme.selectedText : theme.accent
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 22
+                                }
                             }
 
                             ColumnLayout {
@@ -2167,11 +2305,6 @@ PanelWindow {
 
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeApps, appDelegate.index)
-                                appList.currentIndex = appDelegate.index
-                            }
-
                             onClicked: root.activateAppsSearchResult(appDelegate.itemData)
                         }
                     }
@@ -2196,6 +2329,91 @@ PanelWindow {
                 }
 
                 /*
+                 * CALCULATOR
+                 */
+
+                ListView {
+                    id: calculatorList
+                    anchors.fill: parent
+                    visible: root.mode === root.modeCalculator
+                    clip: true
+                    spacing: 6
+                    model: root.calculatorResults
+                    currentIndex: count > 0 ? 0 : -1
+
+                    onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
+                    onCountChanged: root.disarmPointerHover()
+
+                    delegate: Rectangle {
+                        id: calculatorDelegate
+                        required property var modelData
+                        required property int index
+                        property bool hovered: root.pointerHoveredMode === root.modeCalculator && root.pointerHoveredIndex === index
+                        width: calculatorList.width
+                        height: Config.launcherItemHeight
+                        radius: Config.launcherItemRadius
+                        color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
+                        border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
+                        border.width: ListView.isCurrentItem ? 1 : 0.7
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            spacing: 12
+
+                            Rectangle {
+                                Layout.preferredWidth: 40
+                                Layout.preferredHeight: 40
+                                radius: Math.max(6, Config.launcherItemRadius - 3)
+                                color: ListView.isCurrentItem ? theme.accent : theme.surface
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "󰃬"
+                                    color: ListView.isCurrentItem ? theme.selectedText : theme.accent
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 22
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: calculatorDelegate.modelData.expression + " = " + calculatorDelegate.modelData.result
+                                    color: ListView.isCurrentItem ? theme.selectedText : theme.textWhite
+                                    font.pixelSize: 16
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: "Calculator · Enter or click to copy result"
+                                    color: ListView.isCurrentItem ? theme.selectedSubtext : theme.textDim
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: root.copyCalculatorResult(calculatorDelegate.modelData.result)
+                        }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        visible: calculatorList.count === 0
+                        text: "Enter an arithmetic expression"
+                        color: theme.textVeryDim
+                        font.pixelSize: 13
+                    }
+                }
+
+                /*
                  * RUN
                  */
 
@@ -2211,8 +2429,10 @@ PanelWindow {
 
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: runDelegate
@@ -2302,11 +2522,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeRun, runDelegate.index)
-                                runList.currentIndex = runDelegate.index
-                            }
-
                             onClicked: {
                                 searchField.text =
                                     runDelegate.modelData.command
@@ -2367,8 +2582,10 @@ PanelWindow {
 
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: windowDelegate
@@ -2535,11 +2752,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeWindows, windowDelegate.index)
-                                windowList.currentIndex = windowDelegate.index
-                            }
-
                             onClicked: {
                                 root.focusWindow(modelData.id)
                             }
@@ -2602,8 +2814,9 @@ PanelWindow {
                     currentIndex:
                         count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: clipboardDelegate
@@ -2744,11 +2957,6 @@ PanelWindow {
 
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeClipboard, clipboardDelegate.index)
-                                clipboardList.currentIndex = clipboardDelegate.index
-                            }
-
                             onClicked: {
                                 root.selectClipboard(
                                     clipboardDelegate.index
@@ -2805,8 +3013,10 @@ PanelWindow {
                     model: root.networkResults
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: networkDelegate
@@ -2902,11 +3112,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeNetwork, networkDelegate.index)
-                                networkList.currentIndex = networkDelegate.index
-                            }
-
                             onClicked: root.connectSelectedNetwork(networkDelegate.index)
                         }
                     }
@@ -2957,8 +3162,10 @@ PanelWindow {
                     model: root.nixResults
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: nixDelegate
@@ -3058,11 +3265,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeNix, nixDelegate.index)
-                                nixList.currentIndex = nixDelegate.index
-                            }
-
                             onClicked: root.addSelectedNixPackage(nixDelegate.index)
                         }
                     }
@@ -3115,8 +3317,10 @@ PanelWindow {
                     model: root.passResults
                     currentIndex: count > 0 ? 0 : -1
 
+                    onCountChanged: root.disarmPointerHover()
+
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: passDelegate
@@ -3206,11 +3410,6 @@ PanelWindow {
                             anchors.fill: parent
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modePass, passDelegate.index)
-                                passList.currentIndex = passDelegate.index
-                            }
-
                             onClicked: root.copySelectedPass(passDelegate.index)
                         }
                     }
@@ -3260,8 +3459,10 @@ PanelWindow {
                     spacing: 5
                     model: root.projectResults
                     currentIndex: count > 0 ? 0 : -1
+
+                    onCountChanged: root.disarmPointerHover()
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: projectDelegate
@@ -3351,10 +3552,6 @@ PanelWindow {
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modeProjects, projectDelegate.index)
-                                projectList.currentIndex = projectDelegate.index
-                            }
                             onClicked: root.launchProject(projectDelegate.modelData)
                         }
                     }
@@ -3400,7 +3597,7 @@ PanelWindow {
                         count > 0 ? 0 : -1
 
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
-                    onContentYChanged: Qt.callLater(root.refreshHoverVisualsForMode)
+                    onContentYChanged: root.disarmPointerHover()
 
                     model: [
                         {
@@ -3510,11 +3707,6 @@ PanelWindow {
 
                             hoverEnabled: true
 
-                            onEntered: {
-                                root.setPointerHoveredItem(root.modePower, powerDelegate.index)
-                                powerList.currentIndex = powerDelegate.index
-                            }
-
                             onClicked: {
                                 root.runCommand(
                                     powerDelegate
@@ -3552,7 +3744,7 @@ PanelWindow {
                 }
 
                 Text {
-                    text: "Alt+1..9  tabs"
+                    text: "Alt+1..9, 0  tabs"
                     color: theme.textVeryDim
                     font.pixelSize: 11
                 }
@@ -5155,6 +5347,12 @@ PanelWindow {
 
             break
 
+        case root.modeCalculator:
+
+            if (calculatorList.count > 0)
+                calculatorList.currentIndex = 0
+            break
+
         case root.modeProjects:
 
             if (projectList.count > 0) {
@@ -5285,6 +5483,12 @@ PanelWindow {
 
             break
 
+        case root.modeCalculator:
+
+            if (calculatorList.count > 0)
+                calculatorList.currentIndex = 0
+            break
+
         case root.modeProjects:
 
             if (projectList.count > 0) {
@@ -5408,6 +5612,8 @@ PanelWindow {
             powerList.currentIndex = 0
         else
             powerList.currentIndex = -1
+
+        calculatorList.currentIndex = calculatorList.count > 0 ? 0 : -1
     }
 
     function activate() {
@@ -5465,6 +5671,13 @@ PanelWindow {
         case root.modeProjects:
 
             root.launchCurrentProject()
+
+            break
+
+        case root.modeCalculator:
+
+            if (calculatorList.currentIndex >= 0 && calculatorList.currentIndex < root.calculatorResults.length)
+                root.copyCalculatorResult(root.calculatorResults[calculatorList.currentIndex].result)
 
             break
 

@@ -61,18 +61,104 @@ Item {
         root.currentOtherSubTab = 0
     }
 
-    // Internal IDs remain stable for section visibility, reset handlers and external callers.
-    // The sidebar display order places Mopidy directly below Player.
-    readonly property var otherTabLabels: ["Общие", "Таймеры", "Плеер", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Окно настроек", "Mopidy", "Лаунчер"]
-    readonly property var otherTabDisplayOrder: [0, 1, 2, 10, 3, 4, 5, 6, 7, 8, 11, 9]
+    // Stable IDs keep the internal routing fixed while users customize sidebar labels/order.
+    readonly property var settingsTabDefinitions: [
+        { id: "modules", defaultLabel: "Модули" },
+        { id: "themes", defaultLabel: "Темы" },
+        { id: "general", defaultLabel: "Общие" },
+        { id: "timers", defaultLabel: "Таймеры" },
+        { id: "player", defaultLabel: "Плеер" },
+        { id: "mopidy", defaultLabel: "Mopidy" },
+        { id: "weather", defaultLabel: "Погода" },
+        { id: "cava", defaultLabel: "CAVA" },
+        { id: "cpuRam", defaultLabel: "CPU/RAM" },
+        { id: "network", defaultLabel: "Сеть" },
+        { id: "volume", defaultLabel: "Громкость" },
+        { id: "calendar", defaultLabel: "Календарь" },
+        { id: "launcher", defaultLabel: "Лаунчер" },
+        { id: "settingsWindow", defaultLabel: "Окно настроек" }
+    ]
+    readonly property var otherTabSettingsIds: ["general", "timers", "player", "weather", "cava", "cpuRam", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher"]
 
-    function otherTabIdForDisplayIndex(index) {
-        if (index < 0 || index >= root.otherTabDisplayOrder.length)
-            return 0
-        return root.otherTabDisplayOrder[index]
+    function defaultSettingsTabLabel(id) {
+        for (var i = 0; i < root.settingsTabDefinitions.length; ++i)
+            if (root.settingsTabDefinitions[i].id === id) return root.settingsTabDefinitions[i].defaultLabel
+        return "Настройки"
     }
+
+    function settingsTabLabelForId(id) {
+        var labels = Config.settingsTabLabels || ({})
+        var label = labels[id] === undefined || labels[id] === null ? "" : String(labels[id]).trim()
+        return label || root.defaultSettingsTabLabel(id)
+    }
+
+    function settingsTabOrderNormalized() {
+        var result = []
+        var seen = ({})
+        var saved = Config.settingsTabOrder
+        if (saved instanceof Array) {
+            for (var i = 0; i < saved.length; ++i) {
+                var id = String(saved[i] || "")
+                var known = false
+                for (var d = 0; d < root.settingsTabDefinitions.length; ++d)
+                    if (root.settingsTabDefinitions[d].id === id) { known = true; break }
+                if (known && !seen[id]) { seen[id] = true; result.push(id) }
+            }
+        }
+        for (var j = 0; j < root.settingsTabDefinitions.length; ++j) {
+            var fallbackId = root.settingsTabDefinitions[j].id
+            if (!seen[fallbackId]) result.push(fallbackId)
+        }
+        return result
+    }
+
+    readonly property var settingsNavigationItems: {
+        var order = root.settingsTabOrderNormalized()
+        var rows = []
+        for (var i = 0; i < order.length; ++i)
+            rows.push({ id: order[i], label: root.settingsTabLabelForId(order[i]) })
+        return rows
+    }
+
+    function isSettingsTabSelected(id) {
+        if (id === "modules") return root.currentTab === 0
+        if (id === "themes") return root.currentTab === 1
+        return root.currentTab === 2 && root.otherTabSettingsIds.indexOf(id) === root.currentOtherTab
+    }
+
+    function selectSettingsTab(id) {
+        root.clearSettingsFocus()
+        if (id === "modules") { root.currentTab = 0; return }
+        if (id === "themes") { root.currentTab = 1; return }
+        var index = root.otherTabSettingsIds.indexOf(id)
+        if (index < 0) return
+        root.currentTab = 2
+        root.currentOtherTab = index
+    }
+
+    function setSettingsTabLabel(id, value) {
+        if (root.defaultSettingsTabLabel(id) === "Настройки" && id !== "settingsWindow") return
+        var labels = Object.assign({}, Config.settingsTabLabels || ({}))
+        var label = String(value === undefined || value === null ? "" : value).trim().slice(0, 32)
+        labels[id] = label || root.defaultSettingsTabLabel(id)
+        Config.settingsTabLabels = labels
+        root.settings.save()
+    }
+
+    function moveSettingsTab(id, delta) {
+        var order = root.settingsTabOrderNormalized()
+        var from = order.indexOf(id)
+        var to = from + Number(delta)
+        if (from < 0 || to < 0 || to >= order.length || to === from) return
+        var temporary = order[from]
+        order[from] = order[to]
+        order[to] = temporary
+        Config.settingsTabOrder = order
+        root.settings.save()
+    }
+
     readonly property string currentOtherTabTitle: {
-        var main = root.otherTabLabels[root.currentOtherTab] || "Настройки"
+        var main = root.settingsTabLabelForId(root.otherTabSettingsIds[root.currentOtherTab]) || "Настройки"
         var subtabs = root.currentOtherSubTabs
         var sub = subtabs[root.currentOtherSubTab] || ""
         return (main + (sub ? " · " + sub : "")).toLocaleUpperCase()
@@ -89,7 +175,7 @@ Item {
         case 6: return ["Обновления", "Сеть"]
         case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность"]
         case 8: return ["Разметка", "Цвета", "Метки заметок", "Анимации"]
-        case 9: return ["Интерфейс", "Окно настроек"]
+        case 9: return ["Интерфейс", "Окно настроек", "Вкладки"]
         case 10: return ["Общее", "Время", "Иконки", "Пусто и недоступен"]
         case 11: return ["Общее", "Вкладки", "Проекты"]
         default: return []
@@ -191,29 +277,15 @@ Item {
                 spacing: 5
 
                 Repeater {
-                    model: ["Модули", "Темы", "Общие", "Таймеры", "Плеер", "Mopidy", "Погода", "CAVA", "CPU/RAM", "Сеть", "Громкость", "Календарь", "Лаунчер", "Окно настроек"]
+                    model: root.settingsNavigationItems
 
                     delegate: SettingsSubTab {
                         width: mainSettingsTabs.width
-                        selected: {
-                            if (index === 0) return root.currentTab === 0
-                            if (index === 1) return root.currentTab === 1
-                            return root.currentTab === 2 && root.currentOtherTab === root.otherTabIdForDisplayIndex(index - 2)
-                        }
-                        text: modelData
+                        selected: root.isSettingsTabSelected(modelData.id)
+                        text: modelData.label
                         leftAligned: true
                         horizontalPadding: 8
-                        onClicked: {
-                            root.clearSettingsFocus()
-                            if (index === 0) {
-                                root.currentTab = 0
-                            } else if (index === 1) {
-                                root.currentTab = 1
-                            } else {
-                                root.currentTab = 2
-                                root.currentOtherTab = root.otherTabIdForDisplayIndex(index - 2)
-                            }
-                        }
+                        onClicked: root.selectSettingsTab(modelData.id)
                     }
                 }
             }
@@ -275,7 +347,20 @@ Item {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
-                                    visible: !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))
+                                    enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                                    visible: enabled && actionAvailable && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))
+                                    actionAvailable: root.currentOtherTab === 0 ? settings.hasResetChanges("general")
+                                        : root.currentOtherTab === 1 ? settings.hasResetChanges("timer")
+                                        : root.currentOtherTab === 2 ? settings.hasResetChanges("player")
+                                        : root.currentOtherTab === 3 ? settings.hasResetChanges("weather")
+                                        : root.currentOtherTab === 4 ? settings.hasResetChanges("cava")
+                                        : root.currentOtherTab === 5 ? settings.hasResetChanges("cpu")
+                                        : root.currentOtherTab === 6 ? settings.hasResetChanges("network")
+                                        : root.currentOtherTab === 7 ? settings.hasResetChanges("volume")
+                                        : root.currentOtherTab === 8 ? settings.hasResetChanges("calendar")
+                                        : root.currentOtherTab === 9 ? settings.hasResetChanges("settingsWindow")
+                                        : root.currentOtherTab === 10 ? settings.hasResetChanges("mopidy")
+                                        : root.currentOtherTab === 11 ? settings.hasResetChanges("launcher") : false
                                     tooltip: "Сбросить текущую вкладку"
                                     onClicked: {
                                         if (root.currentOtherTab === 0 && root.currentOtherSubTab === 0) settings.resetGeneralSettings()

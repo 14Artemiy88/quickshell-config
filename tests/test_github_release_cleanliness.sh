@@ -17,6 +17,12 @@ for section in '## Русский' '## English' '### Требования' '### 
     grep -Fq "$section" "$README" || { echo "README missing section: $section" >&2; exit 1; }
 done
 
+# README is product documentation, not a release/version changelog.
+if grep -Eiq '^#{1,3}[[:space:]]+(Recent changes|Version history|Release history|История версий|История изменений)|^\*\*Current candidate: v[0-9]+' "$README"; then
+    echo 'README must not contain version-change history or a current-version banner' >&2
+    exit 1
+fi
+
 ! grep -Fqx '/settings.json' "$GITIGNORE"
 ! grep -Fqx '/profiles.json' "$GITIGNORE"
 grep -Fq 'secrets.json' "$GITIGNORE"

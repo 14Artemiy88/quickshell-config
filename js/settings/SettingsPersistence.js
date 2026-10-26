@@ -100,6 +100,8 @@ function snapshotObject(owner, config) {
             font: config.font, fontSize: config.fontSize,
             settingsFont: config.settingsFont, settingsFontSize: config.settingsFontSize,
             settingsPadding: config.settingsPadding, settingsSpacing: config.settingsSpacing,
+            settingsTabOrder: cloneValue(config.settingsTabOrder || ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "settingsWindow"]),
+            settingsTabLabels: cloneValue(config.settingsTabLabels || {}),
             launcherEnabled: config.launcherEnabled,
             launcherWidth: config.launcherWidth, launcherHeight: config.launcherHeight,
             launcherItemHeight: config.launcherItemHeight, launcherItemRadius: config.launcherItemRadius, launcherRadius: config.launcherRadius,
@@ -122,10 +124,11 @@ function snapshotObject(owner, config) {
             launcherShowResultCount: config.launcherShowResultCount,
             launcherCrossSearchProjects: config.launcherCrossSearchProjects,
             launcherCrossSearchRunHistory: config.launcherCrossSearchRunHistory,
-            launcherTabOrder: JSON.parse(JSON.stringify(config.launcherTabOrder || [0, 1, 2, 3, 4, 5, 6, 7, 8])),
-            launcherTabVisible: JSON.parse(JSON.stringify(config.launcherTabVisible || [true, true, true, true, true, true, true, true, true])),
-            launcherTabLabels: JSON.parse(JSON.stringify(config.launcherTabLabels || ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects"])),
-            launcherTabIcons: JSON.parse(JSON.stringify(config.launcherTabIcons || ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", ""])),
+            launcherCrossSearchCalculator: config.launcherCrossSearchCalculator,
+            launcherTabOrder: JSON.parse(JSON.stringify(config.launcherTabOrder || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])),
+            launcherTabVisible: JSON.parse(JSON.stringify(config.launcherTabVisible || [true, true, true, true, true, true, true, true, true, true])),
+            launcherTabLabels: JSON.parse(JSON.stringify(config.launcherTabLabels || ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"])),
+            launcherTabIcons: JSON.parse(JSON.stringify(config.launcherTabIcons || ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"])),
             launcherProjects: JSON.parse(JSON.stringify(config.launcherProjects || [])),
             ledFont: config.ledFont,
             playerFont: config.playerFont, playerMetaFont: config.playerMetaFont, playerSilenceText: config.playerSilenceText,
@@ -202,6 +205,15 @@ function snapshotObject(owner, config) {
             timerPresetDefaults: owner.timerPresetDefaults, modules: modules, moduleFrames: owner.moduleFrames, moduleBackgrounds: owner.moduleBackgrounds, moduleBlurEnabled: owner.moduleBlurEnabled, moduleMonitors: owner.moduleMonitors, geometry: owner.geometry, settingsGeometry: owner.settingsGeometry, settingsMonitorName: owner.settingsMonitorName, colors: colors, activeTheme: owner.activeTheme
         }
     
+}
+
+function updateResetOverridesCache(owner, overrides) {
+    if (!owner) return
+    var next = isPlainObject(overrides) ? overrides : {}
+    var current = isPlainObject(owner.resetOverrides) ? owner.resetOverrides : {}
+    // Keep the cache stable if a save leaves the sparse override set unchanged.
+    if (!sameValue(current, next))
+        owner.resetOverrides = cloneValue(next)
 }
 
 function payloadObject(owner, config) {
@@ -296,7 +308,9 @@ function save(owner, config) {
     owner.writer.processExited = false
     owner.writer.writerExitCode = -1
     owner.writer.commandMode = "set-json-ui"
-    owner.writer.payload = JSON.stringify(payloadObject(owner, config))
+    var payload = payloadObject(owner, config)
+    updateResetOverridesCache(owner, payload.profileOverrides)
+    owner.writer.payload = JSON.stringify(payload)
     owner.writer.running = true
     owner.saved()
 }
@@ -314,7 +328,9 @@ function flushPendingWrite(owner, config) {
     owner.writer.processExited = false
     owner.writer.writerExitCode = -1
     owner.writer.commandMode = "set-json-ui"
-    owner.writer.payload = JSON.stringify(payloadObject(owner, config))
+    var payload = payloadObject(owner, config)
+    updateResetOverridesCache(owner, payload.profileOverrides)
+    owner.writer.payload = JSON.stringify(payload)
     owner.writer.running = true
     return true
 }

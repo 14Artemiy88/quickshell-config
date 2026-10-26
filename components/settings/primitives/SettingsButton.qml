@@ -4,8 +4,12 @@ import "../../.."
 
 Item {
     id: root
+    // Disabled actions are omitted from the interface rather than rendered as inert controls.
+    visible: enabled
 
     property string text: ""
+    property string iconText: ""
+    property string iconFontFamily: "Symbols Nerd Font Mono"
     property bool emphasized: false
     property bool fillOnHover: false
     property bool borderOnHover: true
@@ -16,6 +20,7 @@ Item {
     property color textColor: Config.text
     property color hoverTextColor: Config.black
     property color disabledTextColor: Config.textMuted
+    property color disabledBorderColor: Config.baseColor
     property real radius: Config.radius
     property real borderWidth: Math.max(1, Config.frameBorderWidth)
     property real fontSize: 10
@@ -37,7 +42,7 @@ Item {
                 ? root.hoverBackgroundColor
                 : root.backgroundColor)
         border.color: !root.enabled
-            ? Config.baseColor
+            ? root.disabledBorderColor
             : (root.emphasized || (root.borderOnHover && mouse.containsMouse)
                 ? root.accentColor
                 : root.outlineColor)
@@ -47,6 +52,7 @@ Item {
             anchors.fill: parent
             anchors.leftMargin: 6
             anchors.rightMargin: 6
+            visible: root.iconText.length === 0
             text: root.text
             color: !root.enabled
                 ? root.disabledTextColor
@@ -59,6 +65,32 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
+        }
+
+        Row {
+            visible: root.iconText.length > 0
+            anchors.centerIn: parent
+            spacing: 5
+            Text {
+                text: root.iconText
+                color: !root.enabled ? root.disabledTextColor
+                    : (root.fillOnHover && mouse.containsMouse ? root.hoverTextColor
+                       : (root.emphasized ? root.accentColor : root.textColor))
+                font.family: root.iconFontFamily
+                font.pixelSize: Config.settingsUiSize(root.fontSize + 1)
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                text: root.text
+                color: !root.enabled ? root.disabledTextColor
+                    : (root.fillOnHover && mouse.containsMouse ? root.hoverTextColor
+                       : (root.emphasized ? root.accentColor : root.textColor))
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(root.fontSize)
+                font.bold: root.fontBold || root.emphasized
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
         }
     }
 

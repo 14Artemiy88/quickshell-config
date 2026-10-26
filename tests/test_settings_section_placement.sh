@@ -11,12 +11,14 @@ WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 CAVA="$ROOT/components/settings/sections/SettingsCavaSection.qml"
 CPU="$ROOT/components/settings/sections/SettingsCpuRamSection.qml"
 
-# Sidebar display order places Mopidy directly below Player and Launcher directly before Settings Window while preserving internal tab IDs.
-grep -Fq 'readonly property var otherTabDisplayOrder: [0, 1, 2, 10, 3, 4, 5, 6, 7, 8, 11, 9]' "$WIDGET"
-grep -Fq 'model: ["Модули", "Темы", "Общие", "Таймеры", "Плеер", "Mopidy", "Погода"' "$WIDGET"
-grep -Fq '"Календарь", "Лаунчер", "Окно настроек"' "$WIDGET"
-grep -Fq 'root.currentOtherTab === root.otherTabIdForDisplayIndex(index - 2)' "$WIDGET"
-grep -Fq 'root.currentOtherTab = root.otherTabIdForDisplayIndex(index - 2)' "$WIDGET"
+# Default sidebar order keeps Mopidy directly below Player; stable tab IDs preserve internal routing.
+grep -Fq '"player", "mopidy", "weather"' "$ROOT/Config.qml"
+grep -Fq 'model: root.settingsNavigationItems' "$WIDGET"
+grep -Fq 'function isSettingsTabSelected(id)' "$WIDGET"
+grep -Fq 'root.otherTabSettingsIds.indexOf(id) === root.currentOtherTab' "$WIDGET"
+grep -Fq 'onClicked: root.selectSettingsTab(modelData.id)' "$WIDGET"
+grep -Fq '{ id: "mopidy", defaultLabel: "Mopidy" }' "$WIDGET"
+grep -Fq '{ id: "launcher", defaultLabel: "Лаунчер" }' "$WIDGET"
 
 # Calendar controls are split into separate, visibility-scoped subtabs.
 grep -Fq 'case 8: return ["Разметка", "Цвета", "Метки заметок", "Анимации"]' "$WIDGET"

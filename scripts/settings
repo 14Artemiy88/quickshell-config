@@ -228,6 +228,7 @@ recover_profile_transaction() {
             return 1
         }
         backup_current || return 1
+        backup_profiles_current || return 1
         rm -f -- "$TXN"
         ;;
       *)
@@ -499,7 +500,7 @@ case "${1:-get}" in
       write_profile_transaction_state committed
       # If either refresh fails, leave the committed journal in place; the
       # next command retries the refresh before exposing settings to callers.
-      if backup_current; then
+      if backup_current && backup_profiles_current; then
         rm -f -- "$TXN"
       else
         printf 'settings: warning: committed profile transaction needs backup refresh; journal retained\n' >&2

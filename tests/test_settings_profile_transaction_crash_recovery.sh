@@ -19,6 +19,7 @@ fail() { printf 'settings profile transaction crash recovery failed: %s\n' "$1" 
 
 initial='{"activeProfile":"Old","profileOverrides":{"fontSize":12},"profiles":{"Old":{"fontSize":12}},"weatherToken":""}'
 "$SETTINGS" set-json-ui "$initial" '' >/dev/null
+cmp -s "$PROFILES" "$DIR/.profiles.json.bak" || fail 'successful profile transaction did not refresh the profile backup'
 cp "$CFG" "$TMP_ROOT/old-settings.json"
 cp "$PROFILES" "$TMP_ROOT/old-profiles.json"
 
@@ -85,5 +86,6 @@ readback=$("$SETTINGS" get 2>"$TMP_ROOT/recovery-committed.log")
 jq -e '.activeProfile == "Final" and .profileOverrides.fontSize == 44 and (.profiles | has("Final"))' <<<"$readback" >/dev/null || fail 'committed recovery rolled back or mixed the new state'
 [[ ! -e "$TXN" ]] || fail 'committed transaction journal was not cleared'
 cmp -s "$CFG" "$DIR/.settings.json.bak" || fail 'committed recovery did not refresh settings backup'
+cmp -s "$PROFILES" "$DIR/.profiles.json.bak" || fail 'committed recovery did not refresh profile backup'
 
 echo 'Interrupted settings/profile transaction recovery: OK'

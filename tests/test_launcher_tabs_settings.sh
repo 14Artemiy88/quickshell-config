@@ -11,15 +11,15 @@ SECTION="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 
 # Persisted tab visibility/order have stable defaults and participate in profiles.
-grep -q 'property var launcherTabOrder: \[0, 1, 2, 3, 4, 5, 6, 7, 8\]' "$CONFIG"
-grep -q 'property var launcherTabVisible: \[true, true, true, true, true, true, true, true, true\]' "$CONFIG"
-grep -q 'launcherTabOrder: \[0, 1, 2, 3, 4, 5, 6, 7, 8\]' "$DEFAULTS"
-grep -q 'launcherTabVisible: \[true, true, true, true, true, true, true, true, true\]' "$DEFAULTS"
+grep -q 'property var launcherTabOrder: \[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\]' "$CONFIG"
+grep -q 'property var launcherTabVisible: \[true, true, true, true, true, true, true, true, true, true\]' "$CONFIG"
+grep -q 'launcherTabOrder: \[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\]' "$DEFAULTS"
+grep -q 'launcherTabVisible: \[true, true, true, true, true, true, true, true, true, true\]' "$DEFAULTS"
 grep -q 'launcherTabOrder: JSON.parse(JSON.stringify(config.launcherTabOrder' "$PERSIST"
 grep -q 'launcherTabVisible: JSON.parse(JSON.stringify(config.launcherTabVisible' "$PERSIST"
 grep -q 'Config.launcherTabOrder = validLauncherOrder' "$APPLY"
 grep -q 'Config.launcherTabVisible = validLauncherVisibility' "$APPLY"
-grep -q '"launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"' "$RESETS"
+grep -q 'launcherTabOrder.*launcherTabVisible.*launcherTabLabels.*launcherTabIcons.*launcherProjects' "$RESETS"
 
 # The unified settings navigation exposes the new subtab before/alongside common options.
 grep -Fq 'case 11: return ["Общее", "Вкладки", "Проекты"]' "$WIDGET"
@@ -42,5 +42,7 @@ grep -q 'readonly property var displayedModeTabs' "$LAUNCHER"
 grep -q 'model: root.displayedModeTabs' "$LAUNCHER"
 grep -q 'root.setMode(root.displayedModeTabs\[shortcutIndex\].mode)' "$LAUNCHER"
 grep -q 'function openMode(modeName)' "$LAUNCHER"
+grep -q 'root.modeCalculator' "$LAUNCHER"
+grep -q '{ id: 9, label: "Calculator", icon: "󰃬" }' "$SECTION"
 
 printf 'launcher tab visibility/order settings: OK\n'

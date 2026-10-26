@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 file="$(dirname "$0")/../components/settings/SettingsWidget.qml"
-grep -Fq 'readonly property var otherTabLabels:' "$file"
+grep -Fq 'function settingsTabLabelForId(id)' "$file"
 grep -Fq 'readonly property string currentOtherTabTitle:' "$file"
 grep -Fq 'return (main + (sub ? " · " + sub : "")).toLocaleUpperCase()' "$file"
 grep -Fq 'text: root.currentOtherTabTitle' "$file"

@@ -105,6 +105,8 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                         }
                         SettingsResetButton {
+                            enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                            actionAvailable: settings.hasResetChanges("modules")
                             tooltip: "Сбросить модули"
                             onClicked: settings.resetModules()
                         }
@@ -235,6 +237,8 @@ Item {
                             SettingsResetButton {
                                 width: 42
                                 height: 30
+                                enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                                actionAvailable: settings.hasResetChanges("module", moduleRow.moduleName)
                                 tooltip: "Сбросить настройки модуля"
                                 onClicked: settings.resetModule(moduleRow.moduleName)
                             }
@@ -378,6 +382,8 @@ Item {
                         SettingsResetButton {
                             width: 42
                             height: 30
+                            enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                            actionAvailable: settings.hasResetChanges("launcher")
                             tooltip: "Сбросить настройки лаунчера"
                             onClicked: settings.resetLauncherSettings()
                         }

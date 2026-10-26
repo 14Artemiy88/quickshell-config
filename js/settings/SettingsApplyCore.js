@@ -2,6 +2,41 @@
 
 .import "SettingsSchema.js" as Schema
 
+var SETTINGS_TAB_IDS = ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "settingsWindow"]
+var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Лаунчер", settingsWindow:"Окно настроек"})
+
+function normalizeSettingsTabOrder(source) {
+    var result = []
+    var seen = ({})
+    if (source instanceof Array) {
+        for (var i = 0; i < source.length; ++i) {
+            var id = String(source[i] || "")
+            if (SETTINGS_TAB_IDS.indexOf(id) >= 0 && !seen[id]) {
+                seen[id] = true
+                result.push(id)
+            }
+        }
+    }
+    for (var j = 0; j < SETTINGS_TAB_IDS.length; ++j) {
+        var fallbackId = SETTINGS_TAB_IDS[j]
+        if (!seen[fallbackId]) result.push(fallbackId)
+    }
+    return result
+}
+
+function normalizeSettingsTabLabels(source, current) {
+    var result = Object.assign({}, DEFAULT_SETTINGS_TAB_LABELS, current || {})
+    if (source && typeof source === "object" && !(source instanceof Array)) {
+        for (var i = 0; i < SETTINGS_TAB_IDS.length; ++i) {
+            var id = SETTINGS_TAB_IDS[i]
+            if (source[id] === undefined) continue
+            var label = String(source[id] === null ? "" : source[id]).trim().slice(0, 32)
+            result[id] = label || DEFAULT_SETTINGS_TAB_LABELS[id]
+        }
+    }
+    return result
+}
+
 function apply(owner, Config, o) {
         if (o.weatherToken !== undefined) owner.weatherToken = String(o.weatherToken).trim()
         if (o.font !== undefined) Config.font = String(o.font)
@@ -22,6 +57,10 @@ function apply(owner, Config, o) {
             var ss = Number(o.settingsSpacing)
             if (isFinite(ss)) Config.settingsSpacing = Math.max(0, Math.min(40, Math.round(ss)))
         }
+        if (o.settingsTabOrder !== undefined)
+            Config.settingsTabOrder = normalizeSettingsTabOrder(o.settingsTabOrder)
+        if (o.settingsTabLabels !== undefined)
+            Config.settingsTabLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)
         if (o.ledFont !== undefined) Config.ledFont = String(o.ledFont)
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)

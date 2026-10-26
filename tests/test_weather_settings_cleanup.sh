@@ -21,9 +21,12 @@ assert section.count('WeatherWindDirectionSettingsRow {') == 9, 'all nine direct
 assert section.count('weatherSection.windDirectionSettingsExpanded') >= 11, 'the group state must control all direction settings and header'
 
 # Current-weather geometry uses consistent aligned table headers instead of labels embedded in each row.
-for heading in ('Y', 'Размер', 'Смещение Y', 'Зазор', 'Ширина', 'Высота', 'Шрифт'):
+for heading in ('X', 'Y', 'Размер', 'Шрифт'):
     assert f'text: "{heading}"' in section, f'missing table heading {heading}'
 assert 'text: "Иконка"' in section, 'icon geometry row missing'
+assert 'text: "Зазор X"' not in section and 'text: "Смещение Y"' not in section, 'wind-arrow axes should use concise X/Y labels'
+wind_group = section.split('heading: "Стрелка ветра"', 1)[1].split('SettingsGroup {', 1)[0]
+assert 'text: "Ширина"' not in wind_group and 'text: "Высота"' not in wind_group, 'duplicate glyph geometry controls should be removed'
 assert 'heading: "Положение элементов"' in section, 'position controls should use the frame heading'
 assert section.count('id: weatherIconYField') == 1 and section.count('id: weatherIconSizeField') == 1
 assert section.count('targetProperty: "weatherWindColumnX"') == 1, 'duplicate wind-column X editor must be removed'

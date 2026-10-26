@@ -276,6 +276,7 @@ Flickable {
 
                         SettingsResetButton {
                             id: themeDeleteButton
+                            visible: actionAvailable && settings.customThemes && settings.customThemes[settings.activeTheme] !== undefined
                             width: 30
                             height: 30
                             label: "×"
@@ -350,6 +351,8 @@ Flickable {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
+                                    enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                                    actionAvailable: settings.hasResetChanges("colors", modelData.colors)
                                     tooltip: "Сбросить цвета: " + modelData.title
                                     onClicked: settings.resetColors(modelData.colors)
                                 }

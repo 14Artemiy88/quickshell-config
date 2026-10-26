@@ -148,8 +148,6 @@ Primitives.ModuleFrame {
                 id: windArrow
                 x: windSpeed.x - width + Config.weatherWindArrowGap
                 y: Config.weatherArrowYOffset
-                width: Config.weatherWindArrowWidth
-                height: Config.weatherWindArrowHeight
                 text: root.windIcon(root.weather.wind?.direction?.scale_8)
                 color: Config.text
                 font.family: root.windFont(root.weather.wind?.direction?.scale_8)
