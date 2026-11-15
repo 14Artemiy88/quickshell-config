@@ -406,4 +406,98 @@ Column {
         }
     }
 
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+        width: parent.width
+        showFrame: true
+        heading: "Анимация списка потоков"
+        changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] })
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text {
+                width: 210
+                height: 30
+                text: "Стиль"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsComboBox {
+                id: volumeStreamsAnimationStyleBox
+                width: 180
+                height: 30
+                property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                currentIndex: Math.max(0, values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
+                onItemChosen: function(index) {
+                    Config.animationVolumeStreamsVisibilityStyle = values[index]
+                    settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onAnimationVolumeStreamsVisibilityStyleChanged() {
+                        volumeStreamsAnimationStyleBox.currentIndex = Math.max(0, volumeStreamsAnimationStyleBox.values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
+                    }
+                }
+                background: Rectangle {
+                    color: Config.settingsBackground
+                    border.color: (volumeStreamsAnimationStyleBox.activeFocus || volumeStreamsAnimationStyleBox.pointerHovered) ? Config.accent : Config.baseColor
+                    border.width: 1
+                    radius: 4
+                }
+                contentItem: Text {
+                    text: volumeStreamsAnimationStyleBox.currentText
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: 8
+                }
+            }
+        }
+
+        Row {
+            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 5 && Config.animationVolumeStreamsVisibilityStyle !== "none"
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text {
+                width: 210
+                height: 30
+                text: "Длительность (мс)"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsNumberField {
+                id: volumeStreamsAnimationDurationField
+                width: 100
+                height: 30
+                value: Config.volumeStreamsAnimationDuration
+                minimum: 0
+                maximum: 5000
+                step: 50
+                wheelStep: 50
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "volumeStreamsAnimationDuration"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+    }
+
 }

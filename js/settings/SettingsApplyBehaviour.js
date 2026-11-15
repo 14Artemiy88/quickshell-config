@@ -10,7 +10,8 @@ function apply(Config, o) {
             "animationMopidyVisibilityStyle",
             "animationTimerVisibilityStyle",
             "animationTimerOptionsVisibilityStyle",
-            "animationSettingsVisibilityStyle"
+            "animationSettingsVisibilityStyle",
+            "animationVolumeStreamsVisibilityStyle"
         ]
         for (var ask = 0; ask < animationStyleKeys.length; ++ask) {
             var styleKey = animationStyleKeys[ask]
@@ -27,7 +28,8 @@ function apply(Config, o) {
         var animationNumberFields = [
             ["animationTimerOptionsDuration", 0, 5000],
             ["animationCalendarSlideDuration", 0, 5000],
-            ["animationCalendarFadeDuration", 0, 5000]
+            ["animationCalendarFadeDuration", 0, 5000],
+            ["volumeStreamsAnimationDuration", 0, 5000]
         ]
         for (var af = 0; af < animationNumberFields.length; ++af) {
             var aname = animationNumberFields[af][0]

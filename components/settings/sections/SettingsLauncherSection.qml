@@ -414,17 +414,17 @@ Column {
             height: 34
             spacing: 8
             Text { width: 190; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsTextField {
-                id: launcherTitleFontField
-                width: Math.min(260, parent.width - 198)
+            SettingsFontField {
+                width: parent.width - 198
                 height: 30
-                text: Config.launcherTitleFont
-                placeholderText: "По умолчанию"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                onEditingFinished: { Config.launcherTitleFont = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherTitleFont; root.settings.save() }
-                Connections { target: Config; function onLauncherTitleFontChanged() { launcherTitleFontField.text = Config.launcherTitleFont } }
+                compact: true
+                fieldWidth: Math.max(80, Math.min(222, parent.width - 236))
+                fieldFontSize: 11
+                value: Config.launcherTitleFont
+                targetObject: Config
+                targetProperty: "launcherTitleFont"
+                settingsObject: root.settings
+                saveOnEdit: true
             }
         }
 
@@ -495,17 +495,17 @@ Column {
             height: 34
             spacing: 8
             Text { width: 190; height: 30; text: "Шрифт поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsTextField {
-                id: launcherSearchFontField
-                width: Math.min(260, parent.width - 198)
+            SettingsFontField {
+                width: parent.width - 198
                 height: 30
-                text: Config.launcherSearchFont.trim() === "" ? "JetBrainsMono Nerd Font" : Config.launcherSearchFont
-                placeholderText: "По умолчанию"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                onEditingFinished: { Config.launcherSearchFont = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherSearchFont; root.settings.save() }
-                Connections { target: Config; function onLauncherSearchFontChanged() { launcherSearchFontField.text = Config.launcherSearchFont.trim() === "" ? "JetBrainsMono Nerd Font" : Config.launcherSearchFont } }
+                compact: true
+                fieldWidth: Math.max(80, Math.min(222, parent.width - 236))
+                fieldFontSize: 11
+                value: Config.launcherSearchFont
+                targetObject: Config
+                targetProperty: "launcherSearchFont"
+                settingsObject: root.settings
+                saveOnEdit: true
             }
         }
 

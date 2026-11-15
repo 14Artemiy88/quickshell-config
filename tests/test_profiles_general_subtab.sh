@@ -19,7 +19,11 @@ grep -Fq 'text: "Радиус скругления рамки"' "$GENERAL"
 ! grep -Fq 'visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1' "$GENERAL"
 
 # Profiles have their own all-settings reset; don't show a redundant tab reset.
-grep -Fq 'visible: enabled && actionAvailable && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))' "$WIDGET"
+grep -Fq 'readonly property bool currentOtherResetAvailable:' "$WIDGET"
+grep -Fq '!(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2))' "$WIDGET"
+grep -Fq 'visible: root.currentOtherResetAvailable' "$WIDGET"
+grep -Fq 'actionAvailable: root.currentOtherTab === 0 ? settings.hasResetChanges("general")' "$WIDGET"
+grep -Fq 'visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1 && settings.hasResetChanges("all")' "$WINDOW"
 grep -Fq 'settings.resetAllSettings()' "$WINDOW"
 
 echo 'profiles under General and merged interface controls: OK'

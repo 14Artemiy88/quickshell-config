@@ -710,28 +710,22 @@ Column {
                 visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
                 width: parent.width; height: 30; spacing: 8
                 Text {
-                    width: 210; height: 30; text: "Шрифт списка (пусто — системный)"
+                    width: 210; height: 30; text: "Шрифт списка"
                     color: Config.text; font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
-                SettingsTextField {
-                    id: topAppsFontField
-                    width: 180; height: 30
-                    text: Config.topAppsFont
-                    color: Config.text; font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    placeholderText: "Системный шрифт"
-                    activeFocusOnTab: true
-                    onEditingFinished: {
-                        Config.topAppsFont = text.trim().slice(0, 128)
-                        text = Config.topAppsFont
-                        settings.save()
-                    }
-                    Connections {
-                        target: Config
-                        function onTopAppsFontChanged() { topAppsFontField.text = Config.topAppsFont }
-                    }
+                SettingsFontField {
+                    width: 218
+                    height: 30
+                    compact: true
+                    fieldWidth: 180
+                    fieldFontSize: 11
+                    value: Config.topAppsFont
+                    targetObject: Config
+                    targetProperty: "topAppsFont"
+                    settingsObject: settings
+                    saveOnEdit: true
                 }
             }
 

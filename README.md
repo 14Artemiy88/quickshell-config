@@ -20,6 +20,7 @@ Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** o
 - Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects и Calculator; запуск по Enter, сохранённые команды и проекты.
 - Сквозной поиск из Apps по установленным приложениям, проектам, сохранённым командам и арифметическим выражениям; источники можно включать отдельно. Калькулятор поддерживает скобки, унарные знаки, +, −, ×, ÷, остаток и степень.
 - Общая система настроек, тем, цветов, профилей и рамочных групп; развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
+- Собственная система уведомлений на базе Quickshell: всплывающие карточки, уровни важности, прогресс-полосы по подсказке `int:value`, форматирование и ссылки, иконки и изображения из image-path/image-data, автоматическое скрытие и действия. На первом этапе она заменяет Dunst; перед запуском нужно остановить Dunst, чтобы Quickshell мог занять D-Bus имя `org.freedesktop.Notifications`.
 
 ### Требования
 
@@ -143,6 +144,7 @@ MIT. См. [`LICENSE`](LICENSE).
 - Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects, and Calculator, including keyboard activation, saved commands, and project launching.
 - Apps cross-search across installed applications, configured projects, saved Run commands, and arithmetic expressions, with configurable source toggles and per-result icons. The separate Calculator tab supports parentheses, unary signs, +, −, ×, ÷, modulo, and exponentiation.
 - Shared settings, themes, color palette, profiles, and reusable framed settings groups; an expanded theme palette previews each theme before selection.
+- Native Quickshell notification cards with urgency styling, progress bars from the `int:value` hint, rich text and hyperlinks, application icons, timeouts, queue scrolling, and action buttons.
 
 ### Requirements
 
@@ -235,3 +237,10 @@ Main directories: `components/` (widgets, launcher, shared QML primitives), `com
 ### License
 
 MIT; see [`LICENSE`](LICENSE).
+
+
+### Custom notifications
+
+The custom Quickshell notification cards render the notification image hint (`image-path`/`image-data`) as a separate bounded preview below the message, while keeping the small application icon independent. Raw filesystem paths are loaded directly and icon-theme names are checked before display so an unavailable image does not produce Quickshell’s black/magenta missing-texture tile or reserve empty preview space. They omit the summary row when a notification has an empty or whitespace-only summary. The body begins directly below the application/source label, and card height measurement excludes the empty summary. When a notification includes an integer `value` hint from 0 to 100 (for example, `notify-send -h int:value:65`), the card displays a compact accent-colored progress bar; notifications without a valid progress hint keep their previous layout. Notifications that request the server-default timeout (`expire_timeout = -1`, such as `notify-send -t -1`) use a configurable default (5 seconds initially) for low/normal urgency; critical notifications without an explicit positive timeout remain until manually dismissed. An explicit timeout of `0` always disables automatic expiry.
+
+Notification preferences are available in **Settings → Уведомления**. The module controls normal and critical default timeouts, card position, width, screen margin, queue spacing, image-preview height, and visibility of application icons, body images, and progress bars. Preferences are profile-aware, saved to `settings.json`, and can be reset independently. The notification server itself remains active with the shell; this page configures presentation and timeout behavior rather than adding a second notification-server toggle.

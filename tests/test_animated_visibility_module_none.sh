@@ -33,8 +33,9 @@ assert 'duration: Config.animationSettingsVisibilityStyle === \"none\" ? 0 :' in
 assert 'animationStyle: Config.animationTimerVisibilityStyle' in timer
 assert 'Config.animationTimerVisibilityStyle === "none" ? 0 :' in timer, "timer icon fades must also stop when module style is none"
 active = options.split("function animationsActive()", 1)[1].split("function syncVisualState()", 1)[0]
-assert 'Config.animationTimerVisibilityStyle !== "none"' in active
-assert 'function onAnimationTimerVisibilityStyleChanged() { root.syncVisualState() }' in options
+assert 'Config.animationTimerOptionsVisibilityStyle !== "none"' in active
+assert 'function onAnimationTimerOptionsVisibilityStyleChanged() { root.syncVisualState() }' in options
+assert 'Config.animationTimerVisibilityStyle' not in active, 'options popup must use its own animation setting'
 assert "Config.animationsEnabled" not in options
 assert "Config.animationsEnabled" not in launcher
 assert "Config.animationDuration(180, \"movement\")" in launcher
@@ -45,5 +46,5 @@ assert 'text: "Анимации"' not in general
 assert "animationsEnabled" not in apply and "animationAppearanceEnabled" not in apply
 assert "animationsEnabled: config.animationsEnabled" not in persist
 assert "animationAppearanceEnabled: config.animationAppearanceEnabled" not in persist
-print('per-module animation `none` disables transitions; General animation tab and hidden global gates removed: OK')
+print('per-module and timer-options animation `none` disable transitions independently; obsolete global gates removed: OK')
 PY

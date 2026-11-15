@@ -41,6 +41,56 @@ Column {
         order.splice(target, 0, item)
         root.setTimerIconOrder(order[0] === "timer" ? "timer-left" : "alarm-left")
     }
+
+    function timerOptionsActionIconOrderNormalized() {
+        var allowed = ["comment", "duration", "refresh", "toggle_pause", "color"]
+        var source = Config.timerOptionsActionIconOrder
+        var result = []
+        if (source instanceof Array) {
+            for (var i = 0; i < source.length; ++i) {
+                var id = String(source[i] || "")
+                if (allowed.indexOf(id) >= 0 && result.indexOf(id) < 0)
+                    result.push(id)
+            }
+        }
+        for (var j = 0; j < allowed.length; ++j)
+            if (result.indexOf(allowed[j]) < 0) result.push(allowed[j])
+        return result
+    }
+
+    function timerOptionsActionIconPrefix(iconId) {
+        switch (String(iconId)) {
+        case "comment": return "timerOptionsComment"
+        case "duration": return "timerOptionsDuration"
+        case "refresh": return "timerOptionsRefresh"
+        case "toggle_pause": return "timerOptionsPause"
+        case "color": return "timerOptionsColor"
+        default: return "timerOptionsComment"
+        }
+    }
+
+    function timerOptionsActionIconLabel(iconId) {
+        switch (String(iconId)) {
+        case "comment": return "Комментарий"
+        case "duration": return "Длительность"
+        case "refresh": return "Перезапуск"
+        case "toggle_pause": return "Пауза"
+        case "color": return "Цвет"
+        default: return String(iconId)
+        }
+    }
+
+    function moveTimerOptionsActionIconOrder(iconId, delta) {
+        var order = root.timerOptionsActionIconOrderNormalized()
+        var index = order.indexOf(String(iconId))
+        var target = index + Number(delta)
+        if (index < 0 || target < 0 || target >= order.length) return
+        var item = order[index]
+        order.splice(index, 1)
+        order.splice(target, 0, item)
+        Config.timerOptionsActionIconOrder = order
+        root.settings.save()
+    }
     SettingsGroup {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 0
         width: parent.width
@@ -132,6 +182,86 @@ Column {
             }
     }
 
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 0
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        heading: "Случайные цвета таймеров"
+        changeKeys: ({ keys: ["timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax"] })
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            width: parent.width
+            text: "Правый клик по таймеру меняет его цвет. Этот же диапазон используется для новых таймеров."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            wrapMode: Text.WordWrap
+        }
+
+        Row {
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text {
+                width: 210
+                height: 30
+                text: "Диапазон"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsComboBox {
+                width: 180
+                height: 30
+                model: ["Полный · чёрный–белый", "Только светлые", "Только тёмные", "Пользовательский"]
+                currentIndex: ["full", "light", "dark", "custom"].indexOf(Config.timerRandomColorMode)
+                onItemChosen: function(index) {
+                    Config.timerRandomColorMode = ["full", "light", "dark", "custom"][index]
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onTimerRandomColorModeChanged() {
+                        timerRandomColorModeBox.currentIndex = ["full", "light", "dark", "custom"].indexOf(Config.timerRandomColorMode)
+                    }
+                }
+                id: timerRandomColorModeBox
+            }
+        }
+
+        SettingsColorField {
+            visible: Config.timerRandomColorMode === "custom"
+            label: "От"
+            value: String(Config.timerRandomColorMin)
+            targetObject: Config
+            targetProperty: "timerRandomColorMin"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: false
+            allowTransparent: false
+            labelWidth: 210
+            fieldWidth: 120
+        }
+
+        SettingsColorField {
+            visible: Config.timerRandomColorMode === "custom"
+            label: "До"
+            value: String(Config.timerRandomColorMax)
+            targetObject: Config
+            targetProperty: "timerRandomColorMax"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: false
+            allowTransparent: false
+            labelWidth: 210
+            fieldWidth: 120
+        }
+    }
 
     SettingsGroup {
         visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 1
@@ -306,14 +436,17 @@ Column {
                 visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: timerFinishedTitleFontField
-                    width: 250; height: 30
-                    text: Config.timerFinishedTitleFont
-                    color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true
-                    background: Rectangle { color: Config.settingsBackground; border.color: (timerFinishedTitleFontField.activeFocus || timerFinishedTitleFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: { Config.timerFinishedTitleFont=text.trim() || Config.timerFinishedTitleFont; text=Config.timerFinishedTitleFont; root.settings.save() }
-                    Connections { target: Config; function onTimerFinishedTitleFontChanged(){ timerFinishedTitleFontField.text=Config.timerFinishedTitleFont } }
+                SettingsFontField {
+                    width: 288
+                    height: 30
+                    compact: true
+                    fieldWidth: 250
+                    fieldFontSize: 11
+                    value: Config.timerFinishedTitleFont
+                    targetObject: Config
+                    targetProperty: "timerFinishedTitleFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
             }
 
@@ -397,7 +530,7 @@ Column {
         width: parent.width
         showFrame: true
         heading: "Иконки таймера и будильника"
-        changeKeys: ({ keys: ["timerAlarmIcon", "timerIcon"] })
+        changeKeys: ({ keys: ["timerAlarmIcon", "timerAlarmIconEnabled", "timerIcon", "timerIconEnabled"] })
         padding: 8
         contentSpacing: 6
 
@@ -411,6 +544,7 @@ Column {
                     height: 18
                     spacing: 6
                     Item { width: 110; height: 18 }
+                    Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
                     Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
                     Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
                     Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
@@ -433,6 +567,18 @@ Column {
                             font.pixelSize: Config.settingsUiSize(11)
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
+                        }
+
+                        SettingsCheckBox {
+                            width: 30
+                            height: 30
+                            indicatorOnly: true
+                            checked: modelData === "timer" ? Config.timerIconEnabled : Config.timerAlarmIconEnabled
+                            onToggled: {
+                                if (modelData === "timer") Config.timerIconEnabled = checked
+                                else Config.timerAlarmIconEnabled = checked
+                                root.settings.save()
+                            }
                         }
 
                         SettingsTextField {
@@ -552,6 +698,40 @@ Column {
                     }
                 }
             }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 3
+        width: parent.width
+        showFrame: true
+        heading: "Отображение времени"
+        changeKeys: ({ keys: ["timerElapsedFont", "timerElapsedFontSize"] })
+        padding: 8
+        contentSpacing: 6
+
+        SettingsFontField {
+            label: "Шрифт времени таймера"
+            value: Config.timerElapsedFont
+            targetObject: Config
+            targetProperty: "timerElapsedFont"
+            settingsObject: root.settings
+            saveOnEdit: true
+            labelWidth: 210
+            fieldWidth: 180
+        }
+
+        SettingsNumberField {
+            label: "Размер времени таймера"
+            value: Config.timerElapsedFontSize
+            minimum: 8
+            maximum: 60
+            step: 1
+            fieldWidth: 100
+            targetObject: Config
+            targetProperty: "timerElapsedFontSize"
+            settingsObject: root.settings
+            saveOnEdit: true
+        }
     }
 
     SettingsGroup {
@@ -887,6 +1067,138 @@ Column {
                 minimum: 0; maximum: 5000; step: 50; wheelStep: 50; decimals: 0; compact: true
                 fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "animationTimerOptionsDuration"; settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+    }
+
+
+
+    SettingsGroup {
+        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 5
+        width: parent.width
+        showFrame: true
+        heading: "Иконки окна опций"
+        changeKeys: ({ prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder"] })
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
+            width: parent.width
+            height: 18
+            spacing: 6
+            Item { width: 110; height: 18 }
+            Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Item { width: 44; height: 18 }
+        }
+
+        Repeater {
+            model: root.timerOptionsActionIconOrderNormalized()
+            delegate: Row {
+                id: timerOptionsActionIconRow
+                width: parent.width
+                height: 30
+                spacing: 6
+                property string keyPrefix: root.timerOptionsActionIconPrefix(modelData)
+
+                Text {
+                    width: 110
+                    height: 30
+                    text: root.timerOptionsActionIconLabel(modelData)
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                SettingsCheckBox {
+                    width: 30
+                    height: 30
+                    indicatorOnly: true
+                    checked: Config[timerOptionsActionIconRow.keyPrefix + "IconEnabled"]
+                    onToggled: {
+                        Config[timerOptionsActionIconRow.keyPrefix + "IconEnabled"] = checked
+                        root.settings.save()
+                    }
+                }
+
+                SettingsTextField {
+                    id: timerOptionsActionIconField
+                    width: 58
+                    height: 30
+                    text: Config[timerOptionsActionIconRow.keyPrefix + "Icon"]
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(12)
+                    horizontalAlignment: Text.AlignHCenter
+                    activeFocusOnTab: true
+                    background: Rectangle {
+                        color: Config.settingsBackground
+                        border.color: (timerOptionsActionIconField.activeFocus || timerOptionsActionIconField.pointerHovered) ? Config.accent : Config.baseColor
+                        border.width: 1
+                        radius: 4
+                    }
+                    onEditingFinished: {
+                        Config[timerOptionsActionIconRow.keyPrefix + "Icon"] = text
+                        root.settings.save()
+                    }
+                    Connections {
+                        target: Config
+                        function onTimerOptionsCommentIconChanged() { if (modelData === "comment") timerOptionsActionIconField.text = Config.timerOptionsCommentIcon }
+                        function onTimerOptionsDurationIconChanged() { if (modelData === "duration") timerOptionsActionIconField.text = Config.timerOptionsDurationIcon }
+                        function onTimerOptionsRefreshIconChanged() { if (modelData === "refresh") timerOptionsActionIconField.text = Config.timerOptionsRefreshIcon }
+                        function onTimerOptionsPauseIconChanged() { if (modelData === "toggle_pause") timerOptionsActionIconField.text = Config.timerOptionsPauseIcon }
+                        function onTimerOptionsColorIconChanged() { if (modelData === "color") timerOptionsActionIconField.text = Config.timerOptionsColorIcon }
+                    }
+                }
+
+                SettingsNumberField {
+                    width: 58
+                    height: 30
+                    value: Config[timerOptionsActionIconRow.keyPrefix + "IconSize"]
+                    minimum: 8
+                    maximum: 40
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 58
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config
+                    targetProperty: timerOptionsActionIconRow.keyPrefix + "IconSize"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
+
+                MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↑"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "frame"
+                    hoverColor: Config.accent
+                    interactionEnabled: index > 0
+                    toolTipText: "Поднять выше"
+                    onClicked: root.moveTimerOptionsActionIconOrder(modelData, -1)
+                }
+
+                MoveArrowButton {
+                    width: 22
+                    height: 22
+                    iconText: "↓"
+                    iconSize: Config.settingsUiSize(12)
+                    baseColor: Config.text
+                    hoverMode: "frame"
+                    hoverColor: Config.accent
+                    interactionEnabled: index < root.timerOptionsActionIconOrderNormalized().length - 1
+                    toolTipText: "Опустить ниже"
+                    onClicked: root.moveTimerOptionsActionIconOrder(modelData, 1)
+                }
             }
         }
     }

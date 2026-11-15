@@ -10,11 +10,9 @@ Primitives.ModuleFrame {
     property var monitor
 
     Column {
-        spacing: Config.networkRowSpacing
+        spacing: Config.networkSpacing
         anchors.fill: parent
-        anchors.leftMargin: Config.networkHorizontalPadding
-        anchors.rightMargin: Config.networkHorizontalPadding
-        anchors.topMargin: 5
+        anchors.topMargin: Config.networkTopPadding
         anchors.bottomMargin: 5
 
         NetworkStatRow {
@@ -33,4 +31,14 @@ Primitives.ModuleFrame {
             valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")
         }
     }
+
+    MouseArea {
+        anchors.fill: parent
+        enabled: Settings.networks && !Config.networksAlwaysVisible
+        acceptedButtons: Qt.LeftButton
+        cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onClicked: root.networksRequested()
+    }
+
+    signal networksRequested()
 }

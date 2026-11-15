@@ -168,33 +168,17 @@ Column {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                SettingsTextField {
-                    id: playerFontField
-                    width: 140
+                SettingsFontField {
+                    width: 178
                     height: 30
-                    text: Config.playerFont
-                    color: Config.text
-                    selectionColor: Config.accent
-                    selectedTextColor: Config.black
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    activeFocusOnTab: true
-                    background: Rectangle {
-                        color: Config.settingsBackground
-                        border.color: (playerFontField.activeFocus || playerFontField.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
-                    }
-                    onEditingFinished: {
-                        Config.playerFont = text
-                        settings.save()
-                    }
-                    Connections {
-                        target: Config
-                        function onPlayerFontChanged() {
-                            playerFontField.text = Config.playerFont
-                        }
-                    }
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.playerFont
+                    targetObject: Config
+                    targetProperty: "playerFont"
+                    settingsObject: settings
+                    saveOnEdit: true
                 }
             }
             Row { width: parent.width; height: 30; spacing: 8
@@ -396,9 +380,17 @@ Column {
             }
             Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField { id: playerTimeFontField; width: 140; height: 30; text: Config.playerTimeFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (playerTimeFontField.activeFocus || playerTimeFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: { var v=text.trim(); if (v.length > 0) Config.playerTimeFont=v; text=Config.playerTimeFont; settings.save() }
-                    Connections { target: Config; function onPlayerTimeFontChanged() { playerTimeFontField.text=Config.playerTimeFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.playerTimeFont
+                    targetObject: Config
+                    targetProperty: "playerTimeFont"
+                    settingsObject: settings
+                    saveOnEdit: true
                 }
             }
             Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
@@ -470,33 +462,17 @@ Column {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                SettingsTextField {
-                    id: playerMetaFontField
-                    width: 140
+                SettingsFontField {
+                    width: 178
                     height: 30
-                    text: Config.playerMetaFont
-                    color: Config.text
-                    selectionColor: Config.accent
-                    selectedTextColor: Config.black
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    activeFocusOnTab: true
-                    background: Rectangle {
-                        color: Config.settingsBackground
-                        border.color: (playerMetaFontField.activeFocus || playerMetaFontField.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
-                    }
-                    onEditingFinished: {
-                        Config.playerMetaFont = text
-                        settings.save()
-                    }
-                    Connections {
-                        target: Config
-                        function onPlayerMetaFontChanged() {
-                            playerMetaFontField.text = Config.playerMetaFont
-                        }
-                    }
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.playerMetaFont
+                    targetObject: Config
+                    targetProperty: "playerMetaFont"
+                    settingsObject: settings
+                    saveOnEdit: true
                 }
             }
             Row { width: parent.width; height: 30; spacing: 8

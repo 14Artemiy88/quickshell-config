@@ -15,7 +15,7 @@ expected_scopes = {
     'timers': 'timer', 'player': 'player', 'mopidy': 'mopidy',
     'weather': 'weather', 'cava': 'cava', 'cpuRam': 'cpu',
     'network': 'network', 'volume': 'volume', 'calendar': 'calendar',
-    'launcher': 'launcher', 'settingsWindow': 'settingsWindow',
+    'launcher': 'launcher', 'notifications': 'notifications', 'settingsWindow': 'settingsWindow',
 }
 assert 'function settingsTabHasChanges(id)' in widget
 assert 'return scope !== "" && settings.hasResetChanges(scope)' in widget

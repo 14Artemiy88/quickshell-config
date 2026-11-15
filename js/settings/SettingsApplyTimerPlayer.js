@@ -2,8 +2,9 @@
 
 function apply(Config, o, legacyTimerIconOrder) {
         // Timer tuning
+        if (o.timerElapsedFont !== undefined) Config.timerElapsedFont = String(o.timerElapsedFont)
         var timerNumberFields = [
-            ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
+            ["timerElapsedFontSize", 8, 60], ["timerWheelStep", 1, 60], ["timerCommentWidth", 40, 300],
             ["timerCommentMaxLength", 1, 30], ["timerCommentGap", 0, 40], ["timerRowSpacing", 0, 50],
             ["timerIconSize", 8, 64], ["timerIconX", -100, 100], ["timerIconY", -100, 100],
             ["timerAlarmIconSize", 8, 64], ["timerAlarmIconX", -100, 100], ["timerAlarmIconY", -100, 100],

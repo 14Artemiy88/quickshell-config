@@ -24,6 +24,13 @@ Primitives.ModuleFrame {
     }
     readonly property int visibleTimerCount: Math.min((timers || []).length, 5)
     readonly property int timerRowHeight: visibleTimerCount >= 5 ? 26 : 30
+    // Preserve the existing density-based scaling while exposing a configurable base size.
+    readonly property int elapsedTimeDisplaySize: {
+        const baseSize = Number(Config.timerElapsedFontSize)
+        const safeBase = isFinite(baseSize) ? Math.max(8, Math.min(60, baseSize)) : 35
+        const densityScale = root.timers.length >= 5 ? 25 / 35 : (root.timers.length >= 4 ? 30 / 35 : 1)
+        return Math.max(8, Math.round(safeBase * densityScale))
+    }
     // The timer module Height setting is the minimum height. It is not a cap;
     // the block grows automatically when more timers need to be displayed.
     readonly property int configuredMinHeight: {
@@ -44,10 +51,10 @@ Primitives.ModuleFrame {
     property bool timerButtonsHovered: false
     property bool alarmButtonsHovered: false
     function updateControlsMode() {
-        // The two icon hitboxes are deliberately tiny and mutually exclusive.
+        // Disabled icons also disable their preset/alarm interaction zone.
         // Buttons stay active while the pointer is over their own row.
-        if (alarmButtonsHovered || alarmIconHovered) controlsMode = 2
-        else if (timerButtonsHovered || timerIconHovered) controlsMode = 1
+        if (Config.timerAlarmIconEnabled && (alarmButtonsHovered || alarmIconHovered)) controlsMode = 2
+        else if (Config.timerIconEnabled && (timerButtonsHovered || timerIconHovered)) controlsMode = 1
         else controlsMode = 0
     }
     property string alarmTargetText: {
@@ -64,7 +71,7 @@ Primitives.ModuleFrame {
             target.setDate(target.getDate() + 1)
         const hh = target.getHours().toString().padStart(2, "0")
         const mm = target.getMinutes().toString().padStart(2, "0")
-        Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm])
+        Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add_at", hh + ":" + mm, Config.timerRandomColorMode, String(Config.timerRandomColorMin), String(Config.timerRandomColorMax)])
         root.alarmTargetAdjusted = false
         root.alarmTarget = new Date()
     }
@@ -122,6 +129,22 @@ Primitives.ModuleFrame {
     }
 
     Connections {
+        target: Config
+        function onTimerIconEnabledChanged() {
+            if (!Config.timerIconEnabled && root.controlsMode === 1) {
+                root.controlsMode = 0
+                iconInteraction.hoverZone = 0
+            }
+        }
+        function onTimerAlarmIconEnabledChanged() {
+            if (!Config.timerAlarmIconEnabled && root.controlsMode === 2) {
+                root.controlsMode = 0
+                iconInteraction.hoverZone = 0
+            }
+        }
+    }
+
+    Connections {
         target: Settings
         function onLoadedChanged() {
             if (Settings.loaded)
@@ -172,7 +195,7 @@ Primitives.ModuleFrame {
             if (found < 0) timerModel.append(item)
             else {
                 const current = timerModel.get(found)
-                for (const key of ["file", "comment", "timer", "color", "sign", "time_passed", "ding"]) {
+                for (const key of ["file", "comment", "timer", "color", "sign", "time_passed", "duration_minutes", "ding"]) {
                     if (current[key] !== item[key]) timerModel.setProperty(found, key, item[key])
                 }
             }
@@ -239,12 +262,24 @@ Primitives.ModuleFrame {
         MouseArea {
             id: iconInteraction
             z: 5
-            property int minX: Math.min(Config.timerIconX, Config.timerAlarmIconX)
-            property int maxX: Math.max(Config.timerIconX + 30, Config.timerAlarmIconX + 30)
-            x: minX
-            y: (parent.height - height) / 2 + Math.min(Config.timerIconY, Config.timerAlarmIconY)
-            width: Math.max(30, maxX - minX)
-            height: 33 + Math.abs(Config.timerIconY - Config.timerAlarmIconY)
+            property bool hasAnyIcon: Config.timerIconEnabled || Config.timerAlarmIconEnabled
+            property int minX: Config.timerIconEnabled && Config.timerAlarmIconEnabled
+                ? Math.min(Config.timerIconX, Config.timerAlarmIconX)
+                : (Config.timerIconEnabled ? Config.timerIconX : Config.timerAlarmIconEnabled ? Config.timerAlarmIconX : 0)
+            property int maxX: Config.timerIconEnabled && Config.timerAlarmIconEnabled
+                ? Math.max(Config.timerIconX + 30, Config.timerAlarmIconX + 30)
+                : (Config.timerIconEnabled ? Config.timerIconX + 30 : Config.timerAlarmIconEnabled ? Config.timerAlarmIconX + 30 : 0)
+            property int minY: Config.timerIconEnabled && Config.timerAlarmIconEnabled
+                ? Math.min(Config.timerIconY, Config.timerAlarmIconY)
+                : (Config.timerIconEnabled ? Config.timerIconY : Config.timerAlarmIconEnabled ? Config.timerAlarmIconY : 0)
+            property int maxY: Config.timerIconEnabled && Config.timerAlarmIconEnabled
+                ? Math.max(Config.timerIconY, Config.timerAlarmIconY)
+                : (Config.timerIconEnabled ? Config.timerIconY : Config.timerAlarmIconEnabled ? Config.timerAlarmIconY : 0)
+            x: hasAnyIcon ? minX : 0
+            y: (parent.height - height) / 2 + (hasAnyIcon ? minY : 0)
+            width: hasAnyIcon ? Math.max(30, maxX - minX) : 0
+            height: hasAnyIcon ? 33 + maxY - minY : 0
+            enabled: hasAnyIcon
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton
             property int hoverZone: 0 // 0 = none, 1 = timer, 2 = alarm
@@ -252,11 +287,13 @@ Primitives.ModuleFrame {
             function zoneAt(localX, localY) {
                 const timerStartX = Config.timerIconX - minX
                 const alarmStartX = Config.timerAlarmIconX - minX
-                const timerStartY = Config.timerIconY - Math.min(Config.timerIconY, Config.timerAlarmIconY)
-                const alarmStartY = Config.timerAlarmIconY - Math.min(Config.timerIconY, Config.timerAlarmIconY)
-                const inTimer = localX >= timerStartX && localX < timerStartX + 30
+                const timerStartY = Config.timerIconY - minY
+                const alarmStartY = Config.timerAlarmIconY - minY
+                const inTimer = Config.timerIconEnabled
+                    && localX >= timerStartX && localX < timerStartX + 30
                     && localY >= timerStartY && localY < timerStartY + 33
-                const inAlarm = localX >= alarmStartX && localX < alarmStartX + 30
+                const inAlarm = Config.timerAlarmIconEnabled
+                    && localX >= alarmStartX && localX < alarmStartX + 30
                     && localY >= alarmStartY && localY < alarmStartY + 33
                 if (inAlarm) return 2
                 if (inTimer) return 1
@@ -307,7 +344,7 @@ Primitives.ModuleFrame {
             font.pixelSize: Config.timerIconSize
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            opacity: root.controlsMode === 0 ? 1 : 0
+            opacity: Config.timerIconEnabled && root.controlsMode === 0 ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
         }
 
@@ -322,7 +359,7 @@ Primitives.ModuleFrame {
             font.pixelSize: Config.timerAlarmIconSize
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
-            opacity: root.controlsMode === 0 ? 1 : 0
+            opacity: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
         }
 
@@ -365,7 +402,7 @@ Primitives.ModuleFrame {
                                 return
                             }
                             if (button === Qt.LeftButton)
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add", String(modelData)])
+                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "add", String(modelData), "", Config.timerRandomColorMode, String(Config.timerRandomColorMin), String(Config.timerRandomColorMax)])
                         }
                         onWheelAdjusted: (direction, accelerated) => {
                             const multiplier = accelerated ? 10 : 1
@@ -480,11 +517,11 @@ Primitives.ModuleFrame {
                 height: 0
                 property var timerData: model
                 property string displayText: String(timerData.sign || "") + String(timerData.timer || "")
-                property int displaySize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
+                property int displaySize: root.elapsedTimeDisplaySize
                 property int measuredWidth: Math.ceil(measuredTextMetrics.advanceWidth) + 2
                 TextMetrics {
                     id: measuredTextMetrics
-                    font.family: Config.ledFont
+                    font.family: Config.timerElapsedFont
                     font.pixelSize: measuredTimerItem.displaySize
                     text: measuredTimerItem.displayText
                 }
@@ -538,13 +575,13 @@ Primitives.ModuleFrame {
                             height: parent.height
                             property string displayText: (timerData.sign || "") + (timerData.timer || "")
                             property color outlineColor: timerData.color || Config.text
-                            property int displaySize: root.timers.length >= 5 ? 25 : (root.timers.length >= 4 ? 30 : 35)
+                            property int displaySize: root.elapsedTimeDisplaySize
                             property var outlineOffsets: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
                             property bool hasSign: String(timerData.sign || "") !== ""
 
                             TextMetrics {
                                 id: textMetrics
-                                font.family: Config.ledFont
+                                font.family: Config.timerElapsedFont
                                 font.pixelSize: timerDisplay.displaySize
                                 text: timerDisplay.displayText
                             }
@@ -558,7 +595,7 @@ Primitives.ModuleFrame {
                                     height: timerDisplay.height
                                     text: timerDisplay.displayText
                                     color: timerDisplay.outlineColor
-                                    font.family: Config.ledFont
+                                    font.family: Config.timerElapsedFont
                                     font.pixelSize: timerDisplay.displaySize
                                     horizontalAlignment: Text.AlignRight
                                     verticalAlignment: Text.AlignVCenter
@@ -569,7 +606,7 @@ Primitives.ModuleFrame {
                                 anchors.fill: parent
                                 text: timerDisplay.displayText
                                 color: timerDisplay.hasSign ? Config.black : timerDisplay.outlineColor
-                                font.family: Config.ledFont
+                                font.family: Config.timerElapsedFont
                                 font.pixelSize: timerDisplay.displaySize
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
@@ -588,7 +625,7 @@ Primitives.ModuleFrame {
                                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "delete", timerData.file])
                                 if (root.selectedFile === timerData.file) root.selectedFile = ""
                             } else if (mouse.button === Qt.RightButton) {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file])
+                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file, Config.timerRandomColorMode, String(Config.timerRandomColorMin), String(Config.timerRandomColorMax)])
                             }
                         }
                         onWheel: wheel => {

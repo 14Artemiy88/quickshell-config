@@ -78,12 +78,13 @@ const scopeSamples = [
   ['weather', { weatherIconSize: 34 }],
   ['cava', { cavaBars: 32 }],
   ['cpu', { topAppsFontSize: 12 }],
-  ['network', { networkRowHeight: 24 }],
+  ['network', { networkTopPadding: 9 }],
   ['volume', { volumeMainRowHeight: 22 }],
   ['calendar', { calendarDayFontSize: 12 }],
   ['mopidy', { mopidyHideTopPanel: true }],
   ['launcher', { launcherTitleText: 'Run' }],
   ['settingsWindow', { settingsTabOrder: ['launcher'] }],
+  ['notifications', { notificationsCardWidth: 420 }],
   ['modules', { modules: { time: false } }]
 ];
 for (const [scope, overrides] of scopeSamples) {

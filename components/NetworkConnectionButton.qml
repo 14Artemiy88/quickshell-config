@@ -11,7 +11,7 @@ Item {
     readonly property bool hovered: buttonSurface.hovered
 
     implicitWidth: 280
-    implicitHeight: 34
+    implicitHeight: 32
 
     function toggleConnection() {
         if (!root.network || !root.network.name)
@@ -39,15 +39,15 @@ Item {
             anchors.fill: parent
             anchors.leftMargin: 8
             anchors.rightMargin: 8
-            spacing: 8
+            spacing: 7
 
             Text {
                 id: typeIcon
-                width: 30
+                width: 27
                 height: parent.height
                 text: root.network && root.network.type ? root.network.type : ""
                 color: root.active ? Config.accent : Config.textDisabled
-                font.pixelSize: Config.uiFontSize(21)
+                font.pixelSize: Config.uiFontSize(20)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }

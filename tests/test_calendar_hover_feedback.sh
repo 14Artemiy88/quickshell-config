@@ -9,7 +9,8 @@ test -f "$NAV_TEST"
 # Dates in the visible month and adjacent-month cells show hover feedback; adjacent
 # dates keep their configured base color when not hovered.
 grep -Fq 'color: dayMouse.containsMouse' "$CALENDAR"
-grep -Fq '? Config.accent' "$CALENDAR"
+grep -Fq 'color: root.calendarDayTextColor(parent.dateKey, parent.day, dayMouse.containsMouse)' "$CALENDAR"
+grep -Fq 'if (hovered) return Config.accent' "$CALENDAR"
 grep -Fq 'color: dayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent' "$CALENDAR"
 python3 - "$CALENDAR" "$CHECK" <<'PYCODE'
 from pathlib import Path
@@ -18,7 +19,8 @@ calendar = Path(sys.argv[1]).read_text(encoding='utf-8')
 check = Path(sys.argv[2]).read_text(encoding='utf-8')
 # Ensure the hover feedback is bound to the day's actual MouseArea and that
 # note click semantics stay intact.
-assert 'color: dayMouse.containsMouse' in calendar
+assert 'color: root.calendarDayTextColor(parent.dateKey, parent.day, dayMouse.containsMouse)' in calendar
+assert 'if (hovered) return Config.accent' in calendar
 assert 'onClicked: function(mouse)' in calendar
 assert 'root.openNoteEditor(parent.dateKey)' in calendar
 assert 'root.openNoteViewer(parent.dateKey)' in calendar

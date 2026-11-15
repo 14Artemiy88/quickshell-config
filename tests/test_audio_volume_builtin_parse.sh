@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COMMON="$ROOT/scripts/audio/common.sh"
@@ -11,12 +11,12 @@ trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/wpctl-bin" "$tmp/pactl-bin" "$tmp/amixer-bin"
 
 cat > "$tmp/wpctl-bin/wpctl" <<'MOCK'
-#!/usr/bin/env bash
+#!/bin/bash
 [[ "${1:-}" == get-volume ]] || exit 2
 printf '%s\n' "${MOCK_WPCTL_OUTPUT:-}"
 MOCK
 cat > "$tmp/pactl-bin/pactl" <<'MOCK'
-#!/usr/bin/env bash
+#!/bin/bash
 case "${1:-} ${2:-}" in
     'get-sink-volume @DEFAULT_SINK@') printf '%s\n' "${MOCK_PACTL_VOLUME:-}" ;;
     'get-sink-mute @DEFAULT_SINK@') printf '%s\n' "${MOCK_PACTL_MUTE:-}" ;;
@@ -24,11 +24,11 @@ case "${1:-} ${2:-}" in
 esac
 MOCK
 cat > "$tmp/amixer-bin/amixer" <<'MOCK'
-#!/usr/bin/env bash
+#!/bin/bash
 printf '%s\n' "${MOCK_AMIXER_OUTPUT:-}"
 MOCK
 cat > "$tmp/awk" <<'MOCK'
-#!/usr/bin/env bash
+#!/bin/bash
 printf 'unexpected awk invocation: %s\n' "$*" >> "$MOCK_AWK_LOG"
 exit 97
 MOCK
@@ -38,7 +38,12 @@ export MOCK_AWK_LOG="$tmp/awk.log"
 
 run_getter() {
     local bin_dir="$1" expected="$2" actual
-    actual="$(PATH="$bin_dir:$tmp:/usr/bin:/bin" bash -c 'source "$1"; get_main_volume' _ "$COMMON")"
+    # Keep the backend fixture isolated from host-installed audio tools.
+    # A real /usr/bin/wpctl would otherwise win over the pactl/amixer mock
+    # because get_main_volume intentionally prefers PipeWire when available.
+    # Invoke Bash by absolute path and expose only the selected mock backend
+    # plus the local awk guard in the child PATH.
+    actual="$(PATH="$bin_dir:$tmp" /bin/bash -c 'source "$1"; get_main_volume' _ "$COMMON")"
     [[ "$actual" == "$expected" ]] || {
         printf 'Expected "%s", got "%s" for %s\n' "$expected" "$actual" "$bin_dir" >&2
         exit 1

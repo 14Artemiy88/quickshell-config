@@ -40,12 +40,12 @@ if volumes.count('Primitives.ProgressTrack {') != 2:
     raise SystemExit('Volumes must use ProgressTrack for main and per-stream volume bars')
 if 'Rectangle {' in volumes:
     raise SystemExit('Volumes still contains a duplicate Rectangle track/fill renderer')
-if volumes.count('MouseArea {') != 2:
-    raise SystemExit('Volumes must retain drag/wheel MouseAreas for main and per-stream controls')
+if volumes.count('MouseArea {') < 2:
+    raise SystemExit('Volumes must retain separate drag/wheel areas for main and per-stream sliders')
 for snippet in ('root.applyMainVolume(root.mainDragValue, true)', 'root.applyStreamVolume(modelData.num, streamColumn.dragValue)', 'onWheel: wheel =>'):
     if snippet not in volumes:
         raise SystemExit(f'Volumes lost interaction handler: {snippet}')
-print('ProgressTrack primitive: shared renderer wiring OK, including volume controls')
+print('ProgressTrack primitive: shared renderer wiring OK, including main and per-stream slider drag/wheel handling')
 PYCODE
 
 echo 'ProgressTrack primitive test: OK'

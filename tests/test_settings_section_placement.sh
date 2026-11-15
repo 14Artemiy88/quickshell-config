@@ -29,7 +29,7 @@ grep -Fq 'visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3' 
 
 # Subtabs must match the controls that are actually grouped under them.
 grep -Fq 'case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"]' "$WIDGET"
-grep -Fq 'case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность"]' "$WIDGET"
+grep -Fq 'case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"]' "$WIDGET"
 
 # Timer layout rows use host state; timer options popup animation controls live in dedicated subtab 5.
 ! grep -Eq 'visible: root\.currentOtherTab|visible: root\.currentOtherSubTab' "$TIMERS"
@@ -46,10 +46,10 @@ grep -Fq 'targetProperty: "animationTimerOptionsDuration"' "$TIMERS"
 # Global system-monitor interval belongs to Updates, network appearance to Network.
 ! grep -Fq 'text: "Обновления"' "$NETWORK"
 grep -Fq 'targetProperty: "systemMonitorInterval"' "$NETWORK"
-grep -Fq 'visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 0' "$NETWORK"
+grep -Fq 'visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 0' "$NETWORK"
 ! grep -Fq 'text: "Сеть"' "$NETWORK"
-grep -Fq 'text: "Отступы сетевого блока"' "$NETWORK"
-grep -Fq 'visible: host.currentOtherTab === 6 && host.currentOtherSubTab === 1' "$NETWORK"
+grep -Fq 'heading: "Расположение"' "$NETWORK"
+grep -Fq 'visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1' "$NETWORK"
 
 # Player headings map to their actual subtab instead of adjacent ones.
 # Selected Player subtab title supplies the heading; duplicate in-section labels are omitted.
@@ -72,7 +72,9 @@ grep -Fq 'text: "Иконки громкости"' "$VOLUME"
 grep -Fq 'id: volumeVerticalPaddingField' "$VOLUME"
 grep -Fq 'id: volumeStreamTrackOffsetField' "$VOLUME"
 grep -Fq 'text: "Адаптивные блоки"' "$VOLUME"
-! grep -Eq 'currentOtherSubTab === 5' "$VOLUME"
+grep -Fq 'visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5' "$VOLUME"
+grep -Fq 'heading: "Анимация списка потоков"' "$VOLUME"
+grep -Fq 'targetProperty: "volumeStreamsAnimationDuration"' "$VOLUME"
 
 # Settings Window controls must use the actual section id and avoid repeated tab headings.
 ! grep -Fq 'root.settings' "$WINDOW"

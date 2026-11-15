@@ -123,16 +123,26 @@ function resetModule(owner, config, moduleName) {
     var g = JSON.parse(JSON.stringify(owner.geometry || {}))
     if (profileGeometry[moduleName] !== undefined)
         g[moduleName] = (profileGeometry[moduleName] || []).slice()
+    else if (moduleName === "notifications" && owner.defaultGeometry && owner.defaultGeometry.notifications)
+        g.notifications = owner.defaultGeometry.notifications.slice()
     owner.geometry = g
 
     var f = Object.assign({}, owner.moduleFrames || {})
-    if (frames[moduleName] !== undefined)
+    if (frames[moduleName] !== undefined) {
         f[moduleName] = !!frames[moduleName]
+    } else if ((owner.defaultModuleFrames || {})[moduleName] !== undefined) {
+        // Older profiles may predate a module's appearance toggles. Fall back
+        // to the current built-in module defaults instead of preserving edits.
+        f[moduleName] = !!owner.defaultModuleFrames[moduleName]
+    }
     owner.moduleFrames = f
 
     var b = Object.assign({}, owner.moduleBackgrounds || {})
-    if (backgrounds[moduleName] !== undefined)
+    if (backgrounds[moduleName] !== undefined) {
         b[moduleName] = !!backgrounds[moduleName]
+    } else if ((owner.defaultModuleBackgrounds || {})[moduleName] !== undefined) {
+        b[moduleName] = !!owner.defaultModuleBackgrounds[moduleName]
+    }
     owner.moduleBackgrounds = b
 
     var blur = Object.assign({}, owner.moduleBlurEnabled || {})
@@ -168,16 +178,16 @@ function resetModule(owner, config, moduleName) {
         applyConfigKeysFromProfile(owner, config, profile, ["topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
     } else if (moduleName === "networkStat" || moduleName === "networks") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight",
-            "networkRowSpacing", "networkIconSize", "networkValueFontSize", "networkRightPadding",
-            "networkHorizontalPadding", "networkIconLeftPadding", "networkIconColumnWidth"
+            "systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding",
+            "networkIconSize", "networkValueFontSize", "networkRightPadding",
+            "networkIconLeftPadding", "networkFont"
         ])
     } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes",
             "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX",
             "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount",
-            "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize",
+            "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindColumnY", "weatherPressureX", "weatherDescriptionX", "weatherDescriptionWidth", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherIconPlacement", "weatherWindSpeedFontSize",
             "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize",
             "weatherTempFontSize", "weatherComfortFontSize", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX",
             "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth",
@@ -193,12 +203,16 @@ function resetModule(owner, config, moduleName) {
             owner.weatherToken = String(profile.weatherToken)
     } else if (moduleName === "timer") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing",
-            "timerIcon", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY",
+            "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing",
+            "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY",
+            "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize",
+            "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax",
             "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment",
             "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration",
             "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"
         ])
+        if (profile.timerOptionsActionIconOrder === undefined)
+            config.timerOptionsActionIconOrder = ["comment", "duration", "refresh", "toggle_pause", "color"]
         if (profile.timerPresetDefaults !== undefined) {
             owner.timerPresetDefaults = (profile.timerPresetDefaults || []).slice()
             owner.timerPresets = owner.timerPresetDefaults.slice()
@@ -212,7 +226,8 @@ function resetModule(owner, config, moduleName) {
             "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth",
             "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY",
             "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize",
-            "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight"
+            "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight",
+            "animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"
         ])
     } else if (moduleName === "player") {
         applyConfigKeysFromProfile(owner, config, profile, [
@@ -231,6 +246,32 @@ function resetModule(owner, config, moduleName) {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent", "cavaHideZeroBars"
         ])
+    } else if (moduleName === "notifications") {
+        applyConfigKeysFromProfile(owner, config, profile, [
+            "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
+            "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"
+        ])
+        // Geometry is authoritative for module placement. Keep its width and the
+        // legacy scalar aligned when resetting profiles created before this move.
+        var notificationGeometry = Object.assign({}, owner.geometry || {})
+        var notificationValues = (notificationGeometry.notifications || [-999999, 16, 380, 0]).slice()
+        if (profile.notificationsCardWidth === undefined) {
+            // Older profiles may not have the notification geometry entry at all.
+            // In that case owner.geometry already contains the built-in fallback
+            // restored above; use it to reset the legacy scalar width as well.
+            var resetNotificationGeometry = profileGeometry.notifications
+                || (owner.geometry || {}).notifications
+                || (owner.defaultGeometry || {}).notifications
+            if (resetNotificationGeometry && resetNotificationGeometry.length > 2) {
+                config.notificationsCardWidth = Math.max(280, Math.min(600,
+                    Number(resetNotificationGeometry[2]) || Number(notificationValues[2]) || 380))
+            }
+        }
+        notificationValues[2] = Math.max(280, Math.min(600,
+            Number(config.notificationsCardWidth) || Number(notificationValues[2]) || 380))
+        config.notificationsCardWidth = notificationValues[2]
+        notificationGeometry.notifications = notificationValues
+        owner.geometry = notificationGeometry
     }
 
     owner.save()
@@ -258,6 +299,18 @@ function resetModules(owner, config) {
     if (config) config.playerBlurEnabled = !!blurValues.player
     owner.moduleMonitors = Object.assign({}, profile.moduleMonitors || {})
     if (profile.geometry) owner.geometry = JSON.parse(JSON.stringify(profile.geometry))
+    // Keep the moved module width synchronized with the legacy profile key.
+    if (config) {
+        var notificationGeometry = Object.assign({}, owner.geometry || {})
+        var notificationValues = (notificationGeometry.notifications || [-999999, 16, 380, 0]).slice()
+        var savedNotificationWidth = profile.notificationsCardWidth !== undefined
+            ? Number(profile.notificationsCardWidth) : Number(notificationValues[2])
+        notificationValues[2] = Math.max(280, Math.min(600,
+            savedNotificationWidth || Number(notificationValues[2]) || Number(config.notificationsCardWidth) || 380))
+        config.notificationsCardWidth = notificationValues[2]
+        notificationGeometry.notifications = notificationValues
+        owner.geometry = notificationGeometry
+    }
     owner.save()
 }
 
@@ -272,17 +325,19 @@ function resetCpuSettings(owner, config) {
 
 function resetNetworkSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networkRowHeight", "networkRowSpacing", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkHorizontalPadding", "networkIconLeftPadding", "networkIconColumnWidth"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont"]); owner.save()
 }
 
 function resetVolumeSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight", "animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"]); owner.save()
 }
 
 function resetTimerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerVisibilityStyle", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerVisibilityStyle", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration", "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize", "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+    if (profile.timerOptionsActionIconOrder === undefined)
+        config.timerOptionsActionIconOrder = ["comment", "duration", "refresh", "toggle_pause", "color"]
     if (profile.timerIconOrder === undefined) {
         config.timerIconOrder = "alarm-left"
         var legacyTimerX = Number(profile.timerIconX)
@@ -310,7 +365,7 @@ function resetMopidySettings(owner, config) {
 
 function resetWeatherSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
+    applyConfigKeysFromProfile(owner, config, profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindColumnY", "weatherPressureX", "weatherDescriptionX", "weatherDescriptionWidth", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherIconPlacement", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
     if (profile.weatherToken !== undefined) owner.weatherToken = String(profile.weatherToken)
     owner.save()
 }
@@ -332,6 +387,17 @@ function resetGeneralSettings(owner, config) {
 
 function resetSettingsWindow(owner, config) {
     resetSettingsWindowFromProfile(owner, config)
+}
+
+function resetNotificationsSettings(owner, config) {
+    var profile = activeProfileData(owner)
+    if (!profile) return
+    applyConfigKeysFromProfile(owner, config, profile, [
+        "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardSpacing",
+        "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages",
+        "notificationsShowProgress"
+    ])
+    owner.save()
 }
 
 function resetLauncherSettings(owner, config) {

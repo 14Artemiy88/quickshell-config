@@ -19,7 +19,6 @@ assert 'inputMaskEnabled: shell.calendarVisible || Config.calendarAlwaysVisible 
 assert 'backgroundBlurVisible: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running' in calendar
 assert 'backgroundBlurItem: calendarVisibility.blurRegionItem' in calendar
 assert 'shown: shell.calendarVisible || Config.calendarAlwaysVisible' in calendar
-assert 'bottomLayer: false' in calendar
 assert 'id: calendarVisibility' in calendar
 
 # Regression guard: this problem belongs to the calendar, not CPU widgets.

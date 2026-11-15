@@ -14,13 +14,16 @@ grep -Fq 'visible: Config.networkShowUpload' "$PARENT"
 grep -Fq 'visible: Config.networkShowDownload' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")' "$PARENT"
-grep -Fq 'Config.networkIconColumnWidth' "$ROW"
+grep -Fq 'spacing: Config.networkSpacing' "$PARENT"
+! grep -Fq 'networkHorizontalPadding' "$PARENT"
 grep -Fq 'Config.networkIconLeftPadding' "$ROW"
 grep -Fq 'Config.networkRightPadding' "$ROW"
+grep -Fq 'Config.networkSpacing * 2' "$ROW"
 grep -Fq 'Config.networkValueFontSize' "$ROW"
-grep -Fq 'valueText' "$ROW"
+grep -Fq 'Config.networkFont' "$ROW"
+grep -Fq 'Qt.application.font.family' "$ROW"
 grep -Fq 'horizontalAlignment: Text.AlignRight' "$ROW"
-grep -Fq 'Config.networkValueFontSize' "$ROW"
+! grep -Fq 'networkIconColumnWidth' "$ROW"
 
 python3 - "$PARENT" "$ROW" <<'PYCODE'
 from pathlib import Path
@@ -61,10 +64,10 @@ import re
 if re.search(r'(?m)^\s*(?:Text|Row) \{', parent):
     raise SystemExit('NetworkStat duplicates row layout instead of using NetworkStatRow')
 if row.count('Text {') != 2:
-    raise SystemExit('NetworkStatRow must use the restored compact two-text layout')
-if 'speedText' in row or 'totalText' in row or 'speedText:' in parent or 'totalText:' in parent:
-    raise SystemExit('NetworkStat must preserve the compact single-value layout instead of splitting the value')
-print('NetworkStat keeps the compact single-value row layout and preserves config bindings: OK')
+    raise SystemExit('NetworkStatRow must keep one icon and one value text item')
+if 'height: Math.max(iconPixelSize, valuePixelSize) + Config.networkSpacing * 2' not in row:
+    raise SystemExit('Network spacing must control row height and internal padding')
+print('Network stat row keeps derived icon column, shared spacing, and configurable value typography: OK')
 PYCODE
 
 echo 'Network stat row component test: OK'

@@ -49,13 +49,17 @@ Column {
             Row {
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: queueDurationFontField
-                    width: 140; height: 30; text: Config.mopidyQueueDurationFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: function() { var v = queueDurationFontField.text.trim(); if (v.length > 0) Config.mopidyQueueDurationFont = v; queueDurationFontField.text = Config.mopidyQueueDurationFont; settings.save() }
-                    Connections { target: Config; function onMopidyQueueDurationFontChanged() { queueDurationFontField.text = Config.mopidyQueueDurationFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.mopidyQueueDurationFont
+                    targetObject: Config
+                    targetProperty: "mopidyQueueDurationFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
                 SettingsNumberField {
                     width: 72; height: 30; value: Config.mopidyQueueDurationFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
@@ -272,13 +276,17 @@ Column {
             Row {
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт альбома"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: albumFontField
-                    width: 140; height: 30; text: Config.mopidyAlbumFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: function() { var v = albumFontField.text.trim(); if (v.length > 0) Config.mopidyAlbumFont = v; albumFontField.text = Config.mopidyAlbumFont; settings.save() }
-                    Connections { target: Config; function onMopidyAlbumFontChanged() { albumFontField.text = Config.mopidyAlbumFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.mopidyAlbumFont
+                    targetObject: Config
+                    targetProperty: "mopidyAlbumFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyAlbumFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyAlbumFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
@@ -286,13 +294,17 @@ Column {
             Row {
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт названия трека"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                SettingsTextField {
-                    id: trackFontField
-                    width: 140; height: 30; text: Config.mopidyTrackFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: function() { var v = trackFontField.text.trim(); if (v.length > 0) Config.mopidyTrackFont = v; trackFontField.text = Config.mopidyTrackFont; settings.save() }
-                    Connections { target: Config; function onMopidyTrackFontChanged() { trackFontField.text = Config.mopidyTrackFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.mopidyTrackFont
+                    targetObject: Config
+                    targetProperty: "mopidyTrackFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyTrackFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyTrackFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
@@ -300,13 +312,17 @@ Column {
             Row {
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт исполнителя"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: artistFontField
-                    width: 140; height: 30; text: Config.mopidyArtistFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: function() { var v = artistFontField.text.trim(); if (v.length > 0) Config.mopidyArtistFont = v; artistFontField.text = Config.mopidyArtistFont; settings.save() }
-                    Connections { target: Config; function onMopidyArtistFontChanged() { artistFontField.text = Config.mopidyArtistFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.mopidyArtistFont
+                    targetObject: Config
+                    targetProperty: "mopidyArtistFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyArtistFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyArtistFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
@@ -314,13 +330,17 @@ Column {
             Row {
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт длительности"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: durationFontField
-                    width: 140; height: 30; text: Config.mopidyDurationFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (parent.activeFocus || parent.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: function() { var v = durationFontField.text.trim(); if (v.length > 0) Config.mopidyDurationFont = v; durationFontField.text = Config.mopidyDurationFont; settings.save() }
-                    Connections { target: Config; function onMopidyDurationFontChanged() { durationFontField.text = Config.mopidyDurationFont } }
+                SettingsFontField {
+                    width: 178
+                    height: 30
+                    compact: true
+                    fieldWidth: 140
+                    fieldFontSize: 11
+                    value: Config.mopidyDurationFont
+                    targetObject: Config
+                    targetProperty: "mopidyDurationFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyDurationFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyDurationFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }

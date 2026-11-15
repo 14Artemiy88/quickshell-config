@@ -27,7 +27,7 @@ for description, snippet in checks.items():
         raise SystemExit(f'Missing expected behavior: {description}')
 if 'value: root.clampVolume(streamColumn.displayedValue)' not in volumes:
     raise SystemExit('Per-stream volume bars must use their independent displayed volume state')
-if 'root.mainMuted' in volumes[volumes.index('Repeater {\n            id: streamRepeater'):]:
+if 'root.mainMuted' in volumes[volumes.index('id: streamRepeater'):]:
     raise SystemExit('Per-stream volume bars must not inherit main-output mute rendering')
 PYCODE
 

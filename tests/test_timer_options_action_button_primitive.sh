@@ -9,8 +9,9 @@ for file in "$OPTIONS" "$PRIMITIVE" "$SURFACE"; do test -f "$file"; done
 
 grep -Fq 'import "primitives" as Primitives' "$OPTIONS"
 grep -Fq 'delegate: Primitives.HoverIconButton {' "$OPTIONS"
-grep -Fq 'iconText: modelData[0]' "$OPTIONS"
-grep -Fq 'iconSize: 22' "$OPTIONS"
+grep -Fq 'model: root.actionIconItems' "$OPTIONS"
+grep -Fq 'iconText: modelData.icon' "$OPTIONS"
+grep -Fq 'iconSize: modelData.size' "$OPTIONS"
 grep -Fq 'baseColor: root.selected && root.selected.color ? root.selected.color : Config.text' "$OPTIONS"
 grep -Fq 'iconFontFamily: Config.font' "$OPTIONS"
 grep -Fq 'hoverMode: "none"' "$OPTIONS"
@@ -18,9 +19,9 @@ grep -Fq 'cursorShape: Qt.ArrowCursor' "$OPTIONS"
 grep -Fq 'root.commentFile = root.selectedFile' "$OPTIONS"
 grep -Fq 'root.commentText = root.selected ? String(root.selected.comment || "") : ""' "$OPTIONS"
 grep -Fq 'root.commentMode = true' "$OPTIONS"
-grep -Fq 'commentInput.forceActiveFocus()' "$OPTIONS"
+grep -Fq 'commentInput.forceActiveFocus(Qt.OtherFocusReason)' "$OPTIONS"
 grep -Fq 'commentInput.selectAll()' "$OPTIONS"
-grep -Fq '"/scripts/timer", modelData[1], root.selectedFile' "$OPTIONS"
+grep -Fq '"/scripts/timer", modelData.id, root.selectedFile' "$OPTIONS"
 grep -Fq 'Primitives.HoverButtonSurface {' "$PRIMITIVE"
 
 python3 - "$OPTIONS" "$PRIMITIVE" "$SURFACE" <<'PYCODE'
@@ -91,9 +92,9 @@ if 'MouseArea {' in block or 'Rectangle {' in block or 'Text {' in block:
     raise SystemExit('TimerOptions action-button delegate still duplicates button surface/content')
 if block.count('onClicked:') != 1:
     raise SystemExit('TimerOptions icon-button delegate must have exactly one click handler')
-if 'modelData[1] === "comment"' not in block or 'else {' not in block:
+if 'modelData.id === "comment"' not in block or 'modelData.id === "duration"' not in block or 'else {' not in block:
     raise SystemExit('TimerOptions action routing is incomplete')
 print('TimerOptions action buttons no longer duplicate their own MouseArea/Text surface: OK')
 PYCODE
 
-echo 'TimerOptions comment, refresh and pause buttons use HoverIconButton: OK'
+echo 'TimerOptions configurable action icons use HoverIconButton: OK'

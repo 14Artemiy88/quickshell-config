@@ -11,6 +11,7 @@ import "js/settings/SettingsThemeManager.js" as SettingsThemeManager
 import "js/settings/SettingsTimerPresets.js" as SettingsTimerPresets
 import "js/settings/SettingsLauncherProjects.js" as SettingsLauncherProjects
 import "js/settings/SettingsGeometry.js" as SettingsGeometry
+import "js/NotificationsGeometry.js" as NotificationsGeometry
 import "js/settings/SettingsApply.js" as SettingsApply
 import "js/settings/SettingsMetadata.js" as SettingsMetadata
 import "."
@@ -39,21 +40,24 @@ QtObject {
     property bool mopidy: false
     property bool cava: true
     property bool networks: true
+    property bool notifications: true
     property bool calendar: true
-    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
     property var moduleMonitors: ({})
-    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, launcher:true})
-    property var moduleBlurEnabled: ({time:false, calendar:false, cpu:false, cpuGraph:false, topAppsCpu:false, topAppsRam:false, networkStat:false, weatherNow:false, weatherHourly:false, weatherDaily:false, timer:false, volumes:false, player:false, mopidy:false, cava:false, networks:false, launcher:false, settings:false})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
+    property var moduleBlurEnabled: ({time:false, calendar:false, cpu:false, cpuGraph:false, topAppsCpu:false, topAppsRam:false, networkStat:false, weatherNow:false, weatherHourly:false, weatherDaily:false, timer:false, volumes:false, player:false, mopidy:false, cava:false, networks:false, notifications:false, launcher:false, settings:false})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
+    // Runtime-only height used to preserve the visible notification placement when switching top/bottom anchoring.
+    property real notificationsWindowHeight: 0
 
     property var geometry: ({
         time: [3,5,315,55], cpu: [5,65,315,170], cpuGraph: [5,235,315,82],
         topAppsCpu: [5,322,315,96], topAppsRam: [5,423,315,96], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
         weatherHourly: [3,665,335,125], weatherDaily: [3,795,325,125], timer: [3,930,315,145],
         timerOptions: [325,888,90,95], calendar: [5,65,315,285], volumes: [331,72,275,210],
-        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180], launcher: [-999999,-999999,720,640]
+        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180], notifications: [-999999,16,380,0], launcher: [-999999,-999999,720,640]
     })
     // Geometry of the settings window itself: X, Y, Width, Height.
     property var settingsGeometry: [640, 40, 560, 850]
@@ -107,6 +111,47 @@ QtObject {
         values[String(moduleName)] = !!enabled
         root.moduleBlurEnabled = values
         if (String(moduleName) === "player") Config.playerBlurEnabled = !!enabled
+        root.save()
+    }
+    function setNotificationsVerticalAnchor(anchor) {
+        var next = String(anchor || "top").toLowerCase() === "bottom" ? "bottom" : "top"
+        var current = String(Config.notificationsVerticalAnchor || "top").toLowerCase() === "bottom" ? "bottom" : "top"
+        if (next === current) return
+
+        var wanted = String((root.moduleMonitors || {}).notifications || Config.monitorName || "").trim().toLowerCase()
+        var targetScreen = null
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var candidate = Quickshell.screens[i]
+            if (!candidate) continue
+            if (wanted && (String(candidate.name || "").trim().toLowerCase() === wanted
+                    || String(candidate.model || "").trim().toLowerCase() === wanted
+                    || String(candidate).trim().toLowerCase() === wanted)) {
+                targetScreen = candidate
+                break
+            }
+        }
+        if (!targetScreen && Quickshell.screens.length > 0) targetScreen = Quickshell.screens[0]
+
+        var screenHeight = Math.max(1, Number(targetScreen && targetScreen.height || 1080))
+        var geometry = Object.assign({}, root.geometry || {})
+        var values = (geometry.notifications || [-999999, 16, Number(Config.notificationsCardWidth) || 380, 0]).slice()
+        var y = Number(values[1])
+        if (!isFinite(y) || y < -10000) y = 16
+
+        var panelHeight = Number(root.notificationsWindowHeight)
+        if (!isFinite(panelHeight) || panelHeight <= 0) {
+            var configuredHeight = Number(values[3])
+            var availableHeight = Math.max(52, screenHeight - Math.max(0, y) - 16)
+            panelHeight = configuredHeight > 0
+                ? Math.min(configuredHeight, availableHeight)
+                : Math.min(180, availableHeight)
+        }
+        // Convert the stored inset to the opposite edge while preserving the
+        // current panel's lower/upper edge as closely as its current height allows.
+        values[1] = NotificationsGeometry.convertVerticalOffset(y, screenHeight, Math.max(52, panelHeight))
+        geometry.notifications = values
+        root.geometry = geometry
+        Config.notificationsVerticalAnchor = next
         root.save()
     }
 
@@ -371,7 +416,7 @@ QtObject {
                 calendar: ["calendar", "animationCalendar"], cpu: ["cpu"], cpuGraph: ["cpuGraph"],
                 topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
                 weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"], timer: ["timer"],
-                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"],
+                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications"],
                 // The clock module has no clock-prefixed configuration keys;
                 // "time" would also match "timer..." and show a false reset action.
                 time: []
@@ -391,7 +436,7 @@ QtObject {
         if (scope === "all") {
             // A theme can change its identity while producing the same effective
             // palette, so activeTheme must be considered in addition to colors.
-            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "modules"].some(function(item) {
+            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications", "modules"].some(function(item) {
                 return hasResetChanges(item)
             }) || hasResetChanges("colors", colorNames)
         }
@@ -402,7 +447,8 @@ QtObject {
             timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"], cava: ["cava"],
             cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
-            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"]
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
+            notifications: ["notifications"]
         }
         if (scope === "settingsWindow") {
             if (hasNested("moduleBlurEnabled", "settings")) return true
@@ -454,6 +500,7 @@ QtObject {
     function resetSettingsWindow() { SettingsResets.resetSettingsWindow(root, Config) }
 
     function resetLauncherSettings() { SettingsResets.resetLauncherSettings(root, Config) }
+    function resetNotificationsSettings() { SettingsResets.resetNotificationsSettings(root, Config) }
 
     function resetAllSettings() { SettingsResets.resetAllSettings(root, SettingsThemes, colorNames) }
 

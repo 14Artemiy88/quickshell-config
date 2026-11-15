@@ -37,8 +37,21 @@ Primitives.ModuleFrame {
         return Config["weatherWind" + windDirectionKey(scale) + "Font"] || Config.font
     }
 
+    function textAlignment(value) {
+        if (value === "left") return Text.AlignLeft
+        if (value === "right") return Text.AlignRight
+        return Text.AlignHCenter
+    }
+
+    function blockOffset(blockWidth, itemWidth, alignment) {
+        var freeSpace = Math.max(0, Number(blockWidth) - Number(itemWidth))
+        if (alignment === "right") return freeSpace
+        if (alignment === "center") return freeSpace / 2
+        return 0
+    }
+
     Item {
-        x: 0
+        x: Config.weatherIconPlacement === "left" ? Config.weatherMiddleBlockWidth : 0
         y: 0
         width: Config.weatherTempColumnWidth
         height: parent.height
@@ -46,7 +59,7 @@ Primitives.ModuleFrame {
         Text {
             x: Config.weatherTempX + Config.weatherTempOffsetX
             y: Config.weatherTempOffsetY
-            width: Config.weatherTempWidth
+            width: Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX)
             height: 55
             text: root.weather.temperature?.air?.C ?? ""
             color: Config.currentWeather
@@ -55,14 +68,14 @@ Primitives.ModuleFrame {
             lineHeight: 55
             lineHeightMode: Text.FixedHeight
             verticalAlignment: Text.AlignTop
-            horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
         }
 
         Item {
             id: weatherComfortLabel
             x: Config.weatherTempX + Config.weatherComfortOffsetX
             y: Config.weatherComfortY + Config.weatherComfortOffsetY
-            width: Config.weatherTempWidth
+            width: Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX)
             height: Config.weatherComfortHeight
             property string comfortValue: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
                                           ? String(root.weather.temperature?.comfort?.C ?? "") : ""
@@ -100,7 +113,7 @@ Primitives.ModuleFrame {
                     lineHeight: Config.weatherComfortHeight
                     lineHeightMode: Text.FixedHeight
                     verticalAlignment: Text.AlignTop
-                    horizontalAlignment: Text.AlignHCenter
+                    horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
                 }
             }
 
@@ -114,14 +127,16 @@ Primitives.ModuleFrame {
                 lineHeight: Config.weatherComfortHeight
                 lineHeightMode: Text.FixedHeight
                 verticalAlignment: Text.AlignTop
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
             }
         }
     }
 
     Image {
-        visible: root.hasData
-        x: Config.weatherIconX
+        visible: root.hasData && Config.weatherIconPlacement !== "off"
+        x: Config.weatherIconPlacement === "left"
+           ? root.blockOffset(Config.weatherMiddleBlockWidth, width, Config.weatherMiddleBlockAlignment)
+           : Config.weatherIconX + root.blockOffset(Config.weatherMiddleBlockWidth, width, Config.weatherMiddleBlockAlignment)
         y: Config.weatherIconY
         width: Config.weatherIconSize
         height: Config.weatherIconSize
@@ -133,7 +148,7 @@ Primitives.ModuleFrame {
 
     Item {
         x: Config.weatherWindColumnX
-        y: 0
+        y: Config.weatherWindColumnY
         width: Config.weatherWindColumnWidth
         height: parent.height
         visible: root.hasData
@@ -166,7 +181,7 @@ Primitives.ModuleFrame {
                 color: Config.text
                 font.family: Config.ledFont
                 font.pixelSize: Config.weatherWindSpeedFontSize
-                horizontalAlignment: Text.AlignRight
+                horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                 verticalAlignment: Text.AlignTop
             }
 
@@ -179,7 +194,7 @@ Primitives.ModuleFrame {
                 color: Config.text
                 font.family: Config.ledFont
                 font.pixelSize: Config.weatherWindUnitFontSize
-                horizontalAlignment: Text.AlignRight
+                horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                 verticalAlignment: Text.AlignTop
             }
         }
@@ -191,7 +206,7 @@ Primitives.ModuleFrame {
             height: 25
 
             Text {
-                x: 0
+                x: Config.weatherPressureX
                 y: 0
                 width: Config.weatherPressureValueWidth
                 height: 20
@@ -199,7 +214,7 @@ Primitives.ModuleFrame {
                 color: Config.text
                 font.family: Config.ledFont
                 font.pixelSize: Config.weatherPressureFontSize
-                horizontalAlignment: Text.AlignRight
+                horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                 verticalAlignment: Text.AlignTop
             }
 
@@ -212,22 +227,24 @@ Primitives.ModuleFrame {
                 color: Config.text
                 font.family: Config.ledFont
                 font.pixelSize: Config.weatherPressureUnitFontSize
-                horizontalAlignment: Text.AlignRight
+                horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                 verticalAlignment: Text.AlignTop
             }
         }
 
         Text {
-            x: 0
+            x: Config.weatherDescriptionX
             y: Config.weatherDescriptionY
-            width: Config.weatherWindColumnWidth
+            width: Config.weatherDescriptionWidth
             height: Config.weatherDescriptionHeight
             text: root.weather.description?.full ?? ""
             color: Config.text
-            horizontalAlignment: Text.AlignRight
+            horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
             verticalAlignment: Text.AlignTop
             font.pixelSize: Config.uiFontSize(Config.weatherDescriptionFontSize)
-            elide: Text.ElideRight
+            wrapMode: Text.NoWrap
+            elide: Text.ElideNone
+            clip: false
         }
     }
 

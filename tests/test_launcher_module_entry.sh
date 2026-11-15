@@ -32,8 +32,11 @@ assert 'heading: "Элемент списка"' in launcher
 assert 'heading: "Окно лаунчера"' in launcher
 assert 'label: "Фон окна лаунчера"' in launcher
 assert 'onClicked: settings.resetLauncherSettings()' in modules
-# The row is intentionally after the Repeater of normal modules, and Networks is last in that list.
-assert 'var moduleNames = ["time"' in meta and '"networks"]' in meta
+# Notifications now participates in the same module row as all other modules.
+assert 'var moduleNames = ["time"' in meta and '"networks","notifications"]' in meta
+assert 'model: settings.moduleNames' in modules
+assert 'moduleRow.moduleName === "notifications"' in modules
+assert 'modulesSection.writeNotificationsGeometry(index, n)' in modules
 repeater_end = modules.index('model: settings.moduleNames')
 launcher_row = modules.index('id: launcherModuleRow')
 assert launcher_row > repeater_end

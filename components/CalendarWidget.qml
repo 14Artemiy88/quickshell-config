@@ -96,12 +96,26 @@ Primitives.ModuleFrame {
 
     function calendarDayColor(key, day) {
         if (day < 1 || day > root.daysInMonth()) return Config.calendarAdjacentDaysColor
-        if (root.isCalendarDateMarked(key)) return Config.calendarWeekendColor
+        // Today always keeps its active-date color, even when it also has an event mark.
         if (String(key || "") === root.currentDateKey()) return Config.accent
+        if (root.isCalendarDateMarked(key)) return Config.calendarWeekendColor
         if (root.isWeekendDateKey(key)) return Config.calendarWeekendColor
         if (Config.calendarPastDaysColorEnabled && root.isPastDateKey(key))
             return Config.calendarPastDaysColor
         return Config.text
+    }
+
+    // Today always uses the active-date color; hover behavior remains unchanged
+    // for every other day.
+    function calendarDayTextColor(key, day, hovered) {
+        if (String(key || "") === root.currentDateKey()) return Config.accent
+        if (hovered) return Config.accent
+        return root.calendarDayColor(key, day)
+    }
+
+    // The outline marks only today when it has an event.
+    function isCurrentMarkedDate(key) {
+        return !!key && String(key) === root.currentDateKey() && root.isCalendarDateMarked(key)
     }
 
     function noteMarkerColor(key, fallbackColor) {
@@ -289,12 +303,37 @@ Primitives.ModuleFrame {
                 Repeater {
                     model: root.gridCellCount()
                     delegate: Rectangle {
+                        id: dayCell
                         width: parent.width / 7
                         height: 30
                         color: dayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent
                         property int day: index - root.firstDay() + 1
                         property string dateKey: root.dateKeyForDay(day)
                         property bool hasNote: root.hasNoteForDate(dateKey)
+                        // Use a restrained four-direction glyph halo instead of a
+                        // full eight-point expansion. The shorter offsets keep the
+                        // event-color contour close to the glyph and avoid the heavy,
+                        // jagged appearance of a thick outline at small calendar sizes.
+                        Repeater {
+                            model: root.isCurrentMarkedDate(dayCell.dateKey) ? [
+                                { dx: -0.45, dy: 0 }, { dx: 0.45, dy: 0 },
+                                { dx: 0, dy: -0.45 }, { dx: 0, dy: 0.45 }
+                            ] : []
+                            delegate: Text {
+                                required property var modelData
+                                x: modelData.dx
+                                y: Config.calendarDayY + modelData.dy
+                                width: dayCell.width
+                                height: dayCell.height
+                                text: root.calendarGridDayNumber(dayCell.day)
+                                color: Config.calendarWeekendColor
+                                opacity: 0.9
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                font.pixelSize: Config.calendarDayFontSize
+                                font.family: Config.calendarDayFont
+                            }
+                        }
 
                         Text {
                             id: dayNumberText
@@ -303,9 +342,7 @@ Primitives.ModuleFrame {
                             height: parent.height
                             y: Config.calendarDayY
                             text: root.calendarGridDayNumber(parent.day)
-                            color: dayMouse.containsMouse
-                                ? Config.accent
-                                : root.calendarDayColor(parent.dateKey, parent.day)
+                            color: root.calendarDayTextColor(parent.dateKey, parent.day, dayMouse.containsMouse)
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: Config.calendarDayFontSize

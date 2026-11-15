@@ -63,7 +63,7 @@ expected_by_file = {
         "Время очереди": "id: showQueueTimeCheckBox",
         "Время треков и альбомов": "id: showTrackRemainingCheckBox",
         "Название и исполнитель": "id: trackArtistDisplayModeCombo",
-        "Шрифты очереди": "id: albumFontField",
+        "Шрифты очереди": 'SettingsFontField {',
     },
 }
 
@@ -79,6 +79,9 @@ for filename, expected in expected_by_file.items():
         assert "showFrame: true" in group, f"{heading!r} is not framed"
         assert "visible: host && host.currentOtherTab === 10" in group, f"{heading!r} lost its tab visibility guard"
         assert related_control in group, f"{heading!r} lost related control {related_control!r}"
+        if heading == "Шрифты очереди":
+            for font_key in ("mopidyAlbumFont", "mopidyTrackFont", "mopidyArtistFont", "mopidyDurationFont"):
+                assert f'targetProperty: "{font_key}"' in group, f"{heading!r} lost {font_key} binding"
         assert f'text: "{heading}"' not in group, f"{heading!r} still has a duplicate legacy title"
         count += 1
 print(f"Mopidy explicit settings frame headings: OK ({count} headings; controls and visibility retained)")

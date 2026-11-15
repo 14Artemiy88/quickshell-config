@@ -28,22 +28,36 @@ Primitives.ModuleFrame {
     // Keep per-stream click targets outside delegates: SystemMonitor replaces
     // its JSON snapshot on every poll, which can recreate Repeater delegates.
     property var streamPendingValues: ({})
+    // Right-click temporarily expands/collapses the per-application stream list.
+    // The setting controls the initial state; the context toggle is runtime-only.
+    property bool streamsExpanded: Config.volumeShowStreams
     readonly property int streamCount: streamRepeater.count
-    readonly property int effectiveStreamCount: Config.volumeShowStreams ? streamCount : 0
+    readonly property int effectiveStreamCount: streamsExpanded ? streamCount : 0
     readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
-    // When extra streams are hidden, the widget must collapse to the main row
-    // instead of retaining the minimum height/Column spacing reserved for them.
+    readonly property int streamListContentHeight: Math.ceil(streamListContent.implicitHeight)
+    readonly property int streamListGapHeight: streamsExpanded && streamCount > 0 ? 7 : 0
     readonly property int mainContentHeight: 2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight
-    readonly property int adaptiveHeight: Config.volumeShowStreams
-        ? Math.min(
-            Config.volumeMaxHeight,
-            Math.max(
-                Config.volumeMinHeight,
-                mainContentHeight + effectiveStreamCount * (20 + effectiveStreamRowHeight + Config.volumeStreamSpacing)
-            )
+    // Use the actual stream-list geometry so the window and clipped content
+    // grow/shrink together without leaving unused space below a short list.
+    readonly property int adaptiveHeight: Math.min(
+        Config.volumeMaxHeight,
+        Math.max(
+            Config.volumeMinHeight,
+            mainContentHeight + (streamsExpanded ? streamListGapHeight + streamListContentHeight : 0)
         )
-        : Math.min(Config.volumeMaxHeight, mainContentHeight)
-    implicitHeight: adaptiveHeight
+    )
+    readonly property int streamListViewportTargetHeight: Math.min(
+        streamListContentHeight,
+        Math.max(0, adaptiveHeight - mainContentHeight - streamListGapHeight)
+    )
+    readonly property int streamAnimationDuration: Config.animationVolumeStreamsVisibilityStyle === "none"
+        ? 0
+        : Config.animationDuration(Config.volumeStreamsAnimationDuration, "appearance")
+    property real animatedAdaptiveHeight: adaptiveHeight
+    Behavior on animatedAdaptiveHeight {
+        NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+    }
+    implicitHeight: animatedAdaptiveHeight
 
     function acceptBackendVolume(v, muted) {
         if (!isFinite(v)) return
@@ -194,6 +208,13 @@ Primitives.ModuleFrame {
     }
 
     Connections {
+        target: Config
+        function onVolumeShowStreamsChanged() {
+            root.streamsExpanded = Config.volumeShowStreams
+        }
+    }
+
+    Connections {
         target: Settings
         function onVolumesChanged() {
             if (Settings.volumes && !volumePoll.running) volumePoll.running = true
@@ -210,7 +231,7 @@ Primitives.ModuleFrame {
         anchors.rightMargin: Config.volumeHorizontalPadding
         anchors.topMargin: Config.volumeVerticalPadding
         anchors.bottomMargin: Config.volumeVerticalPadding
-        spacing: Config.volumeShowStreams ? 7 : 0
+        spacing: 0
 
         Row {
             width: parent.width
@@ -281,74 +302,127 @@ Primitives.ModuleFrame {
             }
         }
 
-        Repeater {
-            id: streamRepeater
-            model: root.monitor?.data?.volumes ?? []
+        Item {
+            id: streamListGap
+            width: parent.width
+            height: root.streamListGapHeight
+            Behavior on height {
+                NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+            }
+        }
 
-            delegate: Column {
-                id: streamColumn
-                visible: Config.volumeShowStreams
-                height: visible ? implicitHeight : 0
+        Item {
+            id: streamListViewport
+            width: parent.width
+            height: root.streamsExpanded ? root.streamListViewportTargetHeight : 0
+            clip: true
+            enabled: root.streamsExpanded
+            opacity: Config.animationVolumeStreamsVisibilityStyle === "fade" && !root.streamsExpanded ? 0 : 1
+
+            Behavior on height {
+                NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Config.animationVolumeStreamsVisibilityStyle === "fade" ? root.streamAnimationDuration : 0
+                    easing.type: Config.easingType()
+                }
+            }
+
+            Column {
+                id: streamListContent
                 width: parent.width
-                spacing: Config.volumeStreamSpacing
-                property real backendValue: Number(modelData.value ?? 0)
-                property var pendingVolume: root.streamPendingValues[String(modelData.num)] ?? null
-                property real dragValue: displayedValue
-                property bool dragging: false
-                property real displayedValue: {
-                    if (dragging) return dragValue
-                    if (pendingVolume && Date.now() < Number(pendingVolume.until))
-                        return Number(pendingVolume.value)
-                    return backendValue
+                // Match the previous outer Column spacing between stream rows;
+                // each delegate keeps its own label-to-track spacing below.
+                spacing: 7
+                x: {
+                    if (root.streamsExpanded) return 0
+                    if (Config.animationVolumeStreamsVisibilityStyle === "slideLeft") return -width
+                    if (Config.animationVolumeStreamsVisibilityStyle === "slideRight") return width
+                    return 0
                 }
-                onBackendValueChanged: root.reconcileStreamPending(modelData.num, backendValue)
-                Component.onCompleted: root.reconcileStreamPending(modelData.num, backendValue)
-
-                Text {
-                    text: modelData.name
-                    color: Config.text
-                    font.pixelSize: Config.uiFontSize(Config.volumeStreamLabelFontSize)
-                    elide: Text.ElideRight
-                    width: parent.width
+                y: {
+                    if (root.streamsExpanded) return 0
+                    if (Config.animationVolumeStreamsVisibilityStyle === "slideUp") return -implicitHeight
+                    if (Config.animationVolumeStreamsVisibilityStyle === "slideDown") return implicitHeight
+                    return 0
+                }
+                Behavior on x {
+                    NumberAnimation { duration: Config.animationVolumeStreamsVisibilityStyle === "slideLeft" || Config.animationVolumeStreamsVisibilityStyle === "slideRight" ? root.streamAnimationDuration : 0; easing.type: Config.easingType() }
+                }
+                Behavior on y {
+                    NumberAnimation { duration: Config.animationVolumeStreamsVisibilityStyle === "slideUp" || Config.animationVolumeStreamsVisibilityStyle === "slideDown" ? root.streamAnimationDuration : 0; easing.type: Config.easingType() }
                 }
 
-                Item {
-                    id: streamTrack
-                    width: parent.width
-                    height: root.effectiveStreamRowHeight
+                Repeater {
+                    id: streamRepeater
+                    model: root.monitor?.data?.volumes ?? []
 
-                    Primitives.ProgressTrack {
-                        x: 0
-                        y: Math.max(0, (parent.height - Config.volumeStreamTrackHeight) / 2 + Config.volumeStreamTrackOffsetY)
-                        width: parent.width
-                        height: Config.volumeStreamTrackHeight
-                        radius: Config.volumeTrackRadius
-                        value: root.clampVolume(streamColumn.displayedValue)
-                        fillColor: Config.volumeFill
-                        trackColor: Config.volumeTrack
-                    }
+                    delegate: Column {
+                        id: streamColumn
+                        width: streamListContent.width
+                        spacing: Config.volumeStreamSpacing
+                        property real backendValue: Number(modelData.value ?? 0)
+                        property var pendingVolume: root.streamPendingValues[String(modelData.num)] ?? null
+                        property real dragValue: displayedValue
+                        property bool dragging: false
+                        property real displayedValue: {
+                            if (dragging) return dragValue
+                            if (pendingVolume && Date.now() < Number(pendingVolume.until))
+                                return Number(pendingVolume.value)
+                            return backendValue
+                        }
+                        onBackendValueChanged: root.reconcileStreamPending(modelData.num, backendValue)
+                        Component.onCompleted: root.reconcileStreamPending(modelData.num, backendValue)
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onPressed: mouse => {
-                            streamColumn.dragging = true
-                            streamColumn.dragValue = root.clampVolume((mouse.x / streamTrack.width) * 100)
+                        Text {
+                            text: modelData.name
+                            color: Config.text
+                            font.pixelSize: Config.uiFontSize(Config.volumeStreamLabelFontSize)
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                            width: parent.width
                         }
-                        onPositionChanged: mouse => {
-                            if (pressed) streamColumn.dragValue = root.clampVolume((mouse.x / streamTrack.width) * 100)
-                        }
-                        onReleased: {
-                            streamColumn.dragging = false
-                            root.applyStreamVolume(modelData.num, streamColumn.dragValue)
-                        }
-                        onWheel: wheel => {
-                            const current = streamColumn.displayedValue
-                            const next = root.clampVolume(current + (wheel.angleDelta.y > 0 ? 1 : -1))
-                            streamColumn.dragging = false
-                            streamColumn.dragValue = next
-                            root.applyStreamVolume(modelData.num, next)
+
+                        Item {
+                            id: streamTrack
+                            width: parent.width
+                            height: root.effectiveStreamRowHeight
+
+                            Primitives.ProgressTrack {
+                                x: 0
+                                y: Math.max(0, (parent.height - Config.volumeStreamTrackHeight) / 2 + Config.volumeStreamTrackOffsetY)
+                                width: parent.width
+                                height: Config.volumeStreamTrackHeight
+                                radius: Config.volumeTrackRadius
+                                value: root.clampVolume(streamColumn.displayedValue)
+                                fillColor: Config.volumeFill
+                                trackColor: Config.volumeTrack
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onPressed: mouse => {
+                                    streamColumn.dragging = true
+                                    streamColumn.dragValue = root.clampVolume((mouse.x / streamTrack.width) * 100)
+                                }
+                                onPositionChanged: mouse => {
+                                    if (pressed) streamColumn.dragValue = root.clampVolume((mouse.x / streamTrack.width) * 100)
+                                }
+                                onReleased: {
+                                    streamColumn.dragging = false
+                                    root.applyStreamVolume(modelData.num, streamColumn.dragValue)
+                                }
+                                onWheel: wheel => {
+                                    const current = streamColumn.displayedValue
+                                    const next = root.clampVolume(current + (wheel.angleDelta.y > 0 ? 1 : -1))
+                                    streamColumn.dragging = false
+                                    streamColumn.dragValue = next
+                                    root.applyStreamVolume(modelData.num, next)
+                                }
+                            }
                         }
                     }
                 }
@@ -356,4 +430,14 @@ Primitives.ModuleFrame {
         }
     }
 
+    // Right-click anywhere on the volume widget to show or hide application streams.
+    // This accepts only the secondary button, leaving all slider and mute controls intact.
+    MouseArea {
+        anchors.fill: parent
+        z: 1000
+        acceptedButtons: Qt.RightButton
+        onClicked: {
+            root.streamsExpanded = !root.streamsExpanded
+        }
+    }
 }

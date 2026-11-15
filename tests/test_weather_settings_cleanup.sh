@@ -28,6 +28,8 @@ assert 'text: "Зазор X"' not in section and 'text: "Смещение Y"' no
 wind_group = section.split('heading: "Стрелка ветра"', 1)[1].split('SettingsGroup {', 1)[0]
 assert 'text: "Ширина"' not in wind_group and 'text: "Высота"' not in wind_group, 'duplicate glyph geometry controls should be removed'
 assert 'heading: "Положение элементов"' in section, 'position controls should use the frame heading'
+assert 'heading: "Ширина блоков"' in section and 'heading: "Выравнивание блоков"' in section
+assert 'heading: "Описание погоды"' in section and 'weatherDescriptionWidth' in section
 assert section.count('id: weatherIconYField') == 1 and section.count('id: weatherIconSizeField') == 1
 assert section.count('targetProperty: "weatherWindColumnX"') == 1, 'duplicate wind-column X editor must be removed'
 

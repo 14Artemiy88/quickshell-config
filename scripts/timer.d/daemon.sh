@@ -30,8 +30,8 @@ timer_process_entry() {
 
 timer_process_entry_locked() {
     local output_var="$1" file="$2" now="$3"
-    local total_time end_time ding color paused_at comment
-    local seconds_left display_now sign timer_str time_passed comment_json file_json
+    local total_time end_time ding color paused_at comment timer_elapsed_offset
+    local seconds_left display_now sign timer_str time_passed comment_json file_json current_elapsed total_elapsed
 
     read_timer_file "$file" || return 0
 
@@ -60,12 +60,15 @@ timer_process_entry_locked() {
         format_time_into timer_str "${seconds_left#-}"
     fi
 
-    format_time_into time_passed $((total_time * 60 - seconds_left))
+    current_elapsed=$((total_time * 60 - seconds_left))
+    (( current_elapsed < 0 )) && current_elapsed=0
+    total_elapsed=$((timer_elapsed_offset + current_elapsed))
+    format_time_into time_passed "$total_elapsed"
     json_escape_into comment_json "$comment"
     json_escape_into file_json "$file"
     local json_record
-    printf -v json_record '{"file":"%s","comment":"%s","timer":"%s","color":"#%s","sign":"%s","time_passed":"%s","ding":%s}' \
-        "$file_json" "$comment_json" "$timer_str" "$color" "$sign" "$time_passed" "$ding"
+    printf -v json_record '{"file":"%s","comment":"%s","timer":"%s","color":"#%s","sign":"%s","time_passed":"%s","duration_minutes":%s,"ding":%s}' \
+        "$file_json" "$comment_json" "$timer_str" "$color" "$sign" "$time_passed" "$total_time" "$ding"
     printf -v "$output_var" '%s' "$json_record"
     if (( ding_transition )); then
         return 10

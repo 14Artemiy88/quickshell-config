@@ -8,9 +8,11 @@ from pathlib import Path
 import sys
 options=Path(sys.argv[1]).read_text(encoding='utf-8')
 shell=Path(sys.argv[2]).read_text(encoding='utf-8')
-assert 'ParallelAnimation {\n        id: visualTransition' in options, 'opacity and scale must share one visual transition'
+assert 'ParallelAnimation {\n        id: visualTransition' in options, 'opacity, fade-scale and slide translation must share one visual transition'
 assert 'showOpacityAnimation.start()' not in options and 'showScaleAnimation.start()' not in options, 'child animations must not run independently'
 assert 'visualTransition.start()' in options and 'visualTransition.stop()' in options
+assert 'slideXAnimation' in options and 'slideYAnimation' in options
+assert 'property: "slideOffsetX"' in options and 'property: "slideOffsetY"' in options
 assert 'onFinished: root.finishCloseOnce()' in options, 'close lifecycle must follow actual animation completion'
 assert 'function finishCloseOnce()' in options
 finish=options.split('function finishCloseOnce()',1)[1].split('function startClose()',1)[0]

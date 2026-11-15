@@ -43,13 +43,24 @@ function saveCurrentTheme(owner, colorNames, Config, name) {
 function applyTheme(owner, themes, Config, name) {
     var n = String(name)
     var p = themes.palette(n, owner.customThemes)
+    // These are user-tuned component/window colors, not part of the global
+    // theme. Keep their current values when switching built-in or custom themes.
+    var independentColors = [
+        "settingsBackground",
+        "playerProgressTrack", "playerProgressFill",
+        "topAppsCpuBarColor", "topAppsRamBarColor",
+        "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"
+    ]
+    var preserved = {}
+    for (var i = 0; i < independentColors.length; ++i) {
+        var independentKey = independentColors[i]
+        preserved[independentKey] = Config[independentKey]
+    }
     for (var key in p) Config[key] = p[key]
-    // Custom themes saved before Top Apps bar colors existed inherit their
-    // CPU/RAM colors from the corresponding palette entries when switched.
-    if (p.topAppsCpuBarColor === undefined) Config.topAppsCpuBarColor = p.accent || Config.accent
-    if (p.topAppsRamBarColor === undefined) Config.topAppsRamBarColor = p.ram || Config.ram
-    if (p.topAppsCpuBarTrackColor === undefined) Config.topAppsCpuBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack
-    if (p.topAppsRamBarTrackColor === undefined) Config.topAppsRamBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack
+    for (var j = 0; j < independentColors.length; ++j) {
+        var restoreKey = independentColors[j]
+        if (preserved[restoreKey] !== undefined) Config[restoreKey] = preserved[restoreKey]
+    }
     owner.activeTheme = n
     owner.themeDraftSource = n
     owner.themeDraft = JSON.parse(JSON.stringify(p))

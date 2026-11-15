@@ -49,8 +49,9 @@ assert 'rotation:' not in s['weather'] and 'windAngle' not in s['weather'], 'win
 assert 'font.family: root.windFont(root.weather.wind?.direction?.scale_8)' in s['weather']
 assert 'text: root.windIcon(root.weather.wind?.direction?.scale_8)' in s['weather']
 assert 'signal iconEdited(string value)' in s['row'] and 'signal fontEdited(string value)' in s['row']
-assert 'onIconValueChanged' in s['row'] and 'onFontValueChanged' in s['row']
+assert 'onIconValueChanged' in s['row'] and 'SettingsFontField {' in s['row'] and 'value: root.fontValue' in s['row']
 assert 'font.family: root.fontValue || Config.font' in s['row'], 'icon field should preview the chosen direction font'
+assert 'root.fontEdited(value)' in s['row'], 'font changes and system reset should be emitted through the shared primitive'
 
 # Basic delimiter balancing for edited QML/JS helps catch accidental malformed patches.
 pairs={')':'(',']':'[','}':'{'}

@@ -71,7 +71,7 @@ assert 'Number(o.settingsSchemaVersion || 0) < 1' in apply_state, 'legacy full s
 # Weather layout alignment, concise labels and removal of the obsolete width field from UI only.
 weather = read("components/settings/sections/SettingsWeatherSection.qml")
 now_icon = weather.split('heading: "Иконка текущей погоды"', 1)[1].split('heading: "Стрелка ветра"', 1)[0]
-wind = weather.split('heading: "Стрелка ветра"', 1)[1].split('heading: "Дополнительные параметры"', 1)[0]
+wind = weather.split('heading: "Стрелка ветра"', 1)[1].split('heading: "Температура комфорта"', 1)[0]
 comfort = weather.split('heading: "Температура комфорта"', 1)[1].split('heading: "Положение элементов"', 1)[0]
 assert 'Item { width: 210; height: 24 }' in now_icon
 assert 'Text { width: 210; height: 30; text: "Иконка"' in now_icon
@@ -79,7 +79,7 @@ wind_header = weather.split('id: windDirectionSettingsHeader', 1)[1].split('Mous
 assert 'width: 24' in wind_header
 assert 'font.pixelSize: Config.settingsUiSize(17)' in wind_header
 assert 'Item { width: 210; height: 30 }' in wind
-assert 'text: "X"' not in wind and 'text: "Y"' not in wind and 'text: "Размер"' not in wind
+assert 'text: "X"' in wind and 'text: "Y"' in wind and 'text: "Размер"' in wind
 assert 'heading: "Температура комфорта"' in weather
 assert 'text: "Показывать"' in comfort and 'width: 24; height: 30; indicatorOnly: true' in comfort
 assert 'label: "Цвет обводки"' in comfort and 'text: "Толщина обводки"' in comfort
@@ -87,7 +87,8 @@ assert 'text: "Положение Y"' in comfort and 'text: "Смещение X"
 assert 'value: Config.weatherComfortY + Config.weatherComfortOffsetY' in comfort
 assert 'Config.weatherComfortOffsetY = n - baseY' in comfort
 assert 'id: weatherComfortOffsetYField' not in comfort, 'comfort temperature should expose only one Y control'
-assert 'weatherTempColumnWidth' not in weather, 'legacy field must no longer be presented in settings UI'
+assert 'targetProperty: "weatherTempColumnWidth"' in weather, 'left block width should be exposed in the dedicated widths frame'
+assert 'targetProperty: "weatherMiddleBlockWidth"' in weather and 'targetProperty: "weatherWindColumnWidth"' in weather
 assert 'weatherTempColumnWidth' in config and 'weatherTempColumnWidth: config.weatherTempColumnWidth' in persist, 'keep the old stored field for compatibility'
 print('Settings quick-save, timer options subtab, always-visible calendar, and weather refinements: OK')
 PY_ASSERT

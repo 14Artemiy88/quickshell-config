@@ -48,32 +48,21 @@ Row {
         }
     }
 
-    SettingsTextField {
+    SettingsFontField {
         id: fontField
         width: 150
         height: 30
-        color: Config.text
-        selectionColor: Config.accent
-        selectedTextColor: Config.black
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(11)
-        activeFocusOnTab: true
-        background: Rectangle {
-            color: Config.settingsBackground
-            border.color: (fontField.activeFocus || fontField.pointerHovered) ? Config.accent : Config.baseColor
-            border.width: 1
-            radius: 4
-        }
-        onEditingFinished: {
-            root.fontEdited(text)
-            text = root.fontValue
+        compact: true
+        fieldWidth: 112
+        fieldFontSize: 10
+        value: root.fontValue
+        onValueEdited: function(value) {
+            root.fontEdited(value)
         }
     }
 
     Component.onCompleted: {
         iconField.text = root.iconValue
-        fontField.text = root.fontValue
     }
     onIconValueChanged: iconField.text = root.iconValue
-    onFontValueChanged: fontField.text = root.fontValue
 }

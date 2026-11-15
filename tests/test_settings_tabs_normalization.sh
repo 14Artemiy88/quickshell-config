@@ -17,7 +17,7 @@ function loadLibrary(relativePath, appended = '') {
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
   'this.api = { normalizeSettingsTabOrder, normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
-const ids = ['modules','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','settingsWindow'];
+const ids = ['modules','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','notifications','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
 // Keep all duplicated registries aligned so a future tab cannot accidentally
@@ -50,7 +50,8 @@ const normalizedOrder = apply.api.normalizeSettingsTabOrder(vm.runInContext("['l
 assert.strictEqual(normalizedOrder.length, ids.length, 'all known tabs remain present');
 assert(!normalizedOrder.includes('[object Object]'), 'objects and non-string values are rejected without coercion');
 assert.strictEqual(new Set(normalizedOrder).size, ids.length, 'normalized order contains no duplicates');
-assert.deepStrictEqual(Array.from(normalizedOrder.slice(0, 2)), ['launcher','settingsWindow'], 'valid saved order is preserved');
+assert.deepStrictEqual(Array.from(normalizedOrder.slice(0, 2)), ['launcher','settingsWindow'], 'valid saved order is preserved when newer tabs are appended');
+assert(normalizedOrder.includes('notifications'), 'new notification tab is appended to legacy saved orders');
 assert.deepStrictEqual(Array.from(apply.api.normalizeSettingsTabOrder(vm.runInContext('({})', apply))), ids, 'non-array order falls back to defaults');
 assert.deepStrictEqual(Array.from(apply.api.normalizeSettingsTabOrder(vm.runInContext('([])', apply))), ids, 'empty order fills all defaults');
 

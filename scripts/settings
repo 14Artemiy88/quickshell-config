@@ -39,7 +39,7 @@ while :; do
     flock -u "$settings_lock_fd"
     exec {settings_lock_fd}>&-
 done
-DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true},"geometry":{}}'
+DEFAULT='{"weatherToken":"","colors":{},"modules":{"time":true,"cpu":true,"cpuGraph":true,"topAppsCpu":true,"topAppsRam":true,"networkStat":true,"weatherNow":true,"weatherHourly":true,"weatherDaily":true,"timer":true,"volumes":true,"player":true,"cava":true,"networks":true,"calendar":true,"notifications":true},"geometry":{}}'
 
 # Serialize read-modify-write operations and publish complete JSON atomically.
 # The lock is kept next to the target so all writes happen on one filesystem.

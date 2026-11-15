@@ -152,11 +152,11 @@ function apply(Config, o) {
         }
 
         // Network display tuning
+        if (o.networkFont !== undefined) Config.networkFont = String(o.networkFont).replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
         var networkNumberFields = [
-            ["networkRowHeight", 12, 60], ["networkRowSpacing", 0, 30],
-            ["networkIconSize", 8, 40], ["networkValueFontSize", 8, 32],
-            ["networkRightPadding", 0, 40], ["networkHorizontalPadding", 0, 40],
-            ["networkIconLeftPadding", 0, 40], ["networkIconColumnWidth", 16, 80]
+            ["networkSpacing", 0, 20], ["networkTopPadding", 0, 40], ["networkIconSize", 8, 40],
+            ["networkValueFontSize", 8, 32], ["networkRightPadding", 0, 40],
+            ["networkIconLeftPadding", 0, 40]
         ]
         for (var nf = 0; nf < networkNumberFields.length; ++nf) {
             var nname = networkNumberFields[nf][0]
@@ -167,6 +167,7 @@ function apply(Config, o) {
         }
         if (o.networkShowUpload !== undefined) Config.networkShowUpload = !!o.networkShowUpload
         if (o.networkShowDownload !== undefined) Config.networkShowDownload = !!o.networkShowDownload
+        if (o.networksAlwaysVisible !== undefined) Config.networksAlwaysVisible = !!o.networksAlwaysVisible
 
         // Volume tuning
         var volumeNumberFields = [

@@ -349,9 +349,12 @@ Flickable {
                         { title: "Громкость", colors: [
                             "volumeTrack", "volumeFill"
                         ]},
-                        { title: "CPU и RAM полоски", colors: [
-                            "cpu1", "cpu2", "cpu3", "cpu4", "cpu5", "cpu6", "cpu7", "cpu8",
-                            "ram", "metricTrack", "ramTrack"
+                        { title: "Полосы CPU и RAM", colors: [
+                            "cpu1", "cpu1Track", "cpu2", "cpu2Track",
+                            "cpu3", "cpu3Track", "cpu4", "cpu4Track",
+                            "cpu5", "cpu5Track", "cpu6", "cpu6Track",
+                            "cpu7", "cpu7Track", "cpu8", "cpu8Track",
+                            "ram", "ramTrack"
                         ]},
                         { title: "Плеер", colors: [
                             "playerOverlay", "playerProgressTrack", "playerProgressFill"
@@ -431,9 +434,16 @@ Flickable {
                                         volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
                                         playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
                                         playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",
-                                        cpu1: "CPU 1", cpu2: "CPU 2", cpu3: "CPU 3", cpu4: "CPU 4",
-                                        cpu5: "CPU 5", cpu6: "CPU 6", cpu7: "CPU 7", cpu8: "CPU 8", ram: "RAM",
-                                        metricTrack: "Фон полос CPU", ramTrack: "Фон полос RAM", networkUpload: "Сеть: загрузка",
+                                        cpu1: "CPU 1: заполнение", cpu1Track: "CPU 1: неактивный фон",
+                                        cpu2: "CPU 2: заполнение", cpu2Track: "CPU 2: неактивный фон",
+                                        cpu3: "CPU 3: заполнение", cpu3Track: "CPU 3: неактивный фон",
+                                        cpu4: "CPU 4: заполнение", cpu4Track: "CPU 4: неактивный фон",
+                                        cpu5: "CPU 5: заполнение", cpu5Track: "CPU 5: неактивный фон",
+                                        cpu6: "CPU 6: заполнение", cpu6Track: "CPU 6: неактивный фон",
+                                        cpu7: "CPU 7: заполнение", cpu7Track: "CPU 7: неактивный фон",
+                                        cpu8: "CPU 8: заполнение", cpu8Track: "CPU 8: неактивный фон",
+                                        ram: "RAM: заполнение", ramTrack: "RAM: неактивный фон",
+                                        networkUpload: "Сеть: загрузка",
                                         networkDownload: "Сеть: скачивание",
                                         tempHot: "Погода: очень тепло", tempWarm: "Погода: тепло",
                                         tempMild: "Погода: умеренно", tempCool: "Погода: прохладно", tempZero: "Погода: около 0°C",

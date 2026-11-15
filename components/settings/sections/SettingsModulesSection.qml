@@ -3,6 +3,7 @@ import QtQuick.Controls
 import Quickshell
 import "../../.."
 import "../primitives"
+import "../../../js/NotificationsGeometry.js" as NotificationsGeometry
 
 Item {
     id: modulesSection
@@ -41,6 +42,73 @@ Item {
         if (index < 2 && (!isFinite(value) || value < -10000))
             return launcherDefaultCoordinate(index)
         return isFinite(value) ? value : 0
+    }
+
+    function notificationsTargetScreen() {
+        var wanted = String((settings.moduleMonitors || {}).notifications || Config.monitorName || "").trim().toLowerCase()
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var screen = Quickshell.screens[i]
+            if (!screen) continue
+            if (wanted && (String(screen.name || "").trim().toLowerCase() === wanted
+                    || String(screen.model || "").trim().toLowerCase() === wanted
+                    || String(screen).trim().toLowerCase() === wanted))
+                return screen
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    function notificationsCoordinate(index) {
+        var geometry = settings.geometry || {}
+        var a = geometry.notifications || [-999999, 16, Config.notificationsCardWidth, 0]
+        var screen = notificationsTargetScreen()
+        return NotificationsGeometry.resolvedCoordinate(a, index, screen ? screen.width : 1920, Config.notificationsCardWidth, 16)
+    }
+
+    function notificationsGeometryValue(index) {
+        var geometry = settings.geometry || {}
+        var a = geometry.notifications || [-999999, 16, Config.notificationsCardWidth, 0]
+        if (index === 2)
+            return Math.max(280, Math.min(600, Number(Config.notificationsCardWidth) || Number(a[2]) || 380))
+        if (index === 3) {
+            var height = Number(a[3])
+            return isFinite(height) && height > 0 ? Math.min(10000, Math.round(height)) : 0
+        }
+        return notificationsCoordinate(index)
+    }
+
+    function writeNotificationsGeometry(index, value) {
+        var next = Number(value)
+        if (!isFinite(next)) return
+        var geometry = Object.assign({}, settings.geometry || {})
+        var a = NotificationsGeometry.normalizeGeometry(
+            geometry.notifications || [-999999, 16, Config.notificationsCardWidth, 0],
+            Config.notificationsCardWidth
+        )
+
+        if (index < 2) {
+            next = Math.round(next)
+            if (next === notificationsCoordinate(index)) return
+            a[0] = notificationsCoordinate(0)
+            a[1] = notificationsCoordinate(1)
+            a[index] = next
+        } else if (index === 2) {
+            next = Math.max(280, Math.min(600, Math.round(next / 10) * 10))
+            if (next === Number(Config.notificationsCardWidth)) return
+            a[2] = next
+            Config.notificationsCardWidth = next
+        } else {
+            next = Math.max(0, Math.min(10000, Math.round(next)))
+            if (next === notificationsGeometryValue(3)) return
+            a[3] = next
+        }
+
+        geometry.notifications = a
+        settings.geometry = geometry
+        settings.save()
+    }
+
+    function writeNotificationsCoordinate(index, value) {
+        writeNotificationsGeometry(index, value)
     }
 
     function writeLauncherCoordinate(index, value) {
@@ -196,9 +264,15 @@ Item {
                                     id: geometryField
                                     width: 48
                                     height: 30
-                                    value: Number(settings.geometry[moduleRow.moduleName][index])
-                                    minimum: index >= 2 ? 1 : -Infinity
-                                    maximum: Infinity
+                                    value: moduleRow.moduleName === "notifications"
+                                        ? modulesSection.notificationsGeometryValue(index)
+                                        : Number(settings.geometry[moduleRow.moduleName][index])
+                                    minimum: moduleRow.moduleName === "notifications"
+                                        ? (index === 2 ? 280 : (index === 3 ? 0 : -10000))
+                                        : (index >= 2 ? 1 : -Infinity)
+                                    maximum: moduleRow.moduleName === "notifications"
+                                        ? (index === 2 ? 600 : (index === 3 ? 10000 : 10000))
+                                        : Infinity
                                     step: 1
                                     wheelStep: 1
                                     compact: true
@@ -206,6 +280,10 @@ Item {
                                     fieldFontSize: 10
                                     inputMethodHints: Qt.ImhFormattedNumbersOnly
                                     valueWriter: function(n) {
+                                        if (moduleRow.moduleName === "notifications") {
+                                            modulesSection.writeNotificationsGeometry(index, n)
+                                            return
+                                        }
                                         var g = Object.assign({}, settings.geometry)
                                         var a = (g[moduleRow.moduleName] || [0, 0, 100, 100]).slice()
                                         a[index] = n
@@ -214,7 +292,13 @@ Item {
                                         settings.save()
                                     }
                                     ToolTip.visible: geometryField.pointerHovered
-                                    ToolTip.text: ["X", "Y", "Width", "Height"][index]
+                                    ToolTip.text: moduleRow.moduleName === "notifications" && index === 1
+                                        ? "Y — отступ от " + (Config.notificationsVerticalAnchor === "bottom" ? "нижнего" : "верхнего") + " края"
+                                        : (moduleRow.moduleName === "notifications" && index === 2
+                                            ? "Ширина окна уведомлений (280–600)"
+                                            : (moduleRow.moduleName === "notifications" && index === 3
+                                                ? "Максимальная высота окна; 0 — автоматически по содержимому"
+                                                : ["X", "Y", "Width", "Height"][index]))
                                     ToolTip.delay: 500
                                 }
                             }

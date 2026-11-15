@@ -42,6 +42,8 @@ assert.strictEqual(normalized['Legacy Palette'].tempVeryCold, fallback.tempVeryC
 assert.strictEqual(normalized['Legacy Palette'].topAppsCpuBarColor, '#ff336699', 'legacy CPU bar color inherits old accent');
 assert.strictEqual(normalized['Legacy Palette'].topAppsRamBarColor, '#654321', 'legacy RAM bar color inherits old RAM color');
 assert.strictEqual(normalized['Legacy Palette'].topAppsCpuBarTrackColor, '#7f112233', 'legacy Top Apps track inherits metricTrack');
+assert.strictEqual(normalized['Legacy Palette'].cpu1Track, '#7f112233', 'legacy CPU 1 inactive track inherits metricTrack');
+assert.strictEqual(normalized['Legacy Palette'].cpu8Track, '#7f112233', 'legacy CPU 8 inactive track inherits metricTrack');
 assert.strictEqual(normalized['Legacy Palette'].futureColor, '#abcdef', 'unknown valid color keys are retained');
 assert(!normalized.Bad, 'invalid custom theme entries are ignored');
 

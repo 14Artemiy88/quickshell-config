@@ -143,18 +143,17 @@ Column {
             height: 34
             spacing: 8
             Text { width: 210; height: 30; text: "Основной шрифт интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsTextField {
-                id: generalFontField
-                width: 160; height: 30
-                text: Config.font
-                color: Config.text
-                selectionColor: Config.accent
-                selectedTextColor: Config.black
-                font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                activeFocusOnTab: true
-                background: Rectangle { color: Config.settingsBackground; border.color: (generalFontField.activeFocus || generalFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                onEditingFinished: { Config.font = text.trim() || Config.font; text = Config.font; settings.save() }
-                Connections { target: Config; function onFontChanged() { generalFontField.text = Config.font } }
+            SettingsFontField {
+                width: parent.width - 218
+                height: 30
+                compact: true
+                fieldWidth: 160
+                fieldFontSize: 11
+                value: Config.font
+                targetObject: Config
+                targetProperty: "font"
+                settingsObject: settings
+                saveOnEdit: true
             }
         }
 
@@ -191,18 +190,17 @@ Column {
             height: 34
             spacing: 8
             Text { width: 210; height: 30; text: "LED-шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsTextField {
-                id: ledFontField
-                width: 160; height: 30
-                text: Config.ledFont
-                color: Config.text
-                selectionColor: Config.accent
-                selectedTextColor: Config.black
-                font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                activeFocusOnTab: true
-                background: Rectangle { color: Config.settingsBackground; border.color: (ledFontField.activeFocus || ledFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                onEditingFinished: { Config.ledFont = text.trim() || Config.ledFont; text = Config.ledFont; settings.save() }
-                Connections { target: Config; function onLedFontChanged() { ledFontField.text = Config.ledFont } }
+            SettingsFontField {
+                width: parent.width - 218
+                height: 30
+                compact: true
+                fieldWidth: 160
+                fieldFontSize: 11
+                value: Config.ledFont
+                targetObject: Config
+                targetProperty: "ledFont"
+                settingsObject: settings
+                saveOnEdit: true
             }
         }
     }

@@ -9,6 +9,7 @@ TOP_SETTINGS="$ROOT/components/settings/sections/SettingsCpuRamSection.qml"
 TOP="$ROOT/components/TopApps.qml"
 THEMES="$ROOT/js/settings/SettingsThemes.js"
 MANAGER="$ROOT/js/settings/SettingsThemeManager.js"
+SCHEMA="$ROOT/js/settings/SettingsSchema.js"
 PERSIST="$ROOT/js/settings/SettingsPersistence.js"
 for key in topAppsCpuBarColor topAppsRamBarColor topAppsCpuBarTrackColor topAppsRamBarTrackColor; do
     grep -Fq "property color $key:" "$CONFIG" || { echo "$key Config property is missing" >&2; exit 1; }
@@ -39,10 +40,9 @@ print('Top Apps bar color controls follow the Show bars option: OK')
 PYVIS
 if grep -Fq 'label: "CPU: цвет полосы"' "$COLORS" || grep -Fq 'label: "RAM: цвет полосы"' "$COLORS"; then echo 'Top Apps colors should not remain in the Colors tab' >&2; exit 1; fi
 grep -Fq 'colors[owner.colorNames[j]] = String(config[owner.colorNames[j]])' "$PERSIST" || { echo 'Color persistence no longer includes colorNames' >&2; exit 1; }
-grep -Fq 'if (p.topAppsCpuBarColor === undefined) Config.topAppsCpuBarColor = p.accent || Config.accent' "$MANAGER" || { echo 'Old custom themes do not inherit CPU bar color fallback' >&2; exit 1; }
-grep -Fq 'if (p.topAppsRamBarColor === undefined) Config.topAppsRamBarColor = p.ram || Config.ram' "$MANAGER" || { echo 'Old custom themes do not inherit RAM bar color fallback' >&2; exit 1; }
-grep -Fq 'if (p.topAppsCpuBarTrackColor === undefined) Config.topAppsCpuBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack' "$MANAGER" || { echo 'Old custom themes do not inherit CPU inactive bar color fallback' >&2; exit 1; }
-grep -Fq 'if (p.topAppsRamBarTrackColor === undefined) Config.topAppsRamBarTrackColor = p.topAppsBarTrackColor || p.metricTrack || Config.metricTrack' "$MANAGER" || { echo 'Old custom themes do not inherit RAM inactive bar color fallback' >&2; exit 1; }
+grep -Fq 'if (fallbackKey === "topAppsCpuBarColor" && savedPalette.accent !== undefined)' "$SCHEMA" || { echo 'Old custom themes do not inherit CPU bar color fallback' >&2; exit 1; }
+grep -Fq 'else if (fallbackKey === "topAppsRamBarColor" && savedPalette.ram !== undefined)' "$SCHEMA" || { echo 'Old custom themes do not inherit RAM bar color fallback' >&2; exit 1; }
+grep -Fq 'else if ((fallbackKey === "topAppsCpuBarTrackColor" || fallbackKey === "topAppsRamBarTrackColor")' "$SCHEMA" || { echo 'Old custom themes do not inherit inactive bar color fallback' >&2; exit 1; }
 python3 - "$THEMES" <<'PY'
 from pathlib import Path
 import sys

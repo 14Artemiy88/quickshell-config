@@ -54,13 +54,32 @@ QtObject {
     property color settingsBackground: "#e6000000"
     property color settingsBorder: "#00cccc"
     property color settingsSubheading: "#00cccc"
+
+    // Native notification server presentation and timeout preferences.
+    // Timeouts are milliseconds; zero means no automatic expiry.
+    property int notificationsDefaultTimeout: 5000
+    property int notificationsCriticalTimeout: 0
+    // Vertical edge used by the notification surface; X remains measured from the left.
+    property string notificationsVerticalAnchor: "top"
+    // Legacy corner placement is read only during one-time migration to module X/Y geometry.
+    // These values are deliberately excluded from defaults and persistence snapshots.
+    property string notificationsLegacyPosition: ""
+    property int notificationsLegacyOffsetX: 16
+    property int notificationsLegacyOffsetY: 16
+    property int notificationsCardWidth: 380
+    property int notificationsCardSpacing: 8
+    property int notificationsImageHeight: 112
+    property bool notificationsShowAppIcon: true
+    property bool notificationsShowBodyImages: true
+    property bool notificationsShowProgress: true
+
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
-    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "settingsWindow"]
+    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "notifications", "settingsWindow"]
     property var settingsTabLabels: ({
         modules: "Модули", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
-        launcher: "Лаунчер", settingsWindow: "Окно настроек"
+        launcher: "Лаунчер", notifications: "Уведомления", settingsWindow: "Окно настроек"
     })
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
@@ -117,7 +136,9 @@ QtObject {
     property string animationTimerVisibilityStyle: "fade"
     property string animationTimerOptionsVisibilityStyle: "fade"
     property string animationSettingsVisibilityStyle: "fade"
+    property string animationVolumeStreamsVisibilityStyle: "fade"
     property int animationTimerOptionsDuration: 280
+    property int volumeStreamsAnimationDuration: 250
     property int animationCalendarSlideDuration: 350
     property int animationCalendarFadeDuration: 250
     property int systemMonitorInterval: 1000
@@ -130,6 +151,8 @@ QtObject {
     property int weatherManualRefreshCooldownSeconds: 30
 
     // Timer tuning
+    property string timerElapsedFont: "LED"
+    property int timerElapsedFontSize: 35
     property int timerWheelStep: 1
     property int timerCommentWidth: 90
     property int timerCommentMaxLength: 10
@@ -142,14 +165,42 @@ QtObject {
     property int timerButtonSlideDuration: 700
     property int timerButtonIconFadeDuration: 550
     property string timerIcon: "󰁫"
+    // Visibility flags are Config properties so QML bindings and change signals
+    // stay reactive when settings are loaded or toggled at runtime.
+    property bool timerIconEnabled: true
     property string timerIconOrder: "alarm-left"
     property int timerIconSize: 27
     property int timerIconX: 45
     property int timerIconY: 0
     property string timerAlarmIcon: "󰀠"
+    property bool timerAlarmIconEnabled: true
     property int timerAlarmIconSize: 23
     property int timerAlarmIconX: 8
     property int timerAlarmIconY: 0
+
+    // Actions shown inside the selected timer's options popup.
+    property string timerOptionsCommentIcon: "󰃉"
+    property bool timerOptionsCommentIconEnabled: true
+    property int timerOptionsCommentIconSize: 22
+    property string timerOptionsDurationIcon: "󰏫"
+    property bool timerOptionsDurationIconEnabled: true
+    property int timerOptionsDurationIconSize: 22
+    property string timerOptionsRefreshIcon: ""
+    property bool timerOptionsRefreshIconEnabled: true
+    property int timerOptionsRefreshIconSize: 22
+    property string timerOptionsPauseIcon: "󰏤"
+    property bool timerOptionsPauseIconEnabled: true
+    property int timerOptionsPauseIconSize: 22
+    property string timerOptionsColorIcon: "󰏘"
+    property bool timerOptionsColorIconEnabled: true
+    property int timerOptionsColorIconSize: 22
+    property var timerOptionsActionIconOrder: ["comment", "duration", "refresh", "toggle_pause", "color"]
+
+    // Random timer colors: full black-to-white range by default.
+    property string timerRandomColorMode: "full"
+    property color timerRandomColorMin: "#000000"
+    property color timerRandomColorMax: "#ffffff"
+
     property bool timerFinishedImageEnabled: false
     property string timerFinishedImagePath: ""
     property bool timerFinishedBorderUsesTimerColor: true
@@ -206,14 +257,14 @@ QtObject {
     // Network display tuning
     property bool networkShowUpload: true
     property bool networkShowDownload: true
-    property int networkRowHeight: 22
-    property int networkRowSpacing: 0
+    property bool networksAlwaysVisible: false
+    property int networkSpacing: 2
+    property int networkTopPadding: 5
     property int networkIconSize: 16
     property int networkValueFontSize: 13
     property int networkRightPadding: 5
-    property int networkHorizontalPadding: 5
+    property string networkFont: ""
     property int networkIconLeftPadding: 10
-    property int networkIconColumnWidth: 28
 
     // Volume tuning
     property int volumeUpdateInterval: 500
@@ -398,10 +449,14 @@ QtObject {
     property int weatherDailyCount: 4
     property int weatherIconY: 13
     property int weatherWindColumnX: 180
+    property int weatherWindColumnY: 0
     property int weatherWindSpeedFontSize: 25
     property int weatherWindUnitFontSize: 15
+    property int weatherPressureX: 0
     property int weatherPressureY: 33
+    property int weatherDescriptionX: 0
     property int weatherDescriptionY: 58
+    property int weatherDescriptionWidth: 135
     property int weatherDescriptionFontSize: 12
     property int weatherTempFontSize: 55
     property int weatherComfortFontSize: 35
@@ -409,6 +464,11 @@ QtObject {
     property int weatherComfortOutlineWidth: 1
     property bool weatherShowComfort: true
     property int weatherTempColumnWidth: 100
+    property int weatherMiddleBlockWidth: 55
+    property string weatherLeftBlockAlignment: "center"
+    property string weatherMiddleBlockAlignment: "center"
+    property string weatherRightBlockAlignment: "right"
+    property string weatherIconPlacement: "center"
     property int weatherTempX: 10
     property int weatherTempWidth: 90
     property int weatherTempOffsetX: 0
@@ -486,6 +546,14 @@ QtObject {
     property color cpu6: "#aedfdb"
     property color cpu7: "#75c8cc"
     property color cpu8: "#ead1f5"
+    property color cpu1Track: "#4d006666"
+    property color cpu2Track: "#4d006666"
+    property color cpu3Track: "#4d006666"
+    property color cpu4Track: "#4d006666"
+    property color cpu5Track: "#4d006666"
+    property color cpu6Track: "#4d006666"
+    property color cpu7Track: "#4d006666"
+    property color cpu8Track: "#4d006666"
     property color ram: "#3daee9"
     property color metricTrack: "#4d006666"
     property color ramTrack: "#4d3daee9"

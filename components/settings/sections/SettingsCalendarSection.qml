@@ -236,7 +236,18 @@ Item {
             settingsObject: root.settings
             saveOnEdit: true
         }
-            SettingsTextField { id: calendarTitleFontField; width: 130; height: 30; text: Config.calendarTitleFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarTitleFont = text; settings.save() } }
+            SettingsFontField {
+                width: 130
+                height: 30
+                compact: true
+                fieldWidth: 92
+                fieldFontSize: 10
+                value: Config.calendarTitleFont
+                targetObject: Config
+                targetProperty: "calendarTitleFont"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
 
         Row {
@@ -281,7 +292,18 @@ Item {
             settingsObject: root.settings
             saveOnEdit: true
         }
-            SettingsTextField { id: calendarWeekdayFontField; width: 130; height: 30; text: Config.calendarWeekdayFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarWeekdayFont = text; settings.save() } }
+            SettingsFontField {
+                width: 130
+                height: 30
+                compact: true
+                fieldWidth: 92
+                fieldFontSize: 10
+                value: Config.calendarWeekdayFont
+                targetObject: Config
+                targetProperty: "calendarWeekdayFont"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
 
         Row {
@@ -326,7 +348,18 @@ Item {
             settingsObject: root.settings
             saveOnEdit: true
         }
-            SettingsTextField { id: calendarDayFontField; width: 130; height: 30; text: Config.calendarDayFont; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarDayFont = text; settings.save() } }
+            SettingsFontField {
+                width: 130
+                height: 30
+                compact: true
+                fieldWidth: 92
+                fieldFontSize: 10
+                value: Config.calendarDayFont
+                targetObject: Config
+                targetProperty: "calendarDayFont"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
     }
 
@@ -559,6 +592,14 @@ Item {
                 fieldWidth: 120
                 compact: false
             }
+        }
+        Row {
+            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2
+            width: parent.width
+            height: 30
+            spacing: 8
+            Text { width: 210; height: 30; text: "Цвет обводки активной даты с событием"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            Text { height: 30; text: "Цвет событий"; color: Config.calendarWeekendColor; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         }
     }
 

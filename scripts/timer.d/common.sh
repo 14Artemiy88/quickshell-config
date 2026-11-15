@@ -39,26 +39,35 @@ say() {
 }
 
 get_color() {
-    local hash r g b sum minSum=300
+    local mode="${1:-full}" min_color="${2:-#000000}" max_color="${3:-#ffffff}"
+    local min_hex max_hex i low high value result="" part
 
-    hash=$(printf '%s' "$(date '+%s')$RANDOM" | md5sum | cut -c1-6)
-    r=$((0x${hash:0:2}))
-    g=$((0x${hash:2:2}))
-    b=$((0x${hash:4:2}))
-    sum=$((r + g + b))
+    case "$mode" in
+        light) min_hex="808080"; max_hex="ffffff" ;;
+        dark) min_hex="000000"; max_hex="7f7f7f" ;;
+        custom)
+            min_hex="${min_color#\#}"
+            max_hex="${max_color#\#}"
+            [[ "$min_hex" =~ ^[0-9a-fA-F]{6}$ ]] || min_hex="000000"
+            [[ "$max_hex" =~ ^[0-9a-fA-F]{6}$ ]] || max_hex="ffffff"
+            ;;
+        *) min_hex="000000"; max_hex="ffffff" ;;
+    esac
 
-    if (( sum < minSum )); then
-        local diff=$(( (minSum - sum) / 3 + 1 ))
-        r=$(( r + diff ))
-        g=$(( g + diff ))
-        b=$(( b + diff ))
-    fi
+    for ((i = 0; i < 3; i++)); do
+        low=$((16#${min_hex:i*2:2}))
+        high=$((16#${max_hex:i*2:2}))
+        if (( low > high )); then
+            value=$low
+            low=$high
+            high=$value
+        fi
+        value=$((low + RANDOM % (high - low + 1)))
+        printf -v part '%02x' "$value"
+        result+="$part"
+    done
 
-    (( r > 255 )) && r=255
-    (( g > 255 )) && g=255
-    (( b > 255 )) && b=255
-
-    printf '%02x%02x%02x\n' "$r" "$g" "$b"
+    printf '%s\n' "$result"
 }
 
 # Escape a JSON string directly into a caller variable. The timer daemon runs
@@ -144,9 +153,41 @@ format_time_into() {
 }
 
 read_timer_file() {
-    local file="$1"
+    local file="$1" elapsed_file
     [[ -f "$file" ]] || return 1
     IFS=' ' read -r total_time end_time ding color paused_at comment < "$file"
+
+    # Keep cumulative elapsed time separately from the current countdown
+    # interval. The hidden sidecar is ignored by the daemon's timer-file glob,
+    # while legacy timer files continue to work with an implicit zero offset.
+    elapsed_file="$TIMER_DIR/.elapsed-${file##*/}"
+    timer_elapsed_offset=0
+    if [[ -f "$elapsed_file" ]]; then
+        IFS= read -r timer_elapsed_offset < "$elapsed_file" || timer_elapsed_offset=0
+        [[ "$timer_elapsed_offset" =~ ^[0-9]+$ ]] || timer_elapsed_offset=0
+    fi
+}
+
+# Store cumulative elapsed seconds atomically. Callers already hold the
+# shared timer lock, so the timer record and its sidecar are never observed
+# halfway through a normal UI/daemon transaction.
+write_timer_elapsed_offset() {
+    local file="$1" value="$2" elapsed_file temp
+    [[ "$value" =~ ^[0-9]+$ ]] || return 1
+    elapsed_file="$TIMER_DIR/.elapsed-${file##*/}"
+    if (( value == 0 )); then
+        rm -f -- "$elapsed_file"
+        return 0
+    fi
+    temp=$(mktemp "$TIMER_DIR/.timer-elapsed.XXXXXX") || return 1
+    if ! printf '%s\n' "$value" > "$temp"; then
+        rm -f -- "$temp"
+        return 1
+    fi
+    if ! mv -f -- "$temp" "$elapsed_file"; then
+        rm -f -- "$temp"
+        return 1
+    fi
 }
 
 # Publish complete timer records atomically. Readers never observe a truncated

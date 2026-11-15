@@ -69,7 +69,7 @@ for name in ("components/WidgetWindow.qml", "components/primitives/AnimatedVisib
     assert not stack and state not in ("single", "double", "template", "block_comment"), f"{name}: unclosed delimiter or literal"
 
 expected_windows = (
-    ("id: calendarWindow", "visible: Settings.calendar", "backgroundBlurItem: calendarVisibility.blurRegionItem", "inputMaskEnabled: shell.calendarVisible || calendarVisibility.running || shell.layoutEditMode"),
+    ("id: calendarWindow", "visible: Settings.calendar", "backgroundBlurItem: calendarVisibility.blurRegionItem", "inputMaskEnabled: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running || shell.layoutEditMode"),
     ("id: mopidyWindow", "visible: Settings.mopidy", "backgroundBlurItem: mopidyVisibility.blurRegionItem", "inputMaskEnabled: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible || mopidyVisibility.running || shell.layoutEditMode"),
     ("id: settingsWindow", "visible: true", "backgroundBlurItem: settingsVisibility.blurRegionItem", "inputMaskEnabled: shell.settingsVisible || settingsVisibility.running"),
 )

@@ -25,17 +25,28 @@ assert 'readonly property var defaultModuleBlurEnabled: SettingsMetadata.default
 assert 'function setModuleBlurEnabled(moduleName, enabled)' in settings
 assert 'settings.moduleBlurEnabled[moduleRow.moduleName] === true' in modules
 assert 'settings.setModuleBlurEnabled(moduleRow.moduleName, checked)' in modules
+assert 'notifications' in (root / 'js/settings/SettingsMetadata.js').read_text(encoding='utf-8')
+assert 'settings.moduleBlurEnabled[moduleRow.moduleName] === true' in modules
+assert 'settings.setModuleBlurEnabled(moduleRow.moduleName, checked)' in modules
 assert 'settings.moduleBlurEnabled.launcher === true' in modules
 assert 'settings.setModuleBlurEnabled("launcher", checked)' in modules
 assert 'text: "Блюр"' in modules
 assert 'text: "Блюр окна настроек"' in window
 assert 'settings.setModuleBlurEnabled("settings", checked)' in window
 assert 'property int backgroundBlurRadius: 10' in config
+assert '"notifications":true' in metadata.split('var defaultModuleFrames = ', 1)[1].splitlines()[0]
+assert '"notifications":true' in metadata.split('var defaultModuleBackgrounds = ', 1)[1].splitlines()[0]
+assert '"notifications":false' in metadata.split('var defaultModuleBlurEnabled = ', 1)[1].splitlines()[0]
 assert 'targetProperty: "backgroundBlurRadius"' in general
 assert 'heading: "Размытие фона"' in general
 assert 'moduleName: "settings"' in shell, 'the settings window must use its own blur switch'
 assert 'Settings.moduleBlurEnabled[root.moduleName] === true' in widget_window
 assert 'radius: Math.max(0, root.backgroundBlurRadius)' in widget_window
+notifications = (root / "components/notifications/Notifications.qml").read_text(encoding="utf-8")
+assert 'Settings.moduleBlurEnabled.notifications === true' in notifications and 'notificationList : layoutEditPreview' in notifications
+assert 'radius: Math.max(0, Config.backgroundBlurRadius)' in notifications
+assert 'Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent' in notifications
+assert 'Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0' in notifications
 assert 'Settings.moduleBlurEnabled.launcher === true ? launcherBox : null' in launcher
 assert 'radius: Math.max(0, Config.backgroundBlurRadius)' in launcher
 assert 'backgroundBlurRadius: config.backgroundBlurRadius' in persist
@@ -48,6 +59,7 @@ assert 'targetProperty: "settingsBorder"' in window
 assert 'border.color: Config.settingsBorder' in (root / "components/settings/SettingsWidget.qml").read_text(encoding="utf-8")
 assert 'playerBlurEnabledBox' not in player and 'playerBlurRadiusField' not in player, 'Player-specific blur UI must be removed'
 assert 'blur.settings = profile.moduleBlurEnabled' in resets, 'settings-window blur must restore with its settings tab'
+assert 'owner.defaultModuleFrames[moduleName]' in resets and 'owner.defaultModuleBackgrounds[moduleName]' in resets, 'module resets fall back to appearance defaults for older profiles'
 assert 'blurValues.settings = (owner.moduleBlurEnabled || {}).settings' in resets, 'resetting module list must not reset settings-window blur'
 print("Per-module blur controls, shared radius, Player migration, profile persistence and Settings Window blur: OK")
 PY
@@ -67,8 +79,8 @@ vm.createContext(context);
 vm.runInContext(source, context);
 function owner() {
   return {
-    moduleBlurEnabled: { time:false, calendar:false, player:false, launcher:false, settings:false },
-    moduleNames: ['time', 'calendar', 'player'], moduleFrames:{}, moduleBackgrounds:{}, moduleMonitors:{},
+    moduleBlurEnabled: { time:false, calendar:false, player:false, notifications:false, launcher:false, settings:false },
+    moduleNames: ['time', 'calendar', 'player', 'notifications'], moduleFrames:{}, moduleBackgrounds:{}, moduleMonitors:{},
     profiles:{}, customThemes:{}, activeProfile:'', activeTheme:'14 Theme', themeStateRevision:0,
     rebuildProfileList() {}, changed() {}
   };
@@ -76,7 +88,7 @@ function owner() {
 function apply(saved) {
   const o = owner();
   const config = { playerBlurEnabled:false };
-  context.apply(o, config, saved, o.moduleNames, {time:true,calendar:true,player:true}, {time:true,calendar:true,player:true}, [], {time:false,calendar:false,player:false,launcher:false,settings:false});
+  context.apply(o, config, saved, o.moduleNames, {time:true,calendar:true,player:true,notifications:true}, {time:true,calendar:true,player:true,notifications:true}, [], {time:false,calendar:false,player:false,notifications:false,launcher:false,settings:false});
   return {o, config};
 }
 let result = apply({moduleBlurEnabled:{time:true,player:true,launcher:true,settings:true}});
@@ -84,6 +96,9 @@ assert.strictEqual(result.o.moduleBlurEnabled.time, true);
 assert.strictEqual(result.o.moduleBlurEnabled.player, true);
 assert.strictEqual(result.o.moduleBlurEnabled.launcher, true);
 assert.strictEqual(result.o.moduleBlurEnabled.settings, true);
+assert.strictEqual(result.o.moduleFrames.notifications, true, 'notification frame default is loaded for older settings files');
+assert.strictEqual(result.o.moduleBackgrounds.notifications, true, 'notification background default is loaded for older settings files');
+assert.strictEqual(result.o.moduleBlurEnabled.notifications, false, 'notification blur defaults to disabled');
 assert.strictEqual(result.config.playerBlurEnabled, true);
 result = apply({playerBlurEnabled:true});
 assert.strictEqual(result.o.moduleBlurEnabled.player, true, 'legacy Player checkbox migrates into the per-module map');
@@ -92,4 +107,36 @@ assert.strictEqual(result.o.moduleBlurEnabled.settings, false);
 result = apply({moduleBlurEnabled:{player:false}, playerBlurEnabled:true});
 assert.strictEqual(result.o.moduleBlurEnabled.player, false, 'new map overrides the legacy Player flag');
 console.log('Per-module blur settings load, legacy Player migration, and new-map precedence: OK');
+JS
+node - "$ROOT/js/settings/SettingsResets.js" <<'JS'
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+const source = fs.readFileSync(process.argv[2], 'utf8');
+const context = {};
+vm.createContext(context);
+vm.runInContext(source + '\nthis.resetModule = resetModule;', context);
+const owner = {
+  activeProfile: 'legacy',
+  profiles: { legacy: { modules: {} } },
+  expandedProfileData(name) { return this.profiles[name]; },
+  defaultModuleFrames: { notifications: true },
+  defaultModuleBackgrounds: { notifications: true },
+  defaultModuleBlurEnabled: { notifications: false },
+  defaultGeometry: { notifications: [-999999, 16, 380, 0] },
+  moduleFrames: { notifications: false },
+  moduleBackgrounds: { notifications: false },
+  moduleBlurEnabled: { notifications: true },
+  moduleMonitors: {},
+  geometry: { notifications: [50, 70, 460, 250] },
+  save() {},
+  resetUnavailable() {}
+};
+const config = { notificationsCardWidth: 460 };
+context.resetModule(owner, config, 'notifications');
+assert.strictEqual(owner.moduleFrames.notifications, true, 'legacy profiles reset notification frame to the built-in default');
+assert.strictEqual(owner.moduleBackgrounds.notifications, true, 'legacy profiles reset notification background to the built-in default');
+assert.strictEqual(owner.moduleBlurEnabled.notifications, false, 'legacy profiles reset notification blur to the built-in default');
+assert.deepStrictEqual(Array.from(owner.geometry.notifications), [-999999, 16, 380, 0], 'module reset restores the notification geometry baseline');
+console.log('Notifications appearance reset with profiles predating the new switches: OK');
 JS

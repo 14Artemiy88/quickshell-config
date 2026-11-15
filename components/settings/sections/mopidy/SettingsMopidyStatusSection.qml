@@ -59,13 +59,17 @@ Column {
 
             Row { width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: mopidyStatusFontField
-                    width: 180; height: 30; text: Config.mopidyStatusFont; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (mopidyStatusFontField.activeFocus || mopidyStatusFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: { var v = text.trim(); if (v.length > 0) Config.mopidyStatusFont = v; text = Config.mopidyStatusFont; settings.save() }
-                    Connections { target: Config; function onMopidyStatusFontChanged() { mopidyStatusFontField.text = Config.mopidyStatusFont } }
+                SettingsFontField {
+                    width: 218
+                    height: 30
+                    compact: true
+                    fieldWidth: 180
+                    fieldFontSize: 11
+                    value: Config.mopidyStatusFont
+                    targetObject: Config
+                    targetProperty: "mopidyStatusFont"
+                    settingsObject: root.settings
+                    saveOnEdit: true
                 }
             }
 

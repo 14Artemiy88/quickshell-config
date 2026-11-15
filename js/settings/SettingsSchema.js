@@ -50,7 +50,9 @@ function normalizeCustomThemes(customThemes, fallbackPalette) {
             // Preserve their original accent/RAM identity instead of injecting
             // the built-in theme's colors into an otherwise custom palette.
             if (savedPalette[fallbackKey] === undefined) {
-                if (fallbackKey === "topAppsCpuBarColor" && savedPalette.accent !== undefined)
+                if (/^cpu[1-8]Track$/.test(fallbackKey) && savedPalette.metricTrack !== undefined)
+                    fallbackColor = normalizeSavedColor(savedPalette.metricTrack, fallbackColor)
+                else if (fallbackKey === "topAppsCpuBarColor" && savedPalette.accent !== undefined)
                     fallbackColor = normalizeSavedColor(savedPalette.accent, fallbackColor)
                 else if (fallbackKey === "topAppsRamBarColor" && savedPalette.ram !== undefined)
                     fallbackColor = normalizeSavedColor(savedPalette.ram, fallbackColor)
@@ -167,6 +169,13 @@ function normalizeProfile(profile, isSparse) {
     }
     delete p.mopidyShowMoveButtons
 
+    // Notification placement is now stored in geometry.notifications as absolute X/Y.
+    // Old corner/offset values are obsolete and intentionally do not survive profile normalization.
+    delete p.notificationsPosition
+    delete p.notificationsOffsetX
+    delete p.notificationsOffsetY
+    delete p.notificationsMargin
+
     if (!isSparse && p.mopidyAlbumBold === undefined) p.mopidyAlbumBold = true
     if (p.weatherToken !== undefined) p.weatherToken = String(p.weatherToken).trim()
     if (isSparse) delete p.weatherToken
@@ -174,6 +183,12 @@ function normalizeProfile(profile, isSparse) {
         p.timerFinishedBackgroundColor = normalizeSavedColor(p.timerFinishedBackgroundColor, "#4d000000")
     if (p.timerFinishedTitleColor !== undefined)
         p.timerFinishedTitleColor = normalizeSavedColor(p.timerFinishedTitleColor, "#ffffff")
+    if (p.timerRandomColorMin !== undefined)
+        p.timerRandomColorMin = normalizeSavedColor(p.timerRandomColorMin, "#000000")
+    if (p.timerRandomColorMax !== undefined)
+        p.timerRandomColorMax = normalizeSavedColor(p.timerRandomColorMax, "#ffffff")
+    if (p.timerRandomColorMode !== undefined && ["full", "light", "dark", "custom"].indexOf(String(p.timerRandomColorMode)) < 0)
+        p.timerRandomColorMode = "full"
 
     // QColor values in old JSON files are objects. Convert valid entries to
     // canonical ARGB strings; omit invalid entries so the captured defaults

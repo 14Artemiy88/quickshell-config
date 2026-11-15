@@ -48,16 +48,17 @@ Column {
                                 height: 34
                                 spacing: 8
                                 Text { width: 210; height: 30; text: "Шрифт настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                                SettingsTextField {
-                                    id: settingsFontField
-                                    width: 160; height: 30
-                                    text: Config.settingsFont
-                                    color: Config.text; selectionColor: Config.accent; selectedTextColor: Config.black
-                                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                                    activeFocusOnTab: true
-                                    background: Rectangle { color: Config.settingsBackground; border.color: (settingsFontField.activeFocus || settingsFontField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                                    onEditingFinished: { Config.settingsFont = text.trim() || Config.settingsFont; text = Config.settingsFont; settings.save() }
-                                    Connections { target: Config; function onSettingsFontChanged() { settingsFontField.text = Config.settingsFont } }
+                                SettingsFontField {
+                                    width: parent.width - 218
+                                    height: 30
+                                    compact: true
+                                    fieldWidth: 160
+                                    fieldFontSize: 11
+                                    value: Config.settingsFont
+                                    targetObject: Config
+                                    targetProperty: "settingsFont"
+                                    settingsObject: settings
+                                    saveOnEdit: true
                                 }
                             }
 

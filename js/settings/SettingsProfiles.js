@@ -307,7 +307,7 @@ function modulePathMatches(path, moduleName) {
         networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
         weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"],
         timer: ["timer"], volumes: ["volume"], player: ["player"],
-        mopidy: ["mopidy", "animationMopidy"], cava: ["cava"], launcher: ["launcher"]
+        mopidy: ["mopidy", "animationMopidy"], cava: ["cava"], launcher: ["launcher"], notifications: ["notifications"]
     }[String(moduleName)] || []
     if (String(moduleName) === "cpu" && root === "cpuGraphMode") return false
     return startsWithAny(root, prefixes)
@@ -328,6 +328,7 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "modules") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleMonitors", "geometry"].indexOf(root) >= 0)
             return true
+        if (root === "notificationsCardWidth") return true
         if (root === "moduleBlurEnabled") return path.length < 2 || child !== "settings"
         return false
     }
@@ -349,9 +350,11 @@ function profileSavePathMatches(owner, scope, argument, path) {
         timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"],
         cava: ["cava"], cpu: ["cpu", "cpuGraph", "topApps"],
         network: ["network", "systemMonitor"], volume: ["volume"],
-        calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"]
+        calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
+        notifications: ["notifications"]
     }
     var prefixes = prefixesByScope[scope]
+    if (scope === "notifications" && root === "notificationsCardWidth") return false
     if (prefixes) return startsWithAny(root, prefixes)
     return false
 }

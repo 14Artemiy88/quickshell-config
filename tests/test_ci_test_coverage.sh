@@ -23,7 +23,13 @@ if [[ "$count" != "$refs" ]]; then
     echo "Test coverage mismatch: $count test files but CHECK.sh references $refs unique test scripts" >&2
     exit 1
 fi
-printf 'CI test coverage: all %s shell tests are wired into CHECK.sh\n' "$count"
+
+duplicates="$(grep -oE 'tests/[A-Za-z0-9_.-]+\.sh' "$CHECK" | sort | uniq -d || true)"
+if [[ -n "$duplicates" ]]; then
+    printf 'Test scripts referenced more than once in CHECK.sh:\n%s\n' "$duplicates" >&2
+    exit 1
+fi
+printf 'CI test coverage: all %s shell tests are wired exactly once into CHECK.sh\n' "$count"
 
 # Calculator and pointer-hover regression coverage is part of CHECK.sh.
 grep -q "test_launcher_calculator_and_pointer_hover.sh" "$ROOT/CHECK.sh"

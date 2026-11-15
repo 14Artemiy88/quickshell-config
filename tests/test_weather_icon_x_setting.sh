@@ -15,7 +15,7 @@ resets = (root / 'js/settings/SettingsResets.js').read_text(encoding='utf-8')
 
 assert re.search(r'property int weatherIconX:\s*113\b', config), 'Config.qml must define a compatible default X position'
 assert re.search(r'weatherIconX:\s*113\b', defaults), 'settings defaults must include weatherIconX'
-assert re.search(r'\bx:\s*Config\.weatherIconX\b', weather), 'current weather image must use weatherIconX'
+assert 'Config.weatherIconX + root.blockOffset' in weather, 'center placement must use weatherIconX as its block origin'
 assert 'text: "X"' in section and 'targetProperty: "weatherIconX"' in section, 'settings must expose the X position editor'
 assert 'id: weatherIconXField' in section and 'value: Config.weatherIconX' in section, 'X field must read current config value'
 assert '["weatherIconX", 0, 500]' in apply, 'X position needs bounded settings validation'

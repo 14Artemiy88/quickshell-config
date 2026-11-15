@@ -12,6 +12,7 @@ Primitives.ModuleFrame {
     property var stats: ({ cpu: [], ram: 0 })
     property real ramValue: 0
     property var colors: [Config.cpu1, Config.cpu2, Config.cpu3, Config.cpu4, Config.cpu5, Config.cpu6, Config.cpu7, Config.cpu8]
+    property var trackColors: [Config.cpu1Track, Config.cpu2Track, Config.cpu3Track, Config.cpu4Track, Config.cpu5Track, Config.cpu6Track, Config.cpu7Track, Config.cpu8Track]
 
     Process {
         id: cpuProc
@@ -74,12 +75,7 @@ Primitives.ModuleFrame {
                     label: index === 8 ? " " : " "
                     value: index === 8 ? root.ramValue : Number(root.stats.cpu && root.stats.cpu.length > index ? root.stats.cpu[index] : 0)
                     fillColor: index === 8 ? Config.ram : root.colors[index % root.colors.length]
-                    trackColor: index === 8 ? Config.ramTrack : Qt.rgba(
-                        Qt.color(root.colors[index % root.colors.length]).r,
-                        Qt.color(root.colors[index % root.colors.length]).g,
-                        Qt.color(root.colors[index % root.colors.length]).b,
-                        0.3
-                    )
+                    trackColor: index === 8 ? Config.ramTrack : root.trackColors[index % root.trackColors.length]
                 }
             }
         }
@@ -104,12 +100,7 @@ Primitives.ModuleFrame {
                     label: index === 8 ? "" : ""
                     value: index === 8 ? root.ramValue : Number(root.stats.cpu && root.stats.cpu.length > index ? root.stats.cpu[index] : 0)
                     fillColor: index === 8 ? Config.ram : root.colors[index % root.colors.length]
-                    trackColor: index === 8 ? Config.ramTrack : Qt.rgba(
-                        Qt.color(root.colors[index % root.colors.length]).r,
-                        Qt.color(root.colors[index % root.colors.length]).g,
-                        Qt.color(root.colors[index % root.colors.length]).b,
-                        0.3
-                    )
+                    trackColor: index === 8 ? Config.ramTrack : root.trackColors[index % root.trackColors.length]
                 }
             }
         }

@@ -10,7 +10,7 @@ qml="$ROOT/components/TimerWidget.qml"
 grep -Fq ': Math.ceil(textMetrics.advanceWidth) + 2' "$qml" || \
   fail "default countdown width is not based on measured text width"
 grep -Fq 'id: textMetrics' "$qml" || fail "TextMetrics instance missing"
-grep -Fq 'font.family: Config.ledFont' "$qml" || fail "metrics do not use the countdown font"
+grep -Fq 'font.family: Config.timerElapsedFont' "$qml" || fail "metrics do not use the countdown font"
 grep -Fq 'font.pixelSize: timerDisplay.displaySize' "$qml" || fail "metrics do not follow responsive countdown font size"
 grep -Fq 'text: timerDisplay.displayText' "$qml" || fail "metrics do not measure the current countdown/sign text"
 grep -Fq 'spacing: Config.timerCommentGap' "$qml" || fail "user-configurable comment spacing was removed"

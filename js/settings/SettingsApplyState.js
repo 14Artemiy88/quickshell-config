@@ -103,6 +103,19 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
 
             owner.geometry = g
         }
+
+        // Notification width moved into the module layout controls. Keep the
+        // legacy scalar in sync even when loading settings without a geometry map.
+        var notificationGeometry = Object.assign({}, owner.geometry || {})
+        var notificationValues = (notificationGeometry.notifications || [-999999, 16, 380, 0]).slice()
+        notificationValues[2] = Math.max(280, Math.min(600,
+            Number(Config.notificationsCardWidth) || Number(notificationValues[2]) || 380))
+        var notificationHeight = Number(notificationValues[3])
+        notificationValues[3] = isFinite(notificationHeight) && notificationHeight > 0
+            ? Math.min(10000, Math.round(notificationHeight)) : 0
+        notificationGeometry.notifications = notificationValues
+        owner.geometry = notificationGeometry
+
         if (o.settingsGeometry && o.settingsGeometry.length === 4) {
             owner.settingsGeometry = o.settingsGeometry.map(Number)
         }

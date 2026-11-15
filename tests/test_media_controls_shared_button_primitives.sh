@@ -87,9 +87,10 @@ if 'volumePoll.running = false' in mute_block or 'root.mainBackendMuted = root.m
     raise SystemExit('Volume mute click must not restart polling immediately or fake backend-confirmed state')
 if 'mainMuteHasPending' not in volumes or 'mainMutePendingUntil' not in volumes or 'mainPendingMuted' not in volumes:
     raise SystemExit('Volume mute pending state is missing')
-# There should be exactly two MouseAreas in Volumes: the main and stream sliders.
-if volumes.count('MouseArea {') != 2:
-    raise SystemExit('Expected only the two specialized volume slider MouseAreas')
+# At least two specialized MouseAreas remain for main and per-stream sliders.
+# The independent right-click stream toggle is covered by its dedicated test.
+if volumes.count('MouseArea {') < 2:
+    raise SystemExit('Main and per-stream volume slider handlers must remain separate')
 if 'test_media_controls_shared_button_primitives.sh' not in Path(sys.argv[3]).read_text(encoding='utf-8'):
     raise SystemExit('Media button test is not wired into CHECK.sh')
 print('Player Next + Volume mute use shared button primitives; volume sliders retain specialized drag/wheel handling: OK')

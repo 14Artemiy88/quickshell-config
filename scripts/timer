@@ -11,12 +11,14 @@ source "$TIMER_SCRIPT_DIR/timer.d/daemon.sh"
 unset TIMER_SCRIPT_PATH TIMER_SCRIPT_DIR
 
 case "$1" in
-    add)           timer_add "$2" "$3";;
-    add_at)        timer_add_at "$2";;
+    add)           timer_add "$2" "$3" "$4" "$5" "$6";;
+    add_at)        timer_add_at "$2" "$3" "$4" "$5";;
     up)            timer_up "$2" "${3:-1}";;
     down)          timer_down "$2" "${3:-1}";;
+    set_duration)  timer_set_duration "$2" "$3";;
     delete)        timer_delete "$2";;
-    update_color)  update_color "$2";;
+    update_color)  update_color "$2" "$3" "$4" "$5";;
+    set_color)     set_color "$2" "$3";;
     set_comment)   set_comment "$2" "$3";;
     refresh)       refresh "$2";;
     refresh_add)   refresh_add "$2";;

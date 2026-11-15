@@ -7,11 +7,11 @@ function apply(Config, o) {
             ["weatherArrowYOffset", -40, 40], ["weatherWindArrowGap", -20, 40],
             ["weatherHourlyCount", 1, 12], ["weatherDailyCount", 1, 4],
             ["weatherIconX", 0, 500], ["weatherIconY", -100, 100],
-            ["weatherWindColumnX", 0, 500], ["weatherWindSpeedFontSize", 8, 64],
-            ["weatherWindUnitFontSize", 6, 48], ["weatherPressureY", 0, 100],
-            ["weatherDescriptionY", 0, 120], ["weatherDescriptionFontSize", 6, 48],
+            ["weatherWindColumnX", 0, 500], ["weatherWindColumnY", -100, 100], ["weatherWindSpeedFontSize", 8, 64],
+            ["weatherWindUnitFontSize", 6, 48], ["weatherPressureX", -100, 300], ["weatherPressureY", 0, 100],
+            ["weatherDescriptionX", -300, 300], ["weatherDescriptionY", 0, 120], ["weatherDescriptionWidth", 20, 400], ["weatherDescriptionFontSize", 6, 48],
             ["weatherTempFontSize", 12, 96], ["weatherComfortFontSize", 8, 72], ["weatherComfortOutlineWidth", 0, 4],
-            ["weatherTempColumnWidth", 40, 200], ["weatherTempX", 0, 200], ["weatherTempWidth", 20, 200],
+            ["weatherTempColumnWidth", 40, 200], ["weatherMiddleBlockWidth", 16, 180], ["weatherTempX", 0, 200], ["weatherTempWidth", 20, 200],
             ["weatherTempOffsetX", -100, 100], ["weatherTempOffsetY", -100, 100],
             ["weatherComfortY", -20, 100], ["weatherComfortOffsetX", -100, 100], ["weatherComfortOffsetY", -100, 100], ["weatherComfortHeight", 10, 100], ["weatherWindColumnWidth", 60, 300],
             ["weatherWindArrowWidth", 8, 50], ["weatherWindArrowHeight", 15, 80],
@@ -67,6 +67,19 @@ function apply(Config, o) {
             var comfortOutlineColor = String(o.weatherComfortOutlineColor).trim()
             if (/^#[0-9a-fA-F]{6}$/.test(comfortOutlineColor))
                 Config.weatherComfortOutlineColor = comfortOutlineColor
+        }
+        var weatherAlignments = ["left", "center", "right"]
+        var weatherAlignmentKeys = ["weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment"]
+        for (var wa = 0; wa < weatherAlignmentKeys.length; ++wa) {
+            var alignmentKey = weatherAlignmentKeys[wa]
+            if (o[alignmentKey] !== undefined) {
+                var alignmentValue = String(o[alignmentKey])
+                Config[alignmentKey] = weatherAlignments.indexOf(alignmentValue) >= 0 ? alignmentValue : "center"
+            }
+        }
+        if (o.weatherIconPlacement !== undefined) {
+            var iconPlacement = String(o.weatherIconPlacement)
+            Config.weatherIconPlacement = ["left", "center", "off"].indexOf(iconPlacement) >= 0 ? iconPlacement : "center"
         }
         if (o.weatherShowComfort !== undefined) Config.weatherShowComfort = !!o.weatherShowComfort
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-python3 - "$ROOT/components/settings/sections" "$ROOT/components/settings/primitives/SettingsNumberField.qml" "$ROOT/components/settings/primitives/SettingsColorField.qml" <<'PY'
+python3 - "$ROOT/components/settings/sections" "$ROOT/components/settings/primitives/SettingsNumberField.qml" "$ROOT/components/settings/primitives/SettingsColorField.qml" "$ROOT/components/settings/primitives/SettingsFontField.qml" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -9,6 +9,7 @@ import sys
 sections = Path(sys.argv[1])
 number_primitive = Path(sys.argv[2]).read_text()
 color_primitive = Path(sys.argv[3]).read_text()
+font_primitive = Path(sys.argv[4]).read_text()
 interactive = (
     "SettingsTextField", "SettingsInputField", "SettingsNumberField",
     "SettingsColorField", "SettingsComboBox", "SettingsCheckBox",
@@ -113,5 +114,7 @@ assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.height", number_primitive, r
     "SettingsNumberField label must match the control height"
 assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.fieldHeight", color_primitive, re.S), \
     "SettingsColorField label must match the control height"
+assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.fieldHeight", font_primitive, re.S), \
+    "SettingsFontField label must match the control height"
 print(f"settings input-label vertical alignment: OK ({checked} labels, shared 30px label boxes)")
 PY

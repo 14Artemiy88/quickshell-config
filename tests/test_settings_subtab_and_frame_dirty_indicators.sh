@@ -48,6 +48,8 @@ overrides({weatherHourlyCount: 8});
 assert.strictEqual(has('keys', spec(3,2)), true, 'hourly layout subtab sees its own keys');
 overrides({animationTimerOptionsDuration: 500});
 assert.strictEqual(has('keys', spec(1,5)), true, 'timer options subtab sees options-window animation changes');
+overrides({timerOptionsDurationIconSize: 28});
+assert.strictEqual(has('keys', spec(1,5)), true, 'timer options subtab sees action icon appearance changes');
 assert.strictEqual(has('keys', spec(1,4)), false, 'timer options animation does not light the timer Animations subtab');
 overrides({topAppsCpuBarColor:'#123456'});
 assert.strictEqual(has('keys', spec(5,2)), true, 'Top Apps subtab sees changed colors stored in nested color map');
@@ -70,6 +72,7 @@ for (const [file, heading] of [
   ['components/settings/sections/SettingsWeatherSection.qml','heading: "Температура комфорта"'],
   ['components/settings/sections/SettingsWeatherSection.qml','heading: "Стрелка ветра"'],
   ['components/settings/sections/SettingsTimersSection.qml','heading: "Анимация окна опций"'],
+  ['components/settings/sections/SettingsTimersSection.qml','heading: "Иконки окна опций"'],
   ['components/settings/sections/SettingsCalendarSection.qml','heading: "Показ"'],
   ['components/settings/sections/SettingsWindowSection.qml','heading: "Вкладки панели настроек"'],
 ]) {

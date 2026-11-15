@@ -28,7 +28,8 @@ assert 'heading: "Размер стрелки ветра"' not in weather, "Sepa
 assert 'text: "X"' in wind_groups[0] and 'text: "Y"' in wind_groups[0] and 'text: "Размер"' in wind_groups[0], "Wind-arrow controls should be ordered X, Y, size"
 assert wind_groups[0].index('text: "X"') < wind_groups[0].index('text: "Y"') < wind_groups[0].index('text: "Размер"'), "Wind-arrow column order must be X, Y, size"
 assert 'Глиф направления' not in wind_groups[0] and 'weatherWindArrowWidthField' not in wind_groups[0] and 'weatherWindArrowHeightField' not in wind_groups[0], "Duplicate glyph geometry controls should be removed"
-additional = weather.split('heading: "Дополнительные параметры"', 1)[1].split('SettingsGroup {', 1)[0]
-assert 'text: "Значение"' not in additional, "Remove redundant Value column caption"
+description = weather.split('heading: "Описание погоды"', 1)[1].split('SettingsGroup {', 1)[0]
+assert 'text: "Значение"' not in description, "Remove redundant Value column caption"
+assert 'targetProperty: "weatherDescriptionX"' in description and 'targetProperty: "weatherDescriptionY"' in description
 print("Settings profile buttons and weather wind-arrow layout: OK")
 PY

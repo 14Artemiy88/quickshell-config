@@ -22,7 +22,7 @@ Item {
     readonly property bool quickSaveProfileAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
     readonly property string currentOtherSaveScope: {
         if (root.currentOtherTab === 0) return root.currentOtherSubTab === 0 ? "general" : ""
-        return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher"][root.currentOtherTab] || ""
+        return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications"][root.currentOtherTab] || ""
     }
     readonly property bool quickSaveSectionAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
     readonly property bool currentOtherResetAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2)) && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
@@ -83,9 +83,10 @@ Item {
         { id: "volume", defaultLabel: "Громкость" },
         { id: "calendar", defaultLabel: "Календарь" },
         { id: "launcher", defaultLabel: "Лаунчер" },
+        { id: "notifications", defaultLabel: "Уведомления" },
         { id: "settingsWindow", defaultLabel: "Окно настроек" }
     ]
-    readonly property var otherTabSettingsIds: ["general", "timers", "player", "weather", "cava", "cpuRam", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher"]
+    readonly property var otherTabSettingsIds: ["general", "timers", "player", "weather", "cava", "cpuRam", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications"]
 
     function defaultSettingsTabLabel(id) {
         for (var i = 0; i < root.settingsTabDefinitions.length; ++i)
@@ -147,12 +148,12 @@ Item {
                 null
             ],
             1: [
-                { keys: ["timerWheelStep", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerPresetDefaults"] },
+                { keys: ["timerWheelStep", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerPresetDefaults", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax"] },
                 { prefixes: ["timerFinished"] },
                 { prefixes: ["timerIcon", "timerAlarmIcon"], keys: ["timerIconOrder"] },
                 { keys: ["timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth"] },
                 { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
-                { keys: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
+                { prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
             ],
             2: [
                 { keys: ["playerPriority", "playerFont", "playerBoldArtist", "playerUpdateInterval"] },
@@ -165,7 +166,7 @@ Item {
             ],
             3: [
                 { keys: ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds"] },
-                { prefixes: ["weatherIcon", "weatherWind", "weatherArrow"], keys: ["weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherDescriptionFontSize", "weatherShowComfort", "weatherPressureFontSize", "weatherPressureUnitFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureValueWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherTempWidth", "weatherTempX"] },
+                { prefixes: ["weatherIcon", "weatherWind", "weatherArrow", "weatherTemp", "weatherPressure", "weatherDescription"], keys: ["weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherShowComfort"] },
                 { prefixes: ["weatherHourly"], exclude: ["weatherHourlyIntervalMinutes"] },
                 { prefixes: ["weatherDaily"], exclude: ["weatherDailyIntervalMinutes"] }
             ],
@@ -180,14 +181,15 @@ Item {
             ],
             6: [
                 { keys: ["systemMonitorInterval"] },
-                { prefixes: ["network"] }
+                { prefixes: ["network"], keys: ["networksAlwaysVisible"] }
             ],
             7: [
                 { keys: ["volumeIcon", "volumeMutedIcon"] },
                 { keys: ["volumeUpdateInterval", "volumeShowStreams", "volumeMaxHeight", "volumeMinHeight"] },
                 { prefixes: ["volumeMainTrack", "volumeStreamTrack", "volumeTrack"], keys: ["volumeMainIconWidth", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeStreamLabelFontSize"], nested: { colors: ["volumeTrack", "volumeFill"] } },
                 { prefixes: ["volumeStream"] , keys: ["volumeShowStreams"] },
-                { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] }
+                { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] },
+                { keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] }
             ],
             8: [
                 { keys: ["calendarAlwaysVisible", "calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] },
@@ -210,6 +212,11 @@ Item {
                 { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
                 { keys: ["launcherTabIcons", "launcherTabLabels", "launcherTabOrder", "launcherTabVisible", "launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] },
                 { keys: ["launcherProjects"] }
+            ],
+            12: [
+                { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] },
+                { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
+                { keys: ["notificationsVerticalAnchor"] }
             ]
         }
         var row = specs[Number(tab)]
@@ -235,7 +242,7 @@ Item {
             timers: "timer", player: "player", mopidy: "mopidy",
             weather: "weather", cava: "cava", cpuRam: "cpu",
             network: "network", volume: "volume", calendar: "calendar",
-            launcher: "launcher", settingsWindow: "settingsWindow"
+            launcher: "launcher", notifications: "notifications", settingsWindow: "settingsWindow"
         }
         var scope = scopes[String(id)] || ""
         return scope !== "" && settings.hasResetChanges(scope)
@@ -288,11 +295,12 @@ Item {
         case 4: return ["Основные", "Полосы"]
         case 5: return ["Общие", "График CPU", "Top Apps"]
         case 6: return ["Обновления", "Сеть"]
-        case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность"]
+        case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"]
         case 8: return ["Разметка", "Цвета", "Метки заметок", "Анимации"]
         case 9: return ["Интерфейс", "Окно настроек", "Вкладки"]
         case 10: return ["Общее", "Время", "Иконки", "Пусто и недоступен"]
         case 11: return ["Общее", "Вкладки", "Проекты"]
+        case 12: return ["Поведение", "Внешний вид", "Размещение"]
         default: return []
         }
     }
@@ -500,7 +508,8 @@ Item {
                                         : root.currentOtherTab === 8 ? settings.hasResetChanges("calendar")
                                         : root.currentOtherTab === 9 ? settings.hasResetChanges("settingsWindow")
                                         : root.currentOtherTab === 10 ? settings.hasResetChanges("mopidy")
-                                        : root.currentOtherTab === 11 ? settings.hasResetChanges("launcher") : false
+                                        : root.currentOtherTab === 11 ? settings.hasResetChanges("launcher")
+                                        : root.currentOtherTab === 12 ? settings.hasResetChanges("notifications") : false
                                     tooltip: "Сбросить текущую вкладку"
                                     onClicked: {
                                         if (root.currentOtherTab === 0 && root.currentOtherSubTab === 0) settings.resetGeneralSettings()
@@ -515,6 +524,7 @@ Item {
                                         else if (root.currentOtherTab === 9) settings.resetSettingsWindow()
                                         else if (root.currentOtherTab === 10) settings.resetMopidySettings()
                                         else if (root.currentOtherTab === 11) settings.resetLauncherSettings()
+                                        else if (root.currentOtherTab === 12) settings.resetNotificationsSettings()
                                     }
                                 }
                             }
@@ -641,6 +651,11 @@ Item {
                             }
                             SettingsWindowSection {
                                 id: settingsWindowSectionSettingsSection
+                                host: root
+                                settings: root.settings
+                            }
+                            SettingsNotificationsSection {
+                                id: notificationsSectionSettingsSection
                                 host: root
                                 settings: root.settings
                             }

@@ -7,6 +7,7 @@ import "components/mopidy" as MopidyComponents
 import "components/settings"
 import "services"
 import "components/primitives" as Primitives
+import "components/notifications" as NotificationComponents
 
 ShellRoot {
     id: shell
@@ -20,6 +21,25 @@ ShellRoot {
     Component.onCompleted: storageCleanupProcess.running = true
     Clock { id: clock; active: Settings.loaded && (Settings.time || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
     SystemMonitor { id: monitor }
+    // Instantiate the D-Bus notification server only after settings have loaded
+    // and only while the Notifications module is enabled. Deactivating the Loader
+    // destroys NotificationServer and releases org.freedesktop.Notifications.
+    Loader {
+        id: notificationsModuleLoader
+        active: Settings.loaded && Settings.notifications
+        sourceComponent: Component { NotificationComponents.Notifications {} }
+        onLoaded: {
+            item.layoutEditor = moduleLayoutEditorWindow
+            item.layoutEditMode = shell.layoutEditMode
+        }
+    }
+    Connections {
+        target: shell
+        function onLayoutEditModeChanged() {
+            if (notificationsModuleLoader.item)
+                notificationsModuleLoader.item.layoutEditMode = shell.layoutEditMode
+        }
+    }
     Loader {
         id: weatherLoader
         active: Settings.loaded && (Settings.weatherNow || Settings.weatherHourly || Settings.weatherDaily)
@@ -31,6 +51,7 @@ ShellRoot {
     property bool layoutEditMode: false
     property bool settingsMoveMode: false
     property bool mopidyTopReveal: false
+    property bool networksVisible: false
     property string pendingLauncherMode: ""
 
     function showLauncherMode(modeName) {
@@ -81,6 +102,22 @@ ShellRoot {
         if (settingsMoveMode) {
             layoutEditMode = false
             settingsVisible = false
+        }
+    }
+
+    Connections {
+        target: Settings
+        function onNetworksChanged() {
+            if (!Settings.networks)
+                shell.networksVisible = false
+        }
+    }
+
+    Connections {
+        target: Config
+        function onNetworksAlwaysVisibleChanged() {
+            if (Config.networksAlwaysVisible)
+                shell.networksVisible = false
         }
     }
 
@@ -151,6 +188,20 @@ ShellRoot {
             if (status === Loader.Error)
                 console.warn("Launcher could not be loaded. Inspect the Quickshell log for QML errors.")
         }
+    }
+
+    IpcHandler {
+        target: "networks"
+
+        function toggle(): void {
+            if (Settings.networks && !Config.networksAlwaysVisible)
+                shell.networksVisible = !shell.networksVisible
+        }
+        function show(): void {
+            if (Settings.networks)
+                shell.networksVisible = true
+        }
+        function hide(): void { shell.networksVisible = false }
     }
 
     IpcHandler {
@@ -244,7 +295,14 @@ ShellRoot {
         offsetY: Settings.geometryForLayout("networkStat")[1]
         contentWidth: Settings.geometry.networkStat[2]
         contentHeight: Settings.geometry.networkStat[3]
-        NetworkStat { anchors.fill: parent; monitor: monitor }
+        NetworkStat {
+            anchors.fill: parent
+            monitor: monitor
+            onNetworksRequested: {
+                if (Settings.networks && !Config.networksAlwaysVisible)
+                    shell.networksVisible = !shell.networksVisible
+            }
+        }
 }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
@@ -309,89 +367,79 @@ ShellRoot {
         contentHeight: timerWidget.adaptiveHeight
         TimerWidget { id: timerWidget; anchors.fill: parent }
 
-        // Use a Wayland xdg-popup instead of a second layer-shell surface.
-        // Niri's window-open/window-close animations apply to windows, while
-        // PopupWindow is an xdg-popup attached to the existing timer surface.
-        // This prevents the compositor from animating the mini-window itself.
-        PopupWindow {
+        // Keep a transparent fullscreen layer-shell surface alive while the
+        // timer module is enabled. The options card itself is a small QML item
+        // on this stable surface, so the selected QML slide/fade animation is
+        // not replaced by a compositor transition when the card is dismissed.
+        // The input mask is empty while closed and covers the screen only while
+        // options are open. The card is stacked above the outside-click catcher.
+        PanelWindow {
             id: timerOptionsOverlay
-            // Keep the native popup surface alive while the timer module is enabled.
-            // Only its input mask and TimerOptions content change visibility. If the
-            // native surface is destroyed/recreated for every open, the compositor
-            // can add its own fade even when the selected QML animation is "none".
-            property bool surfaceActive: false
-            visible: surfaceActive
-            color: "transparent"
-            surfaceFormat.opaque: false
-            anchor.window: timerWindow
-            anchor.rect.x: Settings.geometry.timerOptions[0] - Settings.geometryForLayout("timer")[0]
-            anchor.rect.y: Settings.geometry.timerOptions[1] - Settings.geometryForLayout("timer")[1]
-            implicitWidth: Settings.geometry.timerOptions[2]
-            implicitHeight: Settings.geometry.timerOptions[3]
-            // Grab focus only while the options panel is open; the transparent,
-            // empty-masked popup remains alive but click-through while hidden.
-            grabFocus: shell.timerOptionsVisible && surfaceActive
-            mask: Region { item: popupInputRegion }
+            visible: Settings.timer
+            screen: timerWindow.screen
+            color: Config.transparent
+            focusable: timerOptionsPopup.commentMode || timerOptionsPopup.durationMode || timerOptionsPopup.colorMode
+            exclusionMode: ExclusionMode.Ignore
+            anchors.top: true
+            anchors.left: true
+            anchors.right: true
+            anchors.bottom: true
+            WlrLayershell.layer: WlrLayer.Overlay
+            mask: Region { item: timerOptionsInputRegion }
 
             Item {
-                id: popupInputRegion
+                id: timerOptionsInputRegion
                 width: shell.timerOptionsVisible ? parent.width : 0
                 height: shell.timerOptionsVisible ? parent.height : 0
             }
 
+            MouseArea {
+                anchors.fill: parent
+                enabled: shell.timerOptionsVisible && !timerOptionsPopup.closing
+                acceptedButtons: Qt.AllButtons
+                z: 0
+                onClicked: timerOptionsOverlay.closeForOptions()
+            }
+
+            function closeForOptions() {
+                if (timerOptionsPopup.closing || !shell.timerOptionsVisible) return
+                shell.timerOptionsVisible = false
+                timerOptionsPopup.commentMode = false
+                timerOptionsPopup.closeDurationEditor()
+                timerOptionsPopup.closeColorEditor()
+                timerOptionsPopup.startClose()
+            }
+
+            function hideAfterClose() {
+                shell.timerOptionsVisible = false
+                timerOptionsPopup.commentMode = false
+                timerOptionsPopup.closeDurationEditor()
+                timerOptionsPopup.closeColorEditor()
+                timerOptionsPopup.closing = false
+            }
+
             TimerOptions {
                 id: timerOptionsPopup
-                anchors.fill: parent
+                x: Settings.geometry.timerOptions[0]
+                y: Settings.geometry.timerOptions[1]
+                width: Math.max(110, Settings.geometry.timerOptions[2])
+                height: Settings.geometry.timerOptions[3]
+                z: 1
                 timers: timerWidget.timers
                 selectedFile: timerWidget.selectedFile
-                onCloseRequested: timerOptionsPopup.startClose()
+                onCloseRequested: timerOptionsOverlay.closeForOptions()
                 onCommentRequested: file => {
                     timerOptionsPopup.commentFile = file
                     timerOptionsPopup.commentText = timerWidget.commentForFile(file)
                     timerOptionsPopup.commentMode = true
+                    timerOptionsPopup.focusCommentInput()
                 }
                 onCloseFinished: {
                     timerWidget.selectedFile = ""
-                    shell.timerOptionsVisible = false
-                    timerOptionsPopup.closing = false
-                    // Keep the transparent native surface alive while the timer
-                    // module is enabled. Hiding it here causes compositor-level
-                    // fades that override animation style "none".
+                    timerOptionsOverlay.hideAfterClose()
                 }
             }
-
-            Component.onCompleted: {
-                surfaceActive = Settings.timer
-            }
-
-            onVisibleChanged: {
-                if (!visible) {
-                    if (Settings.timer) {
-                        // PopupWindow's focus grab can dismiss the native surface on
-                        // outside clicks. Restore the persistent surface even if the
-                        // content was already hidden, otherwise the next open would
-                        // accidentally toggle the native surface and reintroduce fade.
-                        var wasOptionsVisible = shell.timerOptionsVisible
-                        surfaceActive = false
-                        surfaceActive = true
-                        if (wasOptionsVisible && !timerOptionsPopup.closing)
-                            timerOptionsPopup.startClose()
-                    } else {
-                        // Disabling the timer is an immediate teardown, not a
-                        // user-driven popup transition.
-                        shell.timerOptionsVisible = false
-                        timerOptionsPopup.popupHasBeenShown = false
-                        timerOptionsPopup.closing = false
-                        timerWidget.selectedFile = ""
-                        surfaceActive = false
-                    }
-                }
-            }
-
-            // The popup surface remains alive. Closing is driven by the timer
-            // selection state instead of destroying the popup surface.
         }
-
 
         PanelWindow {
             id: timerFinishedPopup
@@ -540,13 +588,9 @@ ShellRoot {
             if (timerWidget.selectedFile !== "") {
                 shell.timerOptionsVisible = true
                 timerOptionsPopup.closing = false
-                timerOptionsOverlay.surfaceActive = true
                 timerOptionsPopup.syncVisualState()
             } else if (shell.timerOptionsVisible && !timerOptionsPopup.closing) {
-                // Keep the native popup surface alive until the explicit content
-                // transition finishes. Hiding it here would bypass slide-out and
-                // let the compositor replace the selected style with a fade.
-                timerOptionsPopup.startClose()
+                timerOptionsOverlay.closeForOptions()
             }
         }
     }
@@ -558,12 +602,9 @@ ShellRoot {
                 shell.timerOptionsVisible = false
                 timerOptionsPopup.popupHasBeenShown = false
                 timerOptionsPopup.closing = false
+                timerOptionsPopup.commentMode = false
                 timerWidget.selectedFile = ""
-                timerOptionsOverlay.surfaceActive = false
-            } else {
-                // Pre-create the transparent native surface before the first
-                // options panel opens, avoiding compositor appearance animations.
-                timerOptionsOverlay.surfaceActive = true
+                timerOptionsOverlay.hideAfterClose()
             }
         }
     }
@@ -584,7 +625,9 @@ ShellRoot {
         offsetY: Settings.geometryForLayout("calendar")[1]
         contentWidth: Settings.geometry.calendar[2]
         contentHeight: Settings.geometry.calendar[3]
-        bottomLayer: false
+        // Keep the calendar below normal application windows; layout editing
+        // temporarily promotes it through WidgetWindow.editWlrLayer.
+        bottomLayer: true
         // The calendar becomes keyboard-focusable while editing a date note.
         // Layer-shell windows default to non-focusable, so TextArea.forceActiveFocus()
         // alone cannot receive key events until this is enabled.
@@ -607,7 +650,7 @@ ShellRoot {
         offsetX: Settings.geometryForLayout("volumes")[0]
         offsetY: Settings.geometryForLayout("volumes")[1]
         contentWidth: Settings.geometry.volumes[2]
-        contentHeight: Math.min(Config.volumeMaxHeight, volumesWidget.adaptiveHeight)
+        contentHeight: Math.min(Config.volumeMaxHeight, volumesWidget.animatedAdaptiveHeight)
         Volumes { id: volumesWidget; anchors.fill: parent; monitor: monitor }
 }
     WidgetWindow {
@@ -724,12 +767,31 @@ ShellRoot {
         moduleName: "networks"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.networks
+        manageInputMask: true
+        inputMaskEnabled: Config.networksAlwaysVisible || shell.networksVisible || networksVisibility.running || shell.layoutEditMode
+        backgroundBlurVisible: Config.networksAlwaysVisible || shell.networksVisible || networksVisibility.running
+        backgroundBlurItem: networksVisibility.blurRegionItem
         offsetX: Settings.geometryForLayout("networks")[0]
         offsetY: Settings.geometryForLayout("networks")[1]
         contentWidth: Settings.geometry.networks[2]
-        contentHeight: Settings.geometry.networks[3]
-        Networks { anchors.fill: parent; monitor: monitor }
-}
+        contentHeight: networksContent.implicitHeight
+        // Keep the selector below normal application windows like other widgets.
+        // Layout editing still promotes it to the top layer temporarily.
+        bottomLayer: true
+        Primitives.AnimatedVisibility {
+            id: networksVisibility
+            anchors.fill: parent
+            shown: Config.networksAlwaysVisible || shell.networksVisible || shell.layoutEditMode
+            animationStyle: "fade"
+            duration: Config.animationDuration(250, "appearance")
+            Networks {
+                id: networksContent
+                anchors.fill: parent
+                monitor: monitor
+                maxContentHeight: Settings.geometry.networks[3]
+            }
+        }
+    }
 
     WidgetWindow {
         id: settingsWindow
