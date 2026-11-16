@@ -5,17 +5,35 @@ Item {
     id: root
     property bool shown: true
     property string animationStyle: "fade"
+    // Profiles control motion curves, not module-specific durations. Standard
+    // preserves the historical OutCubic behavior. Spatial also applies a
+    // restrained scale morph; Effects changes easing without geometry.
+    property string animationProfile: "standard"
     property int duration: Config.animationDuration(250, "appearance")
-    // Freeze style/duration for each in-flight transition. Settings can change
-    // while a window is moving; applying new animation types mid-flight would
-    // otherwise switch opacity/translation targets halfway through.
+    // Freeze all transition parameters for each in-flight transition. Settings
+    // changes must not alter the path halfway through an animation.
     property string activeAnimationStyle: "fade"
+    property string activeAnimationProfile: "standard"
+    // Spatial transitions add a restrained scale morph to the same normalized
+    // progress value. The value is frozen for each in-flight transition.
+    property real spatialScale: 0.97
+    property real activeSpatialScale: 0.97
     property int activeDuration: 250
+    // Reversing a transition only animates the remaining normalized distance.
+    // This keeps quick toggles responsive instead of replaying a full duration.
+    property int activeTransitionDuration: 250
+    // One normalized progress value drives position and opacity together:
+    // 0 = fully shown, 1 = fully hidden. This keeps multi-property transitions
+    // synchronized and lets the blur region follow the actual content geometry.
+    property real transitionProgress: 0
+    // Freeze slide distance at transition start. Resizing a panel while it is
+    // moving must not change its trajectory or cause a visible jump.
+    property real activeHiddenX: 0
+    property real activeHiddenY: 0
+    // Cache large, text-heavy panels as a texture while they move. This avoids
+    // repeatedly rasterizing every child at fractional slide coordinates.
+    property bool cacheContent: false
     readonly property bool running: showTransition.running || hideTransition.running
-    // Expose the actual animated item so a parent layer-shell window can tie
-    // its compositor blur region to the content instead of the stationary
-    // window rectangle. Using x/y (rather than a Translate transform) makes
-    // Region observe geometry changes during slide transitions.
     readonly property Item blurRegionItem: contentHost
 
     default property alias contentData: contentHost.data
@@ -30,10 +48,15 @@ Item {
             id: contentHost
             width: parent.width
             height: parent.height
-            x: 0
-            y: 0
+            x: root.transitionProgress * root.activeHiddenX
+            y: root.transitionProgress * root.activeHiddenY
+            opacity: root.usesOpacity() ? 1 - root.transitionProgress : 1
+            scale: root.activeAnimationProfile === "spatial" ? 1 - root.transitionProgress * (1 - root.activeSpatialScale) : 1
+            transformOrigin: Item.Center
+            layer.enabled: root.cacheContent
+            layer.smooth: root.cacheContent
             visible: true
-            enabled: root.shown
+            enabled: true
         }
     }
 
@@ -49,6 +72,11 @@ Item {
         return 0
     }
 
+    function captureTransitionGeometry() {
+        activeHiddenX = hiddenX()
+        activeHiddenY = hiddenY()
+    }
+
     function usesOpacity() {
         return root.activeAnimationStyle === "fade"
     }
@@ -62,9 +90,13 @@ Item {
     }
 
     function animationAllowed() {
-        // Each module's own style is authoritative: "none" means immediate
-        // visibility changes, with no fallback to fade or other transitions.
         return root.activeAnimationStyle !== "none" && root.activeDuration > 0
+    }
+
+    function transitionDurationFor(targetProgress) {
+        var remaining = Math.abs(Number(targetProgress) - Number(root.transitionProgress))
+        remaining = Math.max(0, Math.min(1, remaining))
+        return Math.max(1, Math.round(root.activeDuration * remaining))
     }
 
     function applyImmediate(visible) {
@@ -72,33 +104,40 @@ Item {
         hideTransition.stop()
         contentHost.visible = visible
         contentHost.enabled = visible
-        contentHost.x = visible ? 0 : hiddenX()
-        contentHost.y = visible ? 0 : hiddenY()
-        contentHost.opacity = (visible || !usesOpacity()) ? 1 : 0
+        transitionProgress = visible ? 0 : 1
     }
 
     function handleAnimationStyleChange() {
-        // Selecting "none" is an explicit request to stop all current motion too.
-        // Do not let an already-running fade/slide finish after the user disables it.
         if (root.animationStyle === "none") {
             activeAnimationStyle = "none"
-            // Zero is an explicit second guard: even if a visibility change
-            // races with the style binding, no transition can run.
+            captureTransitionGeometry()
             activeDuration = 0
             applyImmediate(root.shown)
             return
         }
-        // Keep other style changes stable during an in-flight transition.
         if (root.running) return
         activeAnimationStyle = root.animationStyle
+        captureTransitionGeometry()
         activeDuration = root.duration
         applyImmediate(root.shown)
     }
 
+    function normalizedSpatialScale() {
+        return Math.max(0.9, Math.min(1, Number(root.spatialScale) || 0.97))
+    }
+
+    function handleAnimationProfileChange() {
+        if (root.running) return
+        activeAnimationProfile = root.animationProfile
+        activeSpatialScale = root.normalizedSpatialScale()
+    }
+
+    function handleSpatialScaleChange() {
+        if (root.running) return
+        activeSpatialScale = root.normalizedSpatialScale()
+    }
+
     function handleDurationChange() {
-        // Positive duration changes apply to the next transition. If animation
-        // was disabled (or set to zero) while moving, settle immediately so the
-        // window does not keep animating against the user's new preference.
         if (root.running) {
             if (root.duration <= 0)
                 applyImmediate(root.shown)
@@ -108,10 +147,11 @@ Item {
     }
 
     function startTransition() {
-        // Handle `none` before capturing the current transition state. This
-        // removes any ordering dependency between Config changes and `shown`.
         if (root.animationStyle === "none") {
             activeAnimationStyle = "none"
+            activeAnimationProfile = root.animationProfile
+            captureTransitionGeometry()
+            activeSpatialScale = root.normalizedSpatialScale()
             activeDuration = 0
             applyImmediate(root.shown)
             return
@@ -121,14 +161,15 @@ Item {
         var wasVisible = contentHost.visible
         if (!wasRunning) {
             activeAnimationStyle = root.animationStyle
+            activeAnimationProfile = root.animationProfile
+            activeSpatialScale = root.normalizedSpatialScale()
+            captureTransitionGeometry()
             activeDuration = root.duration
         }
         showTransition.stop()
         hideTransition.stop()
 
-        // Style or duration settings can change while the component is fully
-        // hidden. Do not resurrect its content just to animate another exit.
-        // This also refreshes the hidden endpoint after size/direction changes.
+        // A fully hidden item must not be resurrected for another exit.
         if (!root.shown && !wasVisible) {
             applyImmediate(false)
             return
@@ -142,101 +183,61 @@ Item {
         if (root.shown) {
             contentHost.visible = true
             contentHost.enabled = true
-            if (!wasVisible) {
-                contentHost.x = hiddenX()
-                contentHost.y = hiddenY()
-                contentHost.opacity = usesOpacity() ? 0 : 1
-            }
+            if (!wasVisible)
+                transitionProgress = 1
+            activeTransitionDuration = transitionDurationFor(0)
             showTransition.start()
         } else {
             contentHost.visible = true
             contentHost.enabled = false
+            activeTransitionDuration = transitionDurationFor(1)
             hideTransition.start()
         }
     }
 
-    ParallelAnimation {
+    NumberAnimation {
         id: showTransition
-        NumberAnimation {
-            target: contentHost
-            property: "opacity"
-            to: 1
-            duration: root.usesOpacity() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
-        NumberAnimation {
-            target: contentHost
-            property: "x"
-            to: 0
-            duration: root.usesHorizontalSlide() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
-        NumberAnimation {
-            target: contentHost
-            property: "y"
-            to: 0
-            duration: root.usesVerticalSlide() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
+        target: root
+        property: "transitionProgress"
+        to: 0
+        duration: root.activeTransitionDuration
+        easing.type: Config.animationEasingType(root.activeAnimationProfile, "enter")
         onFinished: {
             if (root.shown) {
                 contentHost.visible = true
                 contentHost.enabled = true
-                contentHost.x = 0
-                contentHost.y = 0
-                if (root.usesOpacity()) contentHost.opacity = 1
+                root.transitionProgress = 0
             }
         }
     }
 
-    ParallelAnimation {
+    NumberAnimation {
         id: hideTransition
-        // Slide transitions must keep the content opaque. A zero-duration
-        // opacity animation to 0 used to make slide-out disappear instantly,
-        // even though the host's position was meant to animate. Fade alone
-        // owns opacity; slides animate the same content x/y geometry on entry
-        // and exit so window blur/input regions can track the moving content.
-        NumberAnimation {
-            target: contentHost
-            property: "opacity"
-            to: root.usesOpacity() ? 0 : 1
-            duration: root.usesOpacity() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
-        NumberAnimation {
-            target: contentHost
-            property: "x"
-            to: root.hiddenX()
-            duration: root.usesHorizontalSlide() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
-        NumberAnimation {
-            target: contentHost
-            property: "y"
-            to: root.hiddenY()
-            duration: root.usesVerticalSlide() ? root.activeDuration : 0
-            easing.type: Config.easingType()
-        }
+        target: root
+        property: "transitionProgress"
+        to: 1
+        duration: root.activeTransitionDuration
+        easing.type: Config.animationEasingType(root.activeAnimationProfile, "exit")
         onFinished: {
             if (!root.shown) {
                 contentHost.visible = false
                 contentHost.enabled = false
-                // Keep the content item at the hidden endpoint so the next
-                // show starts from the same off-screen position. The actual
-                // x/y geometry also keeps the compositor blur region in sync.
-                contentHost.x = root.hiddenX()
-                contentHost.y = root.hiddenY()
-                contentHost.opacity = root.usesOpacity() ? 0 : 1
+                root.transitionProgress = 1
             }
         }
     }
 
     onShownChanged: startTransition()
     onAnimationStyleChanged: handleAnimationStyleChange()
+    onAnimationProfileChanged: handleAnimationProfileChange()
+    onSpatialScaleChanged: handleSpatialScaleChange()
     onDurationChanged: handleDurationChange()
     onWidthChanged: {
         if (!root.shown && !root.running) {
             activeAnimationStyle = root.animationStyle
+            activeAnimationProfile = root.animationProfile
+            activeSpatialScale = root.normalizedSpatialScale()
+            captureTransitionGeometry()
             activeDuration = root.duration
             applyImmediate(false)
         }
@@ -244,12 +245,18 @@ Item {
     onHeightChanged: {
         if (!root.shown && !root.running) {
             activeAnimationStyle = root.animationStyle
+            activeAnimationProfile = root.animationProfile
+            activeSpatialScale = root.normalizedSpatialScale()
+            captureTransitionGeometry()
             activeDuration = root.duration
             applyImmediate(false)
         }
     }
     Component.onCompleted: {
         activeAnimationStyle = root.animationStyle
+        activeAnimationProfile = root.animationProfile
+        activeSpatialScale = root.normalizedSpatialScale()
+        captureTransitionGeometry()
         activeDuration = root.duration
         applyImmediate(root.shown)
     }

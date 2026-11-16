@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Flickable {
     id: root
@@ -97,50 +98,23 @@ Flickable {
                         onToggled: root.themesExpanded = checked
                     }
 
-                    SettingsComboBox {
-                        id: themeCombo
-                        width: parent.width
-                        visible: !root.themesExpanded && (!settings.currentThemeModified || !root.editingColors)
-                        height: 30
-                        model: settings.themeNames
-                        currentIndex: Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        onItemChosen: function(index) {
-                            var name = settings.themeNames[index]
-                            if (name && name !== settings.activeTheme)
-                                settings.applyTheme(name)
-                        }
-                        background: Rectangle {
-                            color: Config.settingsBackground
-                            border.color: (themeCombo.activeFocus || themeCombo.pointerHovered) ? Config.accent : Config.baseColor
-                            border.width: 1
-                            radius: Config.frameRadius
-                        }
-                        contentItem: Text {
-                            leftPadding: 10
-                            rightPadding: 30
-                            text: themeCombo.currentText
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                        }
-                        indicator: Text {
-                            x: themeCombo.width - width - 10
-                            y: (themeCombo.height - height) / 2
-                            text: "▼"
-                            color: Config.textMuted
-                            font.pixelSize: Config.settingsUiSize(9)
-                        }
-                    }
 
-                    Column {
+
+                    MorphGeometry {
                         id: expandedThemeList
-                        width: parent.width
-                        spacing: 5
-                        visible: root.themesExpanded
+                        clip: true
+                        fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                        toGeometry: Qt.rect(0, 0, parent.width, expandedThemeContent.implicitHeight)
+                        fromRadius: 0
+                        toRadius: Config.frameRadius
+                        progress: root.themesExpanded ? 1 : 0
+                        animationDuration: Config.animationDuration(180, "appearance")
+                        animationEasing: Config.animationEasingType("standard", root.themesExpanded ? "enter" : "exit")
+
+                        Column {
+                            id: expandedThemeContent
+                            width: parent.width
+                            spacing: 5
 
                         Repeater {
                             model: settings.themeNames
@@ -202,44 +176,100 @@ Flickable {
                                 }
                             }
                         }
+                        }
                     }
 
-                    SettingsTextField {
-                        id: themeNameField
-                        visible: root.editingColors && settings.currentThemeModified
+                    // Keep the theme selector and modified-theme input in one stable slot.
+                    // Switching between them is intentionally immediate: animating this
+                    // replacement while the palette expands makes the whole column jump.
+                    Item {
+                        id: themeSelectorSlot
                         width: parent.width
-                        height: 32
-                        text: settings.activeTheme + " (Changed)"
-                        placeholderText: "Название темы"
-                        color: Config.text
-                        selectionColor: Config.accent
-                        selectedTextColor: Config.black
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        activeFocusOnTab: true
-                        background: Rectangle {
-                            color: Config.settingsBackground
-                            border.color: (themeNameField.activeFocus || themeNameField.pointerHovered) ? Config.accent : Config.tempWarm
-                            border.width: 1
-                            radius: Config.frameRadius
+                        readonly property bool showThemeCombo: !root.themesExpanded
+                            && expandedThemeList.normalizedProgress <= 0.001
+                            && (!settings.currentThemeModified || !root.editingColors)
+                        readonly property bool showModifiedThemeName: root.editingColors && settings.currentThemeModified
+                        height: showThemeCombo || showModifiedThemeName ? 30 : 0
+
+                        SettingsComboBox {
+                            id: themeCombo
+                            width: parent.width
+                            height: 30
+                            visible: themeSelectorSlot.showThemeCombo
+                            model: settings.themeNames
+                            currentIndex: Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            onItemChosen: function(index) {
+                                var name = settings.themeNames[index]
+                                if (name && name !== settings.activeTheme)
+                                    settings.applyTheme(name)
+                            }
+                            background: Rectangle {
+                                color: Config.settingsBackground
+                                border.color: (themeCombo.activeFocus || themeCombo.pointerHovered) ? Config.accent : Config.baseColor
+                                border.width: 1
+                                radius: Config.frameRadius
+                            }
+                            contentItem: Text {
+                                leftPadding: 10
+                                rightPadding: 30
+                                text: themeCombo.currentText
+                                color: Config.text
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(11)
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                            }
+                            indicator: Text {
+                                x: themeCombo.width - width - 10
+                                y: (themeCombo.height - height) / 2
+                                text: "▼"
+                                color: Config.textMuted
+                                font.pixelSize: Config.settingsUiSize(9)
+                            }
                         }
-                        function saveThemeFromField() {
-                            var name = text.trim()
-                            if (name.endsWith(" (Changed)"))
-                                name = name.slice(0, -10).trim()
-                            if (settings.saveCurrentTheme(name))
-                                text = settings.activeTheme
+
+                        SettingsTextField {
+                            id: themeNameField
+                            width: parent.width
+                            height: 30
+                            visible: themeSelectorSlot.showModifiedThemeName
+                            text: settings.activeTheme + " (Changed)"
+                            placeholderText: "Название темы"
+                            color: Config.text
+                            selectionColor: Config.accent
+                            selectedTextColor: Config.black
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            activeFocusOnTab: true
+                            background: Rectangle {
+                                color: Config.settingsBackground
+                                border.color: (themeNameField.activeFocus || themeNameField.pointerHovered) ? Config.accent : Config.tempWarm
+                                border.width: 1
+                                radius: Config.frameRadius
+                            }
+                            function saveThemeFromField() {
+                                var name = text.trim()
+                                if (name.endsWith(" (Changed)"))
+                                    name = name.slice(0, -10).trim()
+                                if (settings.saveCurrentTheme(name))
+                                    text = settings.activeTheme
+                            }
+                            Keys.onReturnPressed: saveThemeFromField()
+                            Keys.onEnterPressed: saveThemeFromField()
                         }
-                        Keys.onReturnPressed: saveThemeFromField()
-                        Keys.onEnterPressed: saveThemeFromField()
                     }
+
+
+
 
                     Row {
                         id: activeThemePreviewRow
                         width: parent.width
                         height: 24
                         spacing: 5
-                        visible: !root.themesExpanded
+                        visible: !root.themesExpanded && expandedThemeList.normalizedProgress <= 0.001
 
                         Repeater {
                             model: settings.themePreview(settings.activeTheme)
@@ -274,50 +304,61 @@ Flickable {
                         }
                     }
 
-                    Row {
-                        visible: root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified
+                    MorphGeometry {
+                        id: customThemeRenameMorph
                         width: parent.width
-                        height: 30
-                        spacing: 6
+                        clip: true
+                        visible: (root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified) || normalizedProgress > 0.001
+                        fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                        toGeometry: Qt.rect(0, 0, parent.width, 30)
+                        progress: root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? 1 : 0
+                        animationDuration: Config.animationDuration(180, "appearance")
+                        animationEasing: Config.animationEasingType("standard", root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? "enter" : "exit")
 
-                        SettingsTextField {
-                            id: themeRenameField
-                            width: parent.width - 38
+                        Row {
+                            width: parent.width
                             height: 30
-                            text: settings.activeTheme
-                            color: Config.text
-                            selectionColor: Config.accent
-                            selectedTextColor: Config.black
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            activeFocusOnTab: true
-                            background: Rectangle {
-                                color: Config.settingsBackground
-                                border.color: (themeRenameField.activeFocus || themeRenameField.pointerHovered) ? Config.accent : Config.baseColor
-                                border.width: 1
-                                radius: Config.frameRadius
-                            }
-                            function renameCurrentTheme() {
-                                var name = themeRenameField.text.trim()
-                                settings.renameCustomTheme(settings.activeTheme, name)
-                                themeRenameField.text = settings.activeTheme
-                            }
-                            Keys.onReturnPressed: renameCurrentTheme()
-                            Keys.onEnterPressed: renameCurrentTheme()
-                        }
+                            spacing: 6
 
-                        SettingsResetButton {
-                            id: themeDeleteButton
-                            visible: actionAvailable && settings.customThemes && settings.customThemes[settings.activeTheme] !== undefined
-                            width: 30
-                            height: 30
-                            label: "×"
-                            tooltip: "Удалить пользовательскую тему"
-                            emphasized: true
-                            emphasizedHoverOnly: true
-                            emphasizedColor: "#ff9999"
-                            emphasizedHoverColor: "#ff6666"
-                            onClicked: settings.deleteCustomTheme(settings.activeTheme)
+                            SettingsTextField {
+                                id: themeRenameField
+                                width: parent.width - 38
+                                height: 30
+                                text: settings.activeTheme
+                                color: Config.text
+                                selectionColor: Config.accent
+                                selectedTextColor: Config.black
+                                font.family: Config.settingsFont
+                                font.pixelSize: Config.settingsUiSize(11)
+                                activeFocusOnTab: true
+                                background: Rectangle {
+                                    color: Config.settingsBackground
+                                    border.color: (themeRenameField.activeFocus || themeRenameField.pointerHovered) ? Config.accent : Config.baseColor
+                                    border.width: 1
+                                    radius: Config.frameRadius
+                                }
+                                function renameCurrentTheme() {
+                                    var name = themeRenameField.text.trim()
+                                    settings.renameCustomTheme(settings.activeTheme, name)
+                                    themeRenameField.text = settings.activeTheme
+                                }
+                                Keys.onReturnPressed: renameCurrentTheme()
+                                Keys.onEnterPressed: renameCurrentTheme()
+                            }
+
+                            SettingsResetButton {
+                                id: themeDeleteButton
+                                visible: actionAvailable && settings.customThemes && settings.customThemes[settings.activeTheme] !== undefined
+                                width: 30
+                                height: 30
+                                label: "×"
+                                tooltip: "Удалить пользовательскую тему"
+                                emphasized: true
+                                emphasizedHoverOnly: true
+                                emphasizedColor: "#ff9999"
+                                emphasizedHoverColor: "#ff6666"
+                                onClicked: settings.deleteCustomTheme(settings.activeTheme)
+                                }
                         }
                     }
 
@@ -331,137 +372,148 @@ Flickable {
         padding: 8
         contentSpacing: 6
 
-                Column {
+                MorphGeometry {
+                    id: customThemeColorsMorph
                     width: parent.width
-                    spacing: 8
+                    clip: true
+                    visible: root.editingColors || normalizedProgress > 0.001
+                    fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                    toGeometry: Qt.rect(0, 0, parent.width, customThemeColorsContent.implicitHeight)
+                    progress: root.editingColors ? 1 : 0
+                    animationDuration: Config.animationDuration(180, "appearance")
+                    animationEasing: Config.animationEasingType("standard", root.editingColors ? "enter" : "exit")
 
-                    property var groups: [
-                        { title: "Основные", colors: [
-                            "baseColor", "accent", "background", "text", "textMuted",
-                            "textDim", "textDisabled", "calendarBackground"
-                        ]},
-                        { title: "Настройки", colors: [
-                            "settingsBorder", "settingsSubheading"
-                        ]},
-                        { title: "Сети", colors: [
-                            "activeNetworkBackground", "networkUpload", "networkDownload"
-                        ]},
-                        { title: "Громкость", colors: [
-                            "volumeTrack", "volumeFill"
-                        ]},
-                        { title: "Полосы CPU и RAM", colors: [
-                            "cpu1", "cpu1Track", "cpu2", "cpu2Track",
-                            "cpu3", "cpu3Track", "cpu4", "cpu4Track",
-                            "cpu5", "cpu5Track", "cpu6", "cpu6Track",
-                            "cpu7", "cpu7Track", "cpu8", "cpu8Track",
-                            "ram", "ramTrack"
-                        ]},
-                        { title: "Плеер", colors: [
-                            "playerOverlay", "playerProgressTrack", "playerProgressFill"
-                        ]},
-                        { title: "Погоды", colors: [
-                            "currentWeather", "tempHot", "tempWarm", "tempMild", "tempCool", "tempZero",
-                            "tempCold", "tempVeryCold", "tempFreezing"
-                        ]}
-                    ]
+                    Column {
+                        id: customThemeColorsContent
+                        width: parent.width
+                        spacing: 8
 
-                    Repeater {
-                        model: parent.groups
+                        property var groups: [
+                            { title: "Основные", colors: [
+                                "baseColor", "accent", "background", "text", "textMuted",
+                                "textDim", "textDisabled", "calendarBackground"
+                            ]},
+                            { title: "Настройки", colors: [
+                                "settingsBorder", "settingsSubheading"
+                            ]},
+                            { title: "Сети", colors: [
+                                "activeNetworkBackground", "networkUpload", "networkDownload"
+                            ]},
+                            { title: "Громкость", colors: [
+                                "volumeTrack", "volumeFill"
+                            ]},
+                            { title: "Полосы CPU и RAM", colors: [
+                                "cpu1", "cpu1Track", "cpu2", "cpu2Track",
+                                "cpu3", "cpu3Track", "cpu4", "cpu4Track",
+                                "cpu5", "cpu5Track", "cpu6", "cpu6Track",
+                                "cpu7", "cpu7Track", "cpu8", "cpu8Track",
+                                "ram", "ramTrack"
+                            ]},
+                            { title: "Плеер", colors: [
+                                "playerOverlay", "playerProgressTrack", "playerProgressFill"
+                            ]},
+                            { title: "Погоды", colors: [
+                                "currentWeather", "tempHot", "tempWarm", "tempMild", "tempCool", "tempZero",
+                                "tempCold", "tempVeryCold", "tempFreezing"
+                            ]}
+                        ]
 
-                        delegate: SettingsGroup {
-                            visible: root.editingColors
-                            width: parent.width
-                            height: visible ? implicitHeight : 0
-                            contentSpacing: 5
-                            showFrame: false
+                        Repeater {
+                            model: parent.groups
 
-                            Row {
+                            delegate: SettingsGroup {
                                 width: parent.width
-                                height: 30
-                                Text {
-                                    width: parent.width - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors) ? 76 : 38)
-                                    text: modelData.title
-                                    color: Config.accent
-                                    font.family: Config.settingsFont
-                                    font.pixelSize: Config.settingsUiSize(14)
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                SettingsButton {
-                                    width: 30
-                                    height: 30
-                                    visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors)
-                                    enabled: visible
-                                    text: ""
-                                    iconText: "\uf0c7"
-                                    fontSize: 11
-                                    tooltip: "Сохранить цвета: " + modelData.title
-                                    backgroundColor: Config.settingsBackground
-                                    onClicked: settings.saveProfileScope(settings.activeProfile, "colors", modelData.colors)
-                                }
-                                SettingsResetButton {
-                                    width: 30
-                                    height: 30
-                                    enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                    actionAvailable: settings.hasResetChanges("colors", modelData.colors)
-                                    tooltip: "Сбросить цвета: " + modelData.title
-                                    onClicked: settings.resetColors(modelData.colors)
-                                }
-                            }
+                                contentSpacing: 5
+                                showFrame: false
 
-                            Text {
-                                visible: modelData.title === "Громкость"
-                                text: "Цвета полос громкости применяются ко всем слайдерам этого блока"
-                                color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(9)
-                                elide: Text.ElideRight
-                            }
-
-                            Repeater {
-                                model: modelData.colors
-
-                                delegate: Row {
+                                Row {
                                     width: parent.width
                                     height: 30
-                                    spacing: 8
-                                    property string colorName: modelData
-                                    property var colorLabels: ({
-                                        baseColor: "Основной цвет рамок", accent: "Акцентный цвет",
-                                        currentWeather: "Цвет текущей погоды", background: "Полупрозрачный фон",
-                                        text: "Основной текст", textMuted: "Приглушённый текст", textDim: "Вторичный текст",
-                                        textDisabled: "Неактивный текст", calendarBackground: "Фон календаря",
-                                        settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
-                                        volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
-                                        playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
-                                        playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",
-                                        cpu1: "CPU 1: заполнение", cpu1Track: "CPU 1: неактивный фон",
-                                        cpu2: "CPU 2: заполнение", cpu2Track: "CPU 2: неактивный фон",
-                                        cpu3: "CPU 3: заполнение", cpu3Track: "CPU 3: неактивный фон",
-                                        cpu4: "CPU 4: заполнение", cpu4Track: "CPU 4: неактивный фон",
-                                        cpu5: "CPU 5: заполнение", cpu5Track: "CPU 5: неактивный фон",
-                                        cpu6: "CPU 6: заполнение", cpu6Track: "CPU 6: неактивный фон",
-                                        cpu7: "CPU 7: заполнение", cpu7Track: "CPU 7: неактивный фон",
-                                        cpu8: "CPU 8: заполнение", cpu8Track: "CPU 8: неактивный фон",
-                                        ram: "RAM: заполнение", ramTrack: "RAM: неактивный фон",
-                                        networkUpload: "Сеть: загрузка",
-                                        networkDownload: "Сеть: скачивание",
-                                        tempHot: "Погода: очень тепло", tempWarm: "Погода: тепло",
-                                        tempMild: "Погода: умеренно", tempCool: "Погода: прохладно", tempZero: "Погода: около 0°C",
-                                        tempCold: "Погода: холодно", tempVeryCold: "Погода: очень холодно", tempFreezing: "Погода: мороз"
-                                    })
+                                    Text {
+                                        width: parent.width - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors) ? 76 : 38)
+                                        text: modelData.title
+                                        color: Config.accent
+                                        font.family: Config.settingsFont
+                                        font.pixelSize: Config.settingsUiSize(14)
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                    SettingsButton {
+                                        width: 30
+                                        height: 30
+                                        visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors)
+                                        enabled: visible
+                                        text: ""
+                                        iconText: "\uf0c7"
+                                        fontSize: 11
+                                        tooltip: "Сохранить цвета: " + modelData.title
+                                        backgroundColor: Config.settingsBackground
+                                        onClicked: settings.saveProfileScope(settings.activeProfile, "colors", modelData.colors)
+                                    }
+                                    SettingsResetButton {
+                                        width: 30
+                                        height: 30
+                                        enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
+                                        actionAvailable: settings.hasResetChanges("colors", modelData.colors)
+                                        tooltip: "Сбросить цвета: " + modelData.title
+                                        onClicked: settings.resetColors(modelData.colors)
+                                    }
+                                }
 
-                                    SettingsColorField {
+                                Text {
+                                    visible: modelData.title === "Громкость"
+                                    text: "Цвета полос громкости применяются ко всем слайдерам этого блока"
+                                    color: Config.textMuted
+                                    font.family: Config.settingsFont
+                                    font.pixelSize: Config.settingsUiSize(9)
+                                    elide: Text.ElideRight
+                                }
+
+                                Repeater {
+                                    model: modelData.colors
+
+                                    delegate: Row {
                                         width: parent.width
-                                        label: colorLabels[colorName] || colorName
-                                        value: String(Config[colorName])
-                                        targetObject: Config
-                                        targetProperty: colorName
-                                        settingsObject: settings
-                                        saveOnEdit: true
-                                        allowAlpha: true
-                                        allowTransparent: true
-                                        fieldWidth: 120
-                                        compact: false
+                                        height: 30
+                                        spacing: 8
+                                        property string colorName: modelData
+                                        property var colorLabels: ({
+                                            baseColor: "Основной цвет рамок", accent: "Акцентный цвет",
+                                            currentWeather: "Цвет текущей погоды", background: "Полупрозрачный фон",
+                                            text: "Основной текст", textMuted: "Приглушённый текст", textDim: "Вторичный текст",
+                                            textDisabled: "Неактивный текст", calendarBackground: "Фон календаря",
+                                            settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
+                                            volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
+                                            playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
+                                            playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",
+                                            cpu1: "CPU 1: заполнение", cpu1Track: "CPU 1: неактивный фон",
+                                            cpu2: "CPU 2: заполнение", cpu2Track: "CPU 2: неактивный фон",
+                                            cpu3: "CPU 3: заполнение", cpu3Track: "CPU 3: неактивный фон",
+                                            cpu4: "CPU 4: заполнение", cpu4Track: "CPU 4: неактивный фон",
+                                            cpu5: "CPU 5: заполнение", cpu5Track: "CPU 5: неактивный фон",
+                                            cpu6: "CPU 6: заполнение", cpu6Track: "CPU 6: неактивный фон",
+                                            cpu7: "CPU 7: заполнение", cpu7Track: "CPU 7: неактивный фон",
+                                            cpu8: "CPU 8: заполнение", cpu8Track: "CPU 8: неактивный фон",
+                                            ram: "RAM: заполнение", ramTrack: "RAM: неактивный фон",
+                                            networkUpload: "Сеть: загрузка",
+                                            networkDownload: "Сеть: скачивание",
+                                            tempHot: "Погода: очень тепло", tempWarm: "Погода: тепло",
+                                            tempMild: "Погода: умеренно", tempCool: "Погода: прохладно", tempZero: "Погода: около 0°C",
+                                            tempCold: "Погода: холодно", tempVeryCold: "Погода: очень холодно", tempFreezing: "Погода: мороз"
+                                        })
+
+                                        SettingsColorField {
+                                            width: parent.width
+                                            label: colorLabels[colorName] || colorName
+                                            value: String(Config[colorName])
+                                            targetObject: Config
+                                            targetProperty: colorName
+                                            settingsObject: settings
+                                            saveOnEdit: true
+                                            allowAlpha: true
+                                            allowTransparent: true
+                                            fieldWidth: 120
+                                            compact: false
+                                        }
                                     }
                                 }
                             }

@@ -49,8 +49,15 @@ for (const [label, subtab] of placement) {
   const at = cava.indexOf(`text: "${label}"`);
   assert(at >= 0, `CAVA setting exists: ${label}`);
   assert.strictEqual(cava.indexOf(`text: "${label}"`, at + 1), -1, `CAVA setting appears once: ${label}`);
-  const row = blockContaining(cava, 'Row {', at).text;
-  assert(row.includes(`host.currentOtherTab === 4 && host.currentOtherSubTab === ${subtab}`), `${label} is displayed in the correct CAVA subtab ${subtab}`);
+  if (label === 'Скрывать пустые полоски') {
+    const morph = blockContaining(cava, 'MorphGeometry {', at).text;
+    assert(morph.includes('progress: Config.cavaHideWhenSilent ? 1 : 0'), 'zero-bars option uses the animated visibility wrapper');
+    assert(morph.includes('cavaHideZeroBarsContent'), 'zero-bars checkbox remains inside the animated content');
+    assert(cava.includes(`visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === ${subtab}`), `${label} belongs to the correct CAVA subtab ${subtab}`);
+  } else {
+    const row = blockContaining(cava, 'Row {', at).text;
+    assert(row.includes(`host.currentOtherTab === 4 && host.currentOtherSubTab === ${subtab}`), `${label} is displayed in the correct CAVA subtab ${subtab}`);
+  }
 }
 
 // Every CAVA config setting must have a visible UI control in exactly one expected row.

@@ -14,7 +14,9 @@ grep -Fq 'iconText: Config.playerNextIcon' "$PLAYER"
 grep -Fq 'iconSize: Config.playerNextIconSize' "$PLAYER"
 grep -Fq 'hoverMode: "none"' "$PLAYER"
 grep -Fq 'cursorShape: Qt.PointingHandCursor' "$PLAYER"
-grep -Fq 'visible: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1' "$PLAYER"
+grep -Fq 'readonly property bool playerNextSupported:' "$PLAYER"
+grep -Fq 'interactionEnabled: root.playerNextSupported' "$PLAYER"
+grep -Fq 'id: playerNextMorph' "$PLAYER"
 grep -Fq '"next", root.player.player || ""' "$PLAYER"
 
 # The mute glyph uses the generic button surface, not its own MouseArea.
@@ -63,15 +65,15 @@ def check_balance(name):
 
 for name in sys.argv[1:3]: check_balance(name)
 player=Path(sys.argv[1]).read_text(encoding='utf-8')
-start=player.index('Primitives.HoverIconButton {')
+start=player.index('Primitives.MorphGeometry {\n        id: playerNextMorph')
 end=player.index('property real pendingSeekPercent', start)
 next_block=player[start:end]
 if 'MouseArea {' in next_block:
     raise SystemExit('Player Next still owns a local MouseArea')
 if 'onClicked: Quickshell.execDetached' not in next_block or '"next", root.player.player || ""' not in next_block:
     raise SystemExit('Player Next click route changed')
-if 'deadbeef' not in next_block or 'mopidy' not in next_block or 'spotify' not in next_block:
-    raise SystemExit('Player Next backend visibility changed')
+if 'root.playerNextSupported' not in next_block or 'deadbeef' not in player or 'mopidy' not in player or 'spotify' not in player:
+    raise SystemExit('Player Next backend support changed')
 
 volumes=Path(sys.argv[2]).read_text(encoding='utf-8')
 start=volumes.index('Primitives.HoverButtonSurface {')

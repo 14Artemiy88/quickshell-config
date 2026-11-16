@@ -1,4 +1,5 @@
 import QtQuick
+import "primitives" as Primitives
 import ".."
 import Quickshell
 
@@ -7,6 +8,9 @@ Item {
     property var entry: ({})
     property bool hourly: true
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    readonly property bool hasHighTemperature: root.highText(root.entry) !== ""
+    readonly property bool hasLowTemperature: !root.hourly && root.lowText(root.entry) !== ""
+    readonly property int forecastMorphDuration: Config.animationDuration(180, "appearance")
 
     Text {
         x: 0
@@ -20,6 +24,8 @@ Item {
         verticalAlignment: Text.AlignVCenter
     }
 
+    // Keep forecast icons on the original direct Image path. Wrapping this
+    // Image in MorphGeometry made the icons disappear in the live QML view.
     Image {
         x: (parent.width - (root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth)) / 2
         y: root.hourly ? Config.weatherHourlyIconY : Config.weatherDailyIconY
@@ -29,29 +35,52 @@ Item {
         source: Quickshell.shellDir + "/assets/gismeteo/new_png/" + (root.entry.icon || "") + ".png"
     }
 
-    Text {
-        x: root.hourly ? 0 : Config.weatherDailyHighTempX
-        y: root.hourly ? Config.weatherHourlyTempY : Config.weatherDailyHighTempY
-        width: parent.width
-        height: root.hourly ? Config.weatherHourlyTempHeight : Config.weatherDailyHighTempHeight
-        text: root.highText(root.entry)
-        color: root.tempColor(root.highNumber(root.entry))
-        font.pixelSize: root.hourly ? Config.uiFontSize(Config.weatherHourlyTempFontSize) : Config.uiFontSize(Config.weatherDailyHighTempFontSize)
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+    Primitives.MorphGeometry {
+        id: forecastHighTemperatureMorph
+        fromGeometry: Qt.rect(
+            root.hourly ? 0 : Config.weatherDailyHighTempX,
+            root.hourly ? Config.weatherHourlyTempY : Config.weatherDailyHighTempY,
+            parent.width,
+            root.hourly ? Config.weatherHourlyTempHeight : Config.weatherDailyHighTempHeight)
+        toGeometry: fromGeometry
+        progress: root.hasHighTemperature ? 1 : 0
+        visible: root.hasHighTemperature || normalizedProgress > 0.001
+        animationDuration: root.forecastMorphDuration
+        animationEasing: Config.animationEasingType("standard", root.hasHighTemperature ? "enter" : "exit")
+
+        Text {
+            anchors.fill: parent
+            text: root.highText(root.entry)
+            color: root.tempColor(root.highNumber(root.entry))
+            font.pixelSize: root.hourly ? Config.uiFontSize(Config.weatherHourlyTempFontSize) : Config.uiFontSize(Config.weatherDailyHighTempFontSize)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            opacity: forecastHighTemperatureMorph.normalizedProgress
+            scale: 0.96 + 0.04 * forecastHighTemperatureMorph.normalizedProgress
+            transformOrigin: Item.Center
+        }
     }
 
-    Text {
-        visible: !root.hourly
-        x: Config.weatherDailyLowTempX
-        y: Config.weatherDailyLowTempY
-        width: parent.width
-        height: Config.weatherDailyLowTempHeight
-        text: root.lowText(root.entry)
-        color: root.tempColor(root.lowNumber(root.entry))
-        font.pixelSize: Config.uiFontSize(Config.weatherDailyLowTempFontSize)
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
+    Primitives.MorphGeometry {
+        id: forecastLowTemperatureMorph
+        fromGeometry: Qt.rect(Config.weatherDailyLowTempX, Config.weatherDailyLowTempY, parent.width, Config.weatherDailyLowTempHeight)
+        toGeometry: fromGeometry
+        progress: root.hasLowTemperature ? 1 : 0
+        visible: root.hasLowTemperature || normalizedProgress > 0.001
+        animationDuration: root.forecastMorphDuration
+        animationEasing: Config.animationEasingType("standard", root.hasLowTemperature ? "enter" : "exit")
+
+        Text {
+            anchors.fill: parent
+            text: root.lowText(root.entry)
+            color: root.tempColor(root.lowNumber(root.entry))
+            font.pixelSize: Config.uiFontSize(Config.weatherDailyLowTempFontSize)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            opacity: forecastLowTemperatureMorph.normalizedProgress
+            scale: 0.96 + 0.04 * forecastLowTemperatureMorph.normalizedProgress
+            transformOrigin: Item.Center
+        }
     }
 
     function dayText(e) {

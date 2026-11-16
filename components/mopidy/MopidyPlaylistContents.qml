@@ -126,6 +126,7 @@ Column {
                 iconSize: Config.mopidyMoveUpIconSize
                 requestedVisible: index > 0 && Config.mopidyShowMoveUpIcon
                 hideWhenDisabled: false
+                morphVisibility: true
                 baseColor: Config.textMuted
                 hoverMode: Config.mopidyHoverMode
                 hoverColor: Config.mopidyHoverColor
@@ -144,6 +145,7 @@ Column {
                 iconSize: Config.mopidyMoveDownIconSize
                 requestedVisible: index < controller.playlistItems.length - 1 && Config.mopidyShowMoveDownIcon
                 hideWhenDisabled: false
+                morphVisibility: true
                 baseColor: Config.textMuted
                 hoverMode: Config.mopidyHoverMode
                 hoverColor: Config.mopidyHoverColor

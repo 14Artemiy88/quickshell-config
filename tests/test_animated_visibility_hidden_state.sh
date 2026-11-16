@@ -5,7 +5,7 @@ python3 - "$ROOT/components/primitives/AnimatedVisibility.qml" <<'PY_CHECK'
 from pathlib import Path
 import sys
 qml = Path(sys.argv[1]).read_text(encoding="utf-8")
-start = qml.split("function startTransition()", 1)[1].split("ParallelAnimation {\n        id: showTransition", 1)[0]
+start = qml.split("function startTransition()", 1)[1].split("NumberAnimation {\n        id: showTransition", 1)[0]
 
 # Once hiding is complete, a style/duration change must not restart hide and
 # briefly recreate a layer-shell surface that was meant to stay hidden.

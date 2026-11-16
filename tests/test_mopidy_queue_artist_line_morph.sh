@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+FILE="$ROOT/components/mopidy/MopidyQueueTrackRow.qml"
+
+grep -Fq 'import "../primitives" as Primitives' "$FILE"
+grep -Fq 'id: artistLineMorph' "$FILE"
+grep -Fq 'visible: (Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist)' "$FILE" || grep -Fq 'Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist' "$FILE"
+grep -Fq 'fromGeometry: Qt.rect(0, parent.height, parent.width, 0)' "$FILE"
+grep -Fq 'progress: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? 1 : 0' "$FILE"
+grep -Fq 'height: Math.max(1, parent.height - artistLineMorph.geometryHeight)' "$FILE"
+grep -Fq 'artistLineMorph.normalizedProgress <= 0.001' "$FILE"
+grep -Fq 'height: Config.mopidyTrackRowHeight' "$FILE"
+if grep -Fq 'visible: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist' "$FILE"; then
+    echo 'Old immediate artist-line visibility is still present' >&2
+    exit 1
+fi
+printf 'Mopidy queue artist line morph: OK\n'

@@ -234,32 +234,49 @@ Column {
             }
         }
 
-        SettingsColorField {
-            visible: Config.timerRandomColorMode === "custom"
-            label: "От"
-            value: String(Config.timerRandomColorMin)
-            targetObject: Config
-            targetProperty: "timerRandomColorMin"
-            settingsObject: root.settings
-            saveOnEdit: true
-            allowAlpha: false
-            allowTransparent: false
-            labelWidth: 210
-            fieldWidth: 120
-        }
+        MorphGeometry {
+            id: timerRandomCustomColorsMorph
+            width: parent.width
+            clip: true
+            visible: root.host && root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+                && (Config.timerRandomColorMode === "custom" || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, timerRandomCustomColorsContent.implicitHeight)
+            progress: Config.timerRandomColorMode === "custom" ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.timerRandomColorMode === "custom" ? "enter" : "exit")
 
-        SettingsColorField {
-            visible: Config.timerRandomColorMode === "custom"
-            label: "До"
-            value: String(Config.timerRandomColorMax)
-            targetObject: Config
-            targetProperty: "timerRandomColorMax"
-            settingsObject: root.settings
-            saveOnEdit: true
-            allowAlpha: false
-            allowTransparent: false
-            labelWidth: 210
-            fieldWidth: 120
+            Column {
+                id: timerRandomCustomColorsContent
+                width: parent.width
+                spacing: 6
+
+                SettingsColorField {
+                    label: "От"
+                    value: String(Config.timerRandomColorMin)
+                    targetObject: Config
+                    targetProperty: "timerRandomColorMin"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                    allowAlpha: false
+                    allowTransparent: false
+                    labelWidth: 210
+                    fieldWidth: 120
+                }
+
+                SettingsColorField {
+                    label: "До"
+                    value: String(Config.timerRandomColorMax)
+                    targetObject: Config
+                    targetProperty: "timerRandomColorMax"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                    allowAlpha: false
+                    allowTransparent: false
+                    labelWidth: 210
+                    fieldWidth: 120
+                }
+            }
         }
     }
 
@@ -317,8 +334,23 @@ Column {
                 }
             }
 
+        MorphGeometry {
+            id: timerFinishedImageOptionsMorph
+            width: parent.width
+            clip: true
+            visible: Config.timerFinishedImageEnabled || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, timerFinishedImageOptionsContent.implicitHeight)
+            progress: Config.timerFinishedImageEnabled ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.timerFinishedImageEnabled ? "enter" : "exit")
+
+            Column {
+                id: timerFinishedImageOptionsContent
+                width: parent.width
+                spacing: 6
+
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -345,7 +377,6 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -372,7 +403,6 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
@@ -386,29 +416,39 @@ Column {
                 }
             }
 
-            Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled && !Config.timerFinishedTitleUsesTimerColor
-                width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsColorField {
-                    id: timerFinishedTitleColorField
-                    width: 140
-                    height: 30
-                    value: Config.timerFinishedTitleColor
-                    targetObject: Config
-                    targetProperty: "timerFinishedTitleColor"
-                    settingsObject: root.settings
-                    saveOnEdit: true
-                    allowAlpha: true
-                    allowTransparent: true
-                    compact: true
-                    fieldWidth: 108
-                    swatchSize: 24
+            MorphGeometry {
+                id: timerFinishedTitleColorMorph
+                width: parent.width
+                clip: true
+                visible: !Config.timerFinishedTitleUsesTimerColor || normalizedProgress > 0.001
+                fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                toGeometry: Qt.rect(0, 0, parent.width, 30)
+                progress: !Config.timerFinishedTitleUsesTimerColor ? 1 : 0
+                animationDuration: Config.animationDuration(180, "appearance")
+                animationEasing: Config.animationEasingType("standard", !Config.timerFinishedTitleUsesTimerColor ? "enter" : "exit")
+
+                Row {
+                    width: parent.width; height: 30; spacing: 8
+                    Text { width: 210; height: 30; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    SettingsColorField {
+                        id: timerFinishedTitleColorField
+                        width: 140
+                        height: 30
+                        value: Config.timerFinishedTitleColor
+                        targetObject: Config
+                        targetProperty: "timerFinishedTitleColor"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                        allowAlpha: true
+                        allowTransparent: true
+                        compact: true
+                        fieldWidth: 108
+                        swatchSize: 24
+                    }
                 }
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -433,7 +473,6 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsFontField {
@@ -451,7 +490,6 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && Config.timerFinishedImageEnabled
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsComboBox {
@@ -464,6 +502,9 @@ Column {
                     Connections { target: Config; function onTimerFinishedTitleAlignmentChanged() { timerFinishedTitleAlignmentBox.currentIndex = Config.timerFinishedTitleAlignment } }
                 }
             }
+
+            }
+        }
 
             Row {
                 visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
@@ -501,26 +542,37 @@ Column {
                 }
             }
 
-            Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1 && !Config.timerFinishedBackgroundUsesTimerColor
+            MorphGeometry {
+                id: timerFinishedBackgroundColorMorph
                 width: parent.width
-                height: 30
-                spacing: 8
-                Text { width: 210; height: 30; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsColorField {
-                    id: timerFinishedBackgroundColorField
-                    width: 140
+                clip: true
+                visible: !Config.timerFinishedBackgroundUsesTimerColor || normalizedProgress > 0.001
+                fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                toGeometry: Qt.rect(0, 0, parent.width, 30)
+                progress: !Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0
+                animationDuration: Config.animationDuration(180, "appearance")
+                animationEasing: Config.animationEasingType("standard", !Config.timerFinishedBackgroundUsesTimerColor ? "enter" : "exit")
+
+                Row {
+                    width: parent.width
                     height: 30
-                    value: Config.timerFinishedBackgroundColor
-                    targetObject: Config
-                    targetProperty: "timerFinishedBackgroundColor"
-                    settingsObject: root.settings
-                    saveOnEdit: true
-                    allowAlpha: true
-                    allowTransparent: true
-                    compact: true
-                    fieldWidth: 108
-                    swatchSize: 24
+                    spacing: 8
+                    Text { width: 210; height: 30; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    SettingsColorField {
+                        id: timerFinishedBackgroundColorField
+                        width: 140
+                        height: 30
+                        value: Config.timerFinishedBackgroundColor
+                        targetObject: Config
+                        targetProperty: "timerFinishedBackgroundColor"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                        allowAlpha: true
+                        allowTransparent: true
+                        compact: true
+                        fieldWidth: 108
+                        swatchSize: 24
+                    }
                 }
             }
     }

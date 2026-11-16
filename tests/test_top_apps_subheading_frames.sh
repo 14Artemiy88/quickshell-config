@@ -121,7 +121,14 @@ for title, guard in expected.items():
     assert "showFrame: true" in block, f"{title!r} must use a visible frame"
     first_visibility = next((line.strip() for line in block.splitlines() if re.match(r"\s*visible:", line)), "")
     if title == "Цвета полос нагрузки":
-        assert "Config.topAppsShowBars" in first_visibility, "Color frame must remain conditional on bars being enabled"
+        # The frame is wrapped in its own morph; check the outer geometry visibility,
+        # not the inner SettingsGroup's tab-only visibility.
+        morph_start = source.find("id: topAppsBarColorsMorph")
+        assert morph_start >= 0, "Color frame morph wrapper is missing"
+        morph_visible = source.find("visible:", morph_start)
+        morph_end = source.find("MorphGeometry {", morph_start + 1)
+        assert morph_visible >= 0 and morph_end >= 0, "Color frame morph visibility is missing"
+        assert "Config.topAppsShowBars" in source[morph_visible:morph_end], "Color frame morph must remain conditional on bars being enabled"
     else:
         assert "host.currentOtherTab === 5" in first_visibility and "topAppsShowHeaders" not in first_visibility and "topAppsShowSystemRemainder" not in first_visibility and "topAppsShowBars" not in first_visibility, f"Frame/legend {title!r} must remain visible while its feature is disabled"
     assert f'text: "{title}"' not in block, f"{title!r} remains duplicated as an in-frame Text instead of using the explicit legend"
@@ -141,6 +148,10 @@ geometry = next(g for g in all_groups if 'heading: "Положение и раз
 colors = next(g for g in all_groups if 'heading: "Цвета полос нагрузки"' in g)
 assert geometry != colors
 assert "showFrame: true" in geometry and "showFrame: true" in colors
-assert re.search(r"visible:\s*host\s*&&.*Config\.topAppsShowBars", colors), "Bar-colour frame must disappear with bars disabled"
+color_morph_start = source.rfind("MorphGeometry {", 0, source.find("id: topAppsBarColorsMorph"))
+assert color_morph_start >= 0, "Color frame morph wrapper is missing"
+color_morph_end = matching_brace(source, source.find("{", color_morph_start))
+color_morph = source[color_morph_start:color_morph_end + 1]
+assert "Config.topAppsShowBars" in color_morph and "normalizedProgress > 0.001" in color_morph, "Bar-colour frame must disappear after the exit morph completes"
 print("Top Apps explicit frame legends: OK")
 PY

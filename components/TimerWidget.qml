@@ -333,34 +333,50 @@ Primitives.ModuleFrame {
             }
         }
 
-        Text {
-            id: timerIcon
-            x: Config.timerIconX
-            y: (parent.height - height) / 2 + Config.timerIconY
-            width: 30
-            height: 33
-            text: Config.timerIcon
-            color: Config.text
-            font.pixelSize: Config.timerIconSize
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            opacity: Config.timerIconEnabled && root.controlsMode === 0 ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
+        Primitives.MorphGeometry {
+            id: timerIconMorph
+            fromGeometry: Qt.rect(Config.timerIconX + 1,
+                (parent.height - 33) / 2 + Config.timerIconY + 1, 28, 31)
+            toGeometry: Qt.rect(Config.timerIconX,
+                (parent.height - 33) / 2 + Config.timerIconY, 30, 33)
+            progress: Config.timerIconEnabled && root.controlsMode === 0 ? 1 : 0
+            visible: (Config.timerIconEnabled && root.controlsMode === 0) || normalizedProgress > 0.001
+            animationDuration: Config.animationTimerVisibilityStyle === "none"
+                ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.timerIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
+
+            Text {
+                anchors.fill: parent
+                text: Config.timerIcon
+                color: Config.text
+                font.pixelSize: Config.timerIconSize
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                opacity: timerIconMorph.normalizedProgress
+            }
         }
 
-        Text {
-            id: alarmIcon
-            x: Config.timerAlarmIconX
-            y: (parent.height - height) / 2 + Config.timerAlarmIconY
-            width: 30
-            height: 33
-            text: Config.timerAlarmIcon
-            color: Config.text
-            font.pixelSize: Config.timerAlarmIconSize
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            opacity: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance"); easing.type: Config.easingType() } }
+        Primitives.MorphGeometry {
+            id: alarmIconMorph
+            fromGeometry: Qt.rect(Config.timerAlarmIconX + 1,
+                (parent.height - 33) / 2 + Config.timerAlarmIconY + 1, 28, 31)
+            toGeometry: Qt.rect(Config.timerAlarmIconX,
+                (parent.height - 33) / 2 + Config.timerAlarmIconY, 30, 33)
+            progress: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? 1 : 0
+            visible: (Config.timerAlarmIconEnabled && root.controlsMode === 0) || normalizedProgress > 0.001
+            animationDuration: Config.animationTimerVisibilityStyle === "none"
+                ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.timerAlarmIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
+
+            Text {
+                anchors.fill: parent
+                text: Config.timerAlarmIcon
+                color: Config.text
+                font.pixelSize: Config.timerAlarmIconSize
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                opacity: alarmIconMorph.normalizedProgress
+            }
         }
 
         Primitives.AnimatedVisibility {

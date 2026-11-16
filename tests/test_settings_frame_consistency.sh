@@ -143,7 +143,9 @@ for toggle, revealed, guard in control_groups:
 # and retains a separate application-list settings frame.
 assert sum("showFrame: true" in g for g in cg if "host.currentOtherTab === 5 && host.currentOtherSubTab === 2" in g) == 5, "Top Apps should have three toggle frames, a separate bar-colour frame, and one list-settings frame"
 color_groups = [g for g in cg if 'heading: "Цвета полос нагрузки"' in g]
-assert len(color_groups) == 1 and re.search(r"visible:\s*host\s*&&.*Config\.topAppsShowBars", color_groups[0]), "Bar-colour frame must be separate and hidden with bars disabled"
+assert len(color_groups) == 1 and "showFrame: true" in color_groups[0], "Bar-colour frame must remain a separate framed group"
+colors_morph = re.search(r"MorphGeometry\s*\{(?:(?!\n\s*\}).)*id: topAppsBarColorsMorph(?:(?!\n\s*\}).)*\n\s*\}", cpu, re.S)
+assert colors_morph and re.search(r"visible:\s*host\s*&&.*Config\.topAppsShowBars", colors_morph.group(0)), "Bar-colour morph wrapper must hide the frame when bars are disabled and retain it through exit"
 for title in ("topAppsCpuHeaderTitleField", "topAppsRamHeaderTitleField", "Положение и размер полос", "Цвета полос нагрузки", "Строка «Система/прочее»"):
     matches = [g for g in cg if title in g]
     assert len(matches) == 1, f"Expected {title!r} inside a single Top Apps group"

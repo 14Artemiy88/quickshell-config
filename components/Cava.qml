@@ -11,6 +11,15 @@ Primitives.ModuleFrame {
     height: 80
     property var values: []
     property bool soundActive: true
+    readonly property bool graphShouldBeVisible: !Config.cavaHideWhenSilent || root.soundActive
+    property real graphVisibilityProgress: graphShouldBeVisible ? 1 : 0
+
+    Behavior on graphVisibilityProgress {
+        NumberAnimation {
+            duration: Config.animationDuration(180, "appearance")
+            easing.type: Config.animationEasingType("standard", root.graphShouldBeVisible ? "enter" : "exit")
+        }
+    }
 
     signal playbackToggleRequested()
     signal mopidyToggleRequested()
@@ -80,22 +89,29 @@ Primitives.ModuleFrame {
         function onCavaHideWhenSilentChanged() { root.updateSignalState(root.values) }
     }
 
-    Item {
-        anchors.fill: parent
-        visible: !Config.cavaHideWhenSilent || root.soundActive
+    Primitives.MorphGeometry {
+        id: cavaGraphMorph
+        fromGeometry: Qt.rect(0, 0, parent.width, parent.height)
+        toGeometry: fromGeometry
+        progress: root.graphVisibilityProgress
+        visible: root.graphShouldBeVisible || normalizedProgress > 0.001
 
-        // Only the active mode is instantiated. With the previous visibility
-        // toggles, hidden mode trees still allocated every bar delegate.
-        Loader {
+        Item {
             anchors.fill: parent
-            // Release all bar delegates after the silence grace period. The
-            // process/filter keep streaming, so the selected graph is recreated
-            // with the current sample as soon as sound resumes.
-            active: !Config.cavaHideWhenSilent || root.soundActive
-            sourceComponent: Config.cavaMode === "both" ? bothModeComponent
-                : Config.cavaMode === "top" ? topModeComponent
-                : Config.cavaMode === "bottom" ? bottomModeComponent
-                : bothModeComponent
+            opacity: cavaGraphMorph.normalizedProgress
+            scale: 0.96 + 0.04 * cavaGraphMorph.normalizedProgress
+            transformOrigin: Item.Center
+
+            // Keep graph delegates alive through the complete exit transition,
+            // then release them to preserve the silent-state allocation savings.
+            Loader {
+                anchors.fill: parent
+                active: root.graphShouldBeVisible || cavaGraphMorph.normalizedProgress > 0.001
+                sourceComponent: Config.cavaMode === "both" ? bothModeComponent
+                    : Config.cavaMode === "top" ? topModeComponent
+                    : Config.cavaMode === "bottom" ? bottomModeComponent
+                    : bothModeComponent
+            }
         }
     }
 

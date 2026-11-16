@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../.."
+import "../primitives" as Primitives
 
 Item {
     id: fileBrowser
@@ -40,7 +41,7 @@ Item {
 
     Column {
         anchors.fill: parent
-        spacing: 4
+        spacing: 0
 
         Text {
             width: parent.width
@@ -53,60 +54,82 @@ Item {
             elide: Text.ElideRight
         }
 
-        Row {
+        // Keep the title-to-list spacing fixed; the filter slot owns its own
+        // trailing gap so the list height can counter-animate without a jump.
+        Item { width: parent.width; height: 4 }
+
+        Primitives.MorphGeometry {
+            id: fileFilterMorph
             width: parent.width
-            height: 27
-            spacing: 5
-            visible: controller.fileFilterOpen
+            clip: true
+            visible: controller.fileFilterOpen || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, 31)
+            progress: controller.fileFilterOpen ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", controller.fileFilterOpen ? "enter" : "exit")
 
-            Text {
-                width: 16
-                height: parent.height
-                text: "/"
-                color: Config.accent
-                font.family: Config.font
-                font.pixelSize: Config.fontSize
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
+            Column {
+                width: parent.width
+                height: 31
+                spacing: 0
 
-            TextField {
-                id: fileFilterField
-                width: Math.max(0, parent.width - 21)
-                height: parent.height
-                text: controller.fileFilterQuery
-                placeholderText: "Фильтр файлов…"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(10)
-                selectByMouse: true
-                leftPadding: 6
-                rightPadding: 6
-                topPadding: 2
-                bottomPadding: 2
-                background: Rectangle {
-                    color: Config.settingsBackground
-                    radius: 4
-                    border.width: 1
-                    border.color: fileFilterField.activeFocus ? Config.accent : Config.baseColor
+                Row {
+                    width: parent.width
+                    height: 27
+                    spacing: 5
+
+                    Text {
+                        width: 16
+                        height: parent.height
+                        text: "/"
+                        color: Config.accent
+                        font.family: Config.font
+                        font.pixelSize: Config.fontSize
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    TextField {
+                        id: fileFilterField
+                        width: Math.max(0, parent.width - 21)
+                        height: parent.height
+                        text: controller.fileFilterQuery
+                        placeholderText: "Фильтр файлов…"
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        selectByMouse: true
+                        leftPadding: 6
+                        rightPadding: 6
+                        topPadding: 2
+                        bottomPadding: 2
+                        background: Rectangle {
+                            color: Config.settingsBackground
+                            radius: 4
+                            border.width: 1
+                            border.color: fileFilterField.activeFocus ? Config.accent : Config.baseColor
+                        }
+                        onTextChanged: controller.fileFilterQuery = text
+                        Keys.onEscapePressed: {
+                            controller.closeFileFilter(true)
+                        }
+                        Keys.onReturnPressed: {
+                            controller.closeFileFilter(false)
+                        }
+                        Keys.onEnterPressed: {
+                            controller.closeFileFilter(false)
+                        }
+                    }
                 }
-                onTextChanged: controller.fileFilterQuery = text
-                Keys.onEscapePressed: {
-                    controller.closeFileFilter(true)
-                }
-                Keys.onReturnPressed: {
-                    controller.closeFileFilter(false)
-                }
-                Keys.onEnterPressed: {
-                    controller.closeFileFilter(false)
-                }
+                Item { width: parent.width; height: 4 }
             }
         }
 
         ListView {
             id: browseListView
             width: parent.width
-            height: Math.max(0, parent.height - (controller.fileFilterOpen ? 57 : 26))
+            height: Math.max(0, parent.height - 26 - fileFilterMorph.geometryHeight)
             clip: true
             spacing: 2
             model: controller.filteredBrowseDisplayEntries

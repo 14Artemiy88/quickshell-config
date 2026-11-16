@@ -1682,32 +1682,44 @@ Primitives.ModuleFrame {
         controller: root
     }
 
-    Rectangle {
+    Primitives.MorphGeometry {
+        id: addNoticeMorph
         z: 100
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: 8
-        anchors.bottomMargin: 8
-        width: Math.max(0, Math.min(Math.max(120, addNoticeTextMetrics.advanceWidth + 28), parent.width - 16))
-        height: 28
-        radius: 4
-        visible: root.addNoticeVisible
-        color: Config.settingsBackground
-        border.width: 1
-        border.color: root.addNoticeError ? "#ff5555" : Config.accent
+        property real noticeWidth: Math.max(0, Math.min(Math.max(120, addNoticeTextMetrics.advanceWidth + 28), parent.width - 16))
+        fromGeometry: Qt.rect(parent.width - 8 - noticeWidth, parent.height - 36, noticeWidth, 28)
+        toGeometry: fromGeometry
+        progress: root.addNoticeVisible ? 1 : 0
+        visible: root.addNoticeVisible || normalizedProgress > 0.001
+        animationDuration: Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("standard", root.addNoticeVisible ? "enter" : "exit")
 
-        Text {
-            id: addNoticeTextItem
+        Item {
             anchors.fill: parent
-            anchors.leftMargin: 10
-            anchors.rightMargin: 10
-            text: root.addNoticeText
-            color: root.addNoticeError ? "#ff5555" : Config.text
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
+            opacity: addNoticeMorph.normalizedProgress
+            scale: 0.96 + 0.04 * addNoticeMorph.normalizedProgress
+            transformOrigin: Item.Center
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 4
+                color: Config.settingsBackground
+                border.width: 1
+                border.color: root.addNoticeError ? "#ff5555" : Config.accent
+            }
+
+            Text {
+                id: addNoticeTextItem
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                text: root.addNoticeText
+                color: root.addNoticeError ? "#ff5555" : Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
         }
 
         TextMetrics {

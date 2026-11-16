@@ -31,11 +31,16 @@ other=s.index('text: "Показывать строку «Система/про�
 if not (toggle < heading < other):
     raise SystemExit('bar colors are not located directly after the bar visibility toggle')
 expected=('Отдельные цвета для заполнения полос CPU и RAM.','CPU: цвет полосы','RAM: цвет полосы')
+morph_start=s.index('id: topAppsBarColorsMorph')
+morph_end=s.index('id: topAppsBarColorsGroup', morph_start)
+morph=s[morph_start:morph_end]
+if 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2' not in morph:
+    raise SystemExit('bar color morph does not follow the Top Apps visibility toggle')
+if 'progress: Config.topAppsShowBars ? 1 : 0' not in morph:
+    raise SystemExit('bar color section does not animate its geometry')
 for label in expected:
-    at=s.index(label,heading,other)
-    guard='visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'
-    if label != 'Цвета полос нагрузки' and guard not in s[toggle:at]:
-        raise SystemExit(f'{label} is not conditioned on Top Apps bar visibility')
+    if label not in s[heading:other]:
+        raise SystemExit(f'{label} is missing from the animated color section')
 print('Top Apps bar color controls follow the Show bars option: OK')
 PYVIS
 if grep -Fq 'label: "CPU: цвет полосы"' "$COLORS" || grep -Fq 'label: "RAM: цвет полосы"' "$COLORS"; then echo 'Top Apps colors should not remain in the Colors tab' >&2; exit 1; fi

@@ -8,27 +8,57 @@ Primitives.ModuleFrame {
     width: 313
     height: 55
     property var monitor
+    readonly property real networkStatRowHeight: Math.max(
+        Config.uiFontSize(Config.networkIconSize),
+        Config.uiFontSize(Config.networkValueFontSize)
+    ) + Config.networkSpacing * 2
+    // Keep the gap between rows proportional to the upload row's current
+    // animated height. This lets the download row travel smoothly to y=0 when
+    // upload is hidden, without leaving a final spacing jump.
+    readonly property real networkStatRowGap: networkStatRowHeight > 0
+        ? Config.networkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight
+        : 0
 
-    Column {
-        spacing: Config.networkSpacing
+    Item {
         anchors.fill: parent
         anchors.topMargin: Config.networkTopPadding
         anchors.bottomMargin: 5
 
-        NetworkStatRow {
-            visible: Config.networkShowUpload
-            width: parent.width
-            glyph: ""
-            accentColor: Config.networkUpload
-            valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")
+        Primitives.MorphGeometry {
+            id: uploadRowMorph
+            clip: true
+            visible: Config.networkShowUpload || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, root.networkStatRowHeight)
+            progress: Config.networkShowUpload ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.networkShowUpload ? "enter" : "exit")
+
+            NetworkStatRow {
+                width: parent.width
+                glyph: ""
+                accentColor: Config.networkUpload
+                valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")
+            }
         }
 
-        NetworkStatRow {
-            visible: Config.networkShowDownload
-            width: parent.width
-            glyph: ""
-            accentColor: Config.networkDownload
-            valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")
+        Primitives.MorphGeometry {
+            id: downloadRowMorph
+            y: uploadRowMorph.geometryHeight + root.networkStatRowGap
+            clip: true
+            visible: Config.networkShowDownload || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, root.networkStatRowHeight)
+            progress: Config.networkShowDownload ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.networkShowDownload ? "enter" : "exit")
+
+            NetworkStatRow {
+                width: parent.width
+                glyph: ""
+                accentColor: Config.networkDownload
+                valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")
+            }
         }
     }
 

@@ -613,7 +613,22 @@ QtObject {
         return Math.max(0, Math.round(ms))
     }
 
-    function easingType() { return Easing.OutCubic }
+    // Shared motion profiles inspired by Caelestia's token-based animation
+    // system. Existing call sites keep the historical OutCubic curve through
+    // easingType(); new components can opt into a profile explicitly.
+    // Durations remain owned by each module so this layer never overrides
+    // carefully tuned per-module timing.
+    function animationEasingType(profile, phase) {
+        var name = String(profile || "standard").toLowerCase()
+        var direction = String(phase || "enter").toLowerCase()
+        if (name === "spatial")
+            return direction === "exit" ? Easing.InCubic : Easing.OutCubic
+        if (name === "effects")
+            return direction === "exit" ? Easing.InQuad : Easing.OutQuad
+        return Easing.OutCubic
+    }
+
+    function easingType() { return animationEasingType("standard", "enter") }
 
     property string monitorName: "LCD195VXM+"
 }

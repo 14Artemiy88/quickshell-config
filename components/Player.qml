@@ -128,51 +128,89 @@ Primitives.ModuleFrame {
         styleColor: Config.playerTextOutlineColor
     }
 
-    // Metadata is anchored to the bottom: one visible line occupies the bottom row,
-    // two lines occupy the two bottom rows, and three lines occupy all rows.
-    Column {
-        x: Config.playerMetadataXPadding
-        width: parent.width - Config.playerMetadataXPadding * 2
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Config.playerMetadataY
-        spacing: Math.max(0, Config.playerMetaLineSpacing - Config.playerMetaSecondaryFontSize)
+    // Metadata grows upward from a fixed bottom edge. The progress value is the
+    // desired content height divided by the maximum three-line height, so changes
+    // between one, two and three lines share the same geometry animation.
+    readonly property real playerMetadataSpacing: Math.max(0, Config.playerMetaLineSpacing - Config.playerMetaSecondaryFontSize)
+    readonly property int playerMetadataLineCount: (root.player.first_line ? 1 : 0)
+                                                   + (root.player.second_line ? 1 : 0)
+                                                   + (root.player.third_line ? 1 : 0)
+    readonly property real playerMetadataTargetHeight: (root.player.first_line ? Math.max(0, Config.playerMetaFontSize) : 0)
+                                                      + ((root.player.second_line ? 1 : 0) + (root.player.third_line ? 1 : 0)) * Math.max(0, Config.playerMetaSecondaryFontSize)
+                                                      + Math.max(0, playerMetadataLineCount - 1) * playerMetadataSpacing
+    readonly property real playerMetadataMaxHeight: Math.max(0, Config.playerMetaFontSize)
+                                                    + 2 * Math.max(0, Config.playerMetaSecondaryFontSize)
+                                                    + 2 * playerMetadataSpacing
+    // Text glyphs (especially font descenders and Text.Outline) can paint a few
+    // pixels below their nominal item height. Keep a small trailing clip buffer
+    // so the last metadata row is not cut while preserving its original baseline.
+    readonly property real playerMetadataClipSafety: 3
+    property bool playerMetadataExpanding: true
+    property real playerMetadataPreviousTargetHeight: playerMetadataTargetHeight
+    onPlayerMetadataTargetHeightChanged: {
+        playerMetadataExpanding = playerMetadataTargetHeight >= playerMetadataPreviousTargetHeight
+        playerMetadataPreviousTargetHeight = playerMetadataTargetHeight
+    }
 
-        Text {
-            visible: !!root.player.first_line
-            width: parent.width
-            height: Config.playerMetaFontSize
-            text: root.player.first_line || ""
-            color: Config.text
-            font.family: Config.playerMetaFont
-            font.pixelSize: Config.playerMetaFontSize
-            font.bold: Config.playerBoldArtist || !!root.player.first_line
-            elide: Text.ElideRight
-            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-            styleColor: Config.playerTextOutlineColor
-        }
-        Text {
-            visible: !!root.player.second_line
-            width: parent.width
-            height: Config.playerMetaSecondaryFontSize
-            text: root.player.second_line || ""
-            color: Config.text
-            font.family: Config.playerMetaFont
-            font.pixelSize: Config.playerMetaSecondaryFontSize
-            elide: Text.ElideRight
-            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-            styleColor: Config.playerTextOutlineColor
-        }
-        Text {
-            visible: !!root.player.third_line
-            width: parent.width
-            height: Config.playerMetaSecondaryFontSize
-            text: root.player.third_line || ""
-            color: Config.text
-            font.family: Config.playerMetaFont
-            font.pixelSize: Config.playerMetaSecondaryFontSize
-            elide: Text.ElideRight
-            style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-            styleColor: Config.playerTextOutlineColor
+    Primitives.MorphGeometry {
+        id: playerMetadataMorph
+        clip: true
+        visible: root.playerMetadataTargetHeight > 0 || normalizedProgress > 0.001
+        fromGeometry: Qt.rect(
+            Config.playerMetadataXPadding,
+            parent.height - Config.playerMetadataY,
+            Math.max(0, parent.width - Config.playerMetadataXPadding * 2),
+            0)
+        toGeometry: Qt.rect(
+            Config.playerMetadataXPadding,
+            parent.height - Config.playerMetadataY - root.playerMetadataMaxHeight,
+            Math.max(0, parent.width - Config.playerMetadataXPadding * 2),
+            root.playerMetadataMaxHeight + root.playerMetadataClipSafety)
+        progress: root.playerMetadataMaxHeight > 0 ? root.playerMetadataTargetHeight / root.playerMetadataMaxHeight : 0
+        animationDuration: Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("standard", root.playerMetadataExpanding ? "enter" : "exit")
+
+        Column {
+            anchors.fill: parent
+            spacing: root.playerMetadataSpacing
+
+            Text {
+                visible: !!root.player.first_line
+                width: parent.width
+                height: Config.playerMetaFontSize
+                text: root.player.first_line || ""
+                color: Config.text
+                font.family: Config.playerMetaFont
+                font.pixelSize: Config.playerMetaFontSize
+                font.bold: Config.playerBoldArtist || !!root.player.first_line
+                elide: Text.ElideRight
+                style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+                styleColor: Config.playerTextOutlineColor
+            }
+            Text {
+                visible: !!root.player.second_line
+                width: parent.width
+                height: Config.playerMetaSecondaryFontSize
+                text: root.player.second_line || ""
+                color: Config.text
+                font.family: Config.playerMetaFont
+                font.pixelSize: Config.playerMetaSecondaryFontSize
+                elide: Text.ElideRight
+                style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+                styleColor: Config.playerTextOutlineColor
+            }
+            Text {
+                visible: !!root.player.third_line
+                width: parent.width
+                height: Config.playerMetaSecondaryFontSize
+                text: root.player.third_line || ""
+                color: Config.text
+                font.family: Config.playerMetaFont
+                font.pixelSize: Config.playerMetaSecondaryFontSize
+                elide: Text.ElideRight
+                style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
+                styleColor: Config.playerTextOutlineColor
+            }
         }
     }
     Text {
@@ -209,21 +247,52 @@ Primitives.ModuleFrame {
                 Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", backend])
         }
     }
-    Primitives.HoverIconButton {
-        x: Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap
-        y: Config.playerControlTopMargin + Config.playerNextIconY
-        width: Config.playerNextIconSize + 2
-        height: Config.playerNextIconSize + 2
-        iconText: Config.playerNextIcon
-        iconSize: Config.playerNextIconSize
-        baseColor: Config.text
-        iconFontFamily: Config.font
-        hoverMode: "none"
-        cursorShape: Qt.PointingHandCursor
-        // Next is supported only by backends with an implemented next action.
-        // Other player backends may be active but do not reliably handle this control.
-        visible: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1
-        onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""])
+    readonly property bool playerNextSupported: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1
+    property bool playerNextMorphInitialized: false
+    property real playerNextMorphProgress: 0
+
+    onPlayerNextSupportedChanged: {
+        if (playerNextMorphInitialized)
+            playerNextMorphProgress = playerNextSupported ? 1 : 0
+    }
+
+    Component.onCompleted: Qt.callLater(function() {
+        root.playerNextMorphInitialized = true
+        root.playerNextMorphProgress = root.playerNextSupported ? 1 : 0
+    })
+
+    Primitives.MorphGeometry {
+        id: playerNextMorph
+        fromGeometry: Qt.rect(
+            Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap + 1,
+            Config.playerControlTopMargin + Config.playerNextIconY + 1,
+            Math.max(0, Config.playerNextIconSize),
+            Math.max(0, Config.playerNextIconSize))
+        toGeometry: Qt.rect(
+            Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap,
+            Config.playerControlTopMargin + Config.playerNextIconY,
+            Config.playerNextIconSize + 2,
+            Config.playerNextIconSize + 2)
+        progress: root.playerNextMorphProgress
+        visible: root.playerNextSupported || normalizedProgress > 0.001
+        animationDuration: Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("standard", root.playerNextSupported ? "enter" : "exit")
+
+        Primitives.HoverIconButton {
+            anchors.fill: parent
+            opacity: playerNextMorph.normalizedProgress
+            scale: 0.96 + 0.04 * playerNextMorph.normalizedProgress
+            transformOrigin: Item.Center
+            iconText: Config.playerNextIcon
+            iconSize: Config.playerNextIconSize
+            baseColor: Config.text
+            iconFontFamily: Config.font
+            hoverMode: "none"
+            cursorShape: Qt.PointingHandCursor
+            interactionEnabled: root.playerNextSupported
+            // Next is supported only by backends with an implemented next action.
+            onClicked: Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "next", root.player.player || ""])
+        }
     }
     property real pendingSeekPercent: -1
     property real pendingSeekDuration: -1
@@ -284,59 +353,73 @@ Primitives.ModuleFrame {
         ])
     }
 
-    Slider {
-        visible: Config.playerShowProgress
-        id: progress
-        // Keep the progress slider above the full-widget right-click MouseArea
-        // so its HoverHandler can set PointingHandCursor reliably.
+    readonly property real playerProgressHeight: Math.max(1, Config.playerProgressTrackHeight)
+    Primitives.MorphGeometry {
+        id: playerProgressMorph
+        // The outer slot remains fixed; only the live slider content scales and
+        // fades with the shared transition progress, so the player layout never shifts.
         z: 1
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Config.playerProgressY
-        x: 0
-        width: parent.width
-        height: Math.max(1, Config.playerProgressTrackHeight)
-        from: 0; to: 100
-        value: {
-            var current = Number(root.player.position || 0)
-            var duration = Number(root.player.duration || 0)
-            var player = root.player.player || ""
-            var pending = Number(root.pendingSeekPercent)
+        fromGeometry: Qt.rect(0, root.height - Config.playerProgressY - root.playerProgressHeight, root.width, root.playerProgressHeight)
+        toGeometry: fromGeometry
+        progress: Config.playerShowProgress ? 1 : 0
+        visible: Config.playerShowProgress || normalizedProgress > 0.001
+        enabled: Config.playerShowProgress
+        animationDuration: Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("standard", Config.playerShowProgress ? "enter" : "exit")
 
-            if (
-                pending >= 0 &&
-                root.pendingSeekPlayer === player &&
-                root.pendingSeekDuration === duration
-            ) {
-                return pending
-            }
+        Item {
+            anchors.fill: parent
+            opacity: playerProgressMorph.normalizedProgress
+            scale: 0.96 + 0.04 * playerProgressMorph.normalizedProgress
+            transformOrigin: Item.Center
 
-            return current
-        }
-        background: Rectangle {
-            x: 0
-            y: Config.playerProgressTrackOffsetY
-            width: parent.width
-            height: Config.playerProgressTrackHeight
-            color: Config.playerProgressTrack
-            Rectangle {
-                width: parent.width * Math.max(0, Math.min(100, progress.value)) / 100
-                height: parent.height
-                color: Config.playerProgressFill
+            Slider {
+                id: progress
+                anchors.fill: parent
+                from: 0; to: 100
+                value: {
+                    var current = Number(root.player.position || 0)
+                    var duration = Number(root.player.duration || 0)
+                    var player = root.player.player || ""
+                    var pending = Number(root.pendingSeekPercent)
+
+                    if (
+                        pending >= 0 &&
+                        root.pendingSeekPlayer === player &&
+                        root.pendingSeekDuration === duration
+                    ) {
+                        return pending
+                    }
+
+                    return current
+                }
+                background: Rectangle {
+                    x: 0
+                    y: Config.playerProgressTrackOffsetY
+                    width: parent.width
+                    height: Config.playerProgressTrackHeight
+                    color: Config.playerProgressTrack
+                    Rectangle {
+                        width: parent.width * Math.max(0, Math.min(100, progress.value)) / 100
+                        height: parent.height
+                        color: Config.playerProgressFill
+                    }
+                }
+                handle: Item { implicitWidth: 0; implicitHeight: 0 }
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onTapped: function(eventPoint) {
+                        var ratio = Math.max(0, Math.min(1, eventPoint.position.x / progress.width))
+                        var target = progress.from + (progress.to - progress.from) * ratio
+                        root.requestSeek(target)
+                    }
+                }
+                HoverHandler {
+                    cursorShape: Qt.PointingHandCursor
+                }
+                onMoved: root.requestSeek(value)
             }
         }
-        handle: Item { implicitWidth: 0; implicitHeight: 0 }
-        TapHandler {
-            acceptedButtons: Qt.LeftButton
-            onTapped: function(eventPoint) {
-                var ratio = Math.max(0, Math.min(1, eventPoint.position.x / progress.width))
-                var target = progress.from + (progress.to - progress.from) * ratio
-                root.requestSeek(target)
-            }
-        }
-        HoverHandler {
-            cursorShape: Qt.PointingHandCursor
-        }
-        onMoved: root.requestSeek(value)
     }
 
     MouseArea {

@@ -25,8 +25,10 @@ assert "root.backgroundBlurEnabled && root.backgroundBlurVisible ? root.backgrou
 # Translate-only visual transform leaves the compositor region stationary.
 assert "readonly property Item blurRegionItem: contentHost" in visibility
 assert "contentTransform" not in visibility
-assert 'target: contentHost' in visibility
-assert 'property: "x"' in visibility and 'property: "y"' in visibility
+assert 'target: root' in visibility
+assert 'property: "transitionProgress"' in visibility
+assert 'x: root.transitionProgress * root.activeHiddenX' in visibility
+assert 'y: root.transitionProgress * root.activeHiddenY' in visibility
 
 # The runtime here has no QuickShell/QML parser, so still reject delimiter
 # mistakes in every touched QML file before relying on the structural checks.

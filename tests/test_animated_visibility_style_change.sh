@@ -5,34 +5,28 @@ python3 - "$ROOT/components/primitives/AnimatedVisibility.qml" <<'PY'
 from pathlib import Path
 import sys
 qml = Path(sys.argv[1]).read_text(encoding="utf-8")
-
-handler = qml.split("function handleAnimationStyleChange()", 1)[1].split("function handleDurationChange()", 1)[0]
-assert "if (root.running) return" in handler, "a style change must not restart the current transition"
+handler = qml.split("function handleAnimationStyleChange()", 1)[1].split("function handleAnimationProfileChange()", 1)[0]
+assert "if (root.running) return" in handler
 assert "activeAnimationStyle = root.animationStyle" in handler
 assert "activeDuration = 0" in handler and "activeDuration = root.duration" in handler
-assert "applyImmediate(root.shown)" in handler, "idle components should normalize to the selected style without animating"
+assert "applyImmediate(root.shown)" in handler
 assert "onAnimationStyleChanged: handleAnimationStyleChange()" in qml
 assert "root.activeAnimationStyle" in qml and "root.activeDuration" in qml
-assert "duration: root.usesOpacity() ? root.activeDuration : 0" in qml
-assert "duration: root.usesHorizontalSlide() ? root.activeDuration : 0" in qml
-assert "duration: root.usesVerticalSlide() ? root.activeDuration : 0" in qml
-
-# A zero duration or selecting the module-specific `none` style mid-transition settles instantly.
+assert 'property: "transitionProgress"' in qml
+assert 'x: root.transitionProgress * root.activeHiddenX' in qml
+assert 'y: root.transitionProgress * root.activeHiddenY' in qml
+assert 'opacity: root.usesOpacity() ? 1 - root.transitionProgress : 1' in qml
+assert qml.count('property: "transitionProgress"') == 2
 duration_handler = qml.split("function handleDurationChange()", 1)[1].split("function startTransition()", 1)[0]
-assert "if (root.running)" in duration_handler
-assert "root.duration <= 0" in duration_handler
+assert "if (root.running)" in duration_handler and "root.duration <= 0" in duration_handler
 assert 'if (root.animationStyle === "none")' in handler
-assert "applyImmediate(root.shown)" in handler
 assert "applyImmediate(root.shown)" in duration_handler
-
-# The current transition's style and duration are captured before animation starts,
-# and are not overwritten during a reversal while that same transition is active.
-start = qml.split("function startTransition()", 1)[1].split("ParallelAnimation {\n        id: showTransition", 1)[0]
+start = qml.split("function startTransition()", 1)[1].split("NumberAnimation {\n        id: showTransition", 1)[0]
 assert 'if (root.animationStyle === "none")' in start
-assert start.index('if (root.animationStyle === "none")') < start.index("var wasRunning = root.running"), "none must be handled before capturing/running a transition"
-assert "var wasRunning = root.running" in start
-assert "if (!wasRunning)" in start
+assert start.index('if (root.animationStyle === "none")') < start.index("var wasRunning = root.running")
+assert "var wasRunning = root.running" in start and "if (!wasRunning)" in start
 assert "activeAnimationStyle = root.animationStyle" in start
+assert "activeAnimationProfile = root.animationProfile" in start
 assert "activeDuration = 0" in start and "activeDuration = root.duration" in start
-print("AnimatedVisibility mid-transition style/duration stability: OK")
+print("AnimatedVisibility shared-progress and mid-transition stability: OK")
 PY

@@ -1,6 +1,7 @@
 import "../../.."
 import QtQuick
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: weatherSection
@@ -136,86 +137,94 @@ Column {
                                 onClicked: weatherSection.windDirectionSettingsExpanded = !weatherSection.windDirectionSettingsExpanded
                             }
                         }
-                        Row {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
+                        MorphGeometry {
+                            id: windDirectionRowsMorph
                             width: parent.width
-                            height: 22
-                            spacing: 6
-                            Text { width: 130; text: "Направление"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
-                            Text { width: 55; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 150; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Без направления (0)"
-                            iconValue: Config.weatherWindCalmIcon
-                            fontValue: Config.weatherWindCalmFont
-                            onIconEdited: function(value) { Config.weatherWindCalmIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindCalmFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Север (1)"
-                            iconValue: Config.weatherWindNIcon
-                            fontValue: Config.weatherWindNFont
-                            onIconEdited: function(value) { Config.weatherWindNIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindNFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Северо-восток (2)"
-                            iconValue: Config.weatherWindNEIcon
-                            fontValue: Config.weatherWindNEFont
-                            onIconEdited: function(value) { Config.weatherWindNEIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindNEFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Восток (3)"
-                            iconValue: Config.weatherWindEIcon
-                            fontValue: Config.weatherWindEFont
-                            onIconEdited: function(value) { Config.weatherWindEIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindEFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Юго-восток (4)"
-                            iconValue: Config.weatherWindSEIcon
-                            fontValue: Config.weatherWindSEFont
-                            onIconEdited: function(value) { Config.weatherWindSEIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindSEFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Юг (5)"
-                            iconValue: Config.weatherWindSIcon
-                            fontValue: Config.weatherWindSFont
-                            onIconEdited: function(value) { Config.weatherWindSIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindSFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Юго-запад (6)"
-                            iconValue: Config.weatherWindSWIcon
-                            fontValue: Config.weatherWindSWFont
-                            onIconEdited: function(value) { Config.weatherWindSWIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindSWFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Запад (7)"
-                            iconValue: Config.weatherWindWIcon
-                            fontValue: Config.weatherWindWFont
-                            onIconEdited: function(value) { Config.weatherWindWIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindWFont = value; settings.save() }
-                        }
-                        WeatherWindDirectionSettingsRow {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1 && weatherSection.windDirectionSettingsExpanded
-                            label: "Северо-запад (8)"
-                            iconValue: Config.weatherWindNWIcon
-                            fontValue: Config.weatherWindNWFont
-                            onIconEdited: function(value) { Config.weatherWindNWIcon = value; settings.save() }
-                            onFontEdited: function(value) { Config.weatherWindNWFont = value; settings.save() }
+                            clip: true
+                            visible: weatherSection.windDirectionSettingsExpanded || normalizedProgress > 0.001
+                            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                            toGeometry: Qt.rect(0, 0, parent.width, windDirectionRowsContent.implicitHeight)
+                            progress: weatherSection.windDirectionSettingsExpanded ? 1 : 0
+                            animationDuration: Config.animationDuration(180, "appearance")
+                            animationEasing: Config.animationEasingType("standard", weatherSection.windDirectionSettingsExpanded ? "enter" : "exit")
+
+                            Column {
+                                id: windDirectionRowsContent
+                                width: parent.width
+                                spacing: 5
+
+                            Row {
+                                width: parent.width
+                                height: 22
+                                spacing: 6
+                                Text { width: 130; text: "Направление"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
+                                Text { width: 55; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                Text { width: 150; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Без направления (0)"
+                                iconValue: Config.weatherWindCalmIcon
+                                fontValue: Config.weatherWindCalmFont
+                                onIconEdited: function(value) { Config.weatherWindCalmIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindCalmFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Север (1)"
+                                iconValue: Config.weatherWindNIcon
+                                fontValue: Config.weatherWindNFont
+                                onIconEdited: function(value) { Config.weatherWindNIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindNFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Северо-восток (2)"
+                                iconValue: Config.weatherWindNEIcon
+                                fontValue: Config.weatherWindNEFont
+                                onIconEdited: function(value) { Config.weatherWindNEIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindNEFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Восток (3)"
+                                iconValue: Config.weatherWindEIcon
+                                fontValue: Config.weatherWindEFont
+                                onIconEdited: function(value) { Config.weatherWindEIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindEFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Юго-восток (4)"
+                                iconValue: Config.weatherWindSEIcon
+                                fontValue: Config.weatherWindSEFont
+                                onIconEdited: function(value) { Config.weatherWindSEIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindSEFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Юг (5)"
+                                iconValue: Config.weatherWindSIcon
+                                fontValue: Config.weatherWindSFont
+                                onIconEdited: function(value) { Config.weatherWindSIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindSFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Юго-запад (6)"
+                                iconValue: Config.weatherWindSWIcon
+                                fontValue: Config.weatherWindSWFont
+                                onIconEdited: function(value) { Config.weatherWindSWIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindSWFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Запад (7)"
+                                iconValue: Config.weatherWindWIcon
+                                fontValue: Config.weatherWindWFont
+                                onIconEdited: function(value) { Config.weatherWindWIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindWFont = value; settings.save() }
+                            }
+                            WeatherWindDirectionSettingsRow {
+                                label: "Северо-запад (8)"
+                                iconValue: Config.weatherWindNWIcon
+                                fontValue: Config.weatherWindNWFont
+                                onIconEdited: function(value) { Config.weatherWindNWIcon = value; settings.save() }
+                                onFontEdited: function(value) { Config.weatherWindNWFont = value; settings.save() }
+                            }
+                            }
                         }
     }
     SettingsGroup {
@@ -386,18 +395,37 @@ Column {
                 Connections { target: Config; function onWeatherShowComfortChanged() { weatherShowComfortCheckBox.checked = Config.weatherShowComfort } }
             }
         }
-        SettingsColorField { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; label: "Цвет обводки"; value: String(Config.weatherComfortOutlineColor); targetObject: Config; targetProperty: "weatherComfortOutlineColor"; settingsObject: settings; saveOnEdit: true; allowAlpha: false; allowTransparent: false; labelWidth: 210; fieldWidth: 120 }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField { id: weatherComfortOutlineWidthField; width: 100; height: 30; value: Config.weatherComfortOutlineWidth; minimum: 0; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherComfortOutlineWidth"; settingsObject: settings; saveOnEdit: true }
-        }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Положение Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField { id: weatherComfortYField; width: 100; height: 30; value: Config.weatherComfortY + Config.weatherComfortOffsetY; minimum: -120; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; valueWriter: function(n) { var baseY = Math.max(-20, Math.min(100, n)); Config.weatherComfortY = baseY; Config.weatherComfortOffsetY = n - baseY }; settingsObject: settings; saveOnEdit: true }
-        }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Смещение X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField { id: weatherComfortOffsetXField; width: 100; height: 30; value: Config.weatherComfortOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetX"; settingsObject: settings; saveOnEdit: true }
+        MorphGeometry {
+            id: weatherComfortOptionsMorph
+            width: parent.width
+            clip: true
+            visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+                && (Config.weatherShowComfort || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, weatherComfortOptionsContent.implicitHeight)
+            progress: Config.weatherShowComfort ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.weatherShowComfort ? "enter" : "exit")
+
+            Column {
+                id: weatherComfortOptionsContent
+                width: parent.width
+                spacing: 6
+
+            SettingsColorField { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; label: "Цвет обводки"; value: String(Config.weatherComfortOutlineColor); targetObject: Config; targetProperty: "weatherComfortOutlineColor"; settingsObject: settings; saveOnEdit: true; allowAlpha: false; allowTransparent: false; labelWidth: 210; fieldWidth: 120 }
+            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+                Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField { id: weatherComfortOutlineWidthField; width: 100; height: 30; value: Config.weatherComfortOutlineWidth; minimum: 0; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherComfortOutlineWidth"; settingsObject: settings; saveOnEdit: true }
+            }
+            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+                Text { width: 210; height: 30; text: "Положение Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField { id: weatherComfortYField; width: 100; height: 30; value: Config.weatherComfortY + Config.weatherComfortOffsetY; minimum: -120; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; valueWriter: function(n) { var baseY = Math.max(-20, Math.min(100, n)); Config.weatherComfortY = baseY; Config.weatherComfortOffsetY = n - baseY }; settingsObject: settings; saveOnEdit: true }
+            }
+            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+                Text { width: 210; height: 30; text: "Смещение X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField { id: weatherComfortOffsetXField; width: 100; height: 30; value: Config.weatherComfortOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetX"; settingsObject: settings; saveOnEdit: true }
+            }
+            }
         }
     }
 

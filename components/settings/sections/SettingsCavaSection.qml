@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: root
@@ -83,35 +84,47 @@ Column {
             }
         }
 
-        Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0 && Config.cavaHideWhenSilent
+        MorphGeometry {
+            id: cavaHideZeroBarsMorph
             width: parent.width
-            height: 30
-            spacing: 8
+            clip: true
+            visible: Config.cavaHideWhenSilent || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, cavaHideZeroBarsContent.implicitHeight)
+            progress: Config.cavaHideWhenSilent ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.cavaHideWhenSilent ? "enter" : "exit")
 
-            Text {
-                width: 210
+            Row {
+                id: cavaHideZeroBarsContent
+                width: parent.width
                 height: 30
-                text: "Скрывать пустые полоски"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+                spacing: 8
 
-            SettingsCheckBox {
-                id: cavaHideZeroBarsCheckBox
-                width: 58
-                height: 30
-                indicatorOnly: true
-                checked: Config.cavaHideZeroBars
-                onToggled: {
-                    Config.cavaHideZeroBars = checked
-                    settings.save()
+                Text {
+                    width: 210
+                    height: 30
+                    text: "Скрывать пустые полоски"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
                 }
-                Connections {
-                    target: Config
-                    function onCavaHideZeroBarsChanged() { cavaHideZeroBarsCheckBox.checked = Config.cavaHideZeroBars }
+
+                SettingsCheckBox {
+                    id: cavaHideZeroBarsCheckBox
+                    width: 58
+                    height: 30
+                    indicatorOnly: true
+                    checked: Config.cavaHideZeroBars
+                    onToggled: {
+                        Config.cavaHideZeroBars = checked
+                        settings.save()
+                    }
+                    Connections {
+                        target: Config
+                        function onCavaHideZeroBarsChanged() { cavaHideZeroBarsCheckBox.checked = Config.cavaHideZeroBars }
+                    }
                 }
             }
         }

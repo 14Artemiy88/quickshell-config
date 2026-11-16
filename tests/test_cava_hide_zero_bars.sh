@@ -30,8 +30,10 @@ need(s['resets'].count('"cavaHideZeroBars"') == 2, 'CAVA profile reset lists mus
 
 ui = s['settings']
 need('text: "Скрывать пустые полоски"' in ui, 'checkbox label is missing')
-need('visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0 && Config.cavaHideWhenSilent' in ui,
-     'checkbox must only be shown when hide-when-silent is enabled')
+need('visible: Config.cavaHideWhenSilent || normalizedProgress > 0.001' in ui,
+     'checkbox must remain visible only while enabled or while its collapse transition is running')
+need('id: cavaHideZeroBarsMorph' in ui and 'progress: Config.cavaHideWhenSilent ? 1 : 0' in ui,
+     'checkbox visibility must use the shared expand/collapse geometry transition')
 need('checked: Config.cavaHideZeroBars' in ui and 'Config.cavaHideZeroBars = checked' in ui and 'settings.save()' in ui,
      'checkbox must read, update, and save the setting')
 

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Item {
     id: root
@@ -465,23 +466,41 @@ Item {
             }
         }
 
-        Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+        MorphGeometry {
+            id: calendarPastDaysColorMorph
             width: parent.width
-            height: 30
-            spacing: 8
-            SettingsColorField {
+            clip: true
+            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+                && (Config.calendarPastDaysColorEnabled || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, calendarPastDaysColorContent.implicitHeight)
+            progress: Config.calendarPastDaysColorEnabled ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.calendarPastDaysColorEnabled ? "enter" : "exit")
+
+            Column {
+                id: calendarPastDaysColorContent
                 width: parent.width
-                label: "Цвет прошедших дней и меток заметок"
-                value: String(Config.calendarPastDaysColor)
-                targetObject: Config
-                targetProperty: "calendarPastDaysColor"
-                settingsObject: settings
-                saveOnEdit: true
-                allowAlpha: false
-                allowTransparent: false
-                fieldWidth: 120
-                compact: false
+                spacing: 6
+
+                Row {
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    SettingsColorField {
+                        width: parent.width
+                        label: "Цвет прошедших дней и меток заметок"
+                        value: String(Config.calendarPastDaysColor)
+                        targetObject: Config
+                        targetProperty: "calendarPastDaysColor"
+                        settingsObject: settings
+                        saveOnEdit: true
+                        allowAlpha: false
+                        allowTransparent: false
+                        fieldWidth: 120
+                        compact: false
+                    }
+                }
             }
         }
     }

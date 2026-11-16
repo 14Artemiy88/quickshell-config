@@ -545,6 +545,12 @@ Item {
                             width: 270
                             height: 46
                             text: "УМНОЕ РЕДАКТИРОВАНИЕ"
+                            // AnimatedVisibility disables its content while the
+                            // settings window exits. Keep this action rendered so
+                            // the adjacent description does not reflow mid-slide.
+                            visible: true
+                            disabledTextColor: Config.accent
+                            disabledBorderColor: Config.baseColor
                             fontSize: 11
                             fontBold: true
                             fillOnHover: false

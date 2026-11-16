@@ -54,8 +54,10 @@ for source, name, mode_prop in ((cpu, 'CpuGraph', 'cpuGraphMode'), (cava, 'Cava'
     need(not re.search(r'visible\s*:\s*Config\.' + mode_prop, source),
          f'{name} still creates mode trees and only hides inactive ones')
     if name == 'Cava':
-        need('active: !Config.cavaHideWhenSilent || root.soundActive' in source,
-             'CAVA hide-when-silent should release graph delegates after the grace period')
+        need('Behavior on graphVisibilityProgress' in source,
+             'CAVA hide-when-silent should animate the graph exit')
+        need('active: root.graphShouldBeVisible || cavaGraphMorph.normalizedProgress > 0.001' in source,
+             'CAVA should retain graph delegates through exit, then release them')
     counts = {}
     for mode in ('bothModeComponent', 'topModeComponent', 'bottomModeComponent'):
         body = component_body(source, mode)

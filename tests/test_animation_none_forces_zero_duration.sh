@@ -9,7 +9,7 @@ qml = (root / "components/primitives/AnimatedVisibility.qml").read_text(encoding
 shell = (root / "shell.qml").read_text(encoding="utf-8")
 timer = (root / "components/TimerWidget.qml").read_text(encoding="utf-8")
 options = (root / "components/TimerOptions.qml").read_text(encoding="utf-8")
-start = qml.split("function startTransition()", 1)[1].split("ParallelAnimation {\n        id: showTransition", 1)[0]
+start = qml.split("function startTransition()", 1)[1].split("NumberAnimation {\n        id: showTransition", 1)[0]
 assert 'if (root.animationStyle === "none")' in start
 assert start.index('if (root.animationStyle === "none")') < start.index("var wasRunning = root.running")
 none_branch = start.split('if (root.animationStyle === "none")', 1)[1].split("var wasRunning = root.running", 1)[0]

@@ -15,7 +15,7 @@ Rectangle {
     border.color: controller.hoverBorderColor(rowMouse.containsMouse)
 
     readonly property int actionWidth: (Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon) ? 42 : 0
-    readonly property int numberWidth: Config.mopidyShowTrackNumbers ? 18 : 0
+    readonly property real numberWidth: trackNumberSlot.width
     readonly property int durationWidth: 38
 
     Row {
@@ -23,38 +23,63 @@ Rectangle {
         anchors.margins: 5
         spacing: 5
 
-        Text {
-            width: trackRow.numberWidth
+        Item {
+            id: trackNumberSlot
+            width: trackNumberMorph.geometryWidth
             height: parent.height
-            visible: Config.mopidyShowTrackNumbers
-            text: Number(itemData.track.tlid) === controller.currentTlid ? "▶" : String(itemData.queueIndex + 1)
-            color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
-            font.family: Config.font
-            font.pixelSize: Config.fontSize
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+
+            Primitives.MorphGeometry {
+                id: trackNumberMorph
+                fromGeometry: Qt.rect(0, 0, 0, parent.height)
+                toGeometry: Qt.rect(0, 0, 18, parent.height)
+                progress: Config.mopidyShowTrackNumbers ? 1 : 0
+                visible: Config.mopidyShowTrackNumbers || normalizedProgress > 0.001
+                animationDuration: Config.animationDuration(180, "appearance")
+                animationEasing: Config.animationEasingType("standard", Config.mopidyShowTrackNumbers ? "enter" : "exit")
+
+                Text {
+                    width: 18
+                    height: parent.height
+                    opacity: trackNumberMorph.normalizedProgress
+                    transform: Scale {
+                        xScale: trackNumberMorph.normalizedProgress
+                        yScale: 1
+                        origin.x: 0
+                        origin.y: trackNumberMorph.geometryHeight / 2
+                    }
+                    text: Number(itemData.track.tlid) === controller.currentTlid ? "▶" : String(itemData.queueIndex + 1)
+                    color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
+                    font.family: Config.font
+                    font.pixelSize: Config.fontSize
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
         }
 
         Item {
+            id: trackTextArea
             width: parent.width - trackRow.numberWidth - trackRow.durationWidth - trackRow.actionWidth - 15
             height: parent.height
             anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: (Config.mopidyTrackArtistDisplayMode === "two-lines" && itemData.track.artist) ? 2 : 0
+            anchors.verticalCenterOffset: artistLineMorph.normalizedProgress * 2
+            readonly property bool oneLineModeSettled: Config.mopidyTrackArtistDisplayMode === "one-line"
+                && artistLineMorph.normalizedProgress <= 0.001
 
             Text {
                 id: trackTitleText
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                height: (Config.mopidyTrackArtistDisplayMode === "one-line" || !itemData.track.artist) ? parent.height : Math.round(parent.height * 0.57)
+                height: Math.max(1, parent.height - artistLineMorph.geometryHeight)
                 text: {
                     var trackName = itemData.track.name || "Без названия"
                     var artistName = itemData.track.artist || ""
-                    return Config.mopidyTrackArtistDisplayMode === "one-line"
+                    return trackTextArea.oneLineModeSettled
                         ? controller.formatOneLineTrack(artistName, trackName)
                         : trackName
                 }
-                textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.StyledText : Text.PlainText
+                textFormat: trackTextArea.oneLineModeSettled ? Text.StyledText : Text.PlainText
                 color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.text)
                 font.family: Config.mopidyTrackFont
                 font.pixelSize: Config.mopidyTrackFontSize
@@ -62,21 +87,31 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            Text {
-                id: trackArtistText
-                visible: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: Math.max(8, parent.height - trackTitleText.height)
-                text: itemData.track.artist || ""
-                color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
-                font.family: Config.mopidyArtistFont
-                font.pixelSize: Config.mopidyArtistFontSize
-                font.bold: Config.mopidyArtistBold
-                font.italic: Config.mopidyArtistItalic
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignVCenter
+            Primitives.MorphGeometry {
+                id: artistLineMorph
+                width: parent.width
+                clip: true
+                visible: (Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist)
+                    || normalizedProgress > 0.001
+                fromGeometry: Qt.rect(0, parent.height, parent.width, 0)
+                toGeometry: Qt.rect(0, Math.round(parent.height * 0.57), parent.width,
+                    Math.max(0, parent.height - Math.round(parent.height * 0.57)))
+                progress: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? 1 : 0
+                animationDuration: Config.animationDuration(180, "appearance")
+                animationEasing: Config.animationEasingType("standard", progress > 0.5 ? "enter" : "exit")
+
+                Text {
+                    id: trackArtistText
+                    anchors.fill: parent
+                    text: itemData.track.artist || ""
+                    color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
+                    font.family: Config.mopidyArtistFont
+                    font.pixelSize: Config.mopidyArtistFontSize
+                    font.bold: Config.mopidyArtistBold
+                    font.italic: Config.mopidyArtistItalic
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
         }
 
@@ -112,6 +147,7 @@ Rectangle {
         iconSize: Config.mopidyMoveUpIconSize
         requestedVisible: itemData.queueIndex > 0 && Config.mopidyShowMoveUpIcon
         hideWhenDisabled: false
+        morphVisibility: true
         baseColor: Config.textMuted
         hoverMode: Config.mopidyHoverMode
         hoverColor: Config.mopidyHoverColor
@@ -130,6 +166,7 @@ Rectangle {
         iconSize: Config.mopidyMoveDownIconSize
         requestedVisible: itemData.queueIndex < controller.tracks.length - 1 && Config.mopidyShowMoveDownIcon
         hideWhenDisabled: false
+        morphVisibility: true
         baseColor: Config.textMuted
         hoverMode: Config.mopidyHoverMode
         hoverColor: Config.mopidyHoverColor

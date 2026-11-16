@@ -36,6 +36,7 @@ grep -Fq 'contentWidth: Math.max(Settings.geometry.topAppsCpu[2], topAppsCpuView
 grep -Fq 'contentWidth: Math.max(Settings.geometry.topAppsRam[2], topAppsRamView.requiredContentWidth)' "$ROOT/shell.qml" || fail "RAM Top Apps host window does not grow to show the full bar"
 grep -Fq 'readonly property int layoutContentWidth:' "$widget" || fail "logical module width is missing"
 grep -Fq 'x: root.layoutRowWidth - width' "$widget" || fail "value column is not fixed to logical width"
-grep -Fq 'visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2' "$settings" || fail "geometry settings are not limited to Top Apps with bars enabled"
+grep -Fq 'id: topAppsBarGeometryMorph' "$settings" || fail "bar geometry rows are not wrapped in MorphGeometry"
+grep -Fq 'progress: Config.topAppsShowBars ? 1 : 0' "$settings" || fail "bar geometry morph does not follow the visibility toggle"
 
 echo "Top Apps bar geometry settings: OK"

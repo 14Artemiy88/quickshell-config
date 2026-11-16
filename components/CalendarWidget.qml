@@ -477,26 +477,49 @@ Primitives.ModuleFrame {
 
     // Compact in-widget editor/viewer. Right-click opens editing; left-click
     // opens this viewer only for dates that already have a note.
-    Rectangle {
-        id: noteOverlay
-        anchors.fill: parent
+    Primitives.MorphGeometry {
+        id: noteOverlayMorph
+        x: 0
+        y: 0
+        width: root.width
+        height: root.height
         z: 100
-        visible: root.noteOverlayMode !== ""
-        color: "#e6000000"
-        border.color: Config.baseColor
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
+        fromGeometry: Qt.rect(0, 0, root.width, root.height)
+        toGeometry: Qt.rect(0, 0, root.width, root.height)
+        fromRadius: Config.frameRadius + 4
+        toRadius: Config.frameRadius
+        progress: root.noteOverlayMode !== "" ? 1 : 0
+        visible: root.noteOverlayMode !== "" || normalizedProgress > 0.001
+        animationDuration: Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("standard", root.noteOverlayMode !== "" ? "enter" : "exit")
 
+        // Keep the interaction shield full-size while the visible overlay content
+        // performs a restrained scale morph. This avoids clipping the TextArea or
+        // changing its wrapping while the note editor opens and closes.
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.AllButtons
             onClicked: function(mouse) { mouse.accepted = true }
         }
 
-        Column {
+        Item {
             anchors.fill: parent
-            anchors.margins: 10
-            spacing: 7
+            opacity: noteOverlayMorph.normalizedProgress
+            scale: 0.97 + 0.03 * noteOverlayMorph.normalizedProgress
+            transformOrigin: Item.Center
+
+            Rectangle {
+                anchors.fill: parent
+                color: "#e6000000"
+                border.color: Config.baseColor
+                border.width: Config.frameBorderWidth
+                radius: noteOverlayMorph.geometryRadius
+            }
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 7
 
             Row {
                 width: parent.width
@@ -624,6 +647,7 @@ Primitives.ModuleFrame {
                     onClicked: root.closeNoteOverlay()
                 }
             }
+        }
         }
     }
 

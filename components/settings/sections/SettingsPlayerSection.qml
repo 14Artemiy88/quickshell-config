@@ -606,34 +606,51 @@ Column {
                     onToggled: { Config.playerTextOutlineEnabled = checked; settings.save() }
                 }
             }
-            Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3 && Config.playerTextOutlineEnabled
+            MorphGeometry {
+                id: playerTextOutlineColorMorph
                 width: parent.width
-                height: 30
-                spacing: 8
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Цвет обводки"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
-                SettingsColorField {
-                    id: playerTextOutlineColorField
-                    width: 120
-                    height: 30
-                    value: Config.playerTextOutlineColor
-                    targetObject: Config
-                    targetProperty: "playerTextOutlineColor"
-                    settingsObject: settings
-                    saveOnEdit: true
-                    allowAlpha: false
-                    allowTransparent: false
-                    compact: true
-                    fieldWidth: 88
-                    swatchSize: 24
+                clip: true
+                visible: Config.playerTextOutlineEnabled || normalizedProgress > 0.001
+                fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                toGeometry: Qt.rect(0, 0, parent.width, playerTextOutlineColorContent.implicitHeight)
+                progress: Config.playerTextOutlineEnabled ? 1 : 0
+                animationDuration: Config.animationDuration(180, "appearance")
+                animationEasing: Config.animationEasingType("standard", Config.playerTextOutlineEnabled ? "enter" : "exit")
+
+                Column {
+                    id: playerTextOutlineColorContent
+                    width: parent.width
+                    spacing: 6
+
+                    Row {
+                        width: parent.width
+                        height: 30
+                        spacing: 8
+                        Text {
+                            width: 210
+                            height: 30
+                            text: "Цвет обводки"
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(11)
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        SettingsColorField {
+                            id: playerTextOutlineColorField
+                            width: 120
+                            height: 30
+                            value: Config.playerTextOutlineColor
+                            targetObject: Config
+                            targetProperty: "playerTextOutlineColor"
+                            settingsObject: settings
+                            saveOnEdit: true
+                            allowAlpha: false
+                            allowTransparent: false
+                            compact: true
+                            fieldWidth: 88
+                            swatchSize: 24
+                        }
+                    }
                 }
             }
     }
@@ -804,85 +821,103 @@ Column {
                 visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
                 SettingsCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } }
             }
-            Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+        MorphGeometry {
+            id: playerProgressOptionsMorph
+            width: parent.width
+            clip: true
+            visible: Config.playerShowProgress || normalizedProgress > 0.001
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, playerProgressOptionsContent.implicitHeight)
+            progress: Config.playerShowProgress ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.playerShowProgress ? "enter" : "exit")
+
+            Column {
+                id: playerProgressOptionsContent
                 width: parent.width
-                height: 24
-                spacing: 8
-                Item { width: 210; height: 24 }
-                Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                Text { width: 58; text: "Высота"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                Text { width: 58; text: "Смещение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            }
-            Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
-                width: parent.width
-                height: 30
-                spacing: 8
-                Item { width: 210; height: 30 }
-                SettingsNumberField {
-                    compact: true
-                    value: Config.playerProgressY
-                    minimum: 0
-                    maximum: 100
-                    step: 1
-                    fieldWidth: 72
-                    onValueEdited: function(value) {
-                        Config.playerProgressY = value
-                        settings.save()
+                spacing: 6
+
+                Row {
+                    visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+                    width: parent.width
+                    height: 24
+                    spacing: 8
+                    Item { width: 210; height: 24 }
+                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; text: "Высота"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; text: "Смещение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+                Row {
+                    visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Item { width: 210; height: 30 }
+                    SettingsNumberField {
+                        compact: true
+                        value: Config.playerProgressY
+                        minimum: 0
+                        maximum: 100
+                        step: 1
+                        fieldWidth: 72
+                        onValueEdited: function(value) {
+                            Config.playerProgressY = value
+                            settings.save()
+                        }
+                    }
+                    SettingsNumberField {
+                        compact: true
+                        value: Config.playerProgressTrackHeight
+                        minimum: 1
+                        maximum: 20
+                        step: 1
+                        fieldWidth: 72
+                        onValueEdited: function(value) {
+                            Config.playerProgressTrackHeight = value
+                            settings.save()
+                        }
+                    }
+                    SettingsNumberField {
+                        compact: true
+                        value: Config.playerProgressTrackOffsetY
+                        minimum: -10
+                        maximum: 20
+                        step: 1
+                        fieldWidth: 72
+                        onValueEdited: function(value) {
+                            Config.playerProgressTrackOffsetY = value
+                            settings.save()
+                        }
                     }
                 }
-                SettingsNumberField {
-                    compact: true
-                    value: Config.playerProgressTrackHeight
-                    minimum: 1
-                    maximum: 20
-                    step: 1
-                    fieldWidth: 72
-                    onValueEdited: function(value) {
-                        Config.playerProgressTrackHeight = value
-                        settings.save()
-                    }
+                SettingsColorField {
+                    width: parent.width
+                    label: "Цвет дорожки"
+                    value: String(Config.playerProgressTrack)
+                    targetObject: Config
+                    targetProperty: "playerProgressTrack"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                    allowAlpha: true
+                    allowTransparent: true
+                    labelWidth: 210
+                    fieldWidth: 120
                 }
-                SettingsNumberField {
-                    compact: true
-                    value: Config.playerProgressTrackOffsetY
-                    minimum: -10
-                    maximum: 20
-                    step: 1
-                    fieldWidth: 72
-                    onValueEdited: function(value) {
-                        Config.playerProgressTrackOffsetY = value
-                        settings.save()
-                    }
+                SettingsColorField {
+                    width: parent.width
+                    label: "Цвет заполнения"
+                    value: String(Config.playerProgressFill)
+                    targetObject: Config
+                    targetProperty: "playerProgressFill"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                    allowAlpha: true
+                    allowTransparent: true
+                    labelWidth: 210
+                    fieldWidth: 120
                 }
             }
-            SettingsColorField {
-                width: parent.width
-                label: "Цвет дорожки"
-                value: String(Config.playerProgressTrack)
-                targetObject: Config
-                targetProperty: "playerProgressTrack"
-                settingsObject: root.settings
-                saveOnEdit: true
-                allowAlpha: true
-                allowTransparent: true
-                labelWidth: 210
-                fieldWidth: 120
-            }
-            SettingsColorField {
-                width: parent.width
-                label: "Цвет заполнения"
-                value: String(Config.playerProgressFill)
-                targetObject: Config
-                targetProperty: "playerProgressFill"
-                settingsObject: root.settings
-                saveOnEdit: true
-                allowAlpha: true
-                allowTransparent: true
-                labelWidth: 210
-                fieldWidth: 120
-            }
+        }
     }
     SettingsGroup {
         visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 6

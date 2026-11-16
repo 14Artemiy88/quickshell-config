@@ -426,29 +426,49 @@ Column {
                 border.width: controller.hoverBorderWidth(resultMouse.containsMouse)
                 border.color: controller.hoverBorderColor(resultMouse.containsMouse)
 
-                Column {
+                Item {
+                    id: searchResultTextArea
                     x: 5
                     width: Math.max(0, parent.width - 55)
                     height: parent.height
+                    readonly property string metadataText: [modelData.artist || "", modelData.album || ""].filter(function(v) { return !!v }).join(" · ")
 
                     Text {
-                        width: parent.width
-                        height: 18
+                        id: searchResultTitle
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: Math.max(1, searchResultMetadataMorph.geometryY)
                         text: modelData.name || "Без названия"
                         color: Config.text
                         font.family: Config.mopidyTrackFont
                         font.pixelSize: Config.mopidyTrackFontSize
                         elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
                     }
 
-                    Text {
+                    Primitives.MorphGeometry {
+                        id: searchResultMetadataMorph
                         width: parent.width
-                        height: 14
-                        text: [modelData.artist || "", modelData.album || ""].filter(function(v) { return !!v }).join(" · ")
-                        color: Config.textMuted
-                        font.family: Config.mopidyArtistFont
-                        font.pixelSize: Config.mopidyArtistFontSize
-                        elide: Text.ElideRight
+                        clip: true
+                        visible: searchResultTextArea.metadataText.length > 0 || normalizedProgress > 0.001
+                        fromGeometry: Qt.rect(0, parent.height - 6, parent.width, 0)
+                        toGeometry: Qt.rect(0,
+                            parent.height - 6 - Math.min(14, Math.max(0, parent.height - 6)),
+                            parent.width, Math.min(14, Math.max(0, parent.height - 6)))
+                        progress: searchResultTextArea.metadataText.length > 0 ? 1 : 0
+                        animationDuration: Config.animationDuration(180, "appearance")
+                        animationEasing: Config.animationEasingType("standard", progress > 0.5 ? "enter" : "exit")
+
+                        Text {
+                            anchors.fill: parent
+                            text: searchResultTextArea.metadataText
+                            color: Config.textMuted
+                            font.family: Config.mopidyArtistFont
+                            font.pixelSize: Config.mopidyArtistFontSize
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
                     }
                 }
 

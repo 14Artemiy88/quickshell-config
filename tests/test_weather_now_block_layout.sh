@@ -54,7 +54,7 @@ assert 'Config.weatherIconPlacement !== "off"' in weather
 assert 'Config.weatherIconPlacement === "left"' in weather
 assert 'root.textAlignment(Config.weatherLeftBlockAlignment)' in weather
 assert 'root.textAlignment(Config.weatherRightBlockAlignment)' in weather
-assert 'x: Config.weatherWindColumnX' in weather and 'y: Config.weatherWindColumnY' in weather
+assert 'Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)' in weather, 'wind column position must remain configured'
 assert 'x: Config.weatherPressureX' in weather
 assert 'x: Config.weatherDescriptionX' in weather and 'width: Config.weatherDescriptionWidth' in weather
 assert 'wrapMode: Text.NoWrap' in weather and 'elide: Text.ElideNone' in weather and 'clip: false' in weather

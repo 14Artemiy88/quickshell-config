@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: root
@@ -259,23 +260,40 @@ Column {
             SettingsCheckBox { width: 210; height: 30; text: "Показывать дополнительные потоки"; checked: Config.volumeShowStreams; onToggled: { Config.volumeShowStreams=checked; settings.save() } }
         }
 
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Смещение полос потоков Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
-                id: volumeStreamTrackOffsetField
-                label: ""
-                value: Config.volumeStreamTrackOffsetY
-                minimum: -20
-                maximum: 20
-                step: 1
-                wheelStep: 1
-                labelWidth: 0
-                fieldWidth: 100
-                compact: true
-                targetObject: Config
-                targetProperty: "volumeStreamTrackOffsetY"
-                settingsObject: settings
-                saveOnEdit: true
+        MorphGeometry {
+            id: volumeStreamTrackOffsetMorph
+            width: parent.width
+            clip: true
+            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
+                && (Config.volumeShowStreams || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, volumeStreamTrackOffsetContent.implicitHeight)
+            progress: Config.volumeShowStreams ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")
+
+            Row {
+                id: volumeStreamTrackOffsetContent
+                width: parent.width
+                height: 30
+                spacing: 8
+                Text { width: 210; height: 30; text: "Смещение полос потоков Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField {
+                    id: volumeStreamTrackOffsetField
+                    label: ""
+                    value: Config.volumeStreamTrackOffsetY
+                    minimum: -20
+                    maximum: 20
+                    step: 1
+                    wheelStep: 1
+                    labelWidth: 0
+                    fieldWidth: 100
+                    compact: true
+                    targetObject: Config
+                    targetProperty: "volumeStreamTrackOffsetY"
+                    settingsObject: settings
+                    saveOnEdit: true
+                }
             }
         }
         Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
@@ -297,23 +315,40 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Размер текста потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
-                id: volumeStreamLabelFontField
-                label: ""
-                value: Config.volumeStreamLabelFontSize
-                minimum: 8
-                maximum: 32
-                step: 1
-                wheelStep: 1
-                labelWidth: 0
-                fieldWidth: 100
-                compact: true
-                targetObject: Config
-                targetProperty: "volumeStreamLabelFontSize"
-                settingsObject: settings
-                saveOnEdit: true
+        MorphGeometry {
+            id: volumeStreamLabelFontMorph
+            width: parent.width
+            clip: true
+            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
+                && (Config.volumeShowStreams || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, volumeStreamLabelFontContent.implicitHeight)
+            progress: Config.volumeShowStreams ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")
+
+            Row {
+                id: volumeStreamLabelFontContent
+                width: parent.width
+                height: 30
+                spacing: 8
+                Text { width: 210; height: 30; text: "Размер текста потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                SettingsNumberField {
+                    id: volumeStreamLabelFontField
+                    label: ""
+                    value: Config.volumeStreamLabelFontSize
+                    minimum: 8
+                    maximum: 32
+                    step: 1
+                    wheelStep: 1
+                    labelWidth: 0
+                    fieldWidth: 100
+                    compact: true
+                    targetObject: Config
+                    targetProperty: "volumeStreamLabelFontSize"
+                    settingsObject: settings
+                    saveOnEdit: true
+                }
             }
         }
         Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
@@ -464,38 +499,56 @@ Column {
             }
         }
 
-        Row {
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 5 && Config.animationVolumeStreamsVisibilityStyle !== "none"
+        MorphGeometry {
+            id: volumeStreamsAnimationDurationMorph
             width: parent.width
-            height: 30
-            spacing: 8
-            Text {
-                width: 210
-                height: 30
-                text: "Длительность (мс)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-            SettingsNumberField {
-                id: volumeStreamsAnimationDurationField
-                width: 100
-                height: 30
-                value: Config.volumeStreamsAnimationDuration
-                minimum: 0
-                maximum: 5000
-                step: 50
-                wheelStep: 50
-                decimals: 0
-                compact: true
-                fieldWidth: 100
-                fieldFontSize: 11
-                inputMethodHints: Qt.ImhDigitsOnly
-                targetObject: Config
-                targetProperty: "volumeStreamsAnimationDuration"
-                settingsObject: root.settings
-                saveOnEdit: true
+            clip: true
+            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+                && (Config.animationVolumeStreamsVisibilityStyle !== "none" || normalizedProgress > 0.001)
+            fromGeometry: Qt.rect(0, 0, parent.width, 0)
+            toGeometry: Qt.rect(0, 0, parent.width, volumeStreamsAnimationDurationContent.implicitHeight)
+            progress: Config.animationVolumeStreamsVisibilityStyle !== "none" ? 1 : 0
+            animationDuration: Config.animationDuration(180, "appearance")
+            animationEasing: Config.animationEasingType("standard", Config.animationVolumeStreamsVisibilityStyle !== "none" ? "enter" : "exit")
+
+            Column {
+                id: volumeStreamsAnimationDurationContent
+                width: parent.width
+                spacing: 0
+
+                Row {
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+                    Text {
+                        width: 210
+                        height: 30
+                        text: "Длительность (мс)"
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    SettingsNumberField {
+                        id: volumeStreamsAnimationDurationField
+                        width: 100
+                        height: 30
+                        value: Config.volumeStreamsAnimationDuration
+                        minimum: 0
+                        maximum: 5000
+                        step: 50
+                        wheelStep: 50
+                        decimals: 0
+                        compact: true
+                        fieldWidth: 100
+                        fieldFontSize: 11
+                        inputMethodHints: Qt.ImhDigitsOnly
+                        targetObject: Config
+                        targetProperty: "volumeStreamsAnimationDuration"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                    }
+                }
             }
         }
     }

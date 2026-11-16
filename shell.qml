@@ -820,6 +820,7 @@ ShellRoot {
             id: settingsVisibility
             anchors.fill: parent
             shown: shell.settingsVisible
+            cacheContent: true
             animationStyle: Config.animationSettingsVisibilityStyle
             duration: Config.animationSettingsVisibilityStyle === "none" ? 0 : Config.animationDuration(300, "appearance")
             SettingsWidget {

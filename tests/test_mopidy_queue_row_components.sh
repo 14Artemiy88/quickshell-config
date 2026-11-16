@@ -14,7 +14,10 @@ grep -Fq 'property bool stickyHeader: false' "$ALBUM"
 grep -Fq 'controller.removeAlbum(itemData.tlids)' "$ALBUM"
 grep -Fq 'property var controller' "$TRACK"
 # RichText disables Text.elide in Qt Quick; StyledText preserves basic artist markup and supports elision.
-grep -Fq 'textFormat: Config.mopidyTrackArtistDisplayMode === "one-line" ? Text.StyledText : Text.PlainText' "$TRACK"
+# The display mode only switches to the formatted one-line title after the artist row has fully collapsed.
+grep -Fq 'textFormat: trackTextArea.oneLineModeSettled ? Text.StyledText : Text.PlainText' "$TRACK"
+grep -Fq 'controller.formatOneLineTrack(artistName, trackName)' "$TRACK"
+grep -Fq 'artistLineMorph.normalizedProgress <= 0.001' "$TRACK"
 grep -Fq 'elide: Text.ElideRight' "$TRACK"
 if grep -Fq 'Text.RichText' "$TRACK"; then
     echo 'Mopidy queue title uses RichText, which disables eliding' >&2

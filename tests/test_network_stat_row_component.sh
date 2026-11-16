@@ -10,11 +10,14 @@ grep -Fq 'glyph: ""' "$PARENT"
 grep -Fq 'glyph: ""' "$PARENT"
 grep -Fq 'accentColor: Config.networkUpload' "$PARENT"
 grep -Fq 'accentColor: Config.networkDownload' "$PARENT"
-grep -Fq 'visible: Config.networkShowUpload' "$PARENT"
-grep -Fq 'visible: Config.networkShowDownload' "$PARENT"
+grep -Fq 'id: uploadRowMorph' "$PARENT"
+grep -Fq 'id: downloadRowMorph' "$PARENT"
+grep -Fq 'progress: Config.networkShowUpload ? 1 : 0' "$PARENT"
+grep -Fq 'progress: Config.networkShowDownload ? 1 : 0' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")' "$PARENT"
-grep -Fq 'spacing: Config.networkSpacing' "$PARENT"
+grep -Fq 'readonly property real networkStatRowGap:' "$PARENT"
+grep -Fq 'Config.networkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' "$PARENT"
 ! grep -Fq 'networkHorizontalPadding' "$PARENT"
 grep -Fq 'Config.networkIconLeftPadding' "$ROW"
 grep -Fq 'Config.networkRightPadding' "$ROW"
@@ -58,8 +61,8 @@ def check_balance(name):
 for name in sys.argv[1:]: check_balance(name)
 parent=Path(sys.argv[1]).read_text(encoding='utf-8')
 row=Path(sys.argv[2]).read_text(encoding='utf-8')
-if parent.count('NetworkStatRow {') != 2:
-    raise SystemExit('NetworkStat must contain exactly two shared upload/download rows')
+if parent.count('Primitives.MorphGeometry {') != 2 or parent.count('NetworkStatRow {') != 2:
+    raise SystemExit('NetworkStat must contain two MorphGeometry wrappers around the shared upload/download rows')
 import re
 if re.search(r'(?m)^\s*(?:Text|Row) \{', parent):
     raise SystemExit('NetworkStat duplicates row layout instead of using NetworkStatRow')

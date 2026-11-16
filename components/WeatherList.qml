@@ -97,7 +97,7 @@ Primitives.ModuleFrame {
     }
 
     WeatherPlaceholder {
-        visible: !root.hasData
+        active: !root.hasData
         z: 1.5
         message: root.statusMessage
         weatherService: root.weatherService

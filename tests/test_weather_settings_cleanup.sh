@@ -18,7 +18,12 @@ assert 'Иконки и шрифты направления ветра' not in s
 assert section.index('text: "Иконки направления ветра"') < section.index('heading: "Иконка текущей погоды"'), 'wind icon dropdown must be first in the current-weather subtab'
 assert '9 направлений · нажмите' not in section, 'dropdown title should not keep the old subtitle'
 assert section.count('WeatherWindDirectionSettingsRow {') == 9, 'all nine direction-specific rows must remain available'
-assert section.count('weatherSection.windDirectionSettingsExpanded') >= 11, 'the group state must control all direction settings and header'
+wind_morph_start = section.index('id: windDirectionRowsMorph')
+wind_morph_end = section.index('\n                        }', wind_morph_start)
+wind_morph = section[wind_morph_start:wind_morph_end]
+assert 'visible: weatherSection.windDirectionSettingsExpanded || normalizedProgress > 0.001' in wind_morph, 'wind rows must remain mounted through collapse'
+assert 'progress: weatherSection.windDirectionSettingsExpanded ? 1 : 0' in wind_morph, 'the group state must drive the shared morph progress'
+assert wind_morph.count('WeatherWindDirectionSettingsRow {') == 9, 'all nine direction rows must be inside the animated group'
 
 # Current-weather geometry uses consistent aligned table headers instead of labels embedded in each row.
 for heading in ('X', 'Y', 'Размер', 'Шрифт'):
