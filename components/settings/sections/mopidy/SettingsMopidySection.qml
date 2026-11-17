@@ -10,10 +10,10 @@ Column {
     spacing: 10
     width: parent ? parent.width : 0
 
-    visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 0
+    visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 0
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyHoverColor", "mopidyHoverMode", "mopidyToggleWithPlayerRightClick"] })
@@ -92,7 +92,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyBackground"] })
@@ -132,7 +132,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyGroupAlbums", "mopidyShowTrackNumbers"] })
@@ -232,7 +232,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyShowVolumePercent", "mopidyVolumeStep"] })
@@ -265,7 +265,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["animationMopidyVisibilityStyle"] })

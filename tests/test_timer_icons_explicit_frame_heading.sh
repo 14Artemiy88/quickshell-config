@@ -54,7 +54,7 @@ while pos >= 0:
     pos = source.find("SettingsGroup {", end+1)
 assert group is not None, "Heading must belong to a SettingsGroup"
 assert "showFrame: true" in group, "Timer icon heading must be attached to a visible frame"
-assert "host.currentOtherSubTab === 2" in group, "Existing tab visibility guard was lost"
+assert "host.currentPageSubTabIndex === 2" in group, "Existing tab visibility guard was lost"
 for marker in ('"Иконка"', '"Размер"', '"X"', '"Y"', 'Config.timerIcon', 'Config.timerAlarmIcon'):
     assert marker in group, f"Existing timer icon controls/table columns missing: {marker}"
 print("Timer icon explicit frame heading: OK (heading moved to frame; controls preserved)")

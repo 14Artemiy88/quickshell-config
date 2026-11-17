@@ -10,7 +10,7 @@ Item {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 8
+    visible: host && host.currentPageId === "calendar"
     width: parent ? parent.width : 0
     height: visible ? calendarColumn.implicitHeight : 0
     implicitHeight: calendarColumn.implicitHeight
@@ -21,7 +21,7 @@ Item {
         spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         heading: "Показ"
@@ -47,7 +47,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         heading: "Стрелки навигации"
@@ -56,7 +56,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 24
             spacing: 8
@@ -68,7 +68,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Предыдущий месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             SettingsTextField { id: calendarPrevIconField; width: 80; height: 30; text: Config.calendarPreviousIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarPreviousIcon = text; settings.save() } }
@@ -132,7 +132,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Следующий месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             SettingsTextField { id: calendarNextIconField; width: 80; height: 30; text: Config.calendarNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarNextIcon = text; settings.save() } }
@@ -180,7 +180,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] })
@@ -188,7 +188,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: parent.height }
             Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
@@ -196,7 +196,7 @@ Item {
             Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         }
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
@@ -252,7 +252,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Дни недели"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
@@ -308,7 +308,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Дни"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
@@ -365,7 +365,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarAdjacentDaysColor"] })
@@ -373,7 +373,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
@@ -394,7 +394,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Выходные и отмеченные дни"
@@ -403,7 +403,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
@@ -423,7 +423,7 @@ Item {
         }
 
         Text {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
             text: "Щёлкни правой кнопкой по дате и выбери «Отметить день», чтобы выделить отпуск или событие этим же цветом."
             color: Config.textMuted
             font.family: Config.settingsFont
@@ -434,7 +434,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Прошедшие дни"
@@ -443,7 +443,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
@@ -470,7 +470,7 @@ Item {
             id: calendarPastDaysColorMorph
             width: parent.width
             clip: true
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
                 && (Config.calendarPastDaysColorEnabled || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, calendarPastDaysColorContent.implicitHeight)
@@ -506,7 +506,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarNoteFrameColor", "calendarNoteMarkerPosition", "calendarNoteMarkerStyle"] })
@@ -514,7 +514,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
             width: parent.width
             height: 30
             spacing: 8
@@ -544,7 +544,7 @@ Item {
         Row {
             width: parent.width
             height: Config.calendarNoteMarkerStyle === "frame" ? 0 : 30
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2 && Config.calendarNoteMarkerStyle !== "frame"
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2 && Config.calendarNoteMarkerStyle !== "frame"
             spacing: 8
             Text { width: 210; height: 30; text: "Положение метки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
@@ -596,7 +596,7 @@ Item {
         Row {
             width: parent.width
             height: Config.calendarNoteMarkerStyle === "frame" ? 30 : 0
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2 && Config.calendarNoteMarkerStyle === "frame"
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2 && Config.calendarNoteMarkerStyle === "frame"
             spacing: 8
             SettingsColorField {
                 width: parent.width
@@ -613,7 +613,7 @@ Item {
             }
         }
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 2
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
             width: parent.width
             height: 30
             spacing: 8
@@ -623,7 +623,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 8 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         heading: "Анимация"
@@ -632,7 +632,7 @@ Item {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8
@@ -655,7 +655,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8
@@ -671,7 +671,7 @@ Item {
         }
 
         Row {
-            visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 3
+            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8

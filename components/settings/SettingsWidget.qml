@@ -3,6 +3,8 @@ import QtQuick.Controls
 import "../.."
 import "primitives"
 import "sections"
+import "../../js/settings/SettingsSearch.js" as SettingsSearch
+import "../../js/settings/SettingsPageRegistry.js" as SettingsPageRegistry
 import "sections/mopidy" as MopidySettings
 
 Item {
@@ -15,17 +17,19 @@ Item {
         return direction * step * multiplier
     }
     property var settings: Settings
-    property int currentTab: 0
-    property int currentOtherTab: 0
-    property int currentOtherSubTab: 0
+    property string currentPageId: "modules"
+    property int currentPageSubTabIndex: 0
     property bool settingsMoveMode: false
     readonly property bool quickSaveProfileAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
-    readonly property string currentOtherSaveScope: {
-        if (root.currentOtherTab === 0) return root.currentOtherSubTab === 0 ? "general" : ""
-        return ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications"][root.currentOtherTab] || ""
-    }
-    readonly property bool quickSaveSectionAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
-    readonly property bool currentOtherResetAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && !(root.currentOtherTab === 0 && (root.currentOtherSubTab === 1 || root.currentOtherSubTab === 2)) && root.currentOtherSaveScope !== "" && settings.hasResetChanges(root.currentOtherSaveScope)
+    readonly property string currentPageSaveScope: SettingsPageRegistry.saveScopeForPageId(
+        root.currentPageId, root.currentPageSubTabIndex)
+    readonly property bool quickSavePageAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && root.currentPageSaveScope !== "" && settings.hasResetChanges(root.currentPageSaveScope)
+    readonly property bool currentPageResetAvailable: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && !(root.currentPageId === "general" && (root.currentPageSubTabIndex === 1 || root.currentPageSubTabIndex === 2)) && root.currentPageSaveScope !== "" && settings.hasResetChanges(root.currentPageSaveScope)
+    property var settingsSearchIndex: []
+    property var settingsSearchResults: []
+    property string settingsSearchQuery: ""
+    property int settingsSearchSelectedIndex: 0
+    property int settingsSearchCandidateSubTab: 0
     signal layoutEditRequested()
     signal settingsMoveRequested()
     signal closeRequested()
@@ -42,9 +46,8 @@ Item {
     }
 
     function openWeatherSettings() {
-        root.currentTab = 2
-        root.currentOtherTab = 3
-        root.currentOtherSubTab = 0
+        root.currentPageId = "weather"
+        root.currentPageSubTabIndex = 0
         root.clearSettingsFocus()
     }
 
@@ -57,36 +60,16 @@ Item {
         onClicked: root.clearSettingsFocus()
     }
 
-    onCurrentTabChanged: {
+    onCurrentPageIdChanged: {
         if (modulesSectionSettingsSection) modulesSectionSettingsSection.resetScroll()
         if (colorsSectionSettingsSection) colorsSectionSettingsSection.resetScroll()
         if (otherFlick) otherFlick.contentY = 0
+        root.currentPageSubTabIndex = 0
     }
 
-    onCurrentOtherTabChanged: {
-        if (otherFlick) otherFlick.contentY = 0
-        root.currentOtherSubTab = 0
-    }
-
-    // Stable IDs keep the internal routing fixed while users customize sidebar labels/order.
-    readonly property var settingsTabDefinitions: [
-        { id: "modules", defaultLabel: "Модули" },
-        { id: "themes", defaultLabel: "Темы" },
-        { id: "general", defaultLabel: "Общие" },
-        { id: "timers", defaultLabel: "Таймеры" },
-        { id: "player", defaultLabel: "Плеер" },
-        { id: "mopidy", defaultLabel: "Mopidy" },
-        { id: "weather", defaultLabel: "Погода" },
-        { id: "cava", defaultLabel: "CAVA" },
-        { id: "cpuRam", defaultLabel: "CPU/RAM" },
-        { id: "network", defaultLabel: "Сеть" },
-        { id: "volume", defaultLabel: "Громкость" },
-        { id: "calendar", defaultLabel: "Календарь" },
-        { id: "launcher", defaultLabel: "Лаунчер" },
-        { id: "notifications", defaultLabel: "Уведомления" },
-        { id: "settingsWindow", defaultLabel: "Окно настроек" }
-    ]
-    readonly property var otherTabSettingsIds: ["general", "timers", "player", "weather", "cava", "cpuRam", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications"]
+    // Stable page IDs, labels and non-core routes are owned by a dedicated
+    // registry. User-customized labels/order remain in Config and profiles.
+    readonly property var settingsTabDefinitions: SettingsPageRegistry.tabDefinitions()
 
     function defaultSettingsTabLabel(id) {
         for (var i = 0; i < root.settingsTabDefinitions.length; ++i)
@@ -132,22 +115,20 @@ Item {
     }
 
     function isSettingsTabSelected(id) {
-        if (id === "modules") return root.currentTab === 0
-        if (id === "themes") return root.currentTab === 1
-        return root.currentTab === 2 && root.otherTabSettingsIds.indexOf(id) === root.currentOtherTab
+        return root.currentPageId === String(id)
     }
 
     // Subtabs and frames use narrow selectors against the same cached sparse
     // overrides as sidebar indicators. Keep selectors explicit so unrelated
     // sibling fields don't light up every subtab.
-    function settingsSubTabChangeSpec(tab, sub) {
+    function settingsSubTabChangeSpec(pageId, sub) {
         var specs = {
-            0: [
+            "general": [
                 { keys: ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"] },
                 null,
                 null
             ],
-            1: [
+            "timers": [
                 { keys: ["timerWheelStep", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerPresetDefaults", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax"] },
                 { prefixes: ["timerFinished"] },
                 { prefixes: ["timerIcon", "timerAlarmIcon"], keys: ["timerIconOrder"] },
@@ -155,7 +136,7 @@ Item {
                 { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
                 { prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
             ],
-            2: [
+            "player": [
                 { keys: ["playerPriority", "playerFont", "playerBoldArtist", "playerUpdateInterval"] },
                 { prefixes: ["playerSilence"] },
                 { prefixes: ["playerTime"] },
@@ -164,26 +145,26 @@ Item {
                 { prefixes: ["playerProgress"], keys: ["playerShowProgress"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } },
                 { prefixes: ["playerCover"], nested: { colors: ["playerOverlay"] } }
             ],
-            3: [
+            "weather": [
                 { keys: ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds"] },
                 { prefixes: ["weatherIcon", "weatherWind", "weatherArrow", "weatherTemp", "weatherPressure", "weatherDescription"], keys: ["weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherShowComfort"] },
                 { prefixes: ["weatherHourly"], exclude: ["weatherHourlyIntervalMinutes"] },
                 { prefixes: ["weatherDaily"], exclude: ["weatherDailyIntervalMinutes"] }
             ],
-            4: [
+            "cava": [
                 { keys: ["cavaMode", "cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars"] },
                 { keys: ["cavaBars", "cavaRowSpacing", "cavaBarWidthRatio"] }
             ],
-            5: [
+            "cpuRam": [
                 { keys: ["cpuUpdateInterval", "cpuShowRam", "cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing"] },
                 { prefixes: ["cpuGraph"] },
                 { prefixes: ["topApps"], nested: { colors: ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"] } }
             ],
-            6: [
+            "network": [
                 { keys: ["systemMonitorInterval"] },
                 { prefixes: ["network"], keys: ["networksAlwaysVisible"] }
             ],
-            7: [
+            "volume": [
                 { keys: ["volumeIcon", "volumeMutedIcon"] },
                 { keys: ["volumeUpdateInterval", "volumeShowStreams", "volumeMaxHeight", "volumeMinHeight"] },
                 { prefixes: ["volumeMainTrack", "volumeStreamTrack", "volumeTrack"], keys: ["volumeMainIconWidth", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeStreamLabelFontSize"], nested: { colors: ["volumeTrack", "volumeFill"] } },
@@ -191,41 +172,41 @@ Item {
                 { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] },
                 { keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] }
             ],
-            8: [
+            "calendar": [
                 { keys: ["calendarAlwaysVisible", "calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] },
                 { keys: ["calendarAdjacentDaysColor", "calendarPastDaysColor", "calendarPastDaysColorEnabled", "calendarWeekendColor", "calendarNoteFrameColor"], nested: { colors: ["calendarBackground"] } },
                 { prefixes: ["calendarNote"], keys: ["calendarNoteMarkerPosition", "calendarNoteMarkerStyle", "calendarNoteFrameColor"] },
                 { prefixes: ["animationCalendar"] }
             ],
-            9: [
+            "settingsWindow": [
                 { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] },
                 { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
                 { keys: ["settingsTabOrder", "settingsTabLabels"] }
             ],
-            10: [
+            "mopidy": [
                 { keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyBackground", "mopidyGroupAlbums", "mopidyHoverColor", "mopidyHoverMode", "mopidyShowTrackNumbers", "mopidyShowVolumePercent", "mopidyToggleWithPlayerRightClick", "mopidyVolumeStep", "animationMopidyVisibilityStyle"] },
                 { prefixes: ["mopidyTrack", "mopidyArtist", "mopidyAlbum", "mopidyDuration", "mopidyQueueDuration"], keys: ["mopidyShowAlbumRemaining", "mopidyShowQueueTotalDuration", "mopidyShowTrackRemaining"] },
                 { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyMoveDownIcon", "mopidyMoveUpIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
                 { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] }
             ],
-            11: [
+            "launcher": [
                 { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
                 { keys: ["launcherTabIcons", "launcherTabLabels", "launcherTabOrder", "launcherTabVisible", "launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] },
                 { keys: ["launcherProjects"] }
             ],
-            12: [
+            "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] },
                 { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
                 { keys: ["notificationsVerticalAnchor"] }
             ]
         }
-        var row = specs[Number(tab)]
+        var row = specs[String(pageId)]
         if (!row || Number(sub) < 0 || Number(sub) >= row.length) return null
         return row[Number(sub)]
     }
 
-    function settingsSubTabHasChanges(tab, sub) {
-        var spec = root.settingsSubTabChangeSpec(tab, sub)
+    function settingsSubTabHasChanges(pageId, sub) {
+        var spec = root.settingsSubTabChangeSpec(pageId, sub)
         return spec !== null && settings.hasResetChanges("keys", spec)
     }
 
@@ -248,14 +229,272 @@ Item {
         return scope !== "" && settings.hasResetChanges(scope)
     }
 
+    function settingsSearchPageInfo(item, inheritedPageId, inheritedPageRoot) {
+        var pageId = inheritedPageId || ""
+        var pageRoot = inheritedPageRoot || null
+        var objectName = item && item.objectName !== undefined ? String(item.objectName) : ""
+        var prefix = "settings-search-page:"
+        if (objectName.indexOf(prefix) === 0) {
+            pageId = objectName.slice(prefix.length)
+            pageRoot = item
+        }
+        return { id: pageId, root: pageRoot }
+    }
+
+    function settingsSearchSiblingLabel(item) {
+        if (!item || !item.parent || !item.parent.children)
+            return ""
+        var siblings = item.parent.children
+        var itemIndex = -1
+        for (var i = 0; i < siblings.length; ++i) {
+            if (siblings[i] === item) { itemIndex = i; break }
+        }
+        if (itemIndex < 0)
+            return ""
+        for (var j = itemIndex - 1; j >= 0; --j) {
+            var candidate = siblings[j]
+            if (!candidate || candidate.text === undefined || candidate.font === undefined)
+                continue
+            var text = String(candidate.text || "").trim()
+            if (text.length > 0 && candidate.visible !== false)
+                return text
+        }
+        return ""
+    }
+
+    function settingsSearchItemLabel(item) {
+        if (!item)
+            return ""
+        if (item.settingsSearchLabel !== undefined && String(item.settingsSearchLabel).trim().length > 0)
+            return String(item.settingsSearchLabel).trim()
+        var preferSibling = item.settingsSearchUseSiblingLabel === true
+        if (preferSibling) {
+            var siblingLabel = root.settingsSearchSiblingLabel(item)
+            if (siblingLabel.length > 0)
+                return siblingLabel
+        }
+        if (item.label !== undefined && String(item.label).trim().length > 0)
+            return String(item.label).trim()
+        if (item.text !== undefined && String(item.text).trim().length > 0 && !preferSibling)
+            return String(item.text).trim()
+        var fallbackSibling = root.settingsSearchSiblingLabel(item)
+        if (fallbackSibling.length > 0)
+            return fallbackSibling
+        if (item.placeholderText !== undefined && String(item.placeholderText).trim().length > 0)
+            return String(item.placeholderText).trim()
+        return ""
+    }
+
+    function settingsSearchGroupHeading(item, pageRoot) {
+        var current = item ? item.parent : null
+        while (current && current !== pageRoot) {
+            if (current.heading !== undefined && String(current.heading).trim().length > 0)
+                return String(current.heading).trim()
+            if (current.renderedHeading !== undefined && String(current.renderedHeading).trim().length > 0)
+                return String(current.renderedHeading).trim()
+            current = current.parent
+        }
+        return ""
+    }
+
+    function collectSettingsSearchItems(item, pageId, pageRoot, entries, ordinalByPage, idCounts) {
+        if (!item)
+            return
+        var pageInfo = root.settingsSearchPageInfo(item, pageId, pageRoot)
+        var activePageId = pageInfo.id
+        var activePageRoot = pageInfo.root
+
+        if (activePageId && activePageRoot && item.settingsSearchable === true) {
+            var label = root.settingsSearchItemLabel(item)
+            var targetKey = item.targetProperty !== undefined ? String(item.targetProperty || "") : ""
+            var explicitId = item.settingsSearchId !== undefined ? String(item.settingsSearchId || "").trim() : ""
+            if (label.length === 0)
+                label = SettingsSearch.humanizeKey(targetKey || explicitId)
+            if (label.length > 0) {
+                var baseId = explicitId || targetKey || (activePageId + "/control-" + String(ordinalByPage[activePageId] || 0))
+                ordinalByPage[activePageId] = Number(ordinalByPage[activePageId] || 0) + 1
+                var occurrence = Number(idCounts[baseId] || 0)
+                idCounts[baseId] = occurrence + 1
+                var stableId = occurrence === 0 ? baseId : baseId + "#" + String(occurrence + 1)
+                var group = root.settingsSearchGroupHeading(item, activePageRoot)
+                var pageLabel = root.settingsTabLabelForId(activePageId)
+                var keywords = item.settingsSearchKeywords !== undefined ? String(item.settingsSearchKeywords || "") : ""
+                var keyTerms = SettingsSearch.keyTerms([label, group, activePageId, targetKey, explicitId].join(" "))
+                var searchable = [label, group, pageLabel, activePageId, targetKey, explicitId, keywords, keyTerms].join(" ")
+                entries.push({
+                    id: stableId,
+                    label: label,
+                    group: group,
+                    pageId: activePageId,
+                    pageLabel: pageLabel,
+                    target: item,
+                    pageRoot: activePageRoot,
+                    targetKey: targetKey,
+                    keyTerms: [targetKey, explicitId, keyTerms].join(" "),
+                    searchText: searchable
+                })
+            }
+        }
+
+        var children = item.children
+        if (!children)
+            return
+        for (var childIndex = 0; childIndex < children.length; ++childIndex)
+            root.collectSettingsSearchItems(children[childIndex], activePageId, activePageRoot, entries, ordinalByPage, idCounts)
+    }
+
+    function rebuildSettingsSearchIndex() {
+        var entries = []
+        root.collectSettingsSearchItems(root, "", null, entries, ({}), ({}))
+        root.settingsSearchIndex = entries
+        root.updateSettingsSearchResults(root.settingsSearchQuery)
+    }
+
+    function updateSettingsSearchResults(query) {
+        root.settingsSearchQuery = String(query === undefined || query === null ? "" : query)
+        root.settingsSearchResults = SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, 7)
+        root.settingsSearchSelectedIndex = 0
+    }
+
+    function isSettingsSearchTargetVisible(entry) {
+        if (!entry || !entry.target || !entry.pageRoot)
+            return false
+        var current = entry.target
+        while (current) {
+            if (current.visible === false)
+                return false
+            if (current === entry.target && (Number(current.width) <= 0 || Number(current.height) <= 0))
+                return false
+            if (current === entry.pageRoot)
+                return true
+            current = current.parent
+        }
+        return false
+    }
+
+    function openSettingsSearchResult(entry) {
+        if (!entry || !entry.target)
+            return
+        root.settingsSearchQuery = ""
+        root.settingsSearchResults = []
+        if (settingsSearchInput)
+            settingsSearchInput.text = ""
+        if (entry.pageId === "modules" || entry.pageId === "themes") {
+            root.currentPageId = entry.pageId
+            Qt.callLater(function() { root.finishSettingsSearchNavigation(entry) })
+            return
+        }
+        if (!SettingsPageRegistry.hasOtherPageId(entry.pageId))
+            return
+        root.currentPageId = entry.pageId
+        Qt.callLater(function() {
+            root.settingsSearchCandidateSubTab = 0
+            root.trySettingsSearchSubTab(entry)
+        })
+    }
+
+    function trySettingsSearchSubTab(entry) {
+        if (!entry || !entry.target)
+            return
+        var count = root.currentPageSubTabs.length
+        if (root.settingsSearchCandidateSubTab >= count) {
+            root.currentPageSubTabIndex = 0
+            Qt.callLater(function() { root.finishSettingsSearchNavigation(entry) })
+            return
+        }
+        root.currentPageSubTabIndex = root.settingsSearchCandidateSubTab
+        Qt.callLater(function() {
+            if (root.isSettingsSearchTargetVisible(entry)) {
+                root.finishSettingsSearchNavigation(entry)
+                return
+            }
+            root.settingsSearchCandidateSubTab += 1
+            root.trySettingsSearchSubTab(entry)
+        })
+    }
+
+    function findSettingsSearchFlickable(target) {
+        var current = target ? target.parent : null
+        while (current && current !== root) {
+            if (current.contentY !== undefined && current.contentHeight !== undefined && current.contentItem)
+                return current
+            current = current.parent
+        }
+        return null
+    }
+
+    function finishSettingsSearchNavigation(entry) {
+        if (!entry || !entry.target || !root.isSettingsSearchTargetVisible(entry))
+            return
+        var flickable = root.findSettingsSearchFlickable(entry.target)
+        if (flickable) {
+            var localPosition = entry.target.mapToItem(flickable.contentItem, 0, 0)
+            var wantedY = Math.max(0, localPosition.y - 42)
+            var maximumY = Math.max(0, flickable.contentHeight - flickable.height)
+            flickable.contentY = Math.min(maximumY, wantedY)
+        }
+        Qt.callLater(function() { root.showSettingsSearchHighlight(entry.target) })
+    }
+
+    function showSettingsSearchHighlight(target) {
+        if (!target || target.visible === false || target.width <= 0 || target.height <= 0)
+            return
+        var position = target.mapToItem(root, 0, 0)
+        settingsSearchHighlight.x = Math.max(0, position.x - 3)
+        settingsSearchHighlight.y = Math.max(0, position.y - 3)
+        settingsSearchHighlight.width = Math.min(root.width, target.width + 6)
+        settingsSearchHighlight.height = target.height + 6
+        settingsSearchHighlight.visible = true
+        settingsSearchHighlightTimer.restart()
+    }
+
+    function handleSettingsSearchKey(event) {
+        if (event.key === Qt.Key_Down) {
+            if (root.settingsSearchResults.length > 0)
+                root.settingsSearchSelectedIndex = Math.min(root.settingsSearchResults.length - 1, root.settingsSearchSelectedIndex + 1)
+            event.accepted = true
+        } else if (event.key === Qt.Key_Up) {
+            if (root.settingsSearchResults.length > 0)
+                root.settingsSearchSelectedIndex = Math.max(0, root.settingsSearchSelectedIndex - 1)
+            event.accepted = true
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (root.settingsSearchResults.length > 0)
+                root.openSettingsSearchResult(root.settingsSearchResults[root.settingsSearchSelectedIndex])
+            event.accepted = true
+        } else if (event.key === Qt.Key_Escape) {
+            root.settingsSearchQuery = ""
+            root.settingsSearchResults = []
+            if (settingsSearchInput)
+                settingsSearchInput.text = ""
+            root.clearSettingsFocus()
+            event.accepted = true
+        }
+    }
+
     function selectSettingsTab(id) {
+        var pageId = String(id || "")
+        if (pageId !== "modules" && pageId !== "themes" && !SettingsPageRegistry.hasOtherPageId(pageId))
+            return
         root.clearSettingsFocus()
-        if (id === "modules") { root.currentTab = 0; return }
-        if (id === "themes") { root.currentTab = 1; return }
-        var index = root.otherTabSettingsIds.indexOf(id)
-        if (index < 0) return
-        root.currentTab = 2
-        root.currentOtherTab = index
+        root.currentPageId = pageId
+    }
+
+    function resetCurrentSettingsPage() {
+        switch (root.currentPageId) {
+        case "general": settings.resetGeneralSettings(); break
+        case "timers": settings.resetTimerSettings(); break
+        case "player": settings.resetPlayerSettings(); break
+        case "weather": settings.resetWeatherSettings(); break
+        case "cava": settings.resetCavaSettings(); break
+        case "cpuRam": settings.resetCpuSettings(); break
+        case "network": settings.resetNetworkSettings(); break
+        case "volume": settings.resetVolumeSettings(); break
+        case "calendar": settings.resetCalendarSettings(); break
+        case "settingsWindow": settings.resetSettingsWindow(); break
+        case "mopidy": settings.resetMopidySettings(); break
+        case "launcher": settings.resetLauncherSettings(); break
+        case "notifications": settings.resetNotificationsSettings(); break
+        }
     }
 
     function setSettingsTabLabel(id, value) {
@@ -279,31 +518,15 @@ Item {
         root.settings.save()
     }
 
-    readonly property string currentOtherTabTitle: {
-        var main = root.settingsTabLabelForId(root.otherTabSettingsIds[root.currentOtherTab]) || "Настройки"
-        var subtabs = root.currentOtherSubTabs
-        var sub = subtabs[root.currentOtherSubTab] || ""
+    readonly property string currentPageTitle: {
+        var main = root.settingsTabLabelForId(root.currentPageId) || "Настройки"
+        var subtabs = root.currentPageSubTabs
+        var sub = subtabs[root.currentPageSubTabIndex] || ""
         return (main + (sub ? " · " + sub : "")).toLocaleUpperCase()
     }
 
-    readonly property var currentOtherSubTabs: {
-        switch (root.currentOtherTab) {
-        case 0: return ["Интерфейс", "Профили", "Хранилища"]
-        case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"]
-        case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]
-        case 3: return ["Общие", "Сейчас", "По часам", "По дням"]
-        case 4: return ["Основные", "Полосы"]
-        case 5: return ["Общие", "График CPU", "Top Apps"]
-        case 6: return ["Обновления", "Сеть"]
-        case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"]
-        case 8: return ["Разметка", "Цвета", "Метки заметок", "Анимации"]
-        case 9: return ["Интерфейс", "Окно настроек", "Вкладки"]
-        case 10: return ["Общее", "Время", "Иконки", "Пусто и недоступен"]
-        case 11: return ["Общее", "Вкладки", "Проекты"]
-        case 12: return ["Поведение", "Внешний вид", "Размещение"]
-        default: return []
-        }
-    }
+    readonly property var currentPageSubTabs: SettingsPageRegistry.subtabsForPageId(
+        root.currentPageId)
 
     ListModel {
         id: profileModel
@@ -321,7 +544,15 @@ Item {
         function onProfilesRevisionChanged() { root.refreshProfileModel() }
     }
 
-    Component.onCompleted: root.refreshProfileModel()
+    Connections {
+        target: Config
+        function onSettingsTabLabelsChanged() { Qt.callLater(root.rebuildSettingsSearchIndex) }
+    }
+
+    Component.onCompleted: {
+        root.refreshProfileModel()
+        Qt.callLater(root.rebuildSettingsSearchIndex)
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -341,12 +572,25 @@ Item {
             width: parent.width
             height: 28
             Text {
-                width: parent.width - 260
+                width: Math.max(70, parent.width - settingsSearchInput.width - 260)
                 text: "НАСТРОЙКИ"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(20)
                 verticalAlignment: Text.AlignVCenter
+            }
+            SettingsInputField {
+                id: settingsSearchInput
+                width: Math.min(220, Math.max(145, parent.width * 0.30))
+                height: 28
+                placeholderText: "Поиск настроек…"
+                selectByMouse: true
+                activeFocusOnTab: true
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+                onTextChanged: root.updateSettingsSearchResults(text)
+                onActiveFocusChanged: if (activeFocus) Qt.callLater(root.rebuildSettingsSearchIndex)
+                Keys.onPressed: event => root.handleSettingsSearchKey(event)
             }
             Text {
                 id: resetIndicator
@@ -421,19 +665,21 @@ Item {
 
                 SettingsModulesSection {
                     id: modulesSectionSettingsSection
+                    objectName: "settings-search-page:modules"
                     host: root
                     settings: root.settings
                 }
 
                 SettingsColorsSection {
                     id: colorsSectionSettingsSection
+                    objectName: "settings-search-page:themes"
                     host: root
                     settings: root.settings
                 }
 
                 Item {
                     id: otherSettingsArea
-                    visible: root.currentTab === 2
+                    visible: root.currentPageId !== "modules" && root.currentPageId !== "themes"
                     width: parent.width
                     height: parent.height
 
@@ -463,8 +709,8 @@ Item {
                                 width: parent.width
                                 height: 30
                                 Text {
-                                    width: parent.width - (root.quickSaveProfileAvailable ? 38 : 0) - (root.quickSaveSectionAvailable ? 38 : 0) - (root.currentOtherResetAvailable ? 38 : 0)
-                                    text: root.currentOtherTabTitle
+                                    width: parent.width - (root.quickSaveProfileAvailable ? 38 : 0) - (root.quickSavePageAvailable ? 38 : 0) - (root.currentPageResetAvailable ? 38 : 0)
+                                    text: root.currentPageTitle
                                     color: Config.accent
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(15)
@@ -485,67 +731,41 @@ Item {
                                 SettingsButton {
                                     width: 30
                                     height: 30
-                                    visible: root.quickSaveSectionAvailable
+                                    visible: root.quickSavePageAvailable
                                     enabled: visible
                                     text: ""
                                     iconText: "\uf0c7"
                                     fontSize: 11
                                     tooltip: "Сохранить изменения этого раздела в активный профиль"
                                     backgroundColor: Config.settingsBackground
-                                    onClicked: settings.saveProfileScope(settings.activeProfile, root.currentOtherSaveScope)
+                                    onClicked: settings.saveProfileScope(settings.activeProfile, root.currentPageSaveScope)
                                 }
                                 SettingsResetButton {
                                     enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                    visible: root.currentOtherResetAvailable
-                                    actionAvailable: root.currentOtherTab === 0 ? settings.hasResetChanges("general")
-                                        : root.currentOtherTab === 1 ? settings.hasResetChanges("timer")
-                                        : root.currentOtherTab === 2 ? settings.hasResetChanges("player")
-                                        : root.currentOtherTab === 3 ? settings.hasResetChanges("weather")
-                                        : root.currentOtherTab === 4 ? settings.hasResetChanges("cava")
-                                        : root.currentOtherTab === 5 ? settings.hasResetChanges("cpu")
-                                        : root.currentOtherTab === 6 ? settings.hasResetChanges("network")
-                                        : root.currentOtherTab === 7 ? settings.hasResetChanges("volume")
-                                        : root.currentOtherTab === 8 ? settings.hasResetChanges("calendar")
-                                        : root.currentOtherTab === 9 ? settings.hasResetChanges("settingsWindow")
-                                        : root.currentOtherTab === 10 ? settings.hasResetChanges("mopidy")
-                                        : root.currentOtherTab === 11 ? settings.hasResetChanges("launcher")
-                                        : root.currentOtherTab === 12 ? settings.hasResetChanges("notifications") : false
+                                    visible: root.currentPageResetAvailable
+                                    actionAvailable: root.currentPageSaveScope !== "" && settings.hasResetChanges(root.currentPageSaveScope)
                                     tooltip: "Сбросить текущую вкладку"
-                                    onClicked: {
-                                        if (root.currentOtherTab === 0 && root.currentOtherSubTab === 0) settings.resetGeneralSettings()
-                                        else if (root.currentOtherTab === 1) settings.resetTimerSettings()
-                                        else if (root.currentOtherTab === 2) settings.resetPlayerSettings()
-                                        else if (root.currentOtherTab === 3) settings.resetWeatherSettings()
-                                        else if (root.currentOtherTab === 4) settings.resetCavaSettings()
-                                        else if (root.currentOtherTab === 5) settings.resetCpuSettings()
-                                        else if (root.currentOtherTab === 6) settings.resetNetworkSettings()
-                                        else if (root.currentOtherTab === 7) settings.resetVolumeSettings()
-                                        else if (root.currentOtherTab === 8) settings.resetCalendarSettings()
-                                        else if (root.currentOtherTab === 9) settings.resetSettingsWindow()
-                                        else if (root.currentOtherTab === 10) settings.resetMopidySettings()
-                                        else if (root.currentOtherTab === 11) settings.resetLauncherSettings()
-                                        else if (root.currentOtherTab === 12) settings.resetNotificationsSettings()
-                                    }
+                                    onClicked: root.resetCurrentSettingsPage()
                                 }
                             }
 
                             Row {
-                                visible: root.currentOtherSubTabs.length > 0
+                                visible: root.currentPageSubTabs.length > 0
                                 width: parent.width
                                 height: 34
                                 spacing: 5
 
                                 Repeater {
-                                    model: root.currentOtherSubTabs
+                                    model: root.currentPageSubTabs
 
                                     delegate: SettingsSubTab {
-                                        width: (parent.width - (root.currentOtherSubTabs.length - 1) * 5) / root.currentOtherSubTabs.length
-                                        selected: root.currentOtherSubTab === index
-                                        modified: root.settingsSubTabHasChanges(root.currentOtherTab, index)
+                                        width: (parent.width - (root.currentPageSubTabs.length - 1) * 5) / root.currentPageSubTabs.length
+                                        selected: root.currentPageSubTabIndex === index
+                                        modified: root.settingsSubTabHasChanges(root.currentPageId, index)
                                         text: modelData
                                         onClicked: {
                                             root.clearSettingsFocus()
-                                            root.currentOtherSubTab = index
+                                            root.currentPageSubTabIndex = index
                                             otherFlick.contentY = 0
                                         }
                                     }
@@ -554,31 +774,35 @@ Item {
 
                             SettingsCalendarSection {
                                 id: calendarSectionSettingsSection
+                                objectName: "settings-search-page:calendar"
                                 host: root
                                 settings: root.settings
                             }
 
                             SettingsWeatherSection {
                                 id: weatherSectionSettingsSection
+                                objectName: "settings-search-page:weather"
                                 host: root
                                 settings: root.settings
                             }
 
                             SettingsGeneralSection {
                                 id: generalSectionSettingsSection
+                                objectName: "settings-search-page:general"
                                 host: root
                                 settings: root.settings
                             }
 
                             SettingsGroup {
-                                visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
+                                visible: root.currentPageId === "player" && root.currentPageSubTabIndex === 0
+                                objectName: "settings-search-page:player"
                                 width: parent.width
                                 showFrame: true
                                 padding: 8
                                 contentSpacing: 6
 
                                 SettingsNumberField {
-                                    visible: root.currentOtherTab === 2 && root.currentOtherSubTab === 0
+                                    visible: root.currentPageId === "player" && root.currentPageSubTabIndex === 0
                                     width: parent.width
                                     label: "Плеер (мс)"
                                     value: Config.playerUpdateInterval
@@ -592,70 +816,83 @@ Item {
 
                             SettingsPlayerSection {
                                 id: playerSectionSettingsSection
-                                visible: root.currentOtherTab === 2
+                                objectName: "settings-search-page:player"
+                                visible: root.currentPageId === "player"
                                 width: parent.width
                                 host: root
                                 settings: root.settings
                             }
                             MopidySettings.SettingsMopidySection {
                                 id: mopidySectionSettingsSection
+                                objectName: "settings-search-page:mopidy"
                                 host: root
                                 settings: root.settings
                             }
                             MopidySettings.SettingsMopidyTimeSection {
                                 id: mopidyTimeSectionSettingsSection
+                                objectName: "settings-search-page:mopidy"
                                 host: root
                                 settings: root.settings
                             }
                             MopidySettings.SettingsMopidyIconsSection {
                                 id: mopidyIconsSectionSettingsSection
+                                objectName: "settings-search-page:mopidy"
                                 host: root
                                 settings: root.settings
                             }
                             MopidySettings.SettingsMopidyStatusSection {
                                 id: mopidyStatusSectionSettingsSection
+                                objectName: "settings-search-page:mopidy"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsCavaSection {
                                 id: cavaSectionSettingsSection
+                                objectName: "settings-search-page:cava"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsCpuRamSection {
                                 id: cpuRamSectionSettingsSection
+                                objectName: "settings-search-page:cpuRam"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsNetworkSection {
                                 id: networkSectionSettingsSection
+                                objectName: "settings-search-page:network"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsVolumeSection {
                                 id: volumeSectionSettingsSection
+                                objectName: "settings-search-page:volume"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsTimersSection {
                                 id: timersSectionSettingsSection
-                                visible: root.currentOtherTab === 1
+                                objectName: "settings-search-page:timers"
+                                visible: root.currentPageId === "timers"
                                 width: parent.width
                                 host: root
                                 settings: root.settings
                             }
                             SettingsLauncherSection {
                                 id: launcherSectionSettingsSection
+                                objectName: "settings-search-page:launcher"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsWindowSection {
                                 id: settingsWindowSectionSettingsSection
+                                objectName: "settings-search-page:settingsWindow"
                                 host: root
                                 settings: root.settings
                             }
                             SettingsNotificationsSection {
                                 id: notificationsSectionSettingsSection
+                                objectName: "settings-search-page:notifications"
                                 host: root
                                 settings: root.settings
                             }
@@ -664,7 +901,118 @@ Item {
                 }
             }
         }
+    }
 
-}
+    // Search results are rendered above the settings pages so they remain
+    // usable regardless of the active page's own Flickable/scroll container.
+    Rectangle {
+        id: settingsSearchPopup
+        z: 1000
+        visible: settingsSearchInput.activeFocus && root.settingsSearchQuery.trim().length > 0
+        x: {
+            var inputPosition = settingsSearchInput.mapToItem(root, 0, 0)
+            return Math.max(8, Math.min(root.width - width - 8, inputPosition.x + settingsSearchInput.width - width))
+        }
+        y: settingsSearchInput.mapToItem(root, 0, 0).y + settingsSearchInput.height + 4
+        width: Math.min(360, root.width - 16)
+        height: Math.min(7 * 46 + 8, Math.max(42, root.settingsSearchResults.length * 46 + 8))
+        color: Config.settingsBackground
+        border.color: Config.accent
+        border.width: 1
+        radius: Config.frameRadius
+        clip: true
+
+        ListView {
+            id: settingsSearchList
+            anchors.fill: parent
+            anchors.margins: 4
+            clip: true
+            spacing: 2
+            model: root.settingsSearchResults
+            visible: root.settingsSearchResults.length > 0
+            currentIndex: root.settingsSearchSelectedIndex
+
+            delegate: Item {
+                id: searchResultDelegate
+                required property var modelData
+                required property int index
+                width: settingsSearchList.width
+                height: 44
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 3
+                    color: index === root.settingsSearchSelectedIndex ? Config.accent : "transparent"
+                    border.width: index === root.settingsSearchSelectedIndex ? 1 : 0
+                    border.color: Config.accent
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.leftMargin: 8
+                    anchors.rightMargin: 8
+                    anchors.topMargin: 4
+                    anchors.bottomMargin: 4
+                    spacing: 1
+
+                    Text {
+                        width: parent.width
+                        height: 17
+                        text: modelData.label
+                        color: index === root.settingsSearchSelectedIndex ? Config.black : Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        font.bold: index === root.settingsSearchSelectedIndex
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        width: parent.width
+                        height: 15
+                        text: modelData.pageLabel + (modelData.group ? " · " + modelData.group : "")
+                        color: index === root.settingsSearchSelectedIndex ? Config.black : Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(9)
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: root.settingsSearchSelectedIndex = index
+                    onClicked: root.openSettingsSearchResult(modelData)
+                }
+            }
+        }
+
+        Text {
+            anchors.centerIn: parent
+            visible: root.settingsSearchResults.length === 0
+            text: "Ничего не найдено"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+        }
+    }
+
+    Rectangle {
+        id: settingsSearchHighlight
+        z: 1100
+        visible: false
+        color: "transparent"
+        border.color: Config.accent
+        border.width: 2
+        radius: 4
+        antialiasing: true
+    }
+
+    Timer {
+        id: settingsSearchHighlightTimer
+        interval: 1600
+        repeat: false
+        onTriggered: settingsSearchHighlight.visible = false
+    }
 
 }

@@ -53,10 +53,10 @@ for (const [label, subtab] of placement) {
     const morph = blockContaining(cava, 'MorphGeometry {', at).text;
     assert(morph.includes('progress: Config.cavaHideWhenSilent ? 1 : 0'), 'zero-bars option uses the animated visibility wrapper');
     assert(morph.includes('cavaHideZeroBarsContent'), 'zero-bars checkbox remains inside the animated content');
-    assert(cava.includes(`visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === ${subtab}`), `${label} belongs to the correct CAVA subtab ${subtab}`);
+    assert(cava.includes(`visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === ${subtab}`), `${label} belongs to the correct CAVA subtab ${subtab}`);
   } else {
     const row = blockContaining(cava, 'Row {', at).text;
-    assert(row.includes(`host.currentOtherTab === 4 && host.currentOtherSubTab === ${subtab}`), `${label} is displayed in the correct CAVA subtab ${subtab}`);
+    assert(row.includes(`host.currentPageId === "cava" && host.currentPageSubTabIndex === ${subtab}`), `${label} is displayed in the correct CAVA subtab ${subtab}`);
   }
 }
 
@@ -77,8 +77,8 @@ assert.strictEqual((cava.match(/targetProperty: "cavaBars"/g) || []).length, 1, 
 
 // The frame scopes must follow the same division as the visible settings.
 const groups = [...cava.matchAll(/SettingsGroup\s*\{/g)].map(m => blockContaining(cava, 'SettingsGroup {', m.index).text);
-const mainGroup = groups.find(g => g.includes('currentOtherSubTab === 0'));
-const barsGroup = groups.find(g => g.includes('currentOtherSubTab === 1'));
+const mainGroup = groups.find(g => g.includes('currentPageSubTabIndex === 0'));
+const barsGroup = groups.find(g => g.includes('currentPageSubTabIndex === 1'));
 assert(mainGroup && barsGroup, 'both CAVA framed subtabs exist');
 const mainChangeKeys = mainGroup.match(/changeKeys:\s*\(\{ keys: \[([^\]]+)\] \}\)/);
 const barsChangeKeys = barsGroup.match(/changeKeys:\s*\(\{ keys: \[([^\]]+)\] \}\)/);
@@ -88,14 +88,14 @@ assert.deepStrictEqual(keys(mainChangeKeys[1]).sort(), ['cavaFramerate', 'cavaHi
 assert.deepStrictEqual(keys(barsChangeKeys[1]).sort(), ['cavaBars', 'cavaBarWidthRatio', 'cavaRowSpacing'].sort(), 'Bars frame tracks bar count, spacing and width');
 
 // The sidebar dirty-marker map must agree with those exact settings scopes.
-const start = widget.indexOf('    function settingsSubTabChangeSpec(tab, sub) {');
+const start = widget.indexOf('    function settingsSubTabChangeSpec(pageId, sub) {');
 const end = widget.indexOf('\n    function settingsSubTabHasChanges', start);
 assert(start >= 0 && end > start, 'subtab change-selector function found');
 const context = {root: {}};
 vm.createContext(context);
 vm.runInContext(widget.slice(start, end).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
-const mainSpec = context.spec(4, 0);
-const barsSpec = context.spec(4, 1);
+const mainSpec = context.spec('cava', 0);
+const barsSpec = context.spec('cava', 1);
 assert(mainSpec && barsSpec, 'CAVA subtab marker scopes exist');
 assert.deepStrictEqual([...mainSpec.keys].sort(), ['cavaFramerate', 'cavaHideWhenSilent', 'cavaHideZeroBars', 'cavaMode'].sort(), 'Main subtab marker tracks Main controls');
 assert.deepStrictEqual([...barsSpec.keys].sort(), ['cavaBars', 'cavaBarWidthRatio', 'cavaRowSpacing'].sort(), 'Bars subtab marker tracks Bars controls');

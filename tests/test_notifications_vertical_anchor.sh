@@ -36,6 +36,7 @@ const runtime = read('components/notifications/Notifications.qml');
 const page = read('components/settings/sections/SettingsNotificationsSection.qml');
 const modules = read('components/settings/sections/SettingsModulesSection.qml');
 const tabs = read('components/settings/SettingsWidget.qml');
+const registry = read('js/settings/SettingsPageRegistry.js');
 
 assert(config.includes('property string notificationsVerticalAnchor: "top"'),
   'Config exposes a top/bottom-only anchor mode');
@@ -57,10 +58,10 @@ assert(runtime.includes('NotificationsGeometry.storedVerticalOffset(') &&
   'smart editing works with visible panel coordinates and stores the selected edge inset');
 assert(runtime.includes('current[1] = Math.max(0, Math.min(500, Math.round(Number(Config.notificationsLegacyOffsetY) || 16)))'),
   'legacy bottom corner migration stores the old vertical edge margin');
-assert(page.includes('currentOtherSubTab === 2') && page.includes('Вертикальная привязка') &&
+assert(page.includes('currentPageSubTabIndex === 2') && page.includes('Вертикальная привязка') &&
        page.includes('model: ["Сверху", "Снизу"]'),
   'vertical anchor control lives on the Notifications page');
-assert(tabs.includes('case 12: return ["Поведение", "Внешний вид", "Размещение"]'),
+assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }'),
   'Notifications page has a dedicated Placement subtab');
 assert(modules.includes('model: settings.moduleNames') &&
        modules.includes('moduleRow.moduleName === "notifications"') &&

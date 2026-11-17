@@ -54,13 +54,13 @@ def groups(text):
     return result
 
 expected = {
-    "Поведение при открытии": ("root.host && root.host.currentOtherSubTab === 0", "id: launcherDefaultModeCombo"),
-    "Окно лаунчера": ("root.host && root.host.currentOtherSubTab === 0", 'targetProperty: "launcherRadius"'),
-    "Элемент списка": ("root.host && root.host.currentOtherSubTab === 0", 'targetProperty: "launcherItemHeight"'),
-    "Заголовок лаунчера": ("root.host && root.host.currentOtherSubTab === 0", "id: launcherTitleTextField"),
-    "Строка поиска": ("root.host && root.host.currentOtherSubTab === 0", 'targetProperty: "launcherSearchHeight"'),
-    "Сквозной поиск": ("root.host && root.host.currentOtherSubTab === 0", "launcherCrossSearchProjects"),
-    "Проекты": ("root.host && root.host.currentOtherSubTab === 2", "root.updateProject"),
+    "Поведение при открытии": ("root.host && root.host.currentPageSubTabIndex === 0", "id: launcherDefaultModeCombo"),
+    "Окно лаунчера": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherRadius"'),
+    "Элемент списка": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherItemHeight"'),
+    "Заголовок лаунчера": ("root.host && root.host.currentPageSubTabIndex === 0", "id: launcherTitleTextField"),
+    "Строка поиска": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherSearchHeight"'),
+    "Сквозной поиск": ("root.host && root.host.currentPageSubTabIndex === 0", "launcherCrossSearchProjects"),
+    "Проекты": ("root.host && root.host.currentPageSubTabIndex === 2", "root.updateProject"),
 }
 all_groups = groups(source)
 for heading, (guard, control_marker) in expected.items():

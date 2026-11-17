@@ -10,10 +10,10 @@ Column {
     spacing: 10
     width: parent ? parent.width : 0
 
-    visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 1
+    visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 1
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyQueueDurationAlignment", "mopidyQueueDurationColor", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationMode", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyShowQueueTotalDuration"] })
@@ -108,7 +108,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyShowAlbumRemaining", "mopidyShowTrackRemaining"] })
@@ -138,7 +138,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyTrackRowHeight"] })
@@ -261,7 +261,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyTrackFont", "mopidyTrackFontSize"] })

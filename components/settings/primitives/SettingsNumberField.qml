@@ -5,6 +5,12 @@ import "../../.."
 Item {
     id: root
 
+    // Settings search metadata is intentionally independent from displayed labels.
+    property bool settingsSearchable: true
+    property string settingsSearchId: ""
+    property string settingsSearchLabel: ""
+    property string settingsSearchKeywords: ""
+
     property string label: ""
     property real value: 0
     property real minimum: -Infinity

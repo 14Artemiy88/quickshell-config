@@ -9,6 +9,7 @@ RESETS="$ROOT/js/settings/SettingsResets.js"
 SECTION="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+REGISTRY="$ROOT/js/settings/SettingsPageRegistry.js"
 
 # New values have defaults, are persisted/restored, and participate in launcher profile reset.
 for key in launcherTabLabels launcherTabIcons; do
@@ -39,7 +40,7 @@ grep -Fq 'if (profile.launcherTabIcons === undefined) config.launcherTabIcons' "
 # Player keeps the seven original settings subtabs; this task is specifically for the launcher.
 ! grep -Fq 'playerSettingsTabLabels' "$CONFIG"
 ! grep -Fq 'playerSettingsTabIcons' "$CONFIG"
-grep -Fq 'case 2: return ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"]' "$WIDGET"
+grep -Fq '{ id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"] }' "$REGISTRY"
 ! grep -Fq 'playerSettingsTabLabel' "$WIDGET"
 
 python3 - "$CONFIG" "$DEFAULTS" <<'PY'

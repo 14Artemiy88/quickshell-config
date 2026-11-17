@@ -10,11 +10,11 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 4
+    visible: host && host.currentPageId === "cava"
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars", "cavaMode"] })
@@ -22,7 +22,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -52,7 +52,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -132,7 +132,7 @@ Column {
 
 
         Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -170,7 +170,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 4 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cavaBars", "cavaBarWidthRatio", "cavaRowSpacing"] })
@@ -178,7 +178,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
@@ -214,7 +214,7 @@ Column {
         }
         }
 
-        Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
             id: cavaRowSpacingField
@@ -236,7 +236,7 @@ Column {
             saveOnEdit: true
         }
         }
-        Row { visible: host.currentOtherTab === 4 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Ширина полоски (% слота)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
             id: cavaBarWidthRatioField

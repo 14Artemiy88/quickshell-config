@@ -10,7 +10,7 @@ MORPH_PATH="$(realpath -m "$(dirname "$QML")/../../primitives/MorphGeometry.qml"
 for token in \
     'id: calendarPastDaysColorMorph' \
     'id: calendarPastDaysColorContent' \
-    'visible: host.currentOtherTab === 8 && host.currentOtherSubTab === 1' \
+    'visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1' \
     '&& (Config.calendarPastDaysColorEnabled || normalizedProgress > 0.001)' \
     'fromGeometry: Qt.rect(0, 0, parent.width, 0)' \
     'toGeometry: Qt.rect(0, 0, parent.width, calendarPastDaysColorContent.implicitHeight)' \

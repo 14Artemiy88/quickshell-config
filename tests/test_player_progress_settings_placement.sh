@@ -22,7 +22,7 @@ def groups_for(tab):
                 d-=1
                 if d==0:
                     b=p[start:i+1]
-                    if f'host.currentOtherSubTab === {tab}' in b: blocks.append(b)
+                    if f'host.currentPageSubTabIndex === {tab}' in b: blocks.append(b)
                     break
     return blocks
 progress='\n'.join(groups_for(5)); cover='\n'.join(groups_for(6))

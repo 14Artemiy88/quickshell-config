@@ -77,7 +77,7 @@ for filename, expected in expected_by_file.items():
         assert len(matches) == 1, f"{filename}: expected one explicit heading {heading!r}, got {len(matches)}"
         group = matches[0]
         assert "showFrame: true" in group, f"{heading!r} is not framed"
-        assert "visible: host && host.currentOtherTab === 10" in group, f"{heading!r} lost its tab visibility guard"
+        assert 'visible: host && host.currentPageId === \"mopidy\"' in group, f"{heading!r} lost its tab visibility guard"
         assert related_control in group, f"{heading!r} lost related control {related_control!r}"
         if heading == "Шрифты очереди":
             for font_key in ("mopidyAlbumFont", "mopidyTrackFont", "mopidyArtistFont", "mopidyDurationFont"):

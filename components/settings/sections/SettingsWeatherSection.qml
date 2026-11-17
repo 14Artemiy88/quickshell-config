@@ -11,12 +11,12 @@ Column {
     // Keep the detailed nine-direction glyph editor out of the way until needed.
     property bool windDirectionSettingsExpanded: false
 
-    visible: host && host.currentOtherTab === 3
+    visible: host && host.currentPageId === "weather"
     width: parent ? parent.width : 0
     spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         heading: "Токен Gismeteo"
@@ -24,7 +24,7 @@ Column {
         contentSpacing: 6
 
                         SettingsTextField {
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             id: token
                             width: parent.width
                             height: 34
@@ -51,7 +51,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         heading: "Время обновлений"
@@ -60,34 +60,34 @@ Column {
         contentSpacing: 6
 
                         Row { width: parent.width; height: 30; spacing: 8
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             Text { width: 210; height: 30; text: "Погода сейчас (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: weatherNowIntervalField; width: 100; height: 30; value: Config.weatherNowIntervalMinutes; minimum: 1; maximum: 1440; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; targetObject: Config; targetProperty: "weatherNowIntervalMinutes"; settingsObject: settings; saveOnEdit: true }
                         }
                         Row { width: parent.width; height: 30; spacing: 8
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             Text { width: 210; height: 30; text: "Погода по часам (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: weatherHourlyIntervalField; width: 100; height: 30; value: Config.weatherHourlyIntervalMinutes; minimum: 1; maximum: 1440; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; targetObject: Config; targetProperty: "weatherHourlyIntervalMinutes"; settingsObject: settings; saveOnEdit: true }
                         }
                         Row { width: parent.width; height: 30; spacing: 8
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             Text { width: 210; height: 30; text: "Погода по дням (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: weatherDailyIntervalField; width: 100; height: 30; value: Config.weatherDailyIntervalMinutes; minimum: 1; maximum: 1440; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; targetObject: Config; targetProperty: "weatherDailyIntervalMinutes"; settingsObject: settings; saveOnEdit: true }
                         }
                         Row { width: parent.width; height: 30; spacing: 8
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             Text { width: 210; height: 30; text: "Повтор после ошибки (мин)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherRetryDelayField; width: 100; height: 30; value: Config.weatherRetryDelayMinutes; minimum: 1; maximum: 1440; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; targetObject: Config; targetProperty: "weatherRetryDelayMinutes"; settingsObject: settings; saveOnEdit: true }
                         }
                         Row { width: parent.width; height: 30; spacing: 8
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 0
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 0
                             Text { width: 210; height: 30; text: "Пауза между ручными обновлениями (с)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                             SettingsNumberField { id: weatherManualCooldownField; width: 100; height: 30; value: Config.weatherManualRefreshCooldownSeconds; minimum: 5; maximum: 3600; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; targetObject: Config; targetProperty: "weatherManualRefreshCooldownSeconds"; settingsObject: settings; saveOnEdit: true }
                         }
     }
                 // Keep the nine-direction glyph editor as the first visible control in this subtab.
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["weatherWindCalmFont", "weatherWindCalmIcon", "weatherWindEFont", "weatherWindEIcon", "weatherWindNEFont", "weatherWindNEIcon", "weatherWindNFont", "weatherWindNIcon", "weatherWindNWFont", "weatherWindNWIcon", "weatherWindSEFont", "weatherWindSEIcon", "weatherWindSFont", "weatherWindSIcon", "weatherWindSWFont", "weatherWindSWIcon", "weatherWindWFont", "weatherWindWIcon"] })
@@ -96,7 +96,7 @@ Column {
 
                         Rectangle {
                             id: windDirectionSettingsHeader
-                            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+                            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
                             width: parent.width
                             height: 34
                             radius: Config.radius
@@ -228,7 +228,7 @@ Column {
                         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Ширина блоков"
@@ -236,22 +236,22 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Левый · температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherLeftBlockWidthField; width: 100; height: 30; value: Config.weatherTempColumnWidth; minimum: 40; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherTempColumnWidth"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Средний · иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherMiddleBlockWidthField; width: 100; height: 30; value: Config.weatherMiddleBlockWidth; minimum: 16; maximum: 180; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherMiddleBlockWidth"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Правый · ветер"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherRightBlockWidthField; width: 100; height: 30; value: Config.weatherWindColumnWidth; minimum: 60; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindColumnWidth"; settingsObject: settings; saveOnEdit: true }
         }
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Выравнивание блоков"
@@ -259,7 +259,7 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Левый · температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
                 id: weatherLeftAlignmentCombo; width: 150; height: 30
@@ -269,7 +269,7 @@ Column {
                 Connections { target: Config; function onWeatherLeftBlockAlignmentChanged() { weatherLeftAlignmentCombo.currentIndex = ["left", "center", "right"].indexOf(Config.weatherLeftBlockAlignment) >= 0 ? ["left", "center", "right"].indexOf(Config.weatherLeftBlockAlignment) : 1 } }
             }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Средний · иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
                 id: weatherMiddleAlignmentCombo; width: 150; height: 30
@@ -279,7 +279,7 @@ Column {
                 Connections { target: Config; function onWeatherMiddleBlockAlignmentChanged() { weatherMiddleAlignmentCombo.currentIndex = ["left", "center", "right"].indexOf(Config.weatherMiddleBlockAlignment) >= 0 ? ["left", "center", "right"].indexOf(Config.weatherMiddleBlockAlignment) : 1 } }
             }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Правый · ветер"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
                 id: weatherRightAlignmentCombo; width: 150; height: 30
@@ -292,7 +292,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Иконка текущей погоды"
@@ -300,7 +300,7 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Расположение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
                 id: weatherIconPlacementCombo; width: 150; height: 30
@@ -310,13 +310,13 @@ Column {
                 Connections { target: Config; function onWeatherIconPlacementChanged() { weatherIconPlacementCombo.currentIndex = ["left", "center", "off"].indexOf(Config.weatherIconPlacement) >= 0 ? ["left", "center", "off"].indexOf(Config.weatherIconPlacement) : 1 } }
             }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
             Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherIconXField; width: 70; height: 30; value: Config.weatherIconX; minimum: 0; maximum: 500; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherIconX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherIconYField; width: 70; height: 30; value: Config.weatherIconY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherIconY"; settingsObject: settings; saveOnEdit: true }
@@ -325,7 +325,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Описание погоды"
@@ -333,17 +333,17 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
             Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Описание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherDescriptionXField; width: 70; height: 30; value: Config.weatherDescriptionX; minimum: -300; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherDescriptionX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherDescriptionYField; width: 70; height: 30; value: Config.weatherDescriptionY; minimum: 0; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDescriptionY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Ширина / размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
             SettingsNumberField { id: weatherDescriptionWidthField; width: 70; height: 30; value: Config.weatherDescriptionWidth; minimum: 20; maximum: 400; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDescriptionWidth"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherDescSizeField; width: 70; height: 30; value: Config.weatherDescriptionFontSize; minimum: 6; maximum: 48; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDescriptionFontSize"; settingsObject: settings; saveOnEdit: true }
@@ -351,7 +351,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Стрелка ветра"
@@ -359,13 +359,13 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
             Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Item { width: 210; height: 30 }
             SettingsNumberField { id: weatherWindGapField; width: 70; height: 30; value: Config.weatherWindArrowGap; minimum: -20; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindArrowGap"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherArrowYField; width: 70; height: 30; value: Config.weatherArrowYOffset; minimum: -40; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherArrowYOffset"; settingsObject: settings; saveOnEdit: true }
@@ -374,7 +374,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Температура комфорта"
@@ -383,7 +383,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
@@ -399,7 +399,7 @@ Column {
             id: weatherComfortOptionsMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+            visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
                 && (Config.weatherShowComfort || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, weatherComfortOptionsContent.implicitHeight)
@@ -412,16 +412,16 @@ Column {
                 width: parent.width
                 spacing: 6
 
-            SettingsColorField { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; label: "Цвет обводки"; value: String(Config.weatherComfortOutlineColor); targetObject: Config; targetProperty: "weatherComfortOutlineColor"; settingsObject: settings; saveOnEdit: true; allowAlpha: false; allowTransparent: false; labelWidth: 210; fieldWidth: 120 }
-            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            SettingsColorField { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; label: "Цвет обводки"; value: String(Config.weatherComfortOutlineColor); targetObject: Config; targetProperty: "weatherComfortOutlineColor"; settingsObject: settings; saveOnEdit: true; allowAlpha: false; allowTransparent: false; labelWidth: 210; fieldWidth: 120 }
+            Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Толщина обводки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField { id: weatherComfortOutlineWidthField; width: 100; height: 30; value: Config.weatherComfortOutlineWidth; minimum: 0; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherComfortOutlineWidth"; settingsObject: settings; saveOnEdit: true }
             }
-            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Положение Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField { id: weatherComfortYField; width: 100; height: 30; value: Config.weatherComfortY + Config.weatherComfortOffsetY; minimum: -120; maximum: 200; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; valueWriter: function(n) { var baseY = Math.max(-20, Math.min(100, n)); Config.weatherComfortY = baseY; Config.weatherComfortOffsetY = n - baseY }; settingsObject: settings; saveOnEdit: true }
             }
-            Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Смещение X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField { id: weatherComfortOffsetXField; width: 100; height: 30; value: Config.weatherComfortOffsetX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherComfortOffsetX"; settingsObject: settings; saveOnEdit: true }
             }
@@ -430,7 +430,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Положение элементов"
@@ -438,37 +438,37 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 6
             Item { width: 210; height: 24 }
             Text { width: 62; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 62; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherTempPositionXField; width: 62; height: 30; value: Config.weatherTempX + Config.weatherTempOffsetX; minimum: -100; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; valueWriter: function(n) { Config.weatherTempX = Math.max(0, Math.min(200, n)); Config.weatherTempOffsetX = n - Config.weatherTempX }; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherTempPositionYField; width: 62; height: 30; value: Config.weatherTempOffsetY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherTempOffsetY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Колонка ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherWindColumnXField; width: 62; height: 30; value: Config.weatherWindColumnX; minimum: 0; maximum: 500; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindColumnX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherWindColumnYField; width: 62; height: 30; value: Config.weatherWindColumnY; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindColumnY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Скорость ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherWindSpeedXField; width: 62; height: 30; value: Config.weatherWindSpeedX; minimum: 0; maximum: 250; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindSpeedX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherWindSpeedYField; width: 62; height: 30; value: Config.weatherWindSpeedY; minimum: -20; maximum: 80; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindSpeedY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Единица ветра"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherWindUnitXField; width: 62; height: 30; value: Config.weatherWindUnitX; minimum: 0; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherWindUnitX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherWindUnitYField; width: 62; height: 30; value: Config.weatherWindUnitY; minimum: -20; maximum: 80; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherWindUnitY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Давление"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherPressureXField; width: 62; height: 30; value: Config.weatherPressureX; minimum: -100; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherPressureX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherPressureYField; width: 62; height: 30; value: Config.weatherPressureY; minimum: 0; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherPressureY"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 6
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 6
             Text { width: 210; height: 30; text: "Единица давления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherPressureUnitXField; width: 62; height: 30; value: Config.weatherPressureUnitX; minimum: 0; maximum: 300; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherPressureUnitX"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherPressureUnitYField; width: 62; height: 30; value: Config.weatherPressureUnitY; minimum: -20; maximum: 80; step: 1; wheelStep: 1; compact: true; fieldWidth: 62; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherPressureUnitY"; settingsObject: settings; saveOnEdit: true }
@@ -476,7 +476,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Оформление давления"
@@ -484,24 +484,24 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 24; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
             Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             Text { width: 70; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Значение давления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherPressureWidthExtraField; width: 70; height: 30; value: Config.weatherPressureValueWidth; minimum: 20; maximum: 180; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherPressureValueWidth"; settingsObject: settings; saveOnEdit: true }
             SettingsNumberField { id: weatherPressureFontExtraField; width: 70; height: 30; value: Config.weatherPressureFontSize; minimum: 8; maximum: 48; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherPressureFontSize"; settingsObject: settings; saveOnEdit: true }
         }
-        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Единица давления"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField { id: weatherPressureUnitFontExtraField; width: 70; height: 30; value: Config.weatherPressureUnitFontSize; minimum: 6; maximum: 30; step: 1; wheelStep: 1; compact: true; fieldWidth: 70; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherPressureUnitFontSize"; settingsObject: settings; saveOnEdit: true }
         }
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Почасовой блок"
@@ -509,37 +509,37 @@ Column {
         padding: 8
         contentSpacing: 6
 
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Количество часов"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whCount; width: 58; height: 30; value: Config.weatherHourlyCount; minimum: 1; maximum: 12; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyCount"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whPad; width: 58; height: 30; value: Config.weatherHourlyTopPadding; minimum: 0; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyTopPadding"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 24; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Время"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whDayYTable; width: 58; height: 30; value: Config.weatherHourlyDayY; minimum: 0; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyDayY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: whDaySizeTable; width: 58; height: 30; value: Config.weatherHourlyDayFontSize; minimum: 6; maximum: 32; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyDayFontSize"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whIconYTable; width: 58; height: 30; value: Config.weatherHourlyIconY; minimum: 0; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyIconY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: whIconSizeTable; width: 58; height: 30; value: Config.weatherHourlyIconWidth; minimum: 16; maximum: 90; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyIconWidth"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: whTempYTable; width: 58; height: 30; value: Config.weatherHourlyTempY; minimum: 0; maximum: 150; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyTempY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: whTempSizeTable; width: 58; height: 30; value: Config.weatherHourlyTempFontSize; minimum: 6; maximum: 32; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherHourlyTempFontSize"; settingsObject: settings; saveOnEdit: true }
                         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         heading: "Дневной прогноз"
@@ -547,42 +547,42 @@ Column {
         padding: 8
         contentSpacing: 6
 
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Количество дней"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdCount; width: 58; height: 30; value: Config.weatherDailyCount; minimum: 1; maximum: 4; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyCount"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Верхний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdPad; width: 58; height: 30; value: Config.weatherDailyTopPadding; minimum: 0; maximum: 40; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyTopPadding"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 24; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "День"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdDayYTable; width: 58; height: 30; value: Config.weatherDailyDayY; minimum: 0; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyDayY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: wdDaySizeTable; width: 58; height: 30; value: Config.weatherDailyDayFontSize; minimum: 6; maximum: 32; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyDayFontSize"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Иконка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdIconYTable; width: 58; height: 30; value: Config.weatherDailyIconY; minimum: 0; maximum: 120; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyIconY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: wdIconSizeTable; width: 58; height: 30; value: Config.weatherDailyIconWidth; minimum: 16; maximum: 90; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyIconWidth"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 24; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
                             Text { width: 58; y: 4; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             Text { width: 58; y: 4; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Дневная температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdHX; width: 58; height: 30; value: Config.weatherDailyHighTempX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherDailyHighTempX"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: wdHY; width: 58; height: 30; value: Config.weatherDailyHighTempY; minimum: 0; maximum: 150; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyHighTempY"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: wdHF; width: 58; height: 30; value: Config.weatherDailyHighTempFontSize; minimum: 6; maximum: 32; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyHighTempFontSize"; settingsObject: settings; saveOnEdit: true }
                         }
-                        Row { visible: host.currentOtherTab === 3 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+                        Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                             Text { width: 210; height: 30; text: "Ночная температура"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                             SettingsNumberField { id: wdLX; width: 58; height: 30; value: Config.weatherDailyLowTempX; minimum: -100; maximum: 100; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "weatherDailyLowTempX"; settingsObject: settings; saveOnEdit: true }
                             SettingsNumberField { id: wdLY; width: 58; height: 30; value: Config.weatherDailyLowTempY; minimum: 0; maximum: 180; step: 1; wheelStep: 1; compact: true; fieldWidth: 58; fieldFontSize: 10; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "weatherDailyLowTempY"; settingsObject: settings; saveOnEdit: true }

@@ -79,7 +79,7 @@ assert background.count('visible:') == 1, "background color row must remain aliv
 # Weather comfort options are one measured group controlled by the existing show checkbox.
 comfort = block_by_id(weather, "MorphGeometry", "weatherComfortOptionsMorph")
 for token in (
-    'visible: host && host.currentOtherTab === 3 && host.currentOtherSubTab === 1',
+    'visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1',
     '&& (Config.weatherShowComfort || normalizedProgress > 0.001)',
     'toGeometry: Qt.rect(0, 0, parent.width, weatherComfortOptionsContent.implicitHeight)',
     'progress: Config.weatherShowComfort ? 1 : 0',

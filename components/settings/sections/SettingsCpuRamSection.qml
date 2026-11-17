@@ -10,11 +10,11 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 5
+    visible: host && host.currentPageId === "cpuRam"
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing", "cpuUpdateInterval"] })
@@ -22,7 +22,7 @@ Column {
         contentSpacing: 6
 
         Text {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 text: "Полосы CPU и RAM"
                 color: Config.textMuted
                 font.family: Config.settingsFont
@@ -30,7 +30,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Интервал обновления CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -51,7 +51,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Направление заполнения полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
@@ -68,7 +68,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -93,7 +93,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Ширина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -118,7 +118,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -143,7 +143,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -168,7 +168,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Отступ подписи слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -193,7 +193,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Смещение полос слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -218,7 +218,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Радиус полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -245,14 +245,14 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cpuGraphBarWidth", "cpuGraphMode", "cpuGraphSegmentSlotWidth", "cpuShowRam"] })
         padding: 8
         contentSpacing: 6
 
-            Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Режим графика CPU"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
                     id: cpuGraphModeCombo
@@ -267,7 +267,7 @@ Column {
                 }
             }
 
-            Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: cpuGraphSlotField
@@ -290,7 +290,7 @@ Column {
         }
             }
 
-            Row { visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Толщина полос графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: cpuGraphBarWidthField
@@ -316,7 +316,7 @@ Column {
 
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 1
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1
                 width: parent.width; height: 30; spacing: 8
                 SettingsCheckBox {
                     width: 210; height: 30; text: "Показывать RAM"; checked: Config.cpuShowRam
@@ -326,14 +326,14 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: false
         padding: 8
         contentSpacing: 6
 
             Text {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 text: "Top Apps — отображение"
                 color: Config.accent
                 font.family: Config.settingsFont
@@ -341,7 +341,7 @@ Column {
             }
 
             Text {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Дополнительные параметры раскрываются сразу под соответствующим переключателем."
@@ -353,7 +353,7 @@ Column {
 
     // Заголовки: зависимые параметры сгруппированы сразу под переключателем.
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Заголовки"
@@ -362,7 +362,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+            visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
             width: parent.width
             height: 30
             spacing: 8
@@ -379,7 +379,7 @@ Column {
             id: topAppsHeadersMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+            visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 && (Config.topAppsShowHeaders || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, topAppsHeadersContent.implicitHeight)
@@ -495,7 +495,7 @@ Column {
 
     // Полосы: цвета расположены непосредственно под переключателем показа.
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Положение и размер полос"
@@ -505,7 +505,7 @@ Column {
 
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
                 SettingsCheckBox {
                     width: parent.width; height: 30
@@ -520,8 +520,8 @@ Column {
                 id: topAppsBarGeometryMorph
                 width: parent.width
                 clip: true
-                visible: host && ((Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2)
-                    || (host.currentOtherTab === 5 && host.currentOtherSubTab === 2 && normalizedProgress > 0.001))
+                visible: host && ((Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2)
+                    || (host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2 && normalizedProgress > 0.001))
                 fromGeometry: Qt.rect(0, 0, parent.width, 0)
                 toGeometry: Qt.rect(0, 0, parent.width, topAppsBarGeometryContent.implicitHeight)
                 progress: Config.topAppsShowBars ? 1 : 0
@@ -534,7 +534,7 @@ Column {
                     spacing: 6
 
                     Row {
-                        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                        visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -564,7 +564,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                        visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -594,7 +594,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                        visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -624,7 +624,7 @@ Column {
                     }
 
                     Row {
-                        visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                        visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -662,8 +662,8 @@ Column {
         id: topAppsBarColorsMorph
         width: parent.width
         clip: true
-        visible: host && ((Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2)
-            || (host.currentOtherTab === 5 && host.currentOtherSubTab === 2 && normalizedProgress > 0.001))
+        visible: host && ((Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2)
+            || (host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2 && normalizedProgress > 0.001))
         fromGeometry: Qt.rect(0, 0, parent.width, 0)
         toGeometry: Qt.rect(0, 0, parent.width, topAppsBarColorsGroup.implicitHeight)
         progress: Config.topAppsShowBars ? 1 : 0
@@ -672,7 +672,7 @@ Column {
 
         SettingsGroup {
             id: topAppsBarColorsGroup
-            visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+            visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
             width: parent.width
             showFrame: true
             heading: "Цвета полос нагрузки"
@@ -682,7 +682,7 @@ Column {
 
 
                 Text {
-                    visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     wrapMode: Text.WordWrap
                     text: "Отдельные цвета для заполнения полос CPU и RAM."
@@ -692,7 +692,7 @@ Column {
                 }
 
                 SettingsColorField {
-                    visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     label: "CPU: цвет полосы"
                     value: String(Config.topAppsCpuBarColor)
@@ -707,7 +707,7 @@ Column {
                 }
 
                 SettingsColorField {
-                    visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     label: "RAM: цвет полосы"
                     value: String(Config.topAppsRamBarColor)
@@ -722,7 +722,7 @@ Column {
                 }
 
                 SettingsColorField {
-                    visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     label: "CPU: неактивная часть полосы"
                     value: String(Config.topAppsCpuBarTrackColor)
@@ -737,7 +737,7 @@ Column {
                 }
 
                 SettingsColorField {
-                    visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     label: "RAM: неактивная часть полосы"
                     value: String(Config.topAppsRamBarTrackColor)
@@ -756,7 +756,7 @@ Column {
 
     // Строка «Система/прочее»: зависимое поле раскрывается под переключателем.
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Строка «Система/прочее»"
@@ -765,7 +765,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+            visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
             width: parent.width; height: 30; spacing: 8
             SettingsCheckBox {
                 width: parent.width; height: 30
@@ -779,7 +779,7 @@ Column {
             id: topAppsSystemRemainderMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+            visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 && (Config.topAppsShowSystemRemainder || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, topAppsSystemRemainderContent.implicitHeight)
@@ -824,7 +824,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Список приложений"
@@ -834,7 +834,7 @@ Column {
 
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
                 Text {
                     width: 210; height: 30; text: "Шрифт списка"
@@ -857,7 +857,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Размер шрифта списка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -870,7 +870,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Межстрочный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
@@ -883,7 +883,7 @@ Column {
             }
 
             Row {
-                visible: host.currentOtherTab === 5 && host.currentOtherSubTab === 2
+                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Отступ от верхнего края"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {

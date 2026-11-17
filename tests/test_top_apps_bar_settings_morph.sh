@@ -25,7 +25,7 @@ for key in topAppsCpuBarColor topAppsRamBarColor topAppsCpuBarTrackColor topApps
     grep -Fq "targetProperty: \"$key\"" "$QML" || fail "$key editor missing"
 done
 # The animated children must remain present while the parent clips their exit transition.
-if grep -Fq 'visible: Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2' "$QML"; then
+if grep -Fq 'visible: Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2' "$QML"; then
     fail "individual bar controls still disappear before the morph finishes"
 fi
 # Existing settings writes must remain connected to the same toggle and editors.

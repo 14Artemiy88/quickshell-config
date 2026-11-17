@@ -20,7 +20,7 @@ import re, sys
 s = Path(sys.argv[1]).read_text()
 start = s.index('model: Config.timerIconOrder === "timer-left" ? ["timer", "alarm"] : ["alarm", "timer"]')
 end_match = re.search(
-    r'\bSettingsNumberField\s*\{\s*visible:\s*root\.host\.currentOtherTab\s*===\s*1\s*&&\s*root\.host\.currentOtherSubTab\s*===\s*3',
+    r'\bSettingsNumberField\s*\{\s*visible:\s*root\.host\.currentPageId\s*===\s*"timers"\s*&&\s*root\.host\.currentPageSubTabIndex\s*===\s*3',
     s[start:]
 )
 assert end_match, 'Could not locate the next timer layout field after the icon settings'

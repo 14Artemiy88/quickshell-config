@@ -25,7 +25,7 @@ Column {
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] })
@@ -33,7 +33,7 @@ Column {
         contentSpacing: 6
 
         Text {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 text: "Интерфейс настроек"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
@@ -43,7 +43,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
                                 spacing: 8
@@ -63,7 +63,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
                                 spacing: 8
@@ -90,7 +90,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
                                 spacing: 8
@@ -117,7 +117,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 0
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
                                 spacing: 8
@@ -144,7 +144,7 @@ Column {
                             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Положение и размер окна"
@@ -153,7 +153,7 @@ Column {
         contentSpacing: 6
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 18
                                 spacing: 6
@@ -176,7 +176,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 6
@@ -211,7 +211,7 @@ Column {
                             }
 
                             Text {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
                                 text: "Изменения применяются и сохраняются сразу. Для X/Y/Width/Height можно использовать колесо мыши с шагом 1."
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
@@ -221,7 +221,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 46
                                 spacing: 10
@@ -254,7 +254,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Фон и рамка окна настроек"
@@ -304,7 +304,7 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Вкладки панели настроек"
@@ -394,14 +394,14 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         padding: 8
         contentSpacing: 6
 
         Text {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
                                 text: settings.activeProfile ? "Активный профиль: " + settings.activeProfile : "Активный профиль: по умолчанию"
                                 color: Config.textMuted
                                 font.family: Config.settingsFont
@@ -411,7 +411,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -488,7 +488,7 @@ Column {
                             }
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -564,7 +564,7 @@ Column {
 
                             Item {
                                 id: profileActionFeedback
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
                                 width: parent.width
                                 height: 22
 
@@ -594,7 +594,7 @@ Column {
 
 
                             Row {
-                                visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1 && settings.hasResetChanges("all")
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && settings.hasResetChanges("all")
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -616,7 +616,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["animationSettingsVisibilityStyle"] })
@@ -624,7 +624,7 @@ Column {
         contentSpacing: 6
 
         Text {
-            visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
             text: "Анимация"
             color: Config.accent
             font.family: Config.settingsFont
@@ -632,7 +632,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 9 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8

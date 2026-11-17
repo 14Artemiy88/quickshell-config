@@ -10,10 +10,10 @@ Column {
     spacing: 10
     width: parent ? parent.width : 0
 
-    visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 3
+    visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 3
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyEmptyQueueText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth", "mopidyUnavailableText"] })

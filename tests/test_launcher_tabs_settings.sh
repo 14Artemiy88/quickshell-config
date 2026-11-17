@@ -22,9 +22,9 @@ grep -q 'Config.launcherTabVisible = validLauncherVisibility' "$APPLY"
 grep -q 'launcherTabOrder.*launcherTabVisible.*launcherTabLabels.*launcherTabIcons.*launcherProjects' "$RESETS"
 
 # The unified settings navigation exposes the new subtab before/alongside common options.
-grep -Fq 'case 11: return ["Общее", "Вкладки", "Проекты"]' "$WIDGET"
-grep -q 'visible: root.host && root.host.currentOtherSubTab === 0' "$SECTION"
-grep -q 'visible: root.host && root.host.currentOtherSubTab === 1' "$SECTION"
+grep -Fq '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Вкладки", "Проекты"] }' "$ROOT/js/settings/SettingsPageRegistry.js"
+grep -q 'visible: root.host && root.host.currentPageSubTabIndex === 0' "$SECTION"
+grep -q 'visible: root.host && root.host.currentPageSubTabIndex === 1' "$SECTION"
 grep -q 'function setTabVisible(tabId, value)' "$SECTION"
 grep -q 'function visibleTabCount()' "$SECTION"
 grep -q 'root.visibleTabCount() > 1' "$SECTION"

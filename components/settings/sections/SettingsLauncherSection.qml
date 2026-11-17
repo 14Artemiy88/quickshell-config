@@ -9,7 +9,7 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 11
+    visible: host && host.currentPageId === "launcher"
     width: parent ? parent.width : 0
     spacing: 10
 
@@ -141,7 +141,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherDefaultMode", "launcherShowResultCount"] })
@@ -219,7 +219,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherBackdropOpacity", "launcherBackground", "launcherRadius"] })
@@ -307,7 +307,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherItemHeight", "launcherItemRadius"] })
@@ -379,7 +379,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] })
@@ -482,7 +482,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius"] })
@@ -568,7 +568,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] })
@@ -605,7 +605,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 1
+        visible: root.host && root.host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons"] })
@@ -752,7 +752,7 @@ Column {
 
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherSubTab === 2
+        visible: root.host && root.host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherProjects"] })

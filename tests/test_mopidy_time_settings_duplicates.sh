@@ -17,7 +17,7 @@ assert section.count('targetProperty: "mopidyQueueDurationY"') == 1, "Queue dura
 assert section.count('text: "Положение"') == 1, "Expected one concise position-row label"
 assert 'text: "Положение X / Y"' not in section, "Position label redundantly repeats X/Y"
 assert widget.count('MopidySettings.SettingsMopidyTimeSection {') == 1, "Mopidy time settings section is instantiated more than once"
-assert 'visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 1' in section, "Mopidy time settings are not scoped to the Time subtab"
+assert 'visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 1' in section, "Mopidy time settings are not scoped to the Time subtab"
 assert 'пример:  ·  /  —  /  |' not in section, "Separator example helper text must be removed"
 PYCODE
 

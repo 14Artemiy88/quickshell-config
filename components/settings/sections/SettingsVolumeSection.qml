@@ -10,31 +10,31 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 7
+    visible: host && host.currentPageId === "volume"
     width: parent ? parent.width : 0
     spacing: 10
 
 // -------------------- Volume --------------------
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["volumeIcon", "volumeMutedIcon"] })
         padding: 8
         contentSpacing: 6
 
-        Text { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 0; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
+        Text { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 0; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Без звука"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsTextField { id: volumeMutedIconField; width: 100; height: 30; text: Config.volumeMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (volumeMutedIconField.activeFocus || volumeMutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeMutedIcon=text; settings.save() } Connections { target: Config; function onVolumeMutedIconChanged(){volumeMutedIconField.text=Config.volumeMutedIcon} } }
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["volumeHorizontalPadding", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeUpdateInterval"] })
@@ -42,13 +42,13 @@ Column {
         contentSpacing: 6
 
         Text {
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1
             text: "Полоса и аудиопотоки"
             color: Config.settingsSubheading
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Интервал опроса громкости (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeUpdateField
@@ -67,7 +67,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Высота основной строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMainRowHeightField
@@ -86,7 +86,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Высота строк потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeStreamRowHeightField
@@ -105,7 +105,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Расстояние между потоками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeStreamSpacingField
@@ -124,7 +124,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Отступ блока слева/справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeHorizontalPaddingField
@@ -145,14 +145,14 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["volumeMainTrackHeight", "volumeMainTrackOffsetY", "volumeMainTrackWidth", "volumeStreamTrackHeight", "volumeVerticalPadding"] })
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Отступ блока сверху/снизу"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeVerticalPaddingField
@@ -171,7 +171,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Ширина основной полосы"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMainTrackWidthField
@@ -190,7 +190,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Высота полосы громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMainTrackHeightField
@@ -209,7 +209,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Высота полос потоков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeStreamTrackHeightField
@@ -228,7 +228,7 @@ Column {
                 saveOnEdit: true
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Смещение основной полосы Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMainTrackOffsetField
@@ -249,14 +249,14 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["volumeMainIconWidth", "volumeShowStreams", "volumeStreamLabelFontSize", "volumeStreamTrackOffsetY", "volumeTrackRadius"] })
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
             SettingsCheckBox { width: 210; height: 30; text: "Показывать дополнительные потоки"; checked: Config.volumeShowStreams; onToggled: { Config.volumeShowStreams=checked; settings.save() } }
         }
 
@@ -264,7 +264,7 @@ Column {
             id: volumeStreamTrackOffsetMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
+            visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 3
                 && (Config.volumeShowStreams || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, volumeStreamTrackOffsetContent.implicitHeight)
@@ -296,7 +296,7 @@ Column {
                 }
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Ширина иконки громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMainIconWidthField
@@ -319,7 +319,7 @@ Column {
             id: volumeStreamLabelFontMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 3
+            visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 3
                 && (Config.volumeShowStreams || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, volumeStreamLabelFontContent.implicitHeight)
@@ -351,7 +351,7 @@ Column {
                 }
             }
         }
-        Row { visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
             Text { width: 210; height: 30; text: "Радиус полос громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeTrackRadiusField
@@ -373,7 +373,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 4
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["volumeMaxHeight", "volumeMinHeight"] })
@@ -381,7 +381,7 @@ Column {
         contentSpacing: 6
 
         Text {
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 4
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             text: "Адаптивные блоки"
             color: Config.accent
             font.family: Config.settingsFont
@@ -389,7 +389,7 @@ Column {
         }
 
         Text {
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 4
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             text: "Высота блока автоматически растёт по содержимому в пределах этих ограничений."
             color: Config.textMuted
             font.family: Config.settingsFont
@@ -399,7 +399,7 @@ Column {
         }
 
         Row { width: parent.width; height: 30; spacing: 8
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 4
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             Text { width: 210; height: 30; text: "Минимальная высота громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMinHeightField
@@ -420,7 +420,7 @@ Column {
         }
 
         Row { width: parent.width; height: 30; spacing: 8
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 4
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             Text { width: 210; height: 30; text: "Максимальная высота громкости"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsNumberField {
                 id: volumeMaxHeightField
@@ -443,7 +443,7 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+        visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
         width: parent.width
         showFrame: true
         heading: "Анимация списка потоков"
@@ -452,7 +452,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
             width: parent.width
             height: 30
             spacing: 8
@@ -503,7 +503,7 @@ Column {
             id: volumeStreamsAnimationDurationMorph
             width: parent.width
             clip: true
-            visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5
+            visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
                 && (Config.animationVolumeStreamsVisibilityStyle !== "none" || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, volumeStreamsAnimationDurationContent.implicitHeight)

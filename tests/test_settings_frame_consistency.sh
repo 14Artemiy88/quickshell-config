@@ -67,7 +67,7 @@ from pathlib import Path
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 pattern = re.compile(
     r'SettingsGroup\s*\{\s*'
-    r'visible:\s*root\.currentOtherTab\s*===\s*2\s*&&\s*root\.currentOtherSubTab\s*===\s*0'
+    r'visible:\s*root\.currentPageId\s*===\s*\"player\"\s*&&\s*root\.currentPageSubTabIndex\s*===\s*0'
     r'.*?SettingsNumberField\s*\{[^}]*label:\s*"Плеер \(мс\)"',
     re.S
 )
@@ -136,12 +136,12 @@ for toggle, revealed, guard in control_groups:
     assert "showFrame: true" in group, f"Checkbox {toggle!r} must have a frame"
     assert revealed in group, f"Revealed controls {revealed!r} are not inside the checkbox frame"
     outer_visible = next((line.strip() for line in group.splitlines() if re.match(r"\s*visible:", line)), "")
-    assert "host.currentOtherTab === 5" in outer_visible and guard not in outer_visible, f"Frame for {toggle!r} should remain visible when unchecked"
+    assert 'host.currentPageId === \"cpuRam\"' in outer_visible and guard not in outer_visible, f"Frame for {toggle!r} should remain visible when unchecked"
     assert guard in group, f"Revealed controls for {toggle!r} are not conditional"
 
 # Top Apps keeps its three toggle frames, splits bar geometry from bar colours,
 # and retains a separate application-list settings frame.
-assert sum("showFrame: true" in g for g in cg if "host.currentOtherTab === 5 && host.currentOtherSubTab === 2" in g) == 5, "Top Apps should have three toggle frames, a separate bar-colour frame, and one list-settings frame"
+assert sum("showFrame: true" in g for g in cg if 'host.currentPageId === \"cpuRam\" && host.currentPageSubTabIndex === 2' in g) == 5, "Top Apps should have three toggle frames, a separate bar-colour frame, and one list-settings frame"
 color_groups = [g for g in cg if 'heading: "Цвета полос нагрузки"' in g]
 assert len(color_groups) == 1 and "showFrame: true" in color_groups[0], "Bar-colour frame must remain a separate framed group"
 colors_morph = re.search(r"MorphGeometry\s*\{(?:(?!\n\s*\}).)*id: topAppsBarColorsMorph(?:(?!\n\s*\}).)*\n\s*\}", cpu, re.S)

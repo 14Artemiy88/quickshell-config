@@ -10,6 +10,7 @@ persist="$ROOT/js/settings/SettingsPersistence.js"
 resets="$ROOT/js/settings/SettingsResets.js"
 ui="$ROOT/components/TopApps.qml"
 settings_ui="$ROOT/components/settings/SettingsWidget.qml"
+settings_registry="$ROOT/js/settings/SettingsPageRegistry.js"
 settings_section="$ROOT/components/settings/sections/SettingsCpuRamSection.qml"
 
 for key in topAppsShowHeaders topAppsShowBars; do
@@ -20,7 +21,7 @@ for key in topAppsShowHeaders topAppsShowBars; do
     grep -Fq "$key" "$resets" || fail "$key is absent from reset handling"
 done
 
-grep -Fq 'case 5: return ["Общие", "График CPU", "Top Apps"]' "$settings_ui" || fail "Top Apps subtab is missing"
+grep -Fq '{ id: "cpuRam", saveScope: "cpu", subTabs: ["Общие", "График CPU", "Top Apps"] }' "$settings_registry" || fail "Top Apps subtab is missing"
 grep -Fq 'text: "Показывать заголовки CPU и памяти"' "$settings_section" || fail "headers setting is missing"
 grep -Fq 'text: "Показывать полосы нагрузки"' "$settings_section" || fail "bars setting is missing"
 grep -Fq 'onToggled: { Config.topAppsShowHeaders = checked; settings.save() }' "$settings_section" || fail "headers toggle does not save"

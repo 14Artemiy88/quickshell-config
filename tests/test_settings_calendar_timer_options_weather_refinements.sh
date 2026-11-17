@@ -9,13 +9,14 @@ read = lambda p: (r / p).read_text(encoding="utf-8")
 
 # Quick-save control is adjacent to reset and operates on the currently active profile.
 widget = read("components/settings/SettingsWidget.qml")
+registry = read("js/settings/SettingsPageRegistry.js")
 modules = read("components/settings/sections/SettingsModulesSection.qml")
 assert 'readonly property bool quickSaveProfileAvailable:' in widget
 assert 'settings.hasResetChanges("all")' in widget
 assert 'iconText: "\\uf0c7"' in widget
 assert 'tooltip: "Сохранить всё в активный профиль"' in widget
 assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in widget
-assert 'onClicked: settings.saveProfileScope(settings.activeProfile, root.currentOtherSaveScope)' in widget
+assert 'onClicked: settings.saveProfileScope(settings.activeProfile, root.currentPageSaveScope)' in widget
 assert 'onClicked: settings.saveProfile(settings.activeProfile)' in widget
 assert widget.index('tooltip: "Сохранить всё в активный профиль"') < widget.index('tooltip: "Сбросить текущую вкладку"')
 assert 'onClicked: settings.saveProfile(settings.activeProfile)' in modules
@@ -41,14 +42,14 @@ assert 'inputMaskEnabled: shell.calendarVisible || Config.calendarAlwaysVisible 
 assert 'backgroundBlurVisible: shell.calendarVisible || Config.calendarAlwaysVisible || calendarVisibility.running' in shell
 
 # Timer options have a dedicated subtab and an independent, persistent animation style.
-assert 'case 1: return ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"]' in widget
+assert '{ id: "timers", saveScope: "timer", subTabs: ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"] }' in registry
 timers = read("components/settings/sections/SettingsTimersSection.qml")
 assert 'heading: "Анимация окна опций"' in timers
-assert 'visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 5' in timers
+assert 'visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5' in timers
 assert 'Config.animationTimerOptionsVisibilityStyle' in timers
 assert 'targetProperty: "animationTimerOptionsDuration"' in timers
 assert 'text: "Стиль анимации таймера"' in timers
-assert 'currentOtherSubTab === 4' in timers and 'Config.animationTimerVisibilityStyle' in timers
+assert 'currentPageSubTabIndex === 4' in timers and 'Config.animationTimerVisibilityStyle' in timers
 options = read("components/TimerOptions.qml")
 assert 'Config.animationTimerOptionsVisibilityStyle' in options
 assert 'function onAnimationTimerOptionsVisibilityStyleChanged() { root.syncVisualState() }' in options

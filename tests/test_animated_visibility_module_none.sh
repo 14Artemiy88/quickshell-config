@@ -12,6 +12,7 @@ timer = (root / "components/TimerWidget.qml").read_text(encoding="utf-8")
 shell = (root / "shell.qml").read_text(encoding="utf-8")
 launcher = (root / "components/launcher/Launcher.qml").read_text(encoding="utf-8")
 widget = (root / "components/settings/SettingsWidget.qml").read_text(encoding="utf-8")
+registry = (root / "js/settings/SettingsPageRegistry.js").read_text(encoding="utf-8")
 general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text(encoding="utf-8")
 apply = (root / "js/settings/SettingsApplyBehaviour.js").read_text(encoding="utf-8")
 persist = (root / "js/settings/SettingsPersistence.js").read_text(encoding="utf-8")
@@ -40,8 +41,8 @@ assert "Config.animationsEnabled" not in options
 assert "Config.animationsEnabled" not in launcher
 assert "Config.animationDuration(180, \"movement\")" in launcher
 assert "Config.animationDuration(180, \"size\")" in launcher
-assert 'case 0: return ["Интерфейс", "Профили", "Хранилища"]' in widget
-assert 'case 0: return ["Интерфейс", "Анимации", "Профили"]' not in widget
+assert '{ id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] }' in registry
+assert '["Интерфейс", "Анимации", "Профили"]' not in registry
 assert 'text: "Анимации"' not in general
 assert "animationsEnabled" not in apply and "animationAppearanceEnabled" not in apply
 assert "animationsEnabled: config.animationsEnabled" not in persist

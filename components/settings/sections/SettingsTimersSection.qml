@@ -92,7 +92,7 @@ Column {
         root.settings.save()
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerPresetDefaults"] })
@@ -100,7 +100,7 @@ Column {
         contentSpacing: 6
 
         Text {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 0
                 text: "Минуты кнопок таймера"
                 color: Config.textMuted
                 font.family: Config.settingsFont
@@ -108,7 +108,7 @@ Column {
             }
 
             Column {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 0
                 width: parent.width
                 spacing: 5
 
@@ -184,7 +184,7 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -238,7 +238,7 @@ Column {
             id: timerRandomCustomColorsMorph
             width: parent.width
             clip: true
-            visible: root.host && root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 0
+            visible: root.host && root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 0
                 && (Config.timerRandomColorMode === "custom" || normalizedProgress > 0.001)
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, timerRandomCustomColorsContent.implicitHeight)
@@ -281,7 +281,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerFinishedBackgroundColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBorderUsesTimerColor", "timerFinishedImageEnabled", "timerFinishedImageMargin", "timerFinishedImagePath", "timerFinishedImageWidth", "timerFinishedTitleAlignment", "timerFinishedTitleColor", "timerFinishedTitleFont", "timerFinishedTitleFontSize", "timerFinishedTitleUsesTimerColor"] })
@@ -289,7 +289,7 @@ Column {
         contentSpacing: 6
 
             Text {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 text: "Оформление и показ"
                 color: Config.textMuted
                 font.family: Config.settingsFont
@@ -298,7 +298,7 @@ Column {
 
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -312,7 +312,7 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -507,7 +507,7 @@ Column {
         }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -525,7 +525,7 @@ Column {
             }
 
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 1
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -578,7 +578,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         heading: "Иконки таймера и будильника"
@@ -587,7 +587,7 @@ Column {
         contentSpacing: 6
 
             Column {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 2
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 2
                 width: parent.width
                 spacing: 4
 
@@ -753,7 +753,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         heading: "Отображение времени"
@@ -787,7 +787,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerWheelStep"] })
@@ -795,7 +795,7 @@ Column {
         contentSpacing: 6
 
             SettingsNumberField {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 label: "Минимальная высота блока таймеров"
                 value: Config.timerMinHeight
                 minimum: 30
@@ -808,7 +808,7 @@ Column {
                 }
             }
             SettingsNumberField {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 label: "Шаг колеса таймера"
                 value: Config.timerWheelStep
                 minimum: 1
@@ -821,7 +821,7 @@ Column {
                 }
             }
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -885,7 +885,7 @@ Column {
         }
             }
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 30
                 SettingsCheckBox {
@@ -897,7 +897,7 @@ Column {
                 }
             }
             Row {
-                visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 24
                 spacing: 8
@@ -907,7 +907,7 @@ Column {
                 Text { width: 58; text: "Справа"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
                     Row {
-                        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 3
+                        visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                         width: parent.width
                         height: 30
                         spacing: 8
@@ -972,7 +972,7 @@ Column {
                     }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 4
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 4
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["animationTimerVisibilityStyle", "timerButtonFadeDuration", "timerButtonIconFadeDuration", "timerButtonSlideDuration"] })
@@ -981,7 +981,7 @@ Column {
 
 
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+            visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
             width: parent.width
             height: 30
             spacing: 8
@@ -1004,7 +1004,7 @@ Column {
         }
 
                     Row { width: parent.width; height: 30; spacing: 8
-                        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                        visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
                         Text { width: 210; height: 30; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
             id: timerFadeField
@@ -1027,7 +1027,7 @@ Column {
         }
                     }
                     Row { width: parent.width; height: 30; spacing: 8
-                        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                        visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
                         Text { width: 210; height: 30; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
             id: timerSlideField
@@ -1050,7 +1050,7 @@ Column {
         }
                     }
                     Row { width: parent.width; height: 30; spacing: 8
-                        visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 4
+                        visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
                         Text { width: 210; height: 30; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
             id: timerIconFadeField
@@ -1075,7 +1075,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 5
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
         width: parent.width
         showFrame: true
         heading: "Анимация окна опций"
@@ -1084,7 +1084,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
+            visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 5
             width: parent.width
             height: 30
             spacing: 8
@@ -1107,7 +1107,7 @@ Column {
         }
 
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
+            visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 5
             width: parent.width
             height: 30
             spacing: 8
@@ -1126,7 +1126,7 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 1 && host.currentOtherSubTab === 5
+        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
         width: parent.width
         showFrame: true
         heading: "Иконки окна опций"
@@ -1135,7 +1135,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: root.host.currentOtherTab === 1 && root.host.currentOtherSubTab === 5
+            visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 5
             width: parent.width
             height: 18
             spacing: 6

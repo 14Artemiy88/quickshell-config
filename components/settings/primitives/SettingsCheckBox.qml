@@ -5,6 +5,12 @@ import "../../.."
 CheckBox {
     id: root
 
+    // Settings search metadata is intentionally independent from displayed labels.
+    property bool settingsSearchable: true
+    property string settingsSearchId: ""
+    property string settingsSearchLabel: ""
+    property string settingsSearchKeywords: ""
+
     property bool pointerHovered: checkHoverArea.containsMouse
     property bool indicatorOnly: false
     property real labelFontSize: 11

@@ -10,7 +10,7 @@ Column {
     property var settings: Settings
     spacing: 10
     width: parent ? parent.width : 0
-    visible: host && host.currentOtherTab === 10 && host.currentOtherSubTab === 2
+    visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 2
 
     function normalizedTopIconOrder() {
         var allowed = ["stop", "shuffle", "repeat", "volume", "refresh", "openAdd", "clear"]
@@ -39,7 +39,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY"] })
@@ -120,7 +120,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyTopIconOrder"] })
@@ -227,7 +227,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 10
+        visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyMutedIcon", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowAddIcon", "mopidyShowClearIcon", "mopidyShowMoveDownIcon", "mopidyShowMoveUpIcon", "mopidyShowOpenAddIcon", "mopidyShowPlaylistDeleteIcon", "mopidyShowRefreshIcon", "mopidyShowRepeatIcon", "mopidyShowShuffleIcon", "mopidyShowStopIcon", "mopidyShowSwitchPlaylistIcon", "mopidyShowVolumeIcon", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyVolumeIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY"] })

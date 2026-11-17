@@ -8,7 +8,7 @@ Flickable {
     id: root
     property var host
     property var settings: Settings
-    visible: host && host.currentTab === 1
+    visible: host && host.currentPageId === "themes"
     width: parent ? parent.width : 0
     height: visible ? parent.height - y : 0
     property bool editingColors: false
@@ -35,7 +35,7 @@ Flickable {
         spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentTab === 1
+        visible: host && host.currentPageId === "themes"
         width: parent.width
         showFrame: false
         padding: 8
@@ -366,7 +366,7 @@ Flickable {
     }
 
     SettingsGroup {
-        visible: host && host.currentTab === 1
+        visible: host && host.currentPageId === "themes"
         width: parent.width
         showFrame: false
         padding: 8

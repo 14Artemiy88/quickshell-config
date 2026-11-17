@@ -18,6 +18,7 @@ const profilesSource = read('js/settings/SettingsProfiles.js');
 const resetsSource = read('js/settings/SettingsResets.js');
 const settings = read('Settings.qml');
 const widget = read('components/settings/SettingsWidget.qml');
+const registry = read('js/settings/SettingsPageRegistry.js');
 const section = read('components/settings/sections/SettingsNotificationsSection.qml');
 const modulesSection = read('components/settings/sections/SettingsModulesSection.qml');
 const notifications = read('components/notifications/Notifications.qml');
@@ -47,17 +48,17 @@ assert(!persistenceSource.includes('notificationsPosition: config.') && !persist
 for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificationsOffsetY', 'notificationsMargin'])
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
-assert(widget.includes('{ id: "notifications", defaultLabel: "Уведомления" }'), 'sidebar declares the Notifications page');
+assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления" }'), 'sidebar declares the Notifications page');
 assert(config.includes('"launcher", "notifications", "settingsWindow"') && defaults.includes('"launcher", "notifications", "settingsWindow"'), 'default sidebar order places Notifications before Settings Window');
-assert(widget.includes('case 12: return ["Поведение", "Внешний вид", "Размещение"]'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
+assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
 assert(widget.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
 assert(widget.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
 assert(widget.includes('SettingsNotificationsSection {'), 'SettingsWidget instantiates the notification settings section');
-assert(section.includes('visible: host && host.currentOtherTab === 12'), 'section is routed only to the Notifications page');
+assert(section.includes('visible: host && host.currentPageId === "notifications"'), 'section is routed only to the Notifications page');
 assert(section.includes('settings.save()'), 'section saves edits immediately');
 assert(section.includes('notificationsDefaultTimeout') && section.includes('notificationsCriticalTimeout'), 'section exposes separate normal and critical timeout controls');
 assert(!section.includes('notificationsPosition') && !section.includes('notificationsOffsetX') && !section.includes('notificationsOffsetY') && !section.includes('notificationsMargin'), 'legacy placement controls are removed from the Notifications page');
-assert(section.includes('currentOtherSubTab === 2') && section.includes('Вертикальная привязка') && section.includes('Сверху') && section.includes('Снизу') && section.includes('setNotificationsVerticalAnchor'), 'Notifications page owns a top/bottom-only vertical anchor control');
+assert(section.includes('currentPageSubTabIndex === 2') && section.includes('Вертикальная привязка') && section.includes('Сверху') && section.includes('Снизу') && section.includes('setNotificationsVerticalAnchor'), 'Notifications page owns a top/bottom-only vertical anchor control');
 assert(!section.includes('notificationsCardWidth') && section.includes('notificationsCardSpacing'), 'Notifications page no longer contains the moved window-width control');
 assert(modulesSection.includes('moduleRow.moduleName === "notifications"') && modulesSection.includes('modulesSection.writeNotificationsGeometry(index, n)'), 'Modules page exposes notification window width and maximum height through shared geometry fields');
 assert(section.includes('notificationsShowAppIcon') && section.includes('notificationsShowBodyImages') && section.includes('notificationsShowProgress'), 'section exposes display toggles');

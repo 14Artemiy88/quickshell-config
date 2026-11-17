@@ -111,7 +111,7 @@ expected = {
     "Положение и размер полос": "Config.topAppsShowBars",
     "Цвета полос нагрузки": "Config.topAppsShowBars",
     "Строка «Система/прочее»": "Config.topAppsShowSystemRemainder",
-    "Список приложений": "host.currentOtherTab === 5",
+    "Список приложений": 'host.currentPageId === \"cpuRam\"',
 }
 all_groups = groups(source)
 for title, guard in expected.items():
@@ -130,7 +130,7 @@ for title, guard in expected.items():
         assert morph_visible >= 0 and morph_end >= 0, "Color frame morph visibility is missing"
         assert "Config.topAppsShowBars" in source[morph_visible:morph_end], "Color frame morph must remain conditional on bars being enabled"
     else:
-        assert "host.currentOtherTab === 5" in first_visibility and "topAppsShowHeaders" not in first_visibility and "topAppsShowSystemRemainder" not in first_visibility and "topAppsShowBars" not in first_visibility, f"Frame/legend {title!r} must remain visible while its feature is disabled"
+        assert 'host.currentPageId === \"cpuRam\"' in first_visibility and "topAppsShowHeaders" not in first_visibility and "topAppsShowSystemRemainder" not in first_visibility and "topAppsShowBars" not in first_visibility, f"Frame/legend {title!r} must remain visible while its feature is disabled"
     assert f'text: "{title}"' not in block, f"{title!r} remains duplicated as an in-frame Text instead of using the explicit legend"
     print(f"OK: {title} uses an explicit, stable frame legend")
 

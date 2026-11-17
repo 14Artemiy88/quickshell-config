@@ -10,5 +10,6 @@ done
 grep -Fq 'onClicked: root.clicked()' "$RESET" || { echo 'Reset button still hides itself on click rather than following value changes' >&2; exit 1; }
 grep -Fq 'actionAvailable: settings.hasResetChanges("colors", modelData.colors)' "$ROOT/components/settings/sections/SettingsColorsSection.qml" || { echo 'Per-color-group reset button lacks change tracking' >&2; exit 1; }
 grep -Fq 'actionAvailable: settings.hasResetChanges("module", moduleRow.moduleName)' "$ROOT/components/settings/sections/SettingsModulesSection.qml" || { echo 'Per-module reset button lacks change tracking' >&2; exit 1; }
-grep -Fq 'actionAvailable: root.currentOtherTab === 0 ? settings.hasResetChanges("general")' "$WIDGET" || { echo 'Per-tab reset button lacks change tracking' >&2; exit 1; }
+grep -Fq 'actionAvailable: root.currentPageSaveScope !== "" && settings.hasResetChanges(root.currentPageSaveScope)' "$WIDGET" || { echo 'Per-tab reset button lacks change tracking' >&2; exit 1; }
+grep -Fq 'function resetCurrentSettingsPage()' "$WIDGET" || { echo 'Per-tab reset dispatch must use stable page IDs' >&2; exit 1; }
 echo 'Reset buttons follow sparse settings.json profileOverrides presence: OK'

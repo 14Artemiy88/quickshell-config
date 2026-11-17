@@ -34,7 +34,7 @@ expected=('Отдельные цвета для заполнения полос 
 morph_start=s.index('id: topAppsBarColorsMorph')
 morph_end=s.index('id: topAppsBarColorsGroup', morph_start)
 morph=s[morph_start:morph_end]
-if 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2' not in morph:
+if 'Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2' not in morph:
     raise SystemExit('bar color morph does not follow the Top Apps visibility toggle')
 if 'progress: Config.topAppsShowBars ? 1 : 0' not in morph:
     raise SystemExit('bar color section does not animate its geometry')

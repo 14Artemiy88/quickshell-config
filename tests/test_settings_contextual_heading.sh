@@ -2,9 +2,9 @@
 set -euo pipefail
 file="$(dirname "$0")/../components/settings/SettingsWidget.qml"
 grep -Fq 'function settingsTabLabelForId(id)' "$file"
-grep -Fq 'readonly property string currentOtherTabTitle:' "$file"
+grep -Fq 'readonly property string currentPageTitle:' "$file"
 grep -Fq 'return (main + (sub ? " · " + sub : "")).toLocaleUpperCase()' "$file"
-grep -Fq 'text: root.currentOtherTabTitle' "$file"
+grep -Fq 'text: root.currentPageTitle' "$file"
 # Keep the generic label only for the window title; the content heading is contextual.
 count=$(grep -Fc 'text: "НАСТРОЙКИ"' "$file")
 [[ "$count" -eq 1 ]]

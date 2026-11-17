@@ -13,6 +13,7 @@ apply = (root / "js/settings/SettingsApplyBehaviour.js").read_text(encoding="utf
 persist = (root / "js/settings/SettingsPersistence.js").read_text(encoding="utf-8")
 resets = (root / "js/settings/SettingsResets.js").read_text(encoding="utf-8")
 widget = (root / "components/settings/SettingsWidget.qml").read_text(encoding="utf-8")
+registry = (root / "js/settings/SettingsPageRegistry.js").read_text(encoding="utf-8")
 section = (root / "components/settings/sections/SettingsVolumeSection.qml").read_text(encoding="utf-8")
 volumes = (root / "components/Volumes.qml").read_text(encoding="utf-8")
 shell = (root / "shell.qml").read_text(encoding="utf-8")
@@ -34,9 +35,9 @@ volume_profile = resets.split('} else if (moduleName === "volumes") {', 1)[1].sp
 assert '"animationVolumeStreamsVisibilityStyle"' in volume_profile
 assert '"volumeStreamsAnimationDuration"' in volume_profile
 
-assert 'case 7: return ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"]' in widget
+assert '{ id: "volume", saveScope: "volume", subTabs: ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"] }' in registry
 assert '{ keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] }' in widget
-assert 'visible: host && host.currentOtherTab === 7 && host.currentOtherSubTab === 5' in section
+assert 'visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5' in section
 assert 'heading: "Анимация списка потоков"' in section
 assert 'Config.animationVolumeStreamsVisibilityStyle' in section
 assert 'Config.volumeStreamsAnimationDuration' in section

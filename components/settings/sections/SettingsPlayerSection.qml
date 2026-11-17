@@ -99,7 +99,7 @@ Column {
     Component.onCompleted: root.syncPlayerPriorityModel()
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerFont", "playerSilenceFontSize", "playerSilenceLongFontSize", "playerSilenceText", "playerSilenceWidth"] })
@@ -107,7 +107,7 @@ Column {
         contentSpacing: 6
 
             Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 34
                 spacing: 8
@@ -153,7 +153,7 @@ Column {
                 }
             }
             Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 34
                 spacing: 8
@@ -182,7 +182,7 @@ Column {
                 }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 Text { width: 210; height: 30; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: silenceSizeField
@@ -205,7 +205,7 @@ Column {
         }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 Text { width: 210; height: 30; text: "Размер длинного текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: silenceLongSizeField
@@ -227,7 +227,7 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 1; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Ширина области"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: playerSilenceWidthField
@@ -251,7 +251,7 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerPriority"] })
@@ -259,14 +259,14 @@ Column {
         contentSpacing: 6
 
             Text {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
                 text: "Приоритет проигрывателей"
                 color: Config.settingsSubheading
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(12)
             }
             Text {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
                 text: "Первый включённый backend в списке, который сейчас доступен, используется плеером. Отключённые backend пропускаются."
                 color: Config.textMuted
                 font.family: Config.settingsFont
@@ -275,7 +275,7 @@ Column {
                 width: parent.width
             }
             Column {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 0
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
                 width: parent.width
                 spacing: 5
 
@@ -349,14 +349,14 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerTimeFont", "playerTimeFontSize", "playerTimeRightPadding", "playerTimeY"] })
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+        Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Размер"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: playerTimeFontSizeField
@@ -378,7 +378,7 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsFontField {
                     width: 178
@@ -393,7 +393,7 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Смещение по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
                     id: playerTimeYField
@@ -415,7 +415,7 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 2; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Отступ справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: playerTimeRightPaddingField
@@ -439,7 +439,7 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerBoldArtist", "playerMetaFont", "playerMetaFontSize", "playerMetaLineSpacing", "playerMetaSecondaryFontSize", "playerMetadataXPadding", "playerMetadataY", "playerTextOutlineColor", "playerTextOutlineEnabled"] })
@@ -447,7 +447,7 @@ Column {
         contentSpacing: 6
 
         Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 34
                 spacing: 8
@@ -476,7 +476,7 @@ Column {
                 }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 Text { width: 210; height: 30; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
             id: metaSizeField
@@ -499,7 +499,7 @@ Column {
         }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 Text { width: 210; height: 30; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: metaSecondarySizeField
@@ -522,7 +522,7 @@ Column {
         }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: metaSpacingField
@@ -544,7 +544,7 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: playerMetaXPadField
@@ -566,7 +566,7 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3; width: parent.width; height: 30; spacing: 8
+            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
                 Text { width: 210; height: 30; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: playerMetaYField
@@ -589,11 +589,11 @@ Column {
         }
             }
             Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 SettingsCheckBox { id: boldArtistBox; width: 210; height: 30; text: "Жирный исполнитель"; checked: Config.playerBoldArtist; onToggled: { Config.playerBoldArtist=checked; settings.save() } }
             }
             Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 3
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 30
                 spacing: 8
@@ -655,16 +655,16 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 4
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 4
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerNextIcon", "playerNextIconSize", "playerNextIconY", "playerPausedIcon", "playerPausedIconSize", "playerPausedIconY", "playerPlayingIcon", "playerPlayingIconSize", "playerPlayingIconY"] })
         padding: 8
         contentSpacing: 6
 
-            Text { visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 4; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+            Text { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 4; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
             Column {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 4
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 4
                 width: parent.width
                 spacing: 4
                 Row {
@@ -810,7 +810,7 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 5
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerShowProgress", "playerProgressTrackHeight", "playerProgressTrackOffsetY", "playerProgressY"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } })
@@ -818,7 +818,7 @@ Column {
         contentSpacing: 6
 
         Row { width: parent.width; height: 30; spacing: 8
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 5
                 SettingsCheckBox { id: showProgressBox; width: 210; height: 30; text: "Показывать прогресс"; checked: Config.playerShowProgress; onToggled: { Config.playerShowProgress=checked; settings.save() } }
             }
         MorphGeometry {
@@ -838,7 +838,7 @@ Column {
                 spacing: 6
 
                 Row {
-                    visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+                    visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 5
                     width: parent.width
                     height: 24
                     spacing: 8
@@ -848,7 +848,7 @@ Column {
                     Text { width: 58; text: "Смещение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
                 Row {
-                    visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 5
+                    visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 5
                     width: parent.width
                     height: 30
                     spacing: 8
@@ -920,7 +920,7 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 2 && host.currentOtherSubTab === 6
+        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 6
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerCoverOpacity"], nested: { colors: ["playerOverlay"] } })
@@ -928,7 +928,7 @@ Column {
         contentSpacing: 6
 
             Row {
-                visible: host.currentOtherTab === 2 && host.currentOtherSubTab === 6
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 6
                 width: parent.width
                 height: 30
                 spacing: 8

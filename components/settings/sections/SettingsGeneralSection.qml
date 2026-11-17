@@ -115,12 +115,12 @@ Column {
         Quickshell.execDetached([Quickshell.shellDir + "/scripts/copy_text", String(path || "")])
     }
 
-    visible: host && host.currentOtherTab === 0
+    visible: host && host.currentPageId === "general"
     width: parent ? parent.width : 0
     spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["font", "fontSize", "ledFont"] })
@@ -128,7 +128,7 @@ Column {
         contentSpacing: 6
 
         Text {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             text: "Шрифты интерфейса"
             color: Config.textMuted
             font.family: Config.settingsFont
@@ -138,7 +138,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
@@ -158,7 +158,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
@@ -185,7 +185,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
@@ -205,7 +205,7 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["backgroundBlurRadius"] })
@@ -214,7 +214,7 @@ Column {
         contentSpacing: 6
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -248,7 +248,7 @@ Column {
             }
         }
         Text {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             text: "Для работы блюра требуется поддержка композитора."
             color: Config.textMuted
@@ -259,7 +259,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["frameBorderWidth", "frameRadius"] })
@@ -267,7 +267,7 @@ Column {
         contentSpacing: 6
 
         Text {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             text: "Рамки виджетов"
             color: Config.textMuted
             font.family: Config.settingsFont
@@ -277,7 +277,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -314,7 +314,7 @@ Column {
         }
 
         Row {
-            visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 0
+            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -352,7 +352,7 @@ Column {
     }
 
     Text {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2
         width: parent.width
         text: "Пути вычисляются автоматически. Перемещать можно settings.json, profiles.json, calendar-notes.json и calendar-marks.json. Файл переносится с проверкой JSON; старый вариант сохраняется как резервная копия. После смены расположения рекомендуется перезапустить Quickshell."
         color: Config.textMuted
@@ -362,7 +362,7 @@ Column {
     }
 
     Text {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && !root.storagePathsLoaded
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && !root.storagePathsLoaded
         width: parent.width
         text: "Определение путей хранения…"
         color: Config.textMuted
@@ -371,7 +371,7 @@ Column {
     }
 
     Text {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && root.storagePathsError.length > 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && root.storagePathsError.length > 0
         width: parent.width
         text: root.storagePathsError
         color: Config.textMuted
@@ -381,7 +381,7 @@ Column {
     }
 
     Text {
-        visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2 && root.storagePathApplyMessage.length > 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && root.storagePathApplyMessage.length > 0
         width: parent.width
         text: root.storagePathApplyMessage
         color: root.storagePathApplyError ? "#e06c75" : Config.textMuted
@@ -398,7 +398,7 @@ Column {
             required property var modelData
             property var groupEntryIds: modelData.entryIds
 
-            visible: host && host.currentOtherTab === 0 && host.currentOtherSubTab === 2
+            visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2
             width: parent.width
             showFrame: true
             heading: modelData.title

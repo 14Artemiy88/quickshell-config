@@ -9,12 +9,12 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 12
+    visible: host && host.currentPageId === "notifications"
     width: parent ? parent.width : 0
     spacing: 10
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherTab === 12 && root.host.currentOtherSubTab === 0
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -120,7 +120,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherTab === 12 && root.host.currentOtherSubTab === 1
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -173,7 +173,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentOtherTab === 12 && root.host.currentOtherSubTab === 1
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -211,7 +211,7 @@ Column {
         }
     }
     SettingsGroup {
-        visible: root.host && root.host.currentOtherTab === 12 && root.host.currentOtherSubTab === 2
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         settings: root.settings

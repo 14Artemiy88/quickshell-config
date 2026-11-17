@@ -31,10 +31,10 @@ from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
 checks = [
-    ('Показывать заголовки CPU и памяти', 'Заголовки', 'Config.topAppsShowHeaders && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
-    ('Показывать полосы нагрузки', 'Положение и размер полос', 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
-    ('Показывать полосы нагрузки', 'Цвета полос нагрузки', 'Config.topAppsShowBars && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
-    ('Показывать строку «Система/прочее»', 'Строка «Система/прочее»', 'Config.topAppsShowSystemRemainder && host.currentOtherTab === 5 && host.currentOtherSubTab === 2'),
+    ('Показывать заголовки CPU и памяти', 'Заголовки', 'Config.topAppsShowHeaders && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2'),
+    ('Показывать полосы нагрузки', 'Положение и размер полос', 'Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2'),
+    ('Показывать полосы нагрузки', 'Цвета полос нагрузки', 'Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2'),
+    ('Показывать строку «Система/прочее»', 'Строка «Система/прочее»', 'Config.topAppsShowSystemRemainder && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2'),
 ]
 for toggle, group, guard in checks:
     if 'text: "'+toggle+'"' not in s:

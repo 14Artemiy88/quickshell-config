@@ -41,8 +41,9 @@ repeater_end = modules.index('model: settings.moduleNames')
 launcher_row = modules.index('id: launcherModuleRow')
 assert launcher_row > repeater_end
 # Keep the dedicated Launcher tab and its original three subtabs intact.
-assert '"Лаунчер"' in widget and 'case 11: return ["Общее", "Вкладки", "Проекты"]' in widget
-assert 'visible: host && host.currentOtherTab === 11' in launcher
+registry = (root / 'js/settings/SettingsPageRegistry.js').read_text()
+assert '"Лаунчер"' in registry and '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Вкладки", "Проекты"] }' in registry
+assert 'visible: host && host.currentPageId === "launcher"' in launcher
 assert 'property int currentLauncherSubTab' not in launcher
 # Enabling/disabling is persisted and applied, and prevents IPC launches when disabled.
 assert 'property bool launcherEnabled: true' in config

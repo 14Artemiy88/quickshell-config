@@ -97,7 +97,7 @@ for path in sorted(sections.rglob("*.qml")):
                 continue
             # These are decorative headings/buttons rather than form labels.
             if any(marker in label for marker in (
-                "root.currentOtherTabTitle", "modelData.title", "profileSavedMark",
+                "root.currentPageTitle", "modelData.title", "profileSavedMark",
                 "Сбросить все настройки", "Модули и их расположение",
             )):
                 continue

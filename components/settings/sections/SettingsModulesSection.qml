@@ -126,13 +126,13 @@ Item {
         settings.geometry = geometry
         settings.save()
     }
-    visible: host && host.currentTab === 0
+    visible: host && host.currentPageId === "modules"
     width: parent ? parent.width : 0
     height: visible ? parent.height - y : 0
 
     Flickable {
         id: modulesFlick
-        visible: host.currentTab === 0
+        visible: host.currentPageId === "modules"
         width: parent.width
         height: parent.height - y
         contentWidth: Math.max(width, modulesColumn.width)
@@ -155,7 +155,7 @@ Item {
             spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentTab === 0
+        visible: host && host.currentPageId === "modules"
         width: parent.width
         showFrame: false
         padding: 8
@@ -278,6 +278,9 @@ Item {
                                     compact: true
                                     fieldWidth: 48
                                     fieldFontSize: 10
+                                    settingsSearchId: "module." + moduleRow.moduleName + ".geometry." + ["x", "y", "width", "height"][index]
+                                    settingsSearchLabel: (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName) + " · " + ["X", "Y", "Ширина", "Высота"][index]
+                                    settingsSearchKeywords: "координаты положение расположение геометрия экран"
                                     inputMethodHints: Qt.ImhFormattedNumbersOnly
                                     valueWriter: function(n) {
                                         if (moduleRow.moduleName === "notifications") {
@@ -309,6 +312,9 @@ Item {
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
+                                settingsSearchId: "module." + moduleRow.moduleName + ".frame"
+                                settingsSearchLabel: "Рамка " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
+                                settingsSearchKeywords: "обводка граница оформление"
                                 checked: settings.moduleFrames[moduleRow.moduleName] !== false
                                 onToggled: {
                                     var values = Object.assign({}, settings.moduleFrames)
@@ -324,6 +330,9 @@ Item {
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
+                                settingsSearchId: "module." + moduleRow.moduleName + ".background"
+                                settingsSearchLabel: "Фон " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
+                                settingsSearchKeywords: "подложка задний цвет"
                                 checked: settings.moduleBackgrounds[moduleRow.moduleName] !== false
                                 onToggled: {
                                     var values = Object.assign({}, settings.moduleBackgrounds)
@@ -339,6 +348,9 @@ Item {
                                 height: 30
                                 text: ""
                                 indicatorOnly: true
+                                settingsSearchId: "module." + moduleRow.moduleName + ".blur"
+                                settingsSearchLabel: "Блюр " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
+                                settingsSearchKeywords: "размытие прозрачность"
                                 checked: settings.moduleBlurEnabled[moduleRow.moduleName] === true
                                 ToolTip.visible: moduleBlurBox.pointerHovered
                                 ToolTip.text: "Блюр: " + settings.moduleLabels[moduleRow.moduleName]
@@ -411,6 +423,9 @@ Item {
                                 step: 1
                                 wheelStep: 1
                                 inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                settingsSearchId: "module.launcher.geometry." + ["x", "y"][index]
+                                settingsSearchLabel: "Лаунчер · " + ["X", "Y"][index]
+                                settingsSearchKeywords: "координаты положение расположение геометрия экран"
                                 valueWriter: function(n) { modulesSection.writeLauncherCoordinate(index, n) }
                                 ToolTip.visible: launcherCoordinateField.pointerHovered
                                 ToolTip.text: ["X", "Y"][index]
@@ -421,6 +436,9 @@ Item {
                         SettingsNumberField {
                             id: launcherWidthField
                             width: 48
+                            settingsSearchId: "module.launcher.geometry.width"
+                            settingsSearchLabel: "Ширина лаунчера"
+                            settingsSearchKeywords: "ширина размер окна"
                             height: 30
                             compact: true
                             fieldWidth: 48
@@ -439,6 +457,9 @@ Item {
                         SettingsNumberField {
                             id: launcherHeightField
                             width: 48
+                            settingsSearchId: "module.launcher.geometry.height"
+                            settingsSearchLabel: "Высота лаунчера"
+                            settingsSearchKeywords: "высота размер окна"
                             height: 30
                             compact: true
                             fieldWidth: 48
@@ -457,6 +478,9 @@ Item {
                         SettingsCheckBox {
                             id: launcherFrameBox
                             width: 30
+                            settingsSearchId: "module.launcher.frame"
+                            settingsSearchLabel: "Рамка лаунчера"
+                            settingsSearchKeywords: "обводка граница оформление"
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -475,6 +499,9 @@ Item {
                         SettingsCheckBox {
                             id: launcherBackgroundBox
                             width: 30
+                            settingsSearchId: "module.launcher.background"
+                            settingsSearchLabel: "Фон лаунчера"
+                            settingsSearchKeywords: "подложка задний цвет"
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -493,6 +520,9 @@ Item {
                         SettingsCheckBox {
                             id: launcherBlurBox
                             width: 30
+                            settingsSearchId: "module.launcher.blur"
+                            settingsSearchLabel: "Блюр лаунчера"
+                            settingsSearchKeywords: "размытие прозрачность"
                             height: 30
                             text: ""
                             indicatorOnly: true
@@ -529,7 +559,7 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentTab === 0
+        visible: host && host.currentPageId === "modules"
         width: parent.width
         showFrame: false
         padding: 8

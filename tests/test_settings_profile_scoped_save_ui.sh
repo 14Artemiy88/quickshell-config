@@ -15,8 +15,8 @@ assert 'function saveProfileScope(name, scope, argument)' in settings
 assert 'return SettingsProfiles.saveProfileScope(root, name, scope, argument)' in settings
 assert 'function saveProfileScope(owner, name, scope, argument)' in profiles
 assert 'if (!selectedPaths.length) return false' in profiles, 'scoped save must never fall back to saving everything'
-assert 'readonly property bool quickSaveSectionAvailable:' in widget
-assert 'settings.saveProfileScope(settings.activeProfile, root.currentOtherSaveScope)' in widget
+assert 'readonly property bool quickSavePageAvailable:' in widget
+assert 'settings.saveProfileScope(settings.activeProfile, root.currentPageSaveScope)' in widget
 assert 'Сохранить всё в активный профиль' in widget
 assert 'text: "Всё"' not in widget
 assert 'width: 30' in widget and 'iconText: "󰆔"' in widget, 'Save All should be compact and icon-only'

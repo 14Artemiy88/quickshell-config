@@ -13,7 +13,7 @@ row_start = profiles.index('text: "Сбросить все настройки"')
 start = profiles.rfind("Row {", 0, row_start)
 end = profiles.index("\n                            }", row_start) + len("\n                            }")
 row = profiles[start:end]
-assert 'visible: host.currentOtherTab === 0 && host.currentOtherSubTab === 1 && settings.hasResetChanges("all")' in row
+assert 'visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && settings.hasResetChanges("all")' in row
 assert 'actionAvailable: settings.hasResetChanges("all")' in row
 
 comfort = weather.split('heading: "Температура комфорта"', 1)[1].split('heading: "Положение элементов"', 1)[0]

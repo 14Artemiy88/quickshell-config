@@ -19,7 +19,7 @@ Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** o
 - Громкость основного выхода и аудиопотоков, состояние сети и активные подключения.
 - Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects и Calculator; запуск по Enter, сохранённые команды и проекты.
 - Сквозной поиск из Apps по установленным приложениям, проектам, сохранённым командам и арифметическим выражениям; источники можно включать отдельно. Калькулятор поддерживает скобки, унарные знаки, +, −, ×, ÷, остаток и степень.
-- Общая система настроек, тем, цветов, профилей и рамочных групп; развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
+- Общая система настроек, тем, цветов, профилей и рамочных групп; стабильные ID и метаданные страниц собраны в `SettingsPageRegistry.js`, отдельно от QML-разметки. Навигация, поиск, области сохранения и сбросы используют ID страниц, а не числовые индексы; числовая позиция остаётся только у подразделов внутри страницы. Глобальный поиск находит параметры по подписям, разделам и ключам, открывает нужную вкладку и прокручивает к настройке с подсветкой. Развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
 - Собственная система уведомлений на базе Quickshell: всплывающие карточки, уровни важности, прогресс-полосы по подсказке `int:value`, форматирование и ссылки, иконки и изображения из image-path/image-data, автоматическое скрытие и действия. На первом этапе она заменяет Dunst; перед запуском нужно остановить Dunst, чтобы Quickshell мог занять D-Bus имя `org.freedesktop.Notifications`.
 
 ### Требования
@@ -117,7 +117,7 @@ GitHub Actions запускает `CHECK.sh` при `push` и `pull_request`, п
 
 - `components/` — виджеты, лаунчер и повторно используемые QML-примитивы.
 - `components/settings/` — интерфейс настроек и секции модулей.
-- `js/settings/` — значения по умолчанию, схема, сохранение, профили и применение настроек.
+- `js/settings/` — значения по умолчанию, схема, реестр страниц настроек, поиск, сохранение, профили и применение настроек. Реестр `SettingsPageRegistry.js` хранит стабильные ID страниц, подписи, подразделы и области сохранения отдельно от QML-разметки; `SettingsWidget` и дочерние страницы используют `currentPageId` для навигации, поиска, сохранения и сброса.
 - `scripts/` — Bash-сценарии для мониторинга, плеера, Mopidy, таймеров, погоды и аудио.
 - `services/` — сервисы Quickshell для часов, системного мониторинга и погоды.
 - `tests/` — регрессионные тесты.
@@ -143,7 +143,7 @@ MIT. См. [`LICENSE`](LICENSE).
 - Output/stream volume, network statistics, and active connections.
 - Integrated launcher tabs: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects, and Calculator, including keyboard activation, saved commands, and project launching.
 - Apps cross-search across installed applications, configured projects, saved Run commands, and arithmetic expressions, with configurable source toggles and per-result icons. The separate Calculator tab supports parentheses, unary signs, +, −, ×, ÷, modulo, and exponentiation.
-- Shared settings, themes, color palette, profiles, and reusable framed settings groups; an expanded theme palette previews each theme before selection.
+- Shared settings, themes, color palette, profiles, and reusable framed settings groups; global settings search matches labels, sections, and setting keys, then opens the correct page and highlights the target control. An expanded theme palette previews each theme before selection.
 - Native Quickshell notification cards with urgency styling, progress bars from the `int:value` hint, rich text and hyperlinks, application icons, timeouts, queue scrolling, and action buttons.
 
 ### Requirements

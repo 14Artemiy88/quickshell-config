@@ -89,7 +89,7 @@ for heading, toggle_text, assignment in (
     assert assignment in prefix, f"{heading} toggle save action changed"
 
 # No old immediate-visibility guards may remain on the individual dependent rows.
-assert 'visible: Config.topAppsShowHeaders && host.currentOtherTab === 5' not in s, "header controls still use immediate visibility"
-assert 'visible: Config.topAppsShowSystemRemainder && host.currentOtherTab === 5' not in s, "remainder row still uses immediate visibility"
+assert 'visible: Config.topAppsShowHeaders && host.currentPageId === "cpuRam"' not in s, "header controls still use immediate visibility"
+assert 'visible: Config.topAppsShowSystemRemainder && host.currentPageId === "cpuRam"' not in s, "remainder row still uses immediate visibility"
 print("Top Apps headers and System/Other row MorphGeometry integration: OK")
 PY

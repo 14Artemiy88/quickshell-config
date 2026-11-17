@@ -8,12 +8,12 @@ Column {
     property var host
     property var settings: Settings
 
-    visible: host && host.currentOtherTab === 6
+    visible: host && host.currentPageId === "network"
     width: parent ? parent.width : 0
     spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 0
+        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["systemMonitorInterval"] })
@@ -65,7 +65,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Показ"
@@ -93,7 +93,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Расположение"
@@ -236,7 +236,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Иконки"
@@ -316,7 +316,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentOtherTab === 6 && host.currentOtherSubTab === 1
+        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
         width: parent.width
         showFrame: true
         heading: "Текст"
