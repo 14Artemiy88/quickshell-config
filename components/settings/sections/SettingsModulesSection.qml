@@ -166,9 +166,9 @@ Item {
                         height: 32
                         Text {
                             width: parent.width
-                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all") ? 38 : 0)
-                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules") ? 38 : 0)
-                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules") ? 38 : 0)
+                                - (host && host.profileController.canSaveScope("all") ? 38 : 0)
+                                - (host && host.profileController.canSaveScope("modules") ? 38 : 0)
+                                - (host && host.profileController.canSaveScope("modules") ? 38 : 0)
                             text: "Модули и их расположение"
                             color: Config.accent
                             font.family: Config.settingsFont
@@ -178,30 +178,30 @@ Item {
                         SettingsButton {
                             width: 30
                             height: 30
-                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
+                            visible: host && host.profileController.canSaveScope("all")
                             enabled: visible
                             text: ""
                             iconText: "󰆔"
                             fontSize: 11
                             tooltip: "Сохранить всё в активный профиль"
                             backgroundColor: Config.settingsBackground
-                            onClicked: settings.saveProfile(settings.activeProfile)
+                            onClicked: host.profileController.saveAll()
                         }
                         SettingsButton {
                             width: 30
                             height: 30
-                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("modules")
+                            visible: host && host.profileController.canSaveScope("modules")
                             enabled: visible
                             text: ""
                             iconText: "\uf0c7"
                             fontSize: 11
                             tooltip: "Сохранить расположение и параметры модулей"
                             backgroundColor: Config.settingsBackground
-                            onClicked: settings.saveProfileScope(settings.activeProfile, "modules")
+                            onClicked: host.profileController.saveScope("modules")
                         }
                         SettingsResetButton {
-                            enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                            actionAvailable: settings.hasResetChanges("modules")
+                            enabled: host && host.profileController.hasActiveProfile
+                            actionAvailable: host.profileController.canResetScope("modules")
                             tooltip: "Сбросить модули"
                             onClicked: settings.resetModules()
                         }
@@ -361,20 +361,20 @@ Item {
                             SettingsButton {
                                 width: 30
                                 height: 30
-                                visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("module", moduleRow.moduleName)
+                                visible: host && host.profileController.canSaveScope("module", moduleRow.moduleName)
                                 enabled: visible
                                 text: ""
                                 iconText: "\uf0c7"
                                 fontSize: 11
                                 tooltip: "Сохранить настройки модуля: " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
                                 backgroundColor: Config.settingsBackground
-                                onClicked: settings.saveProfileScope(settings.activeProfile, "module", moduleRow.moduleName)
+                                onClicked: host.profileController.saveScope("module", moduleRow.moduleName)
                             }
                             SettingsResetButton {
                                 width: 30
                                 height: 30
-                                enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                actionAvailable: settings.hasResetChanges("module", moduleRow.moduleName)
+                                enabled: host && host.profileController.hasActiveProfile
+                                actionAvailable: host.profileController.canResetScope("module", moduleRow.moduleName)
                                 tooltip: "Сбросить настройки модуля"
                                 onClicked: settings.resetModule(moduleRow.moduleName)
                             }
@@ -536,20 +536,20 @@ Item {
                         SettingsButton {
                             width: 30
                             height: 30
-                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("launcher")
+                            visible: host && host.profileController.canSaveScope("launcher")
                             enabled: visible
                             text: ""
                             iconText: "\uf0c7"
                             fontSize: 11
                             tooltip: "Сохранить настройки лаунчера"
                             backgroundColor: Config.settingsBackground
-                            onClicked: settings.saveProfileScope(settings.activeProfile, "launcher")
+                            onClicked: host.profileController.saveScope("launcher")
                         }
                         SettingsResetButton {
                             width: 30
                             height: 30
-                            enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                            actionAvailable: settings.hasResetChanges("launcher")
+                            enabled: host && host.profileController.hasActiveProfile
+                            actionAvailable: host.profileController.canResetScope("launcher")
                             tooltip: "Сбросить настройки лаунчера"
                             onClicked: settings.resetLauncherSettings()
                         }

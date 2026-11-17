@@ -50,8 +50,8 @@ Flickable {
                         height: 30
                         Text {
                             width: parent.width
-                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all") ? 38 : 0)
-                                - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("themes") ? 38 : 0)
+                                - (host && host.profileController.canSaveScope("all") ? 38 : 0)
+                                - (host && host.profileController.canSaveScope("themes") ? 38 : 0)
                             text: "Темы"
                             color: Config.accent
                             font.family: Config.settingsFont
@@ -61,26 +61,26 @@ Flickable {
                         SettingsButton {
                             width: 30
                             height: 30
-                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("all")
+                            visible: host && host.profileController.canSaveScope("all")
                             enabled: visible
                             text: ""
                             iconText: "󰆔"
                             fontSize: 11
                             tooltip: "Сохранить всё в активный профиль"
                             backgroundColor: Config.settingsBackground
-                            onClicked: settings.saveProfile(settings.activeProfile)
+                            onClicked: host.profileController.saveAll()
                         }
                         SettingsButton {
                             width: 30
                             height: 30
-                            visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("themes")
+                            visible: host && host.profileController.canSaveScope("themes")
                             enabled: visible
                             text: ""
                             iconText: "\uf0c7"
                             fontSize: 11
                             tooltip: "Сохранить тему в активный профиль"
                             backgroundColor: Config.settingsBackground
-                            onClicked: settings.saveProfileScope(settings.activeProfile, "themes")
+                            onClicked: host.profileController.saveScope("themes")
                         }
                     }
 
@@ -430,7 +430,7 @@ Flickable {
                                     width: parent.width
                                     height: 30
                                     Text {
-                                        width: parent.width - (settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors) ? 76 : 38)
+                                        width: parent.width - (host && host.profileController.canSaveScope("colors", modelData.colors) ? 76 : 38)
                                         text: modelData.title
                                         color: Config.accent
                                         font.family: Config.settingsFont
@@ -440,20 +440,20 @@ Flickable {
                                     SettingsButton {
                                         width: 30
                                         height: 30
-                                        visible: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined && settings.hasResetChanges("colors", modelData.colors)
+                                        visible: host && host.profileController.canSaveScope("colors", modelData.colors)
                                         enabled: visible
                                         text: ""
                                         iconText: "\uf0c7"
                                         fontSize: 11
                                         tooltip: "Сохранить цвета: " + modelData.title
                                         backgroundColor: Config.settingsBackground
-                                        onClicked: settings.saveProfileScope(settings.activeProfile, "colors", modelData.colors)
+                                        onClicked: host.profileController.saveScope("colors", modelData.colors)
                                     }
                                     SettingsResetButton {
                                         width: 30
                                         height: 30
-                                        enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                        actionAvailable: settings.hasResetChanges("colors", modelData.colors)
+                                        enabled: host && host.profileController.hasActiveProfile
+                                        actionAvailable: host.profileController.canResetScope("colors", modelData.colors)
                                         tooltip: "Сбросить цвета: " + modelData.title
                                         onClicked: settings.resetColors(modelData.colors)
                                     }

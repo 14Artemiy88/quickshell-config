@@ -6,6 +6,8 @@ from pathlib import Path
 import sys
 root = Path(sys.argv[1])
 widget = (root / 'components/settings/SettingsWidget.qml').read_text(encoding='utf-8')
+navigation = (root / 'components/settings/SettingsNavigationController.qml').read_text(encoding='utf-8')
+host = (root / 'components/settings/SettingsPageHost.qml').read_text(encoding='utf-8')
 tab_base = (root / 'components/settings/primitives/SettingsTabBase.qml').read_text(encoding='utf-8')
 modules = (root / 'components/settings/sections/SettingsModulesSection.qml').read_text(encoding='utf-8')
 colors = (root / 'components/settings/sections/SettingsColorsSection.qml').read_text(encoding='utf-8')
@@ -17,11 +19,12 @@ expected_scopes = {
     'network': 'network', 'volume': 'volume', 'calendar': 'calendar',
     'launcher': 'launcher', 'notifications': 'notifications', 'settingsWindow': 'settingsWindow',
 }
-assert 'function settingsTabHasChanges(id)' in widget
-assert 'return scope !== "" && settings.hasResetChanges(scope)' in widget
+assert 'function settingsTabHasChanges(id)' in navigation
+assert 'return scope !== "" && settings.hasResetChanges(scope)' in navigation
+assert 'function settingsTabHasChanges(id) { return settingsNavigationController.settingsTabHasChanges(id) }' in widget
 assert 'modified: root.settingsTabHasChanges(modelData.id)' in widget
 for tab_id, scope in expected_scopes.items():
-    assert f'{tab_id}: "{scope}"' in widget, f'missing dirty scope for sidebar tab {tab_id}'
+    assert f'{tab_id}: "{scope}"' in navigation, f'missing dirty scope for sidebar tab {tab_id}'
 
 assert 'property bool modified: false' in tab_base
 assert 'visible: root.modified' in tab_base, 'dirty marker should only render when the section has changes'
@@ -30,10 +33,10 @@ assert 'anchors.rightMargin: root.horizontalPadding + (root.modified ? 10 : 0)' 
 
 # Nerd Font Material Design Icon md-content_save_all (U+F0194), visually the paired diskettes.
 double_save = chr(0xF0194)
-assert f'iconText: "{double_save}"' in widget, 'Save All in the common settings header should use the paired-diskette icon'
+assert f'iconText: "{double_save}"' in host, 'Save All in the common settings header should use the paired-diskette icon'
 assert f'iconText: "{double_save}"' in modules, 'Save All in Modules should use the paired-diskette icon'
 assert f'iconText: "{double_save}"' in colors, 'Save All in Themes should use the paired-diskette icon'
-assert 'iconText: "\\uf0c7"' in widget and 'iconText: "\\uf0c7"' in modules and 'iconText: "\\uf0c7"' in colors, 'section-scoped save buttons should retain the single-floppy icon'
+assert 'iconText: "\\uf0c7"' in host and 'iconText: "\\uf0c7"' in modules and 'iconText: "\\uf0c7"' in colors, 'section-scoped save buttons should retain the single-floppy icon'
 
 print('Settings tab dirty markers use cached profile overrides; Save All uses paired-diskette icon: OK')
 PY

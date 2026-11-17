@@ -23,18 +23,20 @@ assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 // Keep all duplicated registries aligned so a future tab cannot accidentally
 // be editable but missing from navigation, persistence, or default labels.
 const widgetSource = fs.readFileSync(path.join(root, 'components/settings/SettingsWidget.qml'), 'utf8');
+const navigationSource = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const configSource = fs.readFileSync(path.join(root, 'Config.qml'), 'utf8');
 const defaultsSource = fs.readFileSync(path.join(root, 'js/settings/SettingsDefaults.js'), 'utf8');
 const registrySource = loadLibrary('js/settings/SettingsPageRegistry.js',
   'this.api = { tabDefinitions, otherPageDefinitions, pageForId, hasOtherPageId, subtabsForPageId, saveScopeForPageId };');
 const definitions = Array.from(registrySource.api.tabDefinitions());
 const otherPages = Array.from(registrySource.api.otherPageDefinitions());
-assert(widgetSource.includes('SettingsPageRegistry.tabDefinitions()'), 'SettingsWidget must consume the page registry');
-assert(widgetSource.includes('SettingsPageRegistry.hasOtherPageId('), 'SettingsWidget routes must validate stable page IDs');
-assert(widgetSource.includes('SettingsPageRegistry.subtabsForPageId('), 'subtab metadata must be resolved by stable page ID');
+assert(navigationSource.includes('SettingsPageRegistry.tabDefinitions()'), 'navigation controller must consume the page registry');
+assert(navigationSource.includes('SettingsPageRegistry.hasOtherPageId('), 'navigation routes must validate stable page IDs');
+assert(navigationSource.includes('SettingsPageRegistry.subtabsForPageId('), 'subtab metadata must be resolved by stable page ID');
 assert(widgetSource.includes('SettingsPageRegistry.saveScopeForPageId('), 'save scopes must be resolved by stable page ID');
-assert(widgetSource.includes('if (typeof saved[i] !== "string") continue'), 'UI path must reject malformed tab IDs before coercion');
-assert(widgetSource.includes('property string currentPageId: "modules"'), 'primary page state uses a stable ID');
+assert(navigationSource.includes('if (typeof saved[i] !== "string") continue'), 'navigation path must reject malformed tab IDs before coercion');
+assert(widgetSource.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes stable page state');
+assert(navigationSource.includes('property string currentPageId: "modules"'), 'navigation controller owns primary page state');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widgetSource), 'numeric primary page state is fully removed');
 assert(!/currentOtherTab/.test(fs.readFileSync(path.join(root, 'components/settings/sections/SettingsCalendarSection.qml'), 'utf8')), 'content components no longer route by numeric page index');
 assert(registrySource.api.hasOtherPageId('notifications'), 'known page IDs resolve');

@@ -9,14 +9,17 @@ const vm = require('vm');
 const base = process.argv[2];
 const settingsQml = fs.readFileSync(path.join(base, 'Settings.qml'), 'utf8');
 const widget = fs.readFileSync(path.join(base, 'components/settings/SettingsWidget.qml'), 'utf8');
+const navigation = fs.readFileSync(path.join(base, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const group = fs.readFileSync(path.join(base, 'components/settings/primitives/SettingsGroup.qml'), 'utf8');
+const pageHost = fs.readFileSync(path.join(base, 'components/settings/SettingsPageHost.qml'), 'utf8');
 const main = fs.readFileSync(path.join(base, 'components/settings/SettingsWidget.qml'), 'utf8');
 // QML rejects duplicate methods on a single Item at load time.
-assert.strictEqual((widget.match(/^\s*function settingsSubTabChangeSpec\(/gm) || []).length, 1, 'SettingsWidget has exactly one settingsSubTabChangeSpec method');
-assert.strictEqual((widget.match(/^\s*function settingsSubTabHasChanges\(/gm) || []).length, 1, 'SettingsWidget has exactly one settingsSubTabHasChanges method');
+assert.strictEqual((navigation.match(/^\s*function settingsSubTabChangeSpec\(/gm) || []).length, 1, 'navigation controller has exactly one settingsSubTabChangeSpec method');
+assert.strictEqual((navigation.match(/^\s*function settingsSubTabHasChanges\(/gm) || []).length, 1, 'navigation controller has exactly one settingsSubTabHasChanges method');
+assert(widget.includes('function settingsSubTabHasChanges(pageId, sub) { return settingsNavigationController.settingsSubTabHasChanges(pageId, sub) }'), 'SettingsWidget preserves its host API as a delegate');
 
 const saveFiles = [
-  main,
+  pageHost,
   fs.readFileSync(path.join(base, 'components/settings/sections/SettingsModulesSection.qml'), 'utf8'),
   fs.readFileSync(path.join(base, 'components/settings/sections/SettingsColorsSection.qml'), 'utf8'),
 ];
@@ -25,15 +28,15 @@ const hs = settingsQml.indexOf('    function hasResetChanges(scope, argument) {'
 const he = settingsQml.indexOf('\n    function activeProfileData()', hs);
 assert(hs >= 0 && he > hs, 'extract hasResetChanges implementation');
 const hasSource = settingsQml.slice(hs, he).trim();
-const ss = widget.indexOf('    function settingsSubTabChangeSpec(pageId, sub) {');
-const se = widget.indexOf('\n    function settingsSubTabHasChanges', ss);
+const ss = navigation.indexOf('    function settingsSubTabChangeSpec(pageId, sub) {');
+const se = navigation.indexOf('\n    function settingsSubTabHasChanges', ss);
 assert(ss >= 0 && se > ss, 'extract subtab scope mapping');
-const specSource = widget.slice(ss, se).trim();
+const specSource = navigation.slice(ss, se).trim();
 const owner = {activeProfile:'Work', profiles:{Work:{}}, resetOverrides:{}, colorNames:['accent','settingsBackground','settingsBorder']};
 const context = {root:owner, activeProfile:owner.activeProfile, profiles:owner.profiles, colorNames:owner.colorNames};
 vm.createContext(context);
 vm.runInContext(hasSource + '\nthis.hasResetChanges = hasResetChanges;', context, {filename:'Settings.qml#hasResetChanges'});
-vm.runInContext(specSource + '\nthis.settingsSubTabChangeSpec = settingsSubTabChangeSpec;', context, {filename:'SettingsWidget.qml#settingsSubTabChangeSpec'});
+vm.runInContext(specSource + '\nthis.settingsSubTabChangeSpec = settingsSubTabChangeSpec;', context, {filename:'SettingsNavigationController.qml#settingsSubTabChangeSpec'});
 const has = (scope, arg) => context.hasResetChanges(scope, arg);
 const spec = (tab, sub) => context.settingsSubTabChangeSpec(tab, sub);
 const overrides = value => { owner.resetOverrides = value; };
@@ -84,8 +87,8 @@ for (const file of saveFiles) {
   assert(!file.includes('text: "Всё"'), 'Save All no longer renders the word Всё');
   assert(file.includes('iconText: "󰆔"'), 'Save All keeps the paired-diskette glyph');
 }
-assert(widget.includes('modified: root.settingsSubTabHasChanges(root.currentPageId, index)'), 'subtabs bind modified state to their precise scope');
-assert(widget.includes('width: 30\n                                    height: 30\n                                    visible: root.quickSaveProfileAvailable'), 'Save All is icon-width in the common header');
+assert(pageHost.includes('modified: root.host && root.host.settingsSubTabHasChanges(root.host.currentPageId, index)'), 'subtabs bind modified state to their precise scope');
+assert(pageHost.includes('width: 30\n                    height: 30\n                    visible: root.host && root.host.quickSaveProfileAvailable'), 'Save All is icon-width in the common header');
 
 console.log('Settings subtab/frame dirty indicators and icon-only Save All: OK');
 JS

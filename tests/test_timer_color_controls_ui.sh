@@ -12,7 +12,7 @@ config=read('Config.qml'); defaults=read('js/settings/SettingsDefaults.js')
 persist=read('js/settings/SettingsPersistence.js'); resets=read('js/settings/SettingsResets.js')
 apply=read('js/settings/SettingsApplyCore.js'); schema=read('js/settings/SettingsSchema.js')
 settings=read('components/settings/sections/SettingsTimersSection.qml')
-widget=read('components/settings/SettingsWidget.qml'); options=read('components/TimerOptions.qml')
+widget=read('components/settings/SettingsNavigationController.qml'); options=read('components/TimerOptions.qml')
 shell=read('shell.qml'); timer=read('scripts/timer'); actions=read('scripts/timer.d/actions.sh')
 common=read('scripts/timer.d/common.sh'); timer_widget=read('components/TimerWidget.qml')
 

@@ -15,7 +15,7 @@ apply_core = read('js/settings/SettingsApplyCore.js')
 persist = read('js/settings/SettingsPersistence.js')
 resets = read('js/settings/SettingsResets.js')
 settings = read('components/settings/sections/SettingsTimersSection.qml')
-widget = read('components/settings/SettingsWidget.qml')
+widget = read('components/settings/SettingsNavigationController.qml')
 options = read('components/TimerOptions.qml')
 
 ids = ['Comment', 'Duration', 'Refresh', 'Pause', 'Color']

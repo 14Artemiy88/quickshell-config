@@ -8,7 +8,7 @@ PERSIST="$ROOT/js/settings/SettingsPersistence.js"
 RESETS="$ROOT/js/settings/SettingsResets.js"
 CALENDAR="$ROOT/components/CalendarWidget.qml"
 SETTINGS="$ROOT/components/settings/sections/SettingsCalendarSection.qml"
-WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+WIDGET="$ROOT/components/settings/SettingsNavigationController.qml"
 CHECK="$ROOT/CHECK.sh"
 for path in "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$CALENDAR" "$SETTINGS" "$WIDGET" "$CHECK"; do test -f "$path"; done
 

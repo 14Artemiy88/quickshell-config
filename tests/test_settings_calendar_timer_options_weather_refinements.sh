@@ -9,20 +9,21 @@ read = lambda p: (r / p).read_text(encoding="utf-8")
 
 # Quick-save control is adjacent to reset and operates on the currently active profile.
 widget = read("components/settings/SettingsWidget.qml")
+host = read("components/settings/SettingsPageHost.qml")
 registry = read("js/settings/SettingsPageRegistry.js")
 modules = read("components/settings/sections/SettingsModulesSection.qml")
 assert 'readonly property bool quickSaveProfileAvailable:' in widget
-assert 'settings.hasResetChanges("all")' in widget
-assert 'iconText: "\\uf0c7"' in widget
-assert 'tooltip: "Сохранить всё в активный профиль"' in widget
-assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in widget
-assert 'onClicked: settings.saveProfileScope(settings.activeProfile, root.currentPageSaveScope)' in widget
-assert 'onClicked: settings.saveProfile(settings.activeProfile)' in widget
-assert widget.index('tooltip: "Сохранить всё в активный профиль"') < widget.index('tooltip: "Сбросить текущую вкладку"')
-assert 'onClicked: settings.saveProfile(settings.activeProfile)' in modules
-assert 'onClicked: settings.saveProfileScope(settings.activeProfile, "modules")' in modules
-assert 'onClicked: settings.saveProfileScope(settings.activeProfile, "module", moduleRow.moduleName)' in modules
-assert modules.index('onClicked: settings.saveProfile(settings.activeProfile)') < modules.index('actionAvailable: settings.hasResetChanges("modules")')
+assert 'profileController.canSaveScope("all")' in widget
+assert 'iconText: "\\uf0c7"' in host
+assert 'tooltip: "Сохранить всё в активный профиль"' in host
+assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in host
+assert 'root.host.profileController.saveScope(root.host.currentPageSaveScope)' in host
+assert 'root.host.profileController.saveAll()' in host
+assert host.index('tooltip: "Сохранить всё в активный профиль"') < host.index('tooltip: "Сбросить текущую вкладку"')
+assert 'onClicked: host.profileController.saveAll()' in modules
+assert 'onClicked: host.profileController.saveScope("modules")' in modules
+assert 'onClicked: host.profileController.saveScope("module", moduleRow.moduleName)' in modules
+assert modules.index('onClicked: host.profileController.saveAll()') < modules.index('actionAvailable: host.profileController.canResetScope("modules")')
 
 # Calendar always-visible option is stored and participates in runtime visibility/input-mask state.
 config = read("Config.qml")

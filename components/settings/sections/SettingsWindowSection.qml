@@ -7,8 +7,8 @@ Column {
     id: settingsWindowColumn
 
     function syncProfileComboToActiveProfile() {
-        var names = settings.profileNames()
-        var idx = names.indexOf(String(settings.activeProfile || ""))
+        var idx = host && host.profileController
+            ? host.profileController.indexOfProfile(String(settings.activeProfile || "")) : -1
         profileCombo.currentIndex = idx >= 0 ? idx : -1
     }
 
@@ -467,7 +467,7 @@ Column {
                                     }
 
                                     onAccepted: {
-                                        if (settings.saveProfile(text))
+                                        if (host.profileController.saveProfile(text))
                                             profileNameSavedFeedback.restart()
                                         host.clearSettingsFocus()
                                     }
@@ -507,7 +507,7 @@ Column {
                                     id: profileCombo
                                     width: 150
                                     height: 30
-                                    model: profileModel
+                                    model: host && host.profileController ? host.profileController.profileModel : []
                                     textRole: "name"
                                     valueRole: "name"
                                     displayText: currentIndex >= 0 ? currentText : "Профили не созданы"
@@ -539,7 +539,7 @@ Column {
                                     fontSize: 11
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
                                     onClicked: {
-                                        if (settings.loadProfile(profileCombo.currentText))
+                                        if (host.profileController.loadProfile(profileCombo.currentText))
                                             profileActionFeedback.showMessage("✓ профиль загружен")
                                     }
                                 }
@@ -556,7 +556,7 @@ Column {
                                     emphasizedHoverColor: "#aa0000"
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
                                     onClicked: {
-                                        if (settings.deleteProfile(profileCombo.currentText))
+                                        if (host.profileController.deleteProfile(profileCombo.currentText))
                                             profileActionFeedback.showMessage("✓ профиль удалён")
                                     }
                                 }
@@ -594,7 +594,7 @@ Column {
 
 
                             Row {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && settings.hasResetChanges("all")
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && host.profileController.canResetScope("all")
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -607,8 +607,8 @@ Column {
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 SettingsResetButton {
-                                    enabled: settings.activeProfile.length > 0 && settings.profiles && settings.profiles[settings.activeProfile] !== undefined
-                                    actionAvailable: settings.hasResetChanges("all")
+                                    enabled: host.profileController.hasActiveProfile
+                                    actionAvailable: host.profileController.canResetScope("all")
                                     tooltip: "Сбросить все параметры"
                                     onClicked: settings.resetAllSettings()
                                 }

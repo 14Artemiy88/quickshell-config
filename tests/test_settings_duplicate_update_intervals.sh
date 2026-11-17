@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 widget="$(dirname "$0")/../components/settings/SettingsWidget.qml"
+content="$(dirname "$0")/../components/settings/pages/SettingsPlayerPage.qml"
 network="$(dirname "$0")/../components/settings/sections/SettingsNetworkSection.qml"
 cpu="$(dirname "$0")/../components/settings/sections/SettingsCpuRamSection.qml"
 # Shared update intervals should be edited in their owning section, not duplicated in the widget host.
@@ -9,5 +10,5 @@ cpu="$(dirname "$0")/../components/settings/sections/SettingsCpuRamSection.qml"
 grep -Fq 'targetProperty: "systemMonitorInterval"' "$network"
 grep -Fq 'targetProperty: "cpuUpdateInterval"' "$cpu"
 # Player's own refresh interval remains in the Player tab.
-grep -Fq 'label: "Плеер (мс)"' "$widget"
+grep -Fq 'label: "Плеер (мс)"' "$content"
 echo 'duplicate update interval controls: OK'

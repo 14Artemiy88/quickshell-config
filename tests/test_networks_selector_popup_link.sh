@@ -9,7 +9,7 @@ RESETS="$ROOT/js/settings/SettingsResets.js"
 SHELL="$ROOT/shell.qml"
 WIDGET="$ROOT/components/NetworkStat.qml"
 SECTION="$ROOT/components/settings/sections/SettingsNetworkSection.qml"
-SCOPE="$ROOT/components/settings/SettingsWidget.qml"
+SCOPE="$ROOT/components/settings/SettingsNavigationController.qml"
 for file in "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$SHELL" "$WIDGET" "$SECTION" "$SCOPE"; do
     test -f "$file"
 done

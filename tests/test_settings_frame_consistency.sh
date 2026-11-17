@@ -61,17 +61,17 @@ do
     }
 done
 
-python3 - "$ROOT/components/settings/SettingsWidget.qml" <<'PYWIDGET'
+python3 - "$ROOT/components/settings/pages/SettingsPlayerPage.qml" <<'PYWIDGET'
 import re, sys
 from pathlib import Path
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 pattern = re.compile(
     r'SettingsGroup\s*\{\s*'
-    r'visible:\s*root\.currentPageId\s*===\s*\"player\"\s*&&\s*root\.currentPageSubTabIndex\s*===\s*0'
+    r'visible:\s*root\.host\s*&&\s*root\.host\.currentPageId\s*===\s*\"player\"\s*&&\s*root\.host\.currentPageSubTabIndex\s*===\s*0'
     r'.*?SettingsNumberField\s*\{[^}]*label:\s*"Плеер \(мс\)"',
     re.S
 )
-assert pattern.search(source), "Player update interval is not inside a framed group"
+assert pattern.search(source), "Player update interval is not inside its framed page group"
 PYWIDGET
 
 python3 - "$SECTIONS/mopidy/SettingsMopidyIconsSection.qml" "$SECTIONS/SettingsCpuRamSection.qml" <<'PYLAYOUT'

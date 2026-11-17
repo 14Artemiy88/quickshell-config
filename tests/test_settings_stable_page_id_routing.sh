@@ -18,14 +18,17 @@ function loadLibrary(relativePath, append = '') {
 const registry = loadLibrary('js/settings/SettingsPageRegistry.js',
   'this.api = { tabDefinitions, otherPageDefinitions, pageForId, hasOtherPageId, subtabsForPageId, saveScopeForPageId };').api;
 const widget = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsWidget.qml'), 'utf8');
+const searchController = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsSearchController.qml'), 'utf8');
+const navigation = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const definitions = Array.from(registry.tabDefinitions());
 const otherPages = Array.from(registry.otherPageDefinitions());
 const ids = definitions.map(page => page.id);
-assert(widget.includes('property string currentPageId: "modules"'), 'SettingsWidget owns one stable primary page ID');
+assert(widget.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes the controller-owned stable page ID');
+assert(navigation.includes('property string currentPageId: "modules"'), 'navigation controller owns one stable primary page ID');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widget), 'numeric main/other page route state is removed');
 assert(!/currentPageId\s*===\s*\d+/.test(widget), 'page comparisons never use numeric indices');
-assert(widget.includes('root.currentPageId = entry.pageId'), 'search navigation opens the result page by ID');
-assert(widget.includes('root.currentPageId = pageId'), 'sidebar navigation selects the page by ID');
+assert(searchController.includes('root.host.currentPageId = entry.pageId'), 'search navigation opens the result page by ID through the host');
+assert(navigation.includes('root.currentPageId = pageId'), 'sidebar navigation selects the page by ID in the controller');
 
 const sectionDir = path.join(rootDir, 'components/settings/sections');
 const sectionSources = [];
@@ -54,10 +57,10 @@ assert.deepStrictEqual(Array.from(registry.subtabsForPageId('unknown')), [], 'un
 assert.strictEqual(registry.saveScopeForPageId('unknown', 0), '', 'unknown page ID has no save scope');
 assert.strictEqual(registry.saveScopeForPageId('general', 1), '', 'General profile subtab has no unrelated scoped save');
 
-const resetStart = widget.indexOf('    function resetCurrentSettingsPage() {');
-const resetEnd = widget.indexOf('\n    function setSettingsTabLabel', resetStart);
+const resetStart = navigation.indexOf('    function resetCurrentSettingsPage() {');
+const resetEnd = navigation.indexOf('\n    function setSettingsTabLabel', resetStart);
 assert(resetStart >= 0 && resetEnd > resetStart, 'stable-ID reset dispatcher exists');
-const resetSource = widget.slice(resetStart, resetEnd).trim();
+const resetSource = navigation.slice(resetStart, resetEnd).trim();
 const resetMethods = {
   general: 'resetGeneralSettings', timers: 'resetTimerSettings', player: 'resetPlayerSettings',
   weather: 'resetWeatherSettings', cava: 'resetCavaSettings', cpuRam: 'resetCpuSettings',
@@ -76,12 +79,12 @@ for (const [pageId, method] of Object.entries(resetMethods)) {
   assert.deepStrictEqual(calls, [method], `${pageId} reset dispatches to the matching settings method`);
 }
 
-const specStart = widget.indexOf('    function settingsSubTabChangeSpec(pageId, sub) {');
-const specEnd = widget.indexOf('\n    function settingsSubTabHasChanges', specStart);
+const specStart = navigation.indexOf('    function settingsSubTabChangeSpec(pageId, sub) {');
+const specEnd = navigation.indexOf('\n    function settingsSubTabHasChanges', specStart);
 assert(specStart >= 0 && specEnd > specStart, 'dirty-indicator selector accepts a page ID');
 const context = {};
 vm.createContext(context);
-vm.runInContext(widget.slice(specStart, specEnd).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
+vm.runInContext(navigation.slice(specStart, specEnd).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
 for (const page of otherPages)
   assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
 

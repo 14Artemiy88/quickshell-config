@@ -18,6 +18,8 @@ const profilesSource = read('js/settings/SettingsProfiles.js');
 const resetsSource = read('js/settings/SettingsResets.js');
 const settings = read('Settings.qml');
 const widget = read('components/settings/SettingsWidget.qml');
+const navigation = read('components/settings/SettingsNavigationController.qml');
+const pageContent = read('components/settings/SettingsPageContent.qml');
 const registry = read('js/settings/SettingsPageRegistry.js');
 const section = read('components/settings/sections/SettingsNotificationsSection.qml');
 const modulesSection = read('components/settings/sections/SettingsModulesSection.qml');
@@ -51,9 +53,9 @@ for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificatio
 assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления" }'), 'sidebar declares the Notifications page');
 assert(config.includes('"launcher", "notifications", "settingsWindow"') && defaults.includes('"launcher", "notifications", "settingsWindow"'), 'default sidebar order places Notifications before Settings Window');
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
-assert(widget.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
-assert(widget.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
-assert(widget.includes('SettingsNotificationsSection {'), 'SettingsWidget instantiates the notification settings section');
+assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
+assert(navigation.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
+assert(pageContent.includes('SettingsNotificationsSection {'), 'SettingsPageContent instantiates the notification settings section');
 assert(section.includes('visible: host && host.currentPageId === "notifications"'), 'section is routed only to the Notifications page');
 assert(section.includes('settings.save()'), 'section saves edits immediately');
 assert(section.includes('notificationsDefaultTimeout') && section.includes('notificationsCriticalTimeout'), 'section exposes separate normal and critical timeout controls');
@@ -67,9 +69,9 @@ assert(settings.includes('notifications: [-999999,16,380,0]'), 'Settings singlet
 assert(metadata.includes('"notifications":[-999999,16,380,0]'), 'profile defaults include notification absolute geometry');
 assert(modulesSection.includes('text: settings.moduleLabels[moduleRow.moduleName]') && modulesSection.includes('checked: settings[moduleRow.moduleName]'), 'Modules page exposes Notifications through the common module-enable row');
 assert(modulesSection.includes('notificationsGeometryValue(index)') && modulesSection.includes('writeNotificationsGeometry(index, n)'), 'Modules page exposes notification X/Y and size in common geometry fields');
-assert(modulesSection.includes('settings.saveProfileScope(settings.activeProfile, "module", moduleRow.moduleName)'), 'notification geometry participates in the standard module profile scope');
+assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'), 'notification geometry participates in the standard module profile scope');
 assert(!modulesSection.includes('Привязка к углу') && !modulesSection.includes('Отступ по горизонтали') && !modulesSection.includes('notificationsPositionCombo'), 'corner and edge-margin controls are completely removed');
-assert(modulesSection.includes('settings.saveProfileScope(settings.activeProfile, "module", moduleRow.moduleName)'), 'notification module uses the generic scoped profile saving action');
+assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'), 'notification module uses the generic scoped profile saving action');
 assert(modulesSection.includes('settings.resetModule(moduleRow.moduleName)'), 'notification module uses the generic scoped reset action');
 assert(modulesSection.includes('text: "Фон"') && modulesSection.includes('text: "Рамка"') && modulesSection.includes('text: "Блюр"'), 'notification module exposes independent background, frame and blur checkboxes');
 assert(modulesSection.includes('settings.moduleBackgrounds[moduleRow.moduleName] !== false') && modulesSection.includes('settings.moduleFrames[moduleRow.moduleName] !== false'), 'background and frame toggles use common enabled-by-default semantics');
@@ -94,8 +96,8 @@ assert(settings.includes('notifications: ["notifications"]'), 'reset visibility 
 assert(resetsSource.includes('function resetNotificationsSettings(owner, config)') && resetsSource.includes('\"notificationsVerticalAnchor\"'), 'profile reset implementation includes the vertical anchor');
 assert(!resetsSource.includes('geometry.notifications = profile.geometry && profile.geometry.notifications'), 'Notifications content reset no longer resets module geometry');
 assert(profilesSource.includes('notifications: ["notifications"]'), 'save-profile scope includes notification preferences');
-assert(widget.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
-assert(widget.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks only the remaining notification-content fields');
+assert(navigation.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
+assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks only the remaining notification-content fields');
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');
 
 function shellHasNotificationLoader(source) {

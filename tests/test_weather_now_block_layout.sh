@@ -10,7 +10,7 @@ defaults = (root / "js/settings/SettingsDefaults.js").read_text(encoding="utf-8"
 apply = (root / "js/settings/SettingsApplyWeather.js").read_text(encoding="utf-8")
 persist = (root / "js/settings/SettingsPersistence.js").read_text(encoding="utf-8")
 resets = (root / "js/settings/SettingsResets.js").read_text(encoding="utf-8")
-widget = (root / "components/settings/SettingsWidget.qml").read_text(encoding="utf-8")
+widget = (root / "components/settings/SettingsNavigationController.qml").read_text(encoding="utf-8")
 section = (root / "components/settings/sections/SettingsWeatherSection.qml").read_text(encoding="utf-8")
 weather = (root / "components/WeatherNow.qml").read_text(encoding="utf-8")
 

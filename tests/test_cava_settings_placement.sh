@@ -8,7 +8,7 @@ const path = require('path');
 const vm = require('vm');
 const root = process.argv[2];
 const cavaPath = path.join(root, 'components/settings/sections/SettingsCavaSection.qml');
-const widgetPath = path.join(root, 'components/settings/SettingsWidget.qml');
+const widgetPath = path.join(root, 'components/settings/SettingsNavigationController.qml');
 const cava = fs.readFileSync(cavaPath, 'utf8');
 const widget = fs.readFileSync(widgetPath, 'utf8');
 
