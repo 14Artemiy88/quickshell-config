@@ -25,7 +25,8 @@ Column {
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] })
@@ -42,14 +43,17 @@ Column {
                                 width: parent.width
                             }
 
-                            Row {
+                            SettingsRow {
                                 visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Шрифт настроек"
                                 spacing: 8
-                                Text { width: 210; height: 30; text: "Шрифт настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                                
                                 SettingsFontField {
-                                    width: parent.width - 218
+                                    width: parent.width
                                     height: 30
                                     compact: true
                                     fieldWidth: 160
@@ -62,12 +66,15 @@ Column {
                                 }
                             }
 
-                            Row {
+                            SettingsRow {
                                 visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Размер шрифта настроек"
                                 spacing: 8
-                                Text { width: 210; height: 30; text: "Размер шрифта настроек"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                                
                                 SettingsNumberField {
             id: settingsFontSizeField
             width: 100
@@ -89,12 +96,15 @@ Column {
         }
                             }
 
-                            Row {
+                            SettingsRow {
                                 visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Внутренний отступ"
                                 spacing: 8
-                                Text { width: 210; height: 30; text: "Внутренний отступ"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                                
                                 SettingsNumberField {
             id: settingsPaddingField
             width: 100
@@ -116,12 +126,15 @@ Column {
         }
                             }
 
-                            Row {
+                            SettingsRow {
                                 visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Расстояние между элементами"
                                 spacing: 8
-                                Text { width: 210; height: 30; text: "Расстояние между элементами"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                                
                                 SettingsNumberField {
             id: settingsSpacingField
             width: 100
@@ -142,9 +155,152 @@ Column {
             saveOnEdit: true
         }
                             }
+
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+        settingsSearchSubTabIndex: 0
+        width: parent.width
+        showFrame: true
+        heading: "Поиск"
+        changeKeys: ({ keys: ["settingsSearchVisible", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize"] })
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+            width: parent.width
+            height: 34
+            spacing: 8
+            SettingsCheckBox {
+                width: parent.width
+                height: 30
+                text: "Показывать поиск в боковой панели"
+                checked: Config.settingsSearchVisible
+                onToggled: {
+                    Config.settingsSearchVisible = checked
+                    if (!checked && host && host.clearSettingsSearchQuery)
+                        host.clearSettingsSearchQuery()
+                    settings.save()
+                }
+                settingsSearchLabel: "Показывать строку поиска настроек"
+                settingsSearchKeywords: "поиск строка поле навигация боковая панель показать скрыть отображение"
+            }
+        }
+
+        Column {
+            id: searchAppearanceOptions
+            width: parent.width
+            height: Config.settingsSearchVisible ? implicitHeight : 0
+            spacing: 6
+            clip: true
+            opacity: Config.settingsSearchVisible ? 1 : 0
+            enabled: Config.settingsSearchVisible
+
+            Behavior on height {
+                NumberAnimation {
+                    duration: Config.animationDuration(180, "size")
+                    easing.type: Config.easingType()
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Config.animationDuration(140, "appearance")
+                    easing.type: Config.easingType()
+                }
+            }
+
+            SettingsRow {
+                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                width: parent.width
+                height: 34
+                labelWidth: 210
+                labelFontSize: 11
+                label: "Цвет рамки совпадений поиска"
+                spacing: 8
+                
+                SettingsColorField {
+                    width: parent.width
+                    height: 30
+                    compact: true
+                    fieldWidth: 120
+                    fieldFontSize: 11
+                    value: String(Config.settingsSearchHighlightColor)
+                    targetObject: Config
+                    targetProperty: "settingsSearchHighlightColor"
+                    settingsObject: settingsWindowColumn.settings
+                    saveOnEdit: true
+                    settingsSearchLabel: "Цвет рамки совпадений поиска"
+                    settingsSearchKeywords: "поиск подсветка совпадения контур рамка найденные результаты"
+                }
+            }
+
+            SettingsRow {
+                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                width: parent.width
+                height: 34
+                labelWidth: 210
+                labelFontSize: 11
+                label: "Толщина рамки совпадений"
+                spacing: 8
+                
+                SettingsNumberField {
+                    width: 100
+                    height: 30
+                    value: Config.settingsSearchHighlightBorderWidth
+                    minimum: 1
+                    maximum: 5
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 100
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config
+                    targetProperty: "settingsSearchHighlightBorderWidth"
+                    settingsObject: settingsWindowColumn.settings
+                    saveOnEdit: true
+                    settingsSearchLabel: "Толщина рамки совпадений поиска"
+                    settingsSearchKeywords: "поиск подсветка рамка контур толщина обводка ширина"
+                }
+            }
+            SettingsRow {
+                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                width: parent.width
+                height: 34
+                labelWidth: 210
+                labelFontSize: 11
+                label: "Размер шрифта счётчиков"
+                spacing: 8
+                
+                SettingsNumberField {
+                    width: 100
+                    height: 30
+                    value: Config.settingsSearchMatchCountFontSize
+                    minimum: 6
+                    maximum: 12
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 100
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config
+                    targetProperty: "settingsSearchMatchCountFontSize"
+                    settingsObject: settingsWindowColumn.settings
+                    saveOnEdit: true
+                    settingsSearchLabel: "Размер шрифта счётчиков поиска"
+                    settingsSearchKeywords: "поиск счетчик счётчик совпадения размер шрифт число количество навигация"
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Положение и размер окна"
@@ -254,7 +410,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Фон и рамка окна настроек"
@@ -304,7 +461,8 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Вкладки панели настроек"
@@ -394,7 +552,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         padding: 8
@@ -616,7 +775,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["animationSettingsVisibilityStyle"] })
@@ -631,12 +791,15 @@ Column {
             font.pixelSize: Config.settingsUiSize(13)
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
+            labelWidth: 210
+            labelFontSize: 11
+            label: "Стиль"
             spacing: 8
-            Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsComboBox {
                 id: settingsWindowAnimationVisibilityBox
                 width: 180; height: 30

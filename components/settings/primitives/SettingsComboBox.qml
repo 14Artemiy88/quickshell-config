@@ -7,12 +7,20 @@ ComboBox {
 
     // Settings search metadata is intentionally independent from displayed labels.
     property bool settingsSearchable: true
+    property bool settingsSearchHighlighted: false
+    property bool settingsSearchCurrentMatch: false
+    property string settingsSearchMatchHint: ""
     property string settingsSearchId: ""
     property string settingsSearchLabel: ""
     property string settingsSearchKeywords: ""
 
     property bool pointerHovered: comboHoverArea.containsMouse
     signal itemChosen(int index)
+
+    ToolTip.visible: root.settingsSearchHighlighted
+        && root.settingsSearchMatchHint.length > 0 && root.pointerHovered
+    ToolTip.text: root.settingsSearchMatchHint
+    ToolTip.delay: 450
 
     MouseArea {
         id: comboHoverArea
@@ -23,8 +31,11 @@ ComboBox {
 
     background: Rectangle {
         color: Config.settingsBackground
-        border.color: (root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor
-        border.width: 1
+        border.color: root.settingsSearchCurrentMatch ? Config.accent
+            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightColor
+            : ((root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor))
+        border.width: root.settingsSearchCurrentMatch ? Config.settingsSearchHighlightBorderWidth + 1
+            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightBorderWidth : 1)
         radius: Config.frameRadius
     }
 

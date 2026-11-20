@@ -21,7 +21,8 @@ Item {
         spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         heading: "Показ"
@@ -47,7 +48,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         heading: "Стрелки навигации"
@@ -67,10 +69,15 @@ Item {
             Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Предыдущий месяц"
+            labelWidth: 210
+            labelElide: Text.ElideRight
+            controlSpacing: 8
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Предыдущий месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            
             SettingsTextField { id: calendarPrevIconField; width: 80; height: 30; text: Config.calendarPreviousIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarPreviousIcon = text; settings.save() } }
             SettingsNumberField {
             id: calendarArrowSizeField
@@ -131,10 +138,15 @@ Item {
         }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Следующий месяц"
+            labelWidth: 210
+            labelElide: Text.ElideRight
+            controlSpacing: 8
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Следующий месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            
             SettingsTextField { id: calendarNextIconField; width: 80; height: 30; text: Config.calendarNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarNextIcon = text; settings.save() } }
             SettingsNumberField {
             id: calendarNextSizeField
@@ -180,7 +192,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] })
@@ -195,10 +208,14 @@ Item {
             Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
             Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         }
-        Row {
+        SettingsRow {
+
+            label: "Месяц"
+            labelWidth: 210
+            controlSpacing: 8
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Месяц"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsNumberField {
             id: calendarTitleY2Field
             width: 58
@@ -251,10 +268,14 @@ Item {
             }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Дни недели"
+            labelWidth: 210
+            controlSpacing: 8
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Дни недели"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsNumberField {
             id: calendarWeekdayYField
             width: 58
@@ -307,10 +328,14 @@ Item {
             }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Дни"
+            labelWidth: 210
+            controlSpacing: 8
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Дни"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsNumberField {
             id: calendarDayYField
             width: 58
@@ -365,7 +390,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarAdjacentDaysColor"] })
@@ -394,7 +420,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Выходные и отмеченные дни"
@@ -434,7 +461,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Прошедшие дни"
@@ -506,19 +534,23 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["calendarNoteFrameColor", "calendarNoteMarkerPosition", "calendarNoteMarkerStyle"] })
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+
+            label: "Вид метки"
+            labelWidth: 210
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Вид метки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsComboBox {
                 id: calendarNoteMarkerStyleBox
                 width: 180
@@ -541,12 +573,15 @@ Item {
             }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Положение метки"
+            labelWidth: 210
             width: parent.width
             height: Config.calendarNoteMarkerStyle === "frame" ? 0 : 30
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 2 && Config.calendarNoteMarkerStyle !== "frame"
             spacing: 8
-            Text { width: 210; height: 30; text: "Положение метки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsComboBox {
                 id: calendarNoteMarkerPositionBox
                 width: 180
@@ -623,7 +658,8 @@ Item {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
+                visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
+settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
         heading: "Появление модуля"
@@ -631,12 +667,15 @@ Item {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+
+            label: "Стиль"
+            labelWidth: 210
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsComboBox {
                 id: animationCalendarVisibilityBox
                 width: 180
@@ -654,12 +693,15 @@ Item {
             }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Раскрытие (мс)"
+            labelWidth: 210
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Раскрытие (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsNumberField {
                 id: calendarAnimationSlideField
                 width: 100; height: 30
@@ -670,12 +712,15 @@ Item {
             }
         }
 
-        Row {
+        SettingsRow {
+
+            label: "Исчезновение (мс)"
+            labelWidth: 210
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Исчезновение (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            
             SettingsNumberField {
                 id: calendarAnimationFadeField
                 width: 100; height: 30

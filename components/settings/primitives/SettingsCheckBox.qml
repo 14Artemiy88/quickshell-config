@@ -7,6 +7,9 @@ CheckBox {
 
     // Settings search metadata is intentionally independent from displayed labels.
     property bool settingsSearchable: true
+    property bool settingsSearchHighlighted: false
+    property bool settingsSearchCurrentMatch: false
+    property string settingsSearchMatchHint: ""
     property string settingsSearchId: ""
     property string settingsSearchLabel: ""
     property string settingsSearchKeywords: ""
@@ -16,6 +19,15 @@ CheckBox {
     property real labelFontSize: 11
     property real labelLeftPadding: 5
     property bool labelElide: true
+
+    SettingsSearchHighlight {
+        anchors.fill: parent
+        overlayZ: 2
+        highlighted: root.settingsSearchHighlighted
+        currentMatch: root.settingsSearchCurrentMatch
+        matchHint: root.settingsSearchMatchHint
+        cornerRadius: 4
+    }
 
     MouseArea {
         id: checkHoverArea
@@ -48,14 +60,22 @@ CheckBox {
         }
     }
 
-    contentItem: Text {
+    Rectangle {
+        anchors.fill: parent
+        z: 2
+        visible: root.settingsSearchHighlighted
+        color: "transparent"
+        border.color: root.settingsSearchCurrentMatch ? Config.accent : Config.settingsSearchHighlightColor
+        border.width: Config.settingsSearchHighlightBorderWidth + (root.settingsSearchCurrentMatch ? 1 : 0)
+        radius: 4
+    }
+
+    contentItem: SettingsLabel {
         visible: !root.indicatorOnly
         text: root.text
         color: root.enabled ? Config.text : Config.textMuted
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(root.labelFontSize)
+        settingsFontSize: root.labelFontSize
         leftPadding: root.indicator.width + root.labelLeftPadding
-        verticalAlignment: Text.AlignVCenter
         elide: root.labelElide ? Text.ElideRight : Text.ElideNone
     }
 }

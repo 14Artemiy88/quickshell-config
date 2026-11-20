@@ -10,6 +10,7 @@ sections = Path(sys.argv[1])
 number_primitive = Path(sys.argv[2]).read_text()
 color_primitive = Path(sys.argv[3]).read_text()
 font_primitive = Path(sys.argv[4]).read_text()
+row_primitive = (sections.parent / "primitives" / "SettingsRow.qml").read_text()
 interactive = (
     "SettingsTextField", "SettingsInputField", "SettingsNumberField",
     "SettingsColorField", "SettingsComboBox", "SettingsCheckBox",
@@ -108,13 +109,28 @@ for path in sorted(sections.rglob("*.qml")):
                 label_line = source.count("\n", 0, row_start + label_start) + 1
                 violations.append(f"{path.name}:{label_line}: expected label height: 30 (row at {line})")
 
+# SettingsRow owns the label box for rows migrated to the reusable primitive.
+# Count these labels explicitly and verify they inherit the full row height.
+for path in sorted(sections.rglob("*.qml")):
+    source = path.read_text()
+    for row_start, _, row in blocks(source, "SettingsRow"):
+        label = re.search(r"(?m)^\s*label\s*:\s*\"", row)
+        if not label:
+            continue
+        row_height = re.search(r"\bheight\s*:\s*30(?:\s*[;\n])", row)
+        explicit_label_height = re.search(r"(?m)^\s*labelHeight\s*:\s*30\b", row)
+        line = source.count("\n", 0, row_start) + 1
+        checked += 1
+        if not row_height and not explicit_label_height and "property real labelHeight: 30" not in row_primitive:
+            violations.append(f"{path.name}:{line}: SettingsRow must retain a centered 30px label box")
+
 assert checked >= 190, f"Audit covered too few inline setting labels: {checked}"
 assert not violations, "Misaligned settings labels:\n" + "\n".join(violations)
-assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.height", number_primitive, re.S), \
-    "SettingsNumberField label must match the control height"
-assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.fieldHeight", color_primitive, re.S), \
-    "SettingsColorField label must match the control height"
-assert re.search(r"Text\s*\{[^}]*height\s*:\s*root\.fieldHeight", font_primitive, re.S), \
-    "SettingsFontField label must match the control height"
+assert re.search(r"SettingsLabel\s*\{[^}]*height\s*:\s*root\.height", number_primitive, re.S), \
+    "SettingsNumberField must use a shared label matching the control height"
+assert re.search(r"SettingsLabel\s*\{[^}]*height\s*:\s*root\.fieldHeight", color_primitive, re.S), \
+    "SettingsColorField must use a shared label matching the control height"
+assert re.search(r"SettingsLabel\s*\{[^}]*height\s*:\s*root\.fieldHeight", font_primitive, re.S), \
+    "SettingsFontField must use a shared label matching the control height"
 print(f"settings input-label vertical alignment: OK ({checked} labels, shared 30px label boxes)")
 PY

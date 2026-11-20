@@ -3,6 +3,7 @@
 .import "SettingsLauncherProjects.js" as LauncherProjects
 .import "SettingsLauncherActions.js" as LauncherActions
 .import "../launcher/LauncherAppPreferences.js" as LauncherAppPreferences
+.import "../launcher/LauncherBuiltinActions.js" as LauncherBuiltinActions
 .import "../launcher/LauncherSchemeVariantPicker.js" as LauncherSchemeVariantPicker
 .import "SettingsSchema.js" as Schema
 
@@ -22,7 +23,10 @@ function apply(Config, o) {
             ["launcherTitleLetterSpacing", 0, 12],
             ["launcherSearchFontSize", 8, 40],
             ["launcherSearchHeight", 36, 100],
-            ["launcherSearchRadius", 0, 36]
+            ["launcherSearchRadius", 0, 36],
+            ["launcherNavigationHintsHeight", 0, 48],
+            ["launcherNavigationHintsFontSize", 8, 18],
+            ["launcherNavigationHintsTextY", -48, 48]
         ]
         for (var lf = 0; lf < launcherNumberFields.length; ++lf) {
             var launcherName = launcherNumberFields[lf][0]
@@ -60,6 +64,14 @@ function apply(Config, o) {
         }
         if (o.launcherShowResultCount !== undefined)
             Config.launcherShowResultCount = !!o.launcherShowResultCount
+        if (o.launcherVimKeybinds !== undefined)
+            Config.launcherVimKeybinds = !!o.launcherVimKeybinds
+        if (o.launcherShowNavigationHints !== undefined)
+            Config.launcherShowNavigationHints = !!o.launcherShowNavigationHints
+        else if (o.launcherHideNavigationHints !== undefined)
+            // Legacy profiles used an inverted hide flag. The new visible-by-default
+            // preference intentionally supersedes that old default.
+            Config.launcherShowNavigationHints = true
         if (o.launcherFuzzySearchApps !== undefined)
             Config.launcherFuzzySearchApps = !!o.launcherFuzzySearchApps
         if (o.launcherFuzzySearchActions !== undefined)
@@ -121,6 +133,8 @@ function apply(Config, o) {
             Config.launcherProjects = LauncherProjects.normalize(o.launcherProjects)
         if (Array.isArray(o.launcherCustomActions))
             Config.launcherCustomActions = LauncherActions.normalize(o.launcherCustomActions)
+        if (Array.isArray(o.launcherDisabledBuiltinActions))
+            Config.launcherDisabledBuiltinActions = LauncherBuiltinActions.normalizeDisabledIds(o.launcherDisabledBuiltinActions)
         if (o.launcherFavoriteApps instanceof Array || (o.launcherFavoriteApps && typeof o.launcherFavoriteApps.length === "number"))
             Config.launcherFavoriteApps = LauncherAppPreferences.normalizeIds(o.launcherFavoriteApps)
         if (o.launcherHiddenApps instanceof Array || (o.launcherHiddenApps && typeof o.launcherHiddenApps.length === "number"))

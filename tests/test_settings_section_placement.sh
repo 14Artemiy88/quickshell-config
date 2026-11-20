@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+NAV_UI="$ROOT/components/settings/SettingsNavigation.qml"
 NAVIGATION="$ROOT/components/settings/SettingsNavigationController.qml"
 REGISTRY="$ROOT/js/settings/SettingsPageRegistry.js"
 TIMERS="$ROOT/components/settings/sections/SettingsTimersSection.qml"
@@ -15,10 +16,10 @@ CPU="$ROOT/components/settings/sections/SettingsCpuRamSection.qml"
 
 # Default sidebar order keeps Mopidy directly below Player; stable tab IDs preserve internal routing.
 grep -Fq '"player", "mopidy", "weather"' "$ROOT/Config.qml"
-grep -Fq 'model: root.settingsNavigationGroups' "$WIDGET"
+grep -Fq 'model: root.navigationGroups' "$NAV_UI"
 grep -Fq 'function isSettingsTabSelected(id)' "$WIDGET"
 grep -Fq 'root.currentPageId === String(id)' "$NAVIGATION"
-grep -Fq 'onClicked: root.selectSettingsTab(parent.modelData.id)' "$WIDGET"
+grep -Fq 'onClicked: root.host.selectSettingsTab(parent.modelData.id)' "$NAV_UI"
 grep -Fq '{ id: "mopidy", defaultLabel: "Mopidy", groupId: "modules" }' "$REGISTRY"
 grep -Fq '{ id: "launcher", defaultLabel: "Лаунчер", groupId: "launcher" }' "$REGISTRY"
 

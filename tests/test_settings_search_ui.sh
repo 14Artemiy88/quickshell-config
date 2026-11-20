@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+NAV="$ROOT/components/settings/SettingsNavigation.qml"
 CONTENT="$ROOT/components/settings/SettingsPageContent.qml"
 CONTROLLER="$ROOT/components/settings/SettingsSearchController.qml"
 PLAYER_PAGE="$ROOT/components/settings/pages/SettingsPlayerPage.qml"
@@ -21,28 +22,26 @@ for primitive in SettingsNumberField SettingsColorField SettingsFontField Settin
     grep -Fq 'property string settingsSearchLabel:' "$file" || fail "$primitive has no explicit search label"
 done
 
-grep -Fq 'placeholderText: "Поиск настроек…"' "$WIDGET" || fail 'global search field is missing'
+grep -Fq 'placeholderText: "Поиск настроек…"' "$NAV" || fail 'global search field is missing'
 grep -Fq 'settingsSearchLabel: "Лаунчер · "' "$ROOT/components/settings/sections/SettingsModulesSection.qml" || fail 'launcher coordinates have no human-readable search labels'
 grep -Fq 'settingsSearchId: "module." + moduleRow.moduleName + ".geometry."' "$ROOT/components/settings/sections/SettingsModulesSection.qml" || fail 'module geometry controls have no stable dynamic IDs'
 grep -Fq 'settingsSearchLabel: "Блюр "' "$ROOT/components/settings/sections/SettingsModulesSection.qml" || fail 'module blur controls are not indexed'
 grep -Fq 'SettingsSearchController {' "$WIDGET" || fail 'dedicated search controller is not mounted'
 grep -Fq 'function rebuildSettingsSearchIndex()' "$CONTROLLER" || fail 'search index builder is missing'
-grep -Fq 'navigationGroupLabel: navigationGroupLabel' "$CONTROLLER" || fail 'search results do not retain the navigation group label'
-grep -Fq 'modelData.navigationGroupLabel + " › " + modelData.pageLabel' "$WIDGET" || fail 'search results do not display the group/page breadcrumb'
-grep -Fq 'ScrollBar.vertical: SettingsScrollBar' "$WIDGET" || fail 'expanded search results have no scroll indicator'
-grep -Fq 'SettingsSearch.search(root.settingsSearchIndex' "$CONTROLLER" || fail 'search helper is not used'
-grep -Fq 'root.settingsSearchQuery, 40' "$CONTROLLER" || fail 'search result cap does not include deeper module settings'
-grep -Fq 'function trySettingsSearchSubTab(entry)' "$CONTROLLER" || fail 'automatic subtab discovery is missing'
-grep -Fq 'function findSettingsSearchFlickable(target)' "$CONTROLLER" || fail 'scroll-container discovery is missing'
-grep -Fq 'function showSettingsSearchHighlight(target)' "$CONTROLLER" || fail 'target highlight is missing'
-grep -Fq 'SettingsSearch.humanizeKey(targetKey || explicitId)' "$CONTROLLER" || fail 'stable setting keys are not used as label fallback'
-grep -Fq 'Keys.onPressed: event => root.handleSettingsSearchKey(event)' "$WIDGET" || fail 'keyboard navigation is missing'
-grep -Fq 'root.searchInput.text = ""' "$CONTROLLER" || fail 'search query is not cleared after navigation'
+grep -Fq 'navigationGroupLabel: navigationGroupLabel' "$CONTROLLER" || fail 'search index does not retain the navigation group label'
+grep -Fq 'SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, root.settingsSearchIndex.length)' "$CONTROLLER" || fail 'in-place search does not retain a broad match set'
+grep -Fq 'function settingsSearchSubTabHasMatches(pageId, subTabIndex)' "$CONTROLLER" || fail 'subtab breadcrumb highlighting is missing'
+grep -Fq 'function applySettingsSearchHighlights()' "$CONTROLLER" || fail 'matching controls and ancestor sections are not outlined'
+grep -Fq 'settingsSearchMatched: root.host.settingsSearchPageHasMatches(parent.modelData.id)' "$NAV" || fail 'matching page tabs are not outlined'
+grep -Fq 'settingsSearchMatched: root.host && root.host.settingsSearchSubTabHasMatches(root.host.currentPageId, index)' "$ROOT/components/settings/SettingsPageHost.qml" || fail 'matching page subtabs are not outlined'
+grep -Fq 'settingsSearchHighlighted: false' "$ROOT/components/settings/primitives/SettingsGroup.qml" || fail 'section frames cannot receive search outlines'
+grep -Fq 'SettingsSearchHighlight {' "$ROOT/components/settings/primitives/SettingsGroup.qml" || fail 'section frames do not host the shared search-highlight primitive'
+grep -Fq 'highlighted: root.settingsSearchHighlighted' "$ROOT/components/settings/primitives/SettingsGroup.qml" || fail 'section frames do not forward their search-match state'
+grep -Fq 'Config.settingsSearchHighlightColor' "$ROOT/components/settings/primitives/SettingsSearchHighlight.qml" || fail 'shared section outlines do not use the configurable highlight color'
+! grep -Fq 'settingsSearchPopup' "$WIDGET" || fail 'separate popup results window still exists'
+grep -Fq 'clearButtonEnabled: text.length > 0' "$NAV" || fail 'search field cannot clear its active query'
+grep -Fq 'property bool clearButtonEnabled: false' "$ROOT/components/settings/primitives/SettingsInputField.qml" || fail 'SettingsInputField does not expose the optional clear-button API'
+grep -Fq 'visible: root.clearButtonEnabled && root.text.length > 0' "$ROOT/components/settings/primitives/SettingsInputField.qml" || fail 'SettingsInputField clear button is not connected to its enabled state and text'
+grep -Fq 'settingsSearchHighlightColor' "$ROOT/components/settings/sections/SettingsWindowSection.qml" || fail 'search outline color is not configurable in Settings Window'
 
-# Search is navigation-only and must not write to the settings store.
-NAV_BLOCK="$(sed -n '/function openSettingsSearchResult(entry)/,/function trySettingsSearchSubTab(entry)/p' "$CONTROLLER")"
-if grep -Eq 'settings\.save\(|settings\.reset|Config\.[A-Za-z0-9_]+[[:space:]]*=' <<< "$NAV_BLOCK"; then
-    fail 'search navigation mutates or saves settings'
-fi
-
-echo 'Settings global search: searchable primitive metadata, controller-owned index/navigation, all pages and target highlight: OK'
+echo 'Settings global search: searchable primitives, in-place path/control outlines, clickable subtabs and configurable highlight color: OK'

@@ -14,10 +14,10 @@ assert 'Config.animationTimerMorphProfile !== "none"' not in section
 for key in ('timerButtonFadeDuration', 'timerButtonSlideDuration', 'timerButtonIconFadeDuration'):
     assert f'targetProperty: "{key}"' in section, f'{key} editor missing'
 assert 'heading: "Анимация кнопок таймера"' in section
-assert 'text: "Стиль появления кнопок"' in section
-assert 'text: "Затухание кнопок (мс)"' in section
-assert 'text: "Сдвиг кнопок (мс)"' in section
-assert 'text: "Появление/исчезновение иконок (мс)"' in section
+assert 'label: "Стиль появления кнопок"' in section
+assert 'label: "Затухание кнопок (мс)"' in section
+assert 'label: "Сдвиг кнопок (мс)"' in section
+assert 'label: "Появление/исчезновение иконок (мс)"' in section
 
 # The common profile gates icon/row/button motion, but the preset style only gates preset buttons.
 for morph_id in ('timerIconMorph', 'alarmIconMorph'):

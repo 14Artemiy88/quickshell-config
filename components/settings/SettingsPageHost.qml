@@ -112,6 +112,11 @@ Item {
                             : parent.width
                         selected: root.host && root.host.currentPageSubTabIndex === index
                         modified: root.host && root.host.settingsSubTabHasChanges(root.host.currentPageId, index)
+                        settingsSearchMatched: root.host && root.host.settingsSearchSubTabHasMatches(root.host.currentPageId, index)
+                        settingsSearchMatchHint: root.host
+                            ? root.host.settingsSearchSubTabMatchHint(root.host.currentPageId, index) : ""
+                        settingsSearchMatchCount: root.host
+                            ? root.host.settingsSearchSubTabMatchCount(root.host.currentPageId, index) : 0
                         text: modelData
                         onClicked: {
                             if (!root.host) return

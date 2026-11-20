@@ -50,7 +50,7 @@ assert(!persistenceSource.includes('notificationsPosition: config.') && !persist
 for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificationsOffsetY', 'notificationsMargin'])
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
-assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления" }'), 'sidebar declares the Notifications page');
+assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules" }'), 'sidebar declares the Notifications page in the Modules group');
 assert(config.includes('"launcher", "notifications", "settingsWindow"') && defaults.includes('"launcher", "notifications", "settingsWindow"'), 'default sidebar order places Notifications before Settings Window');
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
 assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');

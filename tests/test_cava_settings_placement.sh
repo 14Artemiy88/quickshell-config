@@ -46,16 +46,16 @@ const placement = [
   ['Ширина полоски (% слота)', 1],
 ];
 for (const [label, subtab] of placement) {
-  const at = cava.indexOf(`text: "${label}"`);
+  const at = cava.indexOf(`label: "${label}"`);
   assert(at >= 0, `CAVA setting exists: ${label}`);
-  assert.strictEqual(cava.indexOf(`text: "${label}"`, at + 1), -1, `CAVA setting appears once: ${label}`);
+  assert.strictEqual(cava.indexOf(`label: "${label}"`, at + 1), -1, `CAVA setting appears once: ${label}`);
   if (label === 'Скрывать пустые полоски') {
     const morph = blockContaining(cava, 'MorphGeometry {', at).text;
     assert(morph.includes('progress: Config.cavaHideWhenSilent ? 1 : 0'), 'zero-bars option uses the animated visibility wrapper');
     assert(morph.includes('cavaHideZeroBarsContent'), 'zero-bars checkbox remains inside the animated content');
     assert(cava.includes(`visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === ${subtab}`), `${label} belongs to the correct CAVA subtab ${subtab}`);
   } else {
-    const row = blockContaining(cava, 'Row {', at).text;
+    const row = blockContaining(cava, 'SettingsRow {', at).text;
     assert(row.includes(`host.currentPageId === "cava" && host.currentPageSubTabIndex === ${subtab}`), `${label} is displayed in the correct CAVA subtab ${subtab}`);
   }
 }

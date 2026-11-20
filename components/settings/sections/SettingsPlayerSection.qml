@@ -99,29 +99,22 @@ Column {
     Component.onCompleted: root.syncPlayerPriorityModel()
 
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerFont", "playerSilenceFontSize", "playerSilenceLongFontSize", "playerSilenceText", "playerSilenceWidth"] })
         padding: 8
         contentSpacing: 6
 
-            Row {
+            SettingsRow {
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 34
                 spacing: 8
-
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Текст при отсутствии воспроизведения"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
+                label: "Текст при отсутствии воспроизведения"
+                labelWidth: 210
+                labelElide: Text.ElideRight
 
                 SettingsTextField {
                     id: playerSilenceField
@@ -152,21 +145,13 @@ Column {
                     }
                 }
             }
-            Row {
+            SettingsRow {
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 34
                 spacing: 8
-
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Основной шрифт плеера"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+                label: "Основной шрифт плеера"
+                labelWidth: 210
 
                 SettingsFontField {
                     width: 178
@@ -181,9 +166,13 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { width: parent.width; height: 30; spacing: 8
+            SettingsRow {
+                label: "Размер текста"
+                labelWidth: 210
+                width: parent.width
+                height: 30
+                spacing: 8
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
-                Text { width: 210; height: 30; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: silenceSizeField
             width: 72
@@ -204,9 +193,13 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { width: parent.width; height: 30; spacing: 8
+            SettingsRow {
+                label: "Размер длинного текста"
+                labelWidth: 210
+                width: parent.width
+                height: 30
+                spacing: 8
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
-                Text { width: 210; height: 30; text: "Размер длинного текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: silenceLongSizeField
             width: 72
@@ -227,8 +220,13 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Ширина области"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Ширина области"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
             id: playerSilenceWidthField
             width: 72
@@ -251,7 +249,8 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerPriority"] })
@@ -349,15 +348,21 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerTimeFont", "playerTimeFontSize", "playerTimeRightPadding", "playerTimeY"] })
         padding: 8
         contentSpacing: 6
 
-        Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Размер"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+        SettingsRow {
+                label: "Размер"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
             id: playerTimeFontSizeField
             width: 72
@@ -378,8 +383,13 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Шрифт"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsFontField {
                     width: 178
                     height: 30
@@ -393,8 +403,13 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Смещение по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Смещение по Y"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
                     id: playerTimeYField
                     width: 72
@@ -415,8 +430,13 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Отступ справа"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Отступ справа"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 2
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
             id: playerTimeRightPaddingField
             width: 72
@@ -439,7 +459,8 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 3
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 3
+settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerBoldArtist", "playerMetaFont", "playerMetaFontSize", "playerMetaLineSpacing", "playerMetaSecondaryFontSize", "playerMetadataXPadding", "playerMetadataY", "playerTextOutlineColor", "playerTextOutlineEnabled"] })
@@ -475,9 +496,11 @@ Column {
                     saveOnEdit: true
                 }
             }
-            Row { width: parent.width; height: 30; spacing: 8
+            SettingsRow {
+                label: "Размер основной строки метаданных"
+                labelWidth: 210
+                width: parent.width; height: 30; spacing: 8
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
-                Text { width: 210; height: 30; text: "Размер основной строки метаданных"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
             id: metaSizeField
             width: 72
@@ -498,9 +521,11 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { width: parent.width; height: 30; spacing: 8
+            SettingsRow {
+                label: "Размер остальных строк"
+                labelWidth: 210
+                width: parent.width; height: 30; spacing: 8
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
-                Text { width: 210; height: 30; text: "Размер остальных строк"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: metaSecondarySizeField
             width: 72
@@ -521,9 +546,11 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { width: parent.width; height: 30; spacing: 8
+            SettingsRow {
+                label: "Расстояние между строками"
+                labelWidth: 210
+                width: parent.width; height: 30; spacing: 8
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
-                Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: metaSpacingField
             width: 72
@@ -544,8 +571,13 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Отступ метаданных по X"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Отступ метаданных по X"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
             id: playerMetaXPadField
             width: 72
@@ -566,8 +598,13 @@ Column {
             saveOnEdit: true
         }
             }
-            Row { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Положение метаданных по Y"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Положение метаданных по Y"
+                labelWidth: 210
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 3
+                width: parent.width
+                height: 30
+                spacing: 8
                 SettingsNumberField {
             id: playerMetaYField
             width: 72
@@ -622,19 +659,12 @@ Column {
                     width: parent.width
                     spacing: 6
 
-                    Row {
+                    SettingsRow {
+                        label: "Цвет обводки"
+                        labelWidth: 210
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text {
-                            width: 210
-                            height: 30
-                            text: "Цвет обводки"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
                         SettingsColorField {
                             id: playerTextOutlineColorField
                             width: 120
@@ -655,7 +685,8 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 4
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 4
+settingsSearchSubTabIndex: 4
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerNextIcon", "playerNextIconSize", "playerNextIconY", "playerPausedIcon", "playerPausedIconSize", "playerPausedIconY", "playerPlayingIcon", "playerPlayingIconSize", "playerPlayingIconY"] })
@@ -810,7 +841,8 @@ Column {
             }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 5
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 5
+settingsSearchSubTabIndex: 5
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerShowProgress", "playerProgressTrackHeight", "playerProgressTrackOffsetY", "playerProgressY"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } })
@@ -920,19 +952,21 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 6
+                visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 6
+settingsSearchSubTabIndex: 6
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["playerCoverOpacity"], nested: { colors: ["playerOverlay"] } })
         padding: 8
         contentSpacing: 6
 
-            Row {
+            SettingsRow {
+                label: "Прозрачность обложки (0–1)"
+                labelWidth: 210
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 6
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Прозрачность обложки (0–1)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
                     id: playerCoverOpacityField
                     width: 72

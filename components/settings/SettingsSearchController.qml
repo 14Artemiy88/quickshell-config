@@ -12,14 +12,10 @@ Item {
     property var host: null
     property var searchRoot: null
     property var searchInput: null
-    property var highlight: null
-    property var highlightTimer: null
-
     property var settingsSearchIndex: []
     property var settingsSearchResults: []
     property string settingsSearchQuery: ""
-    property int settingsSearchSelectedIndex: 0
-    property int settingsSearchCandidateSubTab: 0
+    property string settingsSearchActiveMatchId: ""
 
     function settingsSearchPageInfo(item, inheritedPageId, inheritedPageRoot) {
         var pageId = inheritedPageId || ""
@@ -54,6 +50,19 @@ Item {
         return ""
     }
 
+    function settingsSearchAncestorRowLabel(item) {
+        var current = item ? item.parent : null
+        while (current) {
+            if (current.settingsSearchRowLabel !== undefined) {
+                var rowLabel = String(current.settingsSearchRowLabel || "").trim()
+                if (rowLabel.length > 0)
+                    return rowLabel
+            }
+            current = current.parent
+        }
+        return ""
+    }
+
     function settingsSearchItemLabel(item) {
         if (!item)
             return ""
@@ -67,6 +76,9 @@ Item {
         }
         if (item.label !== undefined && String(item.label).trim().length > 0)
             return String(item.label).trim()
+        var rowLabel = root.settingsSearchAncestorRowLabel(item)
+        if (rowLabel.length > 0)
+            return rowLabel
         if (item.text !== undefined && String(item.text).trim().length > 0 && !preferSibling)
             return String(item.text).trim()
         var fallbackSibling = root.settingsSearchSiblingLabel(item)
@@ -87,6 +99,19 @@ Item {
             current = current.parent
         }
         return ""
+    }
+
+    function settingsSearchSubTabIndex(item, pageRoot) {
+        var current = item ? item.parent : null
+        while (current && current !== pageRoot) {
+            if (current.settingsSearchSubTabIndex !== undefined) {
+                var index = Number(current.settingsSearchSubTabIndex)
+                if (isFinite(index) && index >= 0)
+                    return Math.floor(index)
+            }
+            current = current.parent
+        }
+        return -1
     }
 
     function collectSettingsSearchItems(item, pageId, pageRoot, entries, ordinalByPage, idCounts) {
@@ -121,9 +146,11 @@ Item {
                     navigationGroupLabel: navigationGroupLabel,
                     pageId: activePageId,
                     pageLabel: pageLabel,
+                    subTabIndex: root.settingsSearchSubTabIndex(item, activePageRoot),
                     target: item,
                     pageRoot: activePageRoot,
                     targetKey: targetKey,
+                    keywords: keywords,
                     keyTerms: [targetKey, explicitId, keyTerms].join(" "),
                     searchText: searchable
                 })
@@ -137,7 +164,61 @@ Item {
             root.collectSettingsSearchItems(children[childIndex], activePageId, activePageRoot, entries, ordinalByPage, idCounts)
     }
 
+    function clearSettingsSearchHighlights(entries) {
+        var source = entries || []
+        for (var i = 0; i < source.length; ++i) {
+            var entry = source[i]
+            var current = entry ? entry.target : null
+            while (current) {
+                if (current.settingsSearchHighlighted !== undefined)
+                    current.settingsSearchHighlighted = false
+                if (current.settingsSearchCurrentMatch !== undefined)
+                    current.settingsSearchCurrentMatch = false
+                if (current.settingsSearchMatchHint !== undefined)
+                    current.settingsSearchMatchHint = ""
+                if (current === entry.pageRoot)
+                    break
+                current = current.parent
+            }
+        }
+    }
+
+    function applySettingsSearchHighlights() {
+        root.clearSettingsSearchHighlights(root.settingsSearchIndex)
+        var results = root.settingsSearchResults
+        for (var i = 0; i < results.length; ++i) {
+            var entry = results[i]
+            var current = entry ? entry.target : null
+            var explanation = SettingsSearch.explainMatch(entry, root.settingsSearchQuery)
+            var ancestorHint = "• " + entry.label + " — " + explanation
+            while (current) {
+                if (current.settingsSearchHighlighted !== undefined)
+                    current.settingsSearchHighlighted = true
+                if (current.settingsSearchCurrentMatch !== undefined)
+                    current.settingsSearchCurrentMatch = current === entry.target
+                        && String(entry.id || "") === root.settingsSearchActiveMatchId
+                if (current.settingsSearchMatchHint !== undefined) {
+                    if (current === entry.target) {
+                        current.settingsSearchMatchHint = explanation
+                    } else {
+                        var existing = String(current.settingsSearchMatchHint || "")
+                        var header = "Найдено внутри:\n"
+                        var body = existing.indexOf(header) === 0 ? existing.slice(header.length) : existing
+                        var lines = body.length > 0 ? body.split("\n") : []
+                        if (lines.indexOf(ancestorHint) < 0 && lines.length < 4)
+                            lines.push(ancestorHint)
+                        current.settingsSearchMatchHint = header + lines.join("\n")
+                    }
+                }
+                if (current === entry.pageRoot)
+                    break
+                current = current.parent
+            }
+        }
+    }
+
     function rebuildSettingsSearchIndex() {
+        root.clearSettingsSearchHighlights(root.settingsSearchIndex)
         var entries = []
         var treeRoot = root.searchRoot || root.host
         if (treeRoot)
@@ -148,123 +229,197 @@ Item {
 
     function updateSettingsSearchResults(query) {
         root.settingsSearchQuery = String(query === undefined || query === null ? "" : query)
-        root.settingsSearchResults = SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, 40)
-        root.settingsSearchSelectedIndex = 0
+        root.settingsSearchActiveMatchId = ""
+        root.settingsSearchResults = SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, root.settingsSearchIndex.length)
+        root.applySettingsSearchHighlights()
     }
 
-    function isSettingsSearchTargetVisible(entry) {
-        if (!entry || !entry.target || !entry.pageRoot)
+    function scrollSettingsSearchEntryIntoView(entry) {
+        var target = entry ? entry.target : null
+        if (!target)
             return false
-        var current = entry.target
+
+        var current = target.parent
         while (current) {
-            if (current.visible === false)
-                return false
-            if (current === entry.target && (Number(current.width) <= 0 || Number(current.height) <= 0))
-                return false
-            if (current === entry.pageRoot)
+            if (current.contentItem !== undefined
+                    && current.contentY !== undefined
+                    && current.contentHeight !== undefined
+                    && current.height !== undefined) {
+                var point = target.mapToItem(current.contentItem, 0, 0)
+                var itemHeight = Math.max(1, Number(target.height) || Number(target.implicitHeight) || 24)
+                var viewportTop = Number(current.contentY) || 0
+                var viewportHeight = Math.max(0, Number(current.height) || 0)
+                var margin = Math.min(24, viewportHeight / 4)
+                var nextContentY = viewportTop
+
+                if (point.y < viewportTop + margin)
+                    nextContentY = point.y - margin
+                else if (point.y + itemHeight > viewportTop + viewportHeight - margin)
+                    nextContentY = point.y + itemHeight - viewportHeight + margin
+
+                var maxContentY = Math.max(0, Number(current.contentHeight) - viewportHeight)
+                current.contentY = Math.max(0, Math.min(maxContentY, nextContentY))
                 return true
+            }
             current = current.parent
         }
         return false
     }
 
+    function cycleSettingsSearchMatch(direction) {
+        if (!root.host || root.settingsSearchQuery.trim().length === 0)
+            return false
+
+        var index = SettingsSearch.cycleIndex(
+            root.settingsSearchResults,
+            root.host.currentPageId,
+            root.settingsSearchActiveMatchId,
+            direction
+        )
+        if (index < 0 || index >= root.settingsSearchResults.length)
+            return false
+
+        var entry = root.settingsSearchResults[index]
+        if (!entry || !entry.target)
+            return false
+
+        root.settingsSearchActiveMatchId = String(entry.id || "")
+        if (entry.subTabIndex >= 0
+                && root.host.currentPageSubTabIndex !== entry.subTabIndex) {
+            root.host.currentPageSubTabIndex = entry.subTabIndex
+        }
+
+        root.applySettingsSearchHighlights()
+        // Let the selected subtab and its content finish updating before mapping
+        // the target into the nearest Flickable's content coordinate system.
+        Qt.callLater(function() {
+            Qt.callLater(function() {
+                root.scrollSettingsSearchEntryIntoView(entry)
+            })
+        })
+        return true
+    }
+
+    function settingsSearchCountMatches(predicate) {
+        if (root.settingsSearchQuery.trim().length === 0)
+            return 0
+        var count = 0
+        for (var i = 0; i < root.settingsSearchResults.length; ++i) {
+            if (predicate(root.settingsSearchResults[i]))
+                count += 1
+        }
+        return count
+    }
+
+    function settingsSearchPageMatchCount(pageId) {
+        var page = String(pageId || "")
+        if (!page)
+            return 0
+        return root.settingsSearchCountMatches(function(entry) { return entry.pageId === page })
+    }
+
+    function settingsSearchNavigationGroupMatchCount(groupId) {
+        var group = String(groupId || "")
+        if (!group)
+            return 0
+        return root.settingsSearchCountMatches(function(entry) {
+            return SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId) === group
+        })
+    }
+
+    function settingsSearchSubTabMatchCount(pageId, subTabIndex) {
+        var page = String(pageId || "")
+        var index = Number(subTabIndex)
+        if (!page || !isFinite(index))
+            return 0
+        return root.settingsSearchCountMatches(function(entry) {
+            return entry.pageId === page && entry.subTabIndex === index
+        })
+    }
+
+    function settingsSearchPageHasMatches(pageId) {
+        return root.settingsSearchPageMatchCount(pageId) > 0
+    }
+
+    function settingsSearchNavigationGroupHasMatches(groupId) {
+        return root.settingsSearchNavigationGroupMatchCount(groupId) > 0
+    }
+
+    function settingsSearchSubTabHasMatches(pageId, subTabIndex) {
+        return root.settingsSearchSubTabMatchCount(pageId, subTabIndex) > 0
+    }
+
+    function settingsSearchMatchesHint(predicate) {
+        if (root.settingsSearchQuery.trim().length === 0)
+            return ""
+        var matches = []
+        for (var i = 0; i < root.settingsSearchResults.length; ++i) {
+            var entry = root.settingsSearchResults[i]
+            if (predicate(entry))
+                matches.push(entry)
+        }
+        if (matches.length === 0)
+            return ""
+        var lines = ["Найдено параметров: " + String(matches.length)]
+        var cap = Math.min(matches.length, 4)
+        for (var j = 0; j < cap; ++j) {
+            var match = matches[j]
+            lines.push("• " + match.label + " — " + SettingsSearch.explainMatch(match, root.settingsSearchQuery))
+        }
+        if (matches.length > cap)
+            lines.push("…и ещё " + String(matches.length - cap))
+        return lines.join("\n")
+    }
+
+    function settingsSearchPageMatchHint(pageId) {
+        var page = String(pageId || "")
+        return root.settingsSearchMatchesHint(function(entry) { return entry.pageId === page })
+    }
+
+    function settingsSearchNavigationGroupMatchHint(groupId) {
+        var group = String(groupId || "")
+        return root.settingsSearchMatchesHint(function(entry) {
+            return SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId) === group
+        })
+    }
+
+    function settingsSearchSubTabMatchHint(pageId, subTabIndex) {
+        var page = String(pageId || "")
+        var index = Number(subTabIndex)
+        return root.settingsSearchMatchesHint(function(entry) {
+            return entry.pageId === page && entry.subTabIndex === index
+        })
+    }
+
     function openSettingsSearchResult(entry) {
-        if (!entry || !entry.target || !root.host)
+        if (!entry || !entry.pageId || !root.host)
             return
-        root.settingsSearchQuery = ""
-        root.settingsSearchResults = []
-        if (root.searchInput)
-            root.searchInput.text = ""
+        // Keyboard activation follows the navigation path only. The query stays
+        // active so matching tabs, sections and controls remain outlined.
         root.host.expandSettingsNavigationGroupForPage(entry.pageId)
-        if (entry.pageId === "modules" || entry.pageId === "themes") {
-            root.host.currentPageId = entry.pageId
-            Qt.callLater(function() { root.finishSettingsSearchNavigation(entry) })
-            return
-        }
-        if (!SettingsPageRegistry.hasOtherPageId(entry.pageId))
-            return
         root.host.currentPageId = entry.pageId
-        Qt.callLater(function() {
-            root.settingsSearchCandidateSubTab = 0
-            root.trySettingsSearchSubTab(entry)
-        })
-    }
-
-    function trySettingsSearchSubTab(entry) {
-        if (!entry || !entry.target || !root.host)
-            return
-        var count = root.host.currentPageSubTabs.length
-        if (root.settingsSearchCandidateSubTab >= count) {
-            root.host.currentPageSubTabIndex = 0
-            Qt.callLater(function() { root.finishSettingsSearchNavigation(entry) })
-            return
+        var pageId = String(entry.pageId)
+        var subTabIndex = Number(entry.subTabIndex)
+        if (isFinite(subTabIndex) && subTabIndex >= 0) {
+            Qt.callLater(function() {
+                if (root.host && root.host.currentPageId === pageId)
+                    root.host.currentPageSubTabIndex = subTabIndex
+            })
         }
-        root.host.currentPageSubTabIndex = root.settingsSearchCandidateSubTab
-        Qt.callLater(function() {
-            if (root.isSettingsSearchTargetVisible(entry)) {
-                root.finishSettingsSearchNavigation(entry)
-                return
-            }
-            root.settingsSearchCandidateSubTab += 1
-            root.trySettingsSearchSubTab(entry)
-        })
-    }
-
-    function findSettingsSearchFlickable(target) {
-        var current = target ? target.parent : null
-        while (current && current !== root.host) {
-            if (current.contentY !== undefined && current.contentHeight !== undefined && current.contentItem)
-                return current
-            current = current.parent
-        }
-        return null
-    }
-
-    function finishSettingsSearchNavigation(entry) {
-        if (!entry || !entry.target || !root.isSettingsSearchTargetVisible(entry))
-            return
-        var flickable = root.findSettingsSearchFlickable(entry.target)
-        if (flickable) {
-            var localPosition = entry.target.mapToItem(flickable.contentItem, 0, 0)
-            var wantedY = Math.max(0, localPosition.y - 42)
-            var maximumY = Math.max(0, flickable.contentHeight - flickable.height)
-            flickable.contentY = Math.min(maximumY, wantedY)
-        }
-        Qt.callLater(function() { root.showSettingsSearchHighlight(entry.target) })
-    }
-
-    function showSettingsSearchHighlight(target) {
-        if (!target || target.visible === false || target.width <= 0 || target.height <= 0
-                || !root.host || !root.highlight)
-            return
-        var position = target.mapToItem(root.host, 0, 0)
-        root.highlight.x = Math.max(0, position.x - 3)
-        root.highlight.y = Math.max(0, position.y - 3)
-        root.highlight.width = Math.min(root.host.width, target.width + 6)
-        root.highlight.height = target.height + 6
-        root.highlight.visible = true
-        if (root.highlightTimer)
-            root.highlightTimer.restart()
     }
 
     function handleSettingsSearchKey(event) {
         if (!event || !root.host)
             return
-        if (event.key === Qt.Key_Down) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (root.settingsSearchResults.length > 0)
-                root.settingsSearchSelectedIndex = Math.min(root.settingsSearchResults.length - 1, root.settingsSearchSelectedIndex + 1)
-            event.accepted = true
-        } else if (event.key === Qt.Key_Up) {
-            if (root.settingsSearchResults.length > 0)
-                root.settingsSearchSelectedIndex = Math.max(0, root.settingsSearchSelectedIndex - 1)
-            event.accepted = true
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (root.settingsSearchResults.length > 0)
-                root.openSettingsSearchResult(root.settingsSearchResults[root.settingsSearchSelectedIndex])
+                root.openSettingsSearchResult(root.settingsSearchResults[0])
             event.accepted = true
         } else if (event.key === Qt.Key_Escape) {
             root.settingsSearchQuery = ""
+            root.settingsSearchActiveMatchId = ""
             root.settingsSearchResults = []
+            root.applySettingsSearchHighlights()
             if (root.searchInput)
                 root.searchInput.text = ""
             root.host.clearSettingsFocus()

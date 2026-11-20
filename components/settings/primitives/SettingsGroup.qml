@@ -1,10 +1,14 @@
 import QtQuick
+import QtQuick.Controls
 import "../../.."
 
 Item {
     id: root
 
     property bool showFrame: false
+    property bool settingsSearchHighlighted: false
+    property string settingsSearchMatchHint: ""
+    property int settingsSearchSubTabIndex: -1
     property real padding: showFrame ? 10 : 0
     property real contentSpacing: 5
     // Explicit frame legend; avoids relying on child order or visibility.
@@ -84,6 +88,13 @@ Item {
         z: -1
     }
 
+    SettingsSearchHighlight {
+        anchors.fill: parent
+        overlayZ: 4
+        highlighted: root.settingsSearchHighlighted
+        cornerRadius: root.radius
+    }
+
     Rectangle {
         id: headingBackground
         visible: root.hasHeading
@@ -120,6 +131,16 @@ Item {
         elide: Text.ElideRight
         verticalAlignment: Text.AlignVCenter
         z: 2
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            ToolTip.visible: root.settingsSearchHighlighted
+                && root.settingsSearchMatchHint.length > 0 && containsMouse
+            ToolTip.text: root.settingsSearchMatchHint
+            ToolTip.delay: 450
+        }
     }
 
     Rectangle {

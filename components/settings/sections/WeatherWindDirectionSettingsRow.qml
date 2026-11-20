@@ -2,9 +2,9 @@ import QtQuick
 import "../../.."
 import "../primitives"
 
-Row {
+SettingsRow {
     id: root
-    property string label: ""
+
     property string iconValue: ""
     property string fontValue: "JetBrainsMono Nerd Font"
     signal iconEdited(string value)
@@ -13,17 +13,8 @@ Row {
     width: parent ? parent.width : 0
     height: 30
     spacing: 6
-
-    Text {
-        width: 130
-        height: 30
-        text: root.label
-        color: Config.text
-        font.family: Config.settingsFont
-        font.pixelSize: Config.settingsUiSize(11)
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
-    }
+    labelWidth: 130
+    controlSpacing: 6
 
     SettingsTextField {
         id: iconField

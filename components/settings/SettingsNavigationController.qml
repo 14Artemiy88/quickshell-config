@@ -137,7 +137,7 @@ Item {
                 { prefixes: ["animationCalendar"] }
             ],
             "settingsWindow": [
-                { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] },
+                { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize"] },
                 { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
                 { keys: ["settingsTabOrder", "settingsTabLabels"] }
             ],
@@ -149,13 +149,26 @@ Item {
                 { keys: ["animationMopidyVisibilityStyle", "animationMopidyMorphDuration", "animationMopidyMorphProfile"] }
             ],
             "launcher": [
-                { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherWallpaperDirectory", "launcherDynamicSchemeVariant", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
-                { keys: ["launcherFuzzySearchApps", "launcherFuzzySearchActions", "launcherFuzzySearchSchemes", "launcherFuzzySearchWallpapers"] },
-                { keys: ["launcherTabIcons", "launcherTabLabels", "launcherTabOrder", "launcherTabVisible", "launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] },
-                { keys: ["launcherProjects"] },
-                { keys: ["launcherCustomActions"] },
-                { keys: ["animationLauncherMorphDuration", "animationLauncherMorphProfile"] },
-                { keys: ["launcherFavoriteApps", "launcherHiddenApps"] }
+                { keys: ["launcherDefaultMode", "launcherShowResultCount"] },
+                { keys: ["launcherVimKeybinds", "launcherShowNavigationHints", "launcherNavigationHintsHeight", "launcherNavigationHintsFontSize", "launcherNavigationHintsTextY"] },
+                { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
+                { keys: ["launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] }
+            ],
+            "launcherSearch": [
+                { keys: ["launcherFuzzySearchApps"] },
+                { keys: ["launcherFuzzySearchActions"] },
+                { keys: ["launcherFuzzySearchSchemes", "launcherDynamicSchemeVariant"] },
+                { keys: ["launcherFuzzySearchWallpapers", "launcherWallpaperDirectory"] }
+            ],
+            "launcherActions": [
+                { arrayContains: { launcherDisabledBuiltinActions: [
+                    "tab.apps", "tab.run", "tab.windows", "tab.clipboard", "tab.power",
+                    "tab.network", "tab.packages", "tab.pass", "tab.projects", "tab.calculator"
+                ] } },
+                { arrayContains: { launcherDisabledBuiltinActions: [
+                    "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic"
+                ] } },
+                { keys: ["launcherCustomActions"] }
             ],
             "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] },
@@ -174,20 +187,49 @@ Item {
         return spec !== null && settings.hasResetChanges("keys", spec)
     }
 
+    // Launcher shares one save/reset profile scope, but sidebar dirty markers
+    // must stay local to each child page instead of lighting every Launcher page.
+    // Pages with horizontal subtabs aggregate only those exact subtab selectors.
+    function launcherPageHasChanges(pageId) {
+        var pageSubTabCounts = { launcher: 4, launcherSearch: 4, launcherActions: 3 }
+        var subTabCount = pageSubTabCounts[String(pageId)]
+        if (subTabCount !== undefined) {
+            for (var sub = 0; sub < subTabCount; ++sub) {
+                var subSpec = root.settingsSubTabChangeSpec(pageId, sub)
+                if (subSpec !== null && settings.hasResetChanges("keys", subSpec))
+                    return true
+            }
+            return false
+        }
+
+        var pageSpecs = {
+            launcherTabs: { keys: ["launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons"] },
+            launcherProjects: { keys: ["launcherProjects"] },
+            launcherAnimation: { keys: ["animationLauncherMorphDuration", "animationLauncherMorphProfile"] },
+            launcherApplications: { keys: ["launcherFavoriteApps", "launcherHiddenApps"] }
+        }
+        var pageSpec = pageSpecs[String(pageId)]
+        return pageSpec !== undefined && settings.hasResetChanges("keys", pageSpec)
+    }
+
     // Use the cached sparse profile overrides to mark sections with changes.
     // This deliberately reuses hasResetChanges() so indicators do not trigger
     // their own full settings snapshot/diff calculations.
     function settingsTabHasChanges(id) {
         if (!root.host || !root.host.profileController.hasActiveProfile)
             return false
+        var pageId = String(id || "")
+        if (["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"].indexOf(pageId) >= 0)
+            return root.launcherPageHasChanges(pageId)
+
         var scopes = {
             modules: "modules", themes: "themes", general: "general",
             timers: "timer", player: "player", mopidy: "mopidy",
             weather: "weather", cava: "cava", cpuRam: "cpu",
             network: "network", volume: "volume", calendar: "calendar",
-            launcher: "launcher", notifications: "notifications", settingsWindow: "settingsWindow"
+            notifications: "notifications", settingsWindow: "settingsWindow"
         }
-        var scope = scopes[String(id)] || ""
+        var scope = scopes[pageId] || ""
         return scope !== "" && settings.hasResetChanges(scope)
     }
 
@@ -212,7 +254,13 @@ Item {
         case "calendar": settings.resetCalendarSettings(); break
         case "settingsWindow": settings.resetSettingsWindow(); break
         case "mopidy": settings.resetMopidySettings(); break
-        case "launcher": settings.resetLauncherSettings(); break
+        case "launcher":
+        case "launcherSearch":
+        case "launcherTabs":
+        case "launcherProjects":
+        case "launcherActions":
+        case "launcherAnimation":
+        case "launcherApplications": settings.resetLauncherSettings(); break
         case "notifications": settings.resetNotificationsSettings(); break
         }
     }

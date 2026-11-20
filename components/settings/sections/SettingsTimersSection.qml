@@ -92,7 +92,8 @@ Column {
         root.settings.save()
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerPresetDefaults"] })
@@ -114,21 +115,16 @@ Column {
 
                 Repeater {
                     model: (root.settings.timerPresetDefaults || []).length
-                    delegate: Row {
+                    delegate: SettingsRow {
                         id: timerPresetRow
                         width: parent.width
                         height: 30
                         spacing: 6
-
-                        Text {
-                            width: 75
-                            height: 30
-                            text: "Кнопка " + (index + 1)
-                            color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                        controlSpacing: 6
+                        label: "Кнопка " + (index + 1)
+                        labelWidth: 75
+                        labelFontSize: 11
+                        labelColor: Config.textMuted
 
                         SettingsNumberField {
                             id: timerPresetField
@@ -184,7 +180,8 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -202,20 +199,14 @@ Column {
             wrapMode: Text.WordWrap
         }
 
-        Row {
+        SettingsRow {
+            label: "Диапазон"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
-            Text {
-                width: 210
-                height: 30
-                text: "Диапазон"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
             SettingsComboBox {
+                id: timerRandomColorModeBox
                 width: 180
                 height: 30
                 model: ["Полный · чёрный–белый", "Только светлые", "Только тёмные", "Пользовательский"]
@@ -230,7 +221,6 @@ Column {
                         timerRandomColorModeBox.currentIndex = ["full", "light", "dark", "custom"].indexOf(Config.timerRandomColorMode)
                     }
                 }
-                id: timerRandomColorModeBox
             }
         }
 
@@ -251,37 +241,50 @@ Column {
                 width: parent.width
                 spacing: 6
 
-                SettingsColorField {
+                SettingsRow {
                     label: "От"
-                    value: String(Config.timerRandomColorMin)
-                    targetObject: Config
-                    targetProperty: "timerRandomColorMin"
-                    settingsObject: root.settings
-                    saveOnEdit: true
-                    allowAlpha: false
-                    allowTransparent: false
                     labelWidth: 210
-                    fieldWidth: 120
+                    width: parent.width
+                    height: 30
+                    SettingsColorField {
+                        value: String(Config.timerRandomColorMin)
+                        targetObject: Config
+                        targetProperty: "timerRandomColorMin"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                        allowAlpha: false
+                        allowTransparent: false
+                        compact: true
+                        swatchSize: 24
+                        fieldWidth: 120
+                    }
                 }
 
-                SettingsColorField {
+                SettingsRow {
                     label: "До"
-                    value: String(Config.timerRandomColorMax)
-                    targetObject: Config
-                    targetProperty: "timerRandomColorMax"
-                    settingsObject: root.settings
-                    saveOnEdit: true
-                    allowAlpha: false
-                    allowTransparent: false
                     labelWidth: 210
-                    fieldWidth: 120
+                    width: parent.width
+                    height: 30
+                    SettingsColorField {
+                        value: String(Config.timerRandomColorMax)
+                        targetObject: Config
+                        targetProperty: "timerRandomColorMax"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                        allowAlpha: false
+                        allowTransparent: false
+                        compact: true
+                        swatchSize: 24
+                        fieldWidth: 120
+                    }
                 }
             }
         }
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerFinishedBackgroundColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBorderUsesTimerColor", "timerFinishedImageEnabled", "timerFinishedImageMargin", "timerFinishedImagePath", "timerFinishedImageWidth", "timerFinishedTitleAlignment", "timerFinishedTitleColor", "timerFinishedTitleFont", "timerFinishedTitleFontSize", "timerFinishedTitleUsesTimerColor"] })
@@ -311,12 +314,15 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Путь к изображению"
+                labelWidth: 210
+                labelElide: Text.ElideRight
+
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Путь к изображению"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsTextField {
                     id: timerFinishedImagePathField
                     width: 250
@@ -350,11 +356,13 @@ Column {
                 width: parent.width
                 spacing: 6
 
-            Row {
+            SettingsRow {
+                label: "Ширина изображения"
+                labelWidth: 210
+
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Ширина изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: timerFinishedImageWidthField
             width: 100
@@ -376,11 +384,14 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Отступ изображения"
+                labelWidth: 210
+                labelElide: Text.ElideRight
+
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Отступ изображения"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsNumberField {
                     id: timerFinishedImageMarginField
                     width: 100
@@ -402,9 +413,11 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Цвет заголовка"
+                labelWidth: 210
+
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
                     id: timerFinishedTitleColorModeBox
                     width: 250; height: 30
@@ -427,9 +440,11 @@ Column {
                 animationDuration: Config.animationDuration(180, "appearance")
                 animationEasing: Config.animationEasingType("standard", !Config.timerFinishedTitleUsesTimerColor ? "enter" : "exit")
 
-                Row {
+                SettingsRow {
+                label: "Свой цвет заголовка"
+                labelWidth: 210
+
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Свой цвет заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsColorField {
                         id: timerFinishedTitleColorField
                         width: 140
@@ -448,9 +463,11 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Размер заголовка"
+                labelWidth: 210
+
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Размер заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsNumberField {
             id: timerFinishedTitleFontSizeField
             width: 100
@@ -472,9 +489,11 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Шрифт заголовка"
+                labelWidth: 210
+
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsFontField {
                     width: 288
                     height: 30
@@ -489,9 +508,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Расположение заголовка"
+                labelWidth: 210
+                labelElide: Text.ElideRight
+
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Расположение заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                 SettingsComboBox {
                     id: timerFinishedTitleAlignmentBox
                     width: 250; height: 30
@@ -506,12 +528,14 @@ Column {
             }
         }
 
-            Row {
+            SettingsRow {
+                label: "Цвет рамки окна"
+                labelWidth: 210
+
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Цвет рамки окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
                     id: timerFinishedBorderColorBox
                     width: 250
@@ -524,12 +548,14 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Фон окна"
+                labelWidth: 210
+
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Фон окна"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsComboBox {
                     id: timerFinishedBackgroundModeBox
                     width: 250
@@ -553,11 +579,13 @@ Column {
                 animationDuration: Config.animationDuration(180, "appearance")
                 animationEasing: Config.animationEasingType("standard", !Config.timerFinishedBackgroundUsesTimerColor ? "enter" : "exit")
 
-                Row {
+                SettingsRow {
+                label: "Свой цвет фона"
+                labelWidth: 210
+
                     width: parent.width
                     height: 30
                     spacing: 8
-                    Text { width: 210; height: 30; text: "Свой цвет фона"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                     SettingsColorField {
                         id: timerFinishedBackgroundColorField
                         width: 140
@@ -578,7 +606,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Иконки таймера и будильника"
@@ -753,7 +782,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
+settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
         heading: "Отображение времени"
@@ -761,72 +791,98 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        SettingsFontField {
+        SettingsRow {
             label: "Шрифт времени таймера"
-            value: Config.timerElapsedFont
-            targetObject: Config
-            targetProperty: "timerElapsedFont"
-            settingsObject: root.settings
-            saveOnEdit: true
             labelWidth: 210
-            fieldWidth: 180
+            width: parent.width
+            height: 30
+            SettingsFontField {
+                compact: true
+                fieldWidth: 180
+                value: Config.timerElapsedFont
+                targetObject: Config
+                targetProperty: "timerElapsedFont"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
 
-        SettingsNumberField {
+        SettingsRow {
             label: "Размер времени таймера"
-            value: Config.timerElapsedFontSize
-            minimum: 8
-            maximum: 60
-            step: 1
-            fieldWidth: 100
-            targetObject: Config
-            targetProperty: "timerElapsedFontSize"
-            settingsObject: root.settings
-            saveOnEdit: true
+            labelWidth: 210
+            width: parent.width
+            height: 30
+            SettingsNumberField {
+                compact: true
+                fieldWidth: 100
+                value: Config.timerElapsedFontSize
+                minimum: 8
+                maximum: 60
+                step: 1
+                targetObject: Config
+                targetProperty: "timerElapsedFontSize"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 3
+settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerWheelStep"] })
         padding: 8
         contentSpacing: 6
 
-            SettingsNumberField {
-                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
+            SettingsRow {
                 label: "Минимальная высота блока таймеров"
-                value: Config.timerMinHeight
-                minimum: 30
-                maximum: 1000
-                step: 1
-                fieldWidth: 100
-                onValueEdited: function(value) {
-                    Config.timerMinHeight = value
-                    root.settings.save()
-                }
-            }
-            SettingsNumberField {
+                labelWidth: 210
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
-                label: "Шаг колеса таймера"
-                value: Config.timerWheelStep
-                minimum: 1
-                maximum: 60
-                step: 1
-                fieldWidth: 100
-                onValueEdited: function(value) {
-                    Config.timerWheelStep = value
-                    root.settings.save()
+                width: parent.width
+                height: 30
+                SettingsNumberField {
+                    compact: true
+                    fieldWidth: 100
+                    value: Config.timerMinHeight
+                    minimum: 30
+                    maximum: 1000
+                    step: 1
+                    onValueEdited: function(value) {
+                        Config.timerMinHeight = value
+                        root.settings.save()
+                    }
                 }
             }
-            Row {
+            SettingsRow {
+                label: "Шаг колеса таймера"
+                labelWidth: 210
+                visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
+                width: parent.width
+                height: 30
+                SettingsNumberField {
+                    compact: true
+                    fieldWidth: 100
+                    value: Config.timerWheelStep
+                    minimum: 1
+                    maximum: 60
+                    step: 1
+                    onValueEdited: function(value) {
+                        Config.timerWheelStep = value
+                        root.settings.save()
+                    }
+                }
+            }
+            SettingsRow {
+            label: "Комментарий"
+            labelWidth: 210
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Комментарий"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                SettingsNumberField {
+            controlSpacing: 8
+                                SettingsNumberField {
             id: timerCommentWidthField
             width: 58
             height: 30
@@ -906,13 +962,15 @@ Column {
                 Text { width: 58; text: "Сверху"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 Text { width: 58; text: "Справа"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
-                    Row {
+                    SettingsRow {
+            label: "Таймеры"
+            labelWidth: 210
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 3
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text { width: 210; height: 30; text: "Таймеры"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                        SettingsNumberField {
+            controlSpacing: 8
+                                                SettingsNumberField {
             id: timerRowSpacingField
             width: 58
             height: 30
@@ -1003,7 +1061,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 4
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 4
+settingsSearchSubTabIndex: 4
         width: parent.width
         showFrame: true
         heading: "Анимация кнопок таймера"
@@ -1012,13 +1071,14 @@ Column {
         contentSpacing: 6
 
 
-        Row {
+        SettingsRow {
+            label: "Стиль появления кнопок"
+            labelWidth: 210
             visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Стиль появления кнопок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsComboBox {
+                        SettingsComboBox {
                 id: timerWidgetVisibilityBox
                 width: 180
                 height: 30
@@ -1035,10 +1095,14 @@ Column {
             }
         }
 
-                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
+                    SettingsRow {
+            label: "Затухание кнопок (мс)"
+            labelWidth: 210
+            width: parent.width
+            height: visible ? 30 : 0
+            spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
-                        Text { width: 210; height: 30; text: "Затухание кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                        SettingsNumberField {
+                                                SettingsNumberField {
             id: timerFadeField
             width: 100
             height: 30
@@ -1058,10 +1122,14 @@ Column {
             saveOnEdit: true
         }
                     }
-                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
+                    SettingsRow {
+            label: "Сдвиг кнопок (мс)"
+            labelWidth: 210
+            width: parent.width
+            height: visible ? 30 : 0
+            spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
-                        Text { width: 210; height: 30; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                        SettingsNumberField {
+                                                SettingsNumberField {
             id: timerSlideField
             width: 100
             height: 30
@@ -1081,10 +1149,15 @@ Column {
             saveOnEdit: true
         }
                     }
-                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
+                    SettingsRow {
+            label: "Появление/исчезновение иконок (мс)"
+            labelWidth: 210
+            labelElide: Text.ElideRight
+            width: parent.width
+            height: visible ? 30 : 0
+            spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
-                        Text { width: 210; height: 30; text: "Появление/исчезновение иконок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
-                        SettingsNumberField {
+                                                SettingsNumberField {
             id: timerIconFadeField
             width: 100
             height: 30
@@ -1107,7 +1180,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
+settingsSearchSubTabIndex: 5
         width: parent.width
         showFrame: true
         heading: "Анимация окна опций"
@@ -1115,13 +1189,14 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+            label: "Стиль"
+            labelWidth: 210
             visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 5
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsComboBox {
+                        SettingsComboBox {
                 id: animationTimerVisibilityBox
                 width: 180
                 height: 30
@@ -1138,13 +1213,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
+            label: "Анимация окна опций (мс)"
+            labelWidth: 210
             visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 5
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Анимация окна опций (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
+                        SettingsNumberField {
                 id: timerAnimationOptionsDurationField
                 width: 100; height: 30
                 value: Config.animationTimerOptionsDuration
@@ -1158,7 +1234,8 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
+                visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
+settingsSearchSubTabIndex: 5
         width: parent.width
         showFrame: true
         heading: "Иконки окна опций"

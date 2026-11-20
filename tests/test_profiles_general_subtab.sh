@@ -15,9 +15,9 @@ grep -Fq 'visible: host.currentPageId === "general" && host.currentPageSubTabInd
 
 # The General > Interface tab now includes both font and frame controls;
 # per-module animation controls remain in each module.
-grep -Fq 'text: "Основной шрифт интерфейса"' "$GENERAL"
-grep -Fq 'text: "Толщина рамки (0 = выкл.)"' "$GENERAL"
-grep -Fq 'text: "Радиус скругления рамки"' "$GENERAL"
+grep -Fq 'label: "Основной шрифт интерфейса"' "$GENERAL"
+grep -Fq 'label: "Толщина рамки (0 = выкл.)"' "$GENERAL"
+grep -Fq 'label: "Радиус скругления рамки"' "$GENERAL"
 ! grep -Fq 'visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1' "$GENERAL"
 
 # Profiles have their own all-settings reset; don't show a redundant tab reset.

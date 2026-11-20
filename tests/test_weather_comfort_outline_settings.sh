@@ -23,7 +23,7 @@ assert 'Config.weatherComfortOutlineColor = comfortOutlineColor' in apply_weathe
 assert '"weatherComfortOutlineColor", "weatherComfortOutlineWidth"' in resets
 assert 'label: "Цвет обводки"' in ui
 assert 'targetProperty: "weatherComfortOutlineColor"' in ui
-assert 'text: "Толщина обводки"' in ui
+assert 'label: "Толщина обводки"' in ui
 assert 'targetProperty: "weatherComfortOutlineWidth"' in ui
 assert 'minimum: 0; maximum: 4' in ui
 print('Weather comfort outline settings/profile/reset wiring: OK')

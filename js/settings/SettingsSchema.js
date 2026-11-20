@@ -228,7 +228,7 @@ function normalizeProfiles(profiles, isSparse) {
 // Keep only the collapsible settings sidebar groups. Missing values preserve
 // the current UI preference, while malformed values fall back to expanded.
 function normalizeSettingsNavigationCollapsedGroups(source, current) {
-    var ids = ["appearance", "modules"]
+    var ids = ["appearance", "modules", "launcher"]
     var result = ({})
     var sourceIsObject = source && typeof source === "object" && !Array.isArray(source)
     var currentIsObject = current && typeof current === "object" && !Array.isArray(current)

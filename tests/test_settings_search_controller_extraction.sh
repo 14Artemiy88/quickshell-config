@@ -2,6 +2,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
+NAV="$ROOT/components/settings/SettingsNavigation.qml"
 CONTROLLER="$ROOT/components/settings/SettingsSearchController.qml"
 fail() { echo "Settings search controller extraction: FAIL: $*" >&2; exit 1; }
 
@@ -9,22 +10,21 @@ fail() { echo "Settings search controller extraction: FAIL: $*" >&2; exit 1; }
 grep -Fq 'SettingsSearchController {' "$WIDGET" || fail 'SettingsWidget does not instantiate the controller'
 grep -Fq 'host: root' "$WIDGET" || fail 'controller does not receive the navigation host'
 grep -Fq 'searchRoot: root' "$WIDGET" || fail 'controller does not receive the complete searchable tree'
-grep -Fq 'searchInput: settingsSearchInput' "$WIDGET" || fail 'search field is not passed to the controller'
-grep -Fq 'highlight: settingsSearchHighlight' "$WIDGET" || fail 'highlight item is not passed to the controller'
-grep -Fq 'highlightTimer: settingsSearchHighlightTimer' "$WIDGET" || fail 'highlight timer is not passed to the controller'
-for state in settingsSearchIndex settingsSearchResults settingsSearchQuery settingsSearchSelectedIndex settingsSearchCandidateSubTab; do
+grep -Fq 'settingsSearchController.searchInput = settingsNavigation.searchInput' "$WIDGET" || fail 'search field is not assigned to the controller after component creation'
+grep -Fq 'property alias searchInput: settingsSearchInput' "$NAV" || fail 'navigation component does not expose its search input'
+for state in settingsSearchIndex settingsSearchResults settingsSearchQuery; do
     grep -Fq "property alias $state: settingsSearchController.$state" "$WIDGET" || fail "$state compatibility alias is missing"
     grep -Eq "property [A-Za-z]+ $state" "$CONTROLLER" || fail "$state is not owned by the controller"
 done
-for method in settingsSearchPageInfo settingsSearchSiblingLabel settingsSearchItemLabel settingsSearchGroupHeading collectSettingsSearchItems rebuildSettingsSearchIndex updateSettingsSearchResults isSettingsSearchTargetVisible openSettingsSearchResult trySettingsSearchSubTab findSettingsSearchFlickable finishSettingsSearchNavigation showSettingsSearchHighlight handleSettingsSearchKey; do
+for method in settingsSearchPageInfo settingsSearchSiblingLabel settingsSearchItemLabel settingsSearchGroupHeading settingsSearchSubTabIndex collectSettingsSearchItems clearSettingsSearchHighlights applySettingsSearchHighlights rebuildSettingsSearchIndex updateSettingsSearchResults settingsSearchPageHasMatches settingsSearchNavigationGroupHasMatches settingsSearchSubTabHasMatches openSettingsSearchResult handleSettingsSearchKey; do
     grep -Fq "function $method(" "$CONTROLLER" || fail "$method was not moved to the controller"
 done
-! grep -Eq 'function (settingsSearchPageInfo|settingsSearchSiblingLabel|settingsSearchItemLabel|settingsSearchGroupHeading|collectSettingsSearchItems|trySettingsSearchSubTab|findSettingsSearchFlickable|finishSettingsSearchNavigation|showSettingsSearchHighlight)\(' "$WIDGET" || fail 'search implementation remains duplicated in SettingsWidget'
+! grep -Eq 'function (settingsSearchPageInfo|settingsSearchSiblingLabel|settingsSearchItemLabel|settingsSearchGroupHeading|settingsSearchSubTabIndex|collectSettingsSearchItems|clearSettingsSearchHighlights|applySettingsSearchHighlights)\(' "$WIDGET" || fail 'search implementation remains duplicated in SettingsWidget'
 for method in rebuildSettingsSearchIndex updateSettingsSearchResults openSettingsSearchResult handleSettingsSearchKey; do
     grep -Fq "settingsSearchController.$method(" "$WIDGET" || fail "SettingsWidget no longer delegates $method"
 done
 
-node - "$WIDGET" "$CONTROLLER" <<'NODE'
+node - "$WIDGET" "$NAV" "$CONTROLLER" <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 for (const file of process.argv.slice(2)) {
@@ -55,4 +55,4 @@ for (const file of process.argv.slice(2)) {
 }
 NODE
 
-echo 'Settings search controller extraction: state ownership, delegated navigation, compatibility aliases and balanced QML delimiters: OK'
+echo 'Settings search controller extraction: state ownership, in-place highlighting, delegated routing and balanced QML delimiters: OK'

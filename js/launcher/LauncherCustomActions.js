@@ -6,6 +6,13 @@ function normalizeText(value) {
         .trim()
 }
 
+function parseQuery(value) {
+    var raw = String(value === undefined || value === null ? "" : value).trim()
+    if (raw.charAt(0) !== ":")
+        return { active: false, query: "" }
+    return { active: true, query: raw.slice(1).trim() }
+}
+
 function buildResults(source, query, scoreFunction, orderOffset, includeEmptyQuery) {
     var normalizedQuery = normalizeText(query)
     if (!normalizedQuery && includeEmptyQuery !== true)

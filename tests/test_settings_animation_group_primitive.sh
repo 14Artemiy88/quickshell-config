@@ -19,12 +19,17 @@ assert 'property bool animationsEnabled' not in primitive
 assert 'property real duration: 180' in primitive
 assert 'property string profile: "expressive"' in primitive
 assert primitive.count('SettingsCheckBox {') == 0
+assert primitive.count('SettingsRow {') == 2, 'profile and duration controls must use the shared row primitive'
 assert primitive.count('SettingsNumberField {') == 1
 assert primitive.count('SettingsComboBox {') == 1
+assert 'label: root.profileLabel' in primitive
+assert 'label: root.durationLabel' in primitive
+assert 'controlSpacing: 8' in primitive
 assert 'signal animationEnabledEdited(bool value)' not in primitive
 assert 'signal durationEdited(real value)' in primitive
 assert 'signal profileEdited(string value)' in primitive
 assert 'root.durationEdited(value)' in primitive
+assert 'root.profileEdited(values[index])' in primitive
 assert 'root.profileEdited(values[index])' in primitive
 assert 'function onAnimationsEnabledChanged()' not in primitive
 assert 'function onProfileChanged()' in primitive

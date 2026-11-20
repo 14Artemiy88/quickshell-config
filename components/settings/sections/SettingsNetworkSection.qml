@@ -13,7 +13,8 @@ Column {
     spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["systemMonitorInterval"] })
@@ -28,20 +29,14 @@ Column {
             width: parent.width
         }
 
-        Row {
+        SettingsRow {
+            label: "Интервал обновления данных (мс)"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Интервал обновления данных (мс)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -65,7 +60,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Показ"
@@ -93,7 +89,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Расположение"
@@ -129,20 +126,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
+            label: "Интервал строк"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Интервал строк"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -164,20 +155,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
+            label: "Отступ сверху"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Отступ сверху"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -199,20 +184,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
+            label: "Отступ значений справа"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Отступ значений справа"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -236,7 +215,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Иконки"
@@ -244,20 +224,14 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+            label: "Размер иконки"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Размер иконки"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -279,20 +253,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
+            label: "Отступ иконки слева"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Отступ иконки слева"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100
@@ -316,7 +284,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "network" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         heading: "Текст"
@@ -338,20 +307,14 @@ Column {
             saveOnEdit: true
         }
 
-        Row {
+        SettingsRow {
+            label: "Размер текста"
+            labelWidth: 210
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Размер текста"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
                 width: 100

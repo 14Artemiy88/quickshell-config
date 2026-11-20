@@ -61,7 +61,13 @@ assert 'kind: "schemePickerAction"' in source and 'searchField.text = ">scheme"'
 assert 'if (result.kind === "scheme")' in source and 'Settings.applyTheme(selectedName)' in source
 assert 'case "scheme": return String(itemData.name || "")' in source
 assert 'Текущая тема' in source and 'Выбрать цветовую тему' in source
-assert 'appDelegate.itemData.colors' in source and 'kind === "scheme"' in source
+assert 'Settings.themePreview(String(appDelegate.itemData.name || ""))' in source, 'scheme swatches should bind directly to the live Settings preview'
+assert 'kind === "scheme"' in source and 'visible: appDelegate.itemData && appDelegate.itemData.kind === "scheme"' in source
+assert 'delegate: Rectangle {' in source and 'width: 12' in source and 'height: 12' in source and 'radius: 6' in source, 'scheme swatches should render as larger 12px circles'
+assert 'color: String(modelData || "transparent")' in source, 'scheme swatches should use actual preview colors'
+assert 'Layout.preferredWidth: appDelegate.itemData && appDelegate.itemData.kind === "scheme" ? 87 : 0' in source, 'larger swatches should occupy a fixed visible slot beside the theme name'
+assert 'Layout.preferredHeight: 14' in source, 'swatch row should have enough height for the larger circles'
+assert 'appDelegate.itemData.colors' not in source, 'do not rely on color arrays copied through launcher result objects'
 assert 'LauncherSchemePicker.parseQuery(searchField.text.replace(/^\\s*>\\s*/, "")).query' in source, 'scheme highlighting must ignore the command token'
 assert 'selectedName !== String(Settings.activeTheme' in source, 'reselecting the current scheme must not reset user-modified colors'
 print('Launcher scheme command, Settings singleton integration, preview rendering and safe activation: OK')

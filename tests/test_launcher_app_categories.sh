@@ -9,7 +9,7 @@ node - "$MODULE" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '');
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
 const api = vm.runInThisContext(source + '\n({ collectCategories, displayCategoryName })');
 
 const entries = [

@@ -120,7 +120,8 @@ Column {
     spacing: 10
 
     SettingsGroup {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["font", "fontSize", "ledFont"] })
@@ -137,14 +138,15 @@ Column {
             width: parent.width
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 210; height: 30; text: "Основной шрифт интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 210
+            label: "Основной шрифт интерфейса"
             SettingsFontField {
-                width: parent.width - 218
+                width: parent.width
                 height: 30
                 compact: true
                 fieldWidth: 160
@@ -157,41 +159,43 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 210; height: 30; text: "Размер шрифта интерфейса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 210
+            label: "Размер шрифта интерфейса"
             SettingsNumberField {
-            id: generalFontSizeField
-            width: 100
-            height: 30
-            value: Config.fontSize
-            minimum: 6
-            maximum: 32
-            step: 1
-            wheelStep: 1
-            decimals: 0
-            compact: true
-            fieldWidth: 100
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhDigitsOnly
-            targetObject: Config
-            targetProperty: "fontSize"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
+                id: generalFontSizeField
+                width: 100
+                height: 30
+                value: Config.fontSize
+                minimum: 6
+                maximum: 32
+                step: 1
+                wheelStep: 1
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "fontSize"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 210; height: 30; text: "LED-шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 210
+            label: "LED-шрифт"
             SettingsFontField {
-                width: parent.width - 218
+                width: parent.width
                 height: 30
                 compact: true
                 fieldWidth: 160
@@ -205,7 +209,8 @@ Column {
         }
     }
     SettingsGroup {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["backgroundBlurRadius"] })
@@ -213,20 +218,13 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
-            Text {
-                width: 210
-                height: 30
-                text: "Радиус области блюра (0–40)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            labelWidth: 210
+            label: "Радиус области блюра (0–40)"
             SettingsNumberField {
                 id: backgroundBlurRadiusField
                 width: 72
@@ -259,7 +257,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["frameBorderWidth", "frameRadius"] })
@@ -276,78 +275,60 @@ Column {
             width: parent.width
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
-
-            Text {
-                width: 210
-                height: 30
-                text: "Толщина рамки (0 = выкл.)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 210
+            label: "Толщина рамки (0 = выкл.)"
             SettingsNumberField {
-            id: frameBorderWidthField
-            width: 100
-            height: 30
-            value: Config.frameBorderWidth
-            minimum: 0
-            maximum: 20
-            step: 1
-            wheelStep: 1
-            decimals: 0
-            compact: true
-            fieldWidth: 100
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhDigitsOnly
-            targetObject: Config
-            targetProperty: "frameBorderWidth"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
+                id: frameBorderWidthField
+                width: 100
+                height: 30
+                value: Config.frameBorderWidth
+                minimum: 0
+                maximum: 20
+                step: 1
+                wheelStep: 1
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "frameBorderWidth"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
 
-        Row {
+        SettingsRow {
             visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
-
-            Text {
-                width: 210
-                height: 30
-                text: "Радиус скругления рамки"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 210
+            label: "Радиус скругления рамки"
             SettingsNumberField {
-            id: frameRadiusField
-            width: 100
-            height: 30
-            value: Config.frameRadius
-            minimum: 0
-            maximum: 50
-            step: 1
-            wheelStep: 1
-            decimals: 0
-            compact: true
-            fieldWidth: 100
-            fieldFontSize: 11
-            inputMethodHints: Qt.ImhDigitsOnly
-            targetObject: Config
-            targetProperty: "frameRadius"
-            settingsObject: root.settings
-            saveOnEdit: true
-        }
+                id: frameRadiusField
+                width: 100
+                height: 30
+                value: Config.frameRadius
+                minimum: 0
+                maximum: 50
+                step: 1
+                wheelStep: 1
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "frameRadius"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
         }
     }
 
@@ -394,6 +375,7 @@ Column {
         model: root.storagePathGroups
 
         delegate: SettingsGroup {
+        settingsSearchSubTabIndex: 2
             id: storagePathsGroup
             required property var modelData
             property var groupEntryIds: modelData.entryIds

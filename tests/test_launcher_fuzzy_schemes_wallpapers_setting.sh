@@ -14,15 +14,20 @@ UI="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 README="$ROOT/README.md"
 
-node - "$SCORING" "$SCHEMES" "$WALLPAPERS" <<'JS'
+node - "$SCORING" "$SCHEMES" "$WALLPAPERS" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const load = (file, names) => {
-  const source = fs.readFileSync(file, 'utf8').replace(/^\.pragma library\s*/, '');
-  return vm.runInThisContext(source + `\n({ ${names.join(', ')} })`);
+const layoutSource = fs.readFileSync(process.argv[5], 'utf8').replace(/^\.pragma library\s*/, '');
+const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
+const load = (file, names, needsLayout = false) => {
+  const source = fs.readFileSync(file, 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
+  if (!needsLayout) return vm.runInThisContext(source + `\n({ ${names.join(', ')} })`);
+  const context = vm.createContext({ KeyboardLayout });
+  vm.runInContext(source + `\nthis.api = { ${names.join(', ')} };`, context);
+  return context.api;
 };
-const scoring = load(process.argv[2], ['fuzzyScore']);
+const scoring = load(process.argv[2], ['fuzzyScore'], true);
 const schemes = load(process.argv[3], ['buildResults']);
 const wallpapers = load(process.argv[4], ['buildResults']);
 const score = (enabled) => (text, query) => scoring.fuzzyScore(text, query, enabled);
@@ -75,7 +80,7 @@ for (const key of ['launcherFuzzySearchSchemes', 'launcherFuzzySearchWallpapers'
   const marker = `changeKeys: ({ keys: [\"${key}\"] })`;
   const position = ui.indexOf(marker);
   const preceding = ui.slice(Math.max(0, position - 180), position);
-  assert(preceding.includes('currentPageSubTabIndex === 1'), `${key} control is visible only in Search subtab`);
+  assert(preceding.includes('currentPageId === \"launcherSearch\"') && preceding.includes(`currentPageSubTabIndex === ${key === 'launcherFuzzySearchSchemes' ? 2 : 3}`), `${key} control is visible only in its Launcher Search subtab`);
 }
 assert(launcher.includes('readonly property bool fuzzySchemeSearchEnabled: Config.launcherFuzzySearchSchemes !== false'), 'scheme setting is reactive');
 assert(launcher.includes('readonly property bool fuzzyWallpaperSearchEnabled: Config.launcherFuzzySearchWallpapers !== false'), 'wallpaper setting is reactive');

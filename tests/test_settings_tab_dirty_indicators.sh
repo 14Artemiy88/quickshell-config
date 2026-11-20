@@ -8,6 +8,7 @@ root = Path(sys.argv[1])
 widget = (root / 'components/settings/SettingsWidget.qml').read_text(encoding='utf-8')
 navigation = (root / 'components/settings/SettingsNavigationController.qml').read_text(encoding='utf-8')
 host = (root / 'components/settings/SettingsPageHost.qml').read_text(encoding='utf-8')
+navigation_view = (root / 'components/settings/SettingsNavigation.qml').read_text(encoding='utf-8')
 tab_base = (root / 'components/settings/primitives/SettingsTabBase.qml').read_text(encoding='utf-8')
 modules = (root / 'components/settings/sections/SettingsModulesSection.qml').read_text(encoding='utf-8')
 colors = (root / 'components/settings/sections/SettingsColorsSection.qml').read_text(encoding='utf-8')
@@ -17,12 +18,15 @@ expected_scopes = {
     'timers': 'timer', 'player': 'player', 'mopidy': 'mopidy',
     'weather': 'weather', 'cava': 'cava', 'cpuRam': 'cpu',
     'network': 'network', 'volume': 'volume', 'calendar': 'calendar',
-    'launcher': 'launcher', 'notifications': 'notifications', 'settingsWindow': 'settingsWindow',
+'notifications': 'notifications', 'settingsWindow': 'settingsWindow',
 }
 assert 'function settingsTabHasChanges(id)' in navigation
 assert 'return scope !== "" && settings.hasResetChanges(scope)' in navigation
+assert 'function launcherPageHasChanges(pageId)' in navigation
+assert 'return root.launcherPageHasChanges(pageId)' in navigation
+assert 'launcher: "launcher"' not in navigation, 'Launcher pages must not use a shared dirty marker scope'
 assert 'function settingsTabHasChanges(id) { return settingsNavigationController.settingsTabHasChanges(id) }' in widget
-assert 'modified: root.settingsTabHasChanges(parent.modelData.id)' in widget
+assert 'modified: root.host.settingsTabHasChanges(parent.modelData.id)' in navigation_view
 for tab_id, scope in expected_scopes.items():
     assert f'{tab_id}: "{scope}"' in navigation, f'missing dirty scope for sidebar tab {tab_id}'
 

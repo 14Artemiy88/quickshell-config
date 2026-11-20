@@ -13,12 +13,16 @@ NAV="$ROOT/components/settings/SettingsNavigationController.qml"
 UI="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 README="$ROOT/README.md"
 
-node - "$MODULE" "$ACTIONS" <<'JS'
+node - "$MODULE" "$ACTIONS" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '');
-const api = vm.runInThisContext(source + '\n({ fuzzyScore })');
+const layoutSource = fs.readFileSync(process.argv[4], 'utf8').replace(/^\.pragma library\s*/, '');
+const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
+const context = vm.createContext({ KeyboardLayout });
+vm.runInContext(source + '\nthis.api = { fuzzyScore };', context);
+const api = context.api;
 const actionSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '');
 const actionApi = vm.runInThisContext(actionSource + '\n({ buildResults })');
 
@@ -72,7 +76,7 @@ assert.strictEqual(build('firefox --new-window', false)[0].actionId, 'firefox', 
 assert.strictEqual(build('oth', true)[0].actionId, 'terminal', 'fuzzy search also searches descriptions');
 assert.strictEqual(build('oth', false).length, 0, 'strict mode disables gapped description matches');
 assert.strictEqual(build('', true).length, 0, 'ordinary Apps search stays empty for a blank query');
-assert.strictEqual(build('', true, true).length, 2, 'the > palette still lists complete enabled custom actions');
+assert.strictEqual(build('', true, true).length, 2, 'the : custom-action catalog lists complete enabled actions');
 JS
 
 node - "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$NAV" "$UI" "$LAUNCHER" "$README" <<'JS'
@@ -92,8 +96,11 @@ assert(launcher.includes('readonly property bool fuzzyCustomActionsEnabled: Conf
 assert(launcher.includes('function buildCustomActionResults(query, orderOffset, includeEmptyQuery, fuzzyEnabled)'), 'custom action results receive the configured mode');
 assert(launcher.includes('return LauncherSearchScoring.fuzzyScore(\n                    searchText, normalizedQuery, fuzzyEnabled !== false'), 'custom action results use the configured scorer');
 assert(launcher.includes('return root.buildAppsUnifiedResults(\n            appModel.applications, root.fuzzyCustomActionsEnabled'), 'Apps result binding explicitly depends on the setting');
-assert(launcher.includes('normalizedQuery, tabs.length, true, fuzzyActionsEnabled'), 'the > palette uses the setting for custom entries');
-assert(launcher.includes('query, results.length, false, fuzzyActionsEnabled'), 'ordinary Apps search uses the setting for custom entries');
+assert(launcher.includes('const customActionQuery = LauncherCustomActions.parseQuery(rawQuery)'), 'the dedicated : catalog parses its own prefix');
+assert(launcher.includes('customActionQuery.query, 0, true, fuzzyActionsEnabled'), 'the : catalog uses the independent action fuzzy-search setting');
+const builtinPalette = launcher.slice(launcher.indexOf('function buildLauncherActionResults'), launcher.indexOf('function russianApplicationCount'));
+assert(!builtinPalette.includes('buildCustomActionResults'), 'the > palette no longer includes custom entries');
+assert(launcher.includes('query, results.length, false, fuzzyActionsEnabled'), 'ordinary Apps search keeps its existing custom-action cross-search');
 assert(launcher.includes('import "../../js/launcher/LauncherSearchScoring.js" as LauncherSearchScoring'), 'Launcher imports shared scorer');
 assert(launcher.includes('return LauncherSearchScoring.fuzzyScore(text, query, true)'), 'Run and project matching retain the previous fuzzy behavior');
 assert(readme.includes('пользовательских действий') && readme.includes('saved custom actions'), 'both README languages document independent action search mode');

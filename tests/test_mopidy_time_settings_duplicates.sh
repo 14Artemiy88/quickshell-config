@@ -14,7 +14,7 @@ widget = Path(sys.argv[2]).read_text()
 # the axis labels that immediately follow it.
 assert section.count('targetProperty: "mopidyQueueDurationX"') == 1, "Queue duration X control is duplicated"
 assert section.count('targetProperty: "mopidyQueueDurationY"') == 1, "Queue duration Y control is duplicated"
-assert section.count('text: "Положение"') == 1, "Expected one concise position-row label"
+assert section.count('label: "Положение"') == 1, "Expected one concise position-row label"
 assert 'text: "Положение X / Y"' not in section, "Position label redundantly repeats X/Y"
 assert widget.count('MopidySettings.SettingsMopidyTimeSection {') == 1, "Mopidy time settings section is instantiated more than once in SettingsPageContent"
 assert 'visible: host && host.currentPageId === "mopidy" && host.currentPageSubTabIndex === 1' in section, "Mopidy time settings are not scoped to the Time subtab"

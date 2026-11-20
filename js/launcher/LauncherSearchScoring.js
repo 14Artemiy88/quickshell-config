@@ -1,5 +1,7 @@
 .pragma library
 
+.import "LauncherKeyboardLayout.js" as KeyboardLayout
+
 function normalizeText(value) {
     return String(value === undefined || value === null ? "" : value)
         .toLowerCase()
@@ -8,7 +10,7 @@ function normalizeText(value) {
 
 // Shared with Launcher Run search. The default path preserves its current
 // scoring exactly; strict mode exits after exact/prefix/substring matches.
-function fuzzyScore(text, query, fuzzyEnabled) {
+function fuzzyScoreCore(text, query, fuzzyEnabled) {
     text = normalizeText(text)
     query = normalizeText(query)
 
@@ -62,3 +64,19 @@ function fuzzyScore(text, query, fuzzyEnabled) {
     return score
 }
 
+
+
+function fuzzyScoreNative(text, query, fuzzyEnabled) {
+    return fuzzyScoreCore(text, query, fuzzyEnabled)
+}
+
+// Preserve native-layout ranking exactly. A converted-layout match is a
+// fallback with a small score penalty so a real direct match stays ahead.
+function fuzzyScore(text, query, fuzzyEnabled) {
+    return KeyboardLayout.scoreWithLayout(
+        text, query,
+        function(searchText, searchQuery) {
+            return fuzzyScoreNative(searchText, searchQuery, fuzzyEnabled)
+        }
+    )
+}

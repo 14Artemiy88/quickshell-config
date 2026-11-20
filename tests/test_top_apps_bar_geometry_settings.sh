@@ -21,7 +21,7 @@ for key in topAppsBarX topAppsBarY topAppsBarHeight topAppsBarWidth; do
 done
 
 for label in 'X — положение по горизонтали' 'Y — смещение по вертикали' 'Высота полосы' 'Длина полосы'; do
-    grep -Fq "text: \"$label\"" "$settings" || fail "settings label '$label' missing"
+    grep -Fq "label: \"$label\"" "$settings" || fail "settings label '$label' missing"
 done
 
 grep -Fq '["topAppsBarX", 45, 240]' "$apply" || fail "X range is not bounded"

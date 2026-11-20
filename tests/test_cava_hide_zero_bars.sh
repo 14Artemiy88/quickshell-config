@@ -29,7 +29,7 @@ need('cavaHideZeroBars: config.cavaHideZeroBars' in s['persist'], 'setting is no
 need(s['resets'].count('"cavaHideZeroBars"') == 2, 'CAVA profile reset lists must include the new setting')
 
 ui = s['settings']
-need('text: "Скрывать пустые полоски"' in ui, 'checkbox label is missing')
+need('label: "Скрывать пустые полоски"' in ui, 'settings-row label is missing')
 need('visible: Config.cavaHideWhenSilent || normalizedProgress > 0.001' in ui,
      'checkbox must remain visible only while enabled or while its collapse transition is running')
 need('id: cavaHideZeroBarsMorph' in ui and 'progress: Config.cavaHideWhenSilent ? 1 : 0' in ui,

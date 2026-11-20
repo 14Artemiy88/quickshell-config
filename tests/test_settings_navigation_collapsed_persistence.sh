@@ -11,8 +11,8 @@ PROFILES="$ROOT/js/settings/SettingsProfiles.js"
 SETTINGS="$ROOT/Settings.qml"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
 
-grep -Fq 'property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false })' "$CONFIG"
-grep -Fq 'settingsNavigationCollapsedGroups: ({ appearance: false, modules: false })' "$DEFAULTS"
+grep -Fq 'property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false })' "$CONFIG"
+grep -Fq 'settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false })' "$DEFAULTS"
 grep -Fq 'settingsNavigationCollapsedGroups: cloneValue(config.settingsNavigationCollapsedGroups' "$PERSIST"
 grep -Fq 'Schema.normalizeSettingsNavigationCollapsedGroups(' "$APPLY"
 grep -Fq '"settingsNavigationCollapsedGroups"' "$RESETS"
@@ -29,36 +29,36 @@ const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma libra
 const sandbox = {};
 vm.runInNewContext(source, sandbox, { filename: process.argv[2] });
 const normalize = sandbox.normalizeSettingsNavigationCollapsedGroups;
-assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({}, { appearance: true, modules: false }))), {
-  appearance: true, modules: false
+assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({}, { appearance: true, modules: false, launcher: true }))), {
+  appearance: true, modules: false, launcher: true
 }, 'partial input preserves the current group state');
-assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({ appearance: false, modules: true, stale: true }, {}))), {
-  appearance: false, modules: true
+assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({ appearance: false, modules: true, launcher: true, stale: true }, {}))), {
+  appearance: false, modules: true, launcher: true
 }, 'unknown group IDs are discarded');
-assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({ appearance: 'yes', modules: 1 }, {}))), {
-  appearance: false, modules: false
+assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize({ appearance: 'yes', modules: 1, launcher: 'yes' }, {}))), {
+  appearance: false, modules: false, launcher: false
 }, 'non-boolean values fall back to expanded');
-assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize(['appearance'], { appearance: true, modules: true }))), {
-  appearance: true, modules: true
+assert.deepStrictEqual(JSON.parse(JSON.stringify(normalize(['appearance'], { appearance: true, modules: true, launcher: true }))), {
+  appearance: true, modules: true, launcher: true
 }, 'non-object input cannot corrupt the current state');
 
 const persistenceSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '');
 const persistence = {};
 vm.runInNewContext(persistenceSource, persistence, { filename: process.argv[3] });
 const owner = { moduleNames: [], colorNames: [], weatherToken: '' };
-const config = { settingsNavigationCollapsedGroups: { appearance: true, modules: false } };
+const config = { settingsNavigationCollapsedGroups: { appearance: true, modules: false, launcher: true } };
 const snapshot = persistence.snapshotObject(owner, config);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(snapshot.settingsNavigationCollapsedGroups)), {
-  appearance: true, modules: false
+  appearance: true, modules: false, launcher: true
 }, 'settings snapshots retain collapsed group preferences');
 
 const applySource = fs.readFileSync(process.argv[4], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
 const applySandbox = { Schema: sandbox };
 vm.runInNewContext(applySource, applySandbox, { filename: process.argv[4] });
-const restored = { settingsNavigationCollapsedGroups: { appearance: false, modules: false } };
-applySandbox.apply({}, restored, { settingsNavigationCollapsedGroups: { appearance: true, modules: true, stale: true } });
+const restored = { settingsNavigationCollapsedGroups: { appearance: false, modules: false, launcher: false } };
+applySandbox.apply({}, restored, { settingsNavigationCollapsedGroups: { appearance: true, modules: true, launcher: true, stale: true } });
 assert.deepStrictEqual(JSON.parse(JSON.stringify(restored.settingsNavigationCollapsedGroups)), {
-  appearance: true, modules: true
+  appearance: true, modules: true, launcher: true
 }, 'settings loading restores only supported group state');
 
 const profilesSource = fs.readFileSync(process.argv[5], 'utf8').replace(/^\.pragma library\s*/, '');

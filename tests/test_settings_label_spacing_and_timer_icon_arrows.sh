@@ -20,10 +20,10 @@ import re, sys
 s = Path(sys.argv[1]).read_text()
 start = s.index('model: Config.timerIconOrder === "timer-left" ? ["timer", "alarm"] : ["alarm", "timer"]')
 end_match = re.search(
-    r'\bSettingsNumberField\s*\{\s*visible:\s*root\.host\.currentPageId\s*===\s*"timers"\s*&&\s*root\.host\.currentPageSubTabIndex\s*===\s*3',
+    r'\bSettingsRow\s*\{\s*label:\s*"Минимальная высота блока таймеров"',
     s[start:]
 )
-assert end_match, 'Could not locate the next timer layout field after the icon settings'
+assert end_match, 'Could not locate the next shared timer layout row after the icon settings'
 end = start + end_match.start()
 row = s[start:end]
 for token in ('SettingsTextField {', 'targetProperty: modelData === "timer" ? "timerIconSize" : "timerAlarmIconSize"', 'targetProperty: modelData === "timer" ? "timerIconX" : "timerAlarmIconX"', 'targetProperty: modelData === "timer" ? "timerIconY" : "timerAlarmIconY"', 'MoveArrowButton {', 'onClicked: root.moveTimerIconOrder(modelData, -1)', 'onClicked: root.moveTimerIconOrder(modelData, 1)'):
@@ -47,8 +47,8 @@ assert 'Item { width: 210; height: 24 }' in s[header_prefix:header_start], 'Prog
 field_start = s.index('value: Config.playerProgressY')
 field_prefix = s.rfind('Row {', 0, field_start)
 assert 'Item { width: 210; height: 30 }' in s[field_prefix:field_start], 'Progress inputs are not aligned with their labels'
-for text in ('text: "Размер"', 'text: "Шрифт"', 'text: "Смещение по Y"', 'text: "Отступ справа"'):
-    assert text in s, f'Missing concise Player label: {text}'
+for text in ('label: "Размер"', 'label: "Шрифт"', 'label: "Смещение по Y"', 'label: "Отступ справа"'):
+    assert text in s, f'Missing concise Player shared-row label: {text}'
 for redundant in ('text: "Размер оставшегося времени"', 'text: "Шрифт оставшегося времени"', 'text: "Смещение оставшегося времени по Y"', 'text: "Отступ оставшегося времени справа"'):
     assert redundant not in s, f'Redundant Player label remains: {redundant}'
 PY
@@ -96,7 +96,7 @@ PY
 
 grep -Fq 'Показывать оставшееся время трека' "$ROOT/components/settings/sections/mopidy/SettingsMopidyTimeSection.qml"
 grep -Fq 'Показывать оставшееся время альбома' "$ROOT/components/settings/sections/mopidy/SettingsMopidyTimeSection.qml"
-grep -Fq 'text: "Выравнивание"' "$ROOT/components/settings/sections/mopidy/SettingsMopidyTimeSection.qml"
+grep -Fq 'label: "Выравнивание"' "$ROOT/components/settings/sections/mopidy/SettingsMopidyTimeSection.qml"
 grep -Fq 'Переключать Mopidy по ПКМ на Player' "$ROOT/components/settings/sections/mopidy/SettingsMopidySection.qml"
 
 echo 'settings labels, alignment, and timer icon reorder: OK'

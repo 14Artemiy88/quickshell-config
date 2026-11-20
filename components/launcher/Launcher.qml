@@ -12,11 +12,13 @@ import "../../js/launcher/Calculator.js" as Calculator
 import "../../js/launcher/CalculatorHistory.js" as CalculatorHistory
 import "../../js/launcher/LauncherCustomActions.js" as LauncherCustomActions
 import "../../js/launcher/LauncherSearchScoring.js" as LauncherSearchScoring
+import "../../js/launcher/LauncherKeyboardLayout.js" as LauncherKeyboardLayout
 import "../../js/launcher/LauncherEmojiPicker.js" as LauncherEmojiPicker
 import "../../js/launcher/LauncherWallpaperPicker.js" as LauncherWallpaperPicker
 import "../../js/launcher/LauncherSchemePicker.js" as LauncherSchemePicker
 import "../../js/launcher/LauncherSchemeVariantPicker.js" as LauncherSchemeVariantPicker
 import "../../js/launcher/LauncherDynamicScheme.js" as LauncherDynamicScheme
+import "../../js/launcher/LauncherBuiltinActions.js" as LauncherBuiltinActions
 
 
 PanelWindow {
@@ -1285,6 +1287,8 @@ PanelWindow {
     readonly property var activeWallpaperQuery: LauncherWallpaperPicker.parseQuery(
         root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
     )
+    readonly property bool wallpaperRandomMode: root.activeWallpaperQuery.active
+        && root.activeWallpaperQuery.random === true
     readonly property var activeDynamicSchemeQuery: LauncherDynamicScheme.parseQuery(
         root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
     )
@@ -1424,6 +1428,44 @@ PanelWindow {
         root.wallpaperApplyPendingScreenIndex = screenIndex
         root.wallpaperApplyError = ""
         wallpaperApplyProcess.running = true
+    }
+
+
+    function applyRandomWallpaper() {
+        if (root.wallpaperCatalogLoading || !root.wallpaperCatalogLoaded) {
+            root.wallpaperApplyError = "Каталог обоев ещё загружается. Повторите выбор после загрузки."
+            return
+        }
+        const candidates = LauncherWallpaperPicker.buildResults(
+            root.activeWallpaperQuery.query,
+            root.wallpaperCatalogEntries,
+            function(searchText, normalizedSearch) {
+                return root.runFuzzyScore(searchText, normalizedSearch, root.fuzzyWallpaperSearchEnabled)
+            },
+            LauncherWallpaperPicker.MAX_WALLPAPERS,
+            root.wallpaperPickerData,
+            "all",
+            root.wallpaperSelectedScreenName
+        )
+        const selected = LauncherWallpaperPicker.chooseRandomEntry(
+            candidates,
+            root.wallpaperPickerData,
+            root.wallpaperSelectedScreenName,
+            Math.random()
+        )
+        if (!selected) {
+            root.wallpaperApplyError = LauncherWallpaperPicker.emptyStateMessage(
+                false,
+                root.wallpaperCatalogError,
+                root.wallpaperCatalogRequestedDirectory,
+                root.wallpaperCatalogEntries.length,
+                root.activeWallpaperQuery.query,
+                "all",
+                root.wallpaperSelectedScreenName
+            )
+            return
+        }
+        root.applyWallpaper(selected.path)
     }
 
     function dynamicSchemeVariantLabel(value) {
@@ -1701,22 +1743,67 @@ PanelWindow {
         )
     }
 
-    // The `>` prefix exposes a compact command palette without adding another
-    // launcher tab. Built-ins navigate to existing modes; custom entries run
-    // only their explicitly saved command, never the raw search text.
+    // The `>` prefix exposes built-in Launcher navigation and tools without
+    // adding another tab. Saved user commands are handled separately by `:`.
     function launcherActionAliases(mode) {
         switch (mode) {
-        case root.modeApps: return ["apps", "applications", "приложения"]
-        case root.modeRun: return ["run", "command", "commands", "команда", "команды", "запуск"]
-        case root.modeWindows: return ["windows", "window", "окна"]
-        case root.modeClipboard: return ["clipboard", "clip", "буфер", "буфер обмена"]
-        case root.modePower: return ["power", "session", "питание", "выключение"]
-        case root.modeNetwork: return ["network", "networks", "wifi", "сеть", "сети"]
-        case root.modeNix: return ["packages", "package", "nix", "пакеты"]
-        case root.modePass: return ["pass", "password", "passwords", "пароли"]
-        case root.modeProjects: return ["projects", "project", "проекты"]
-        case root.modeCalculator: return ["calculator", "calc", "калькулятор"]
+        case root.modeApps:
+            return ["app", "apps", "application", "applications", "приложение", "приложения", "поиск приложений"]
+        case root.modeRun:
+            return ["run", "command", "commands", "shell", "execute", "команда", "команды", "командная строка", "выполнить", "запуск"]
+        case root.modeWindows:
+            return ["window", "windows", "switch", "переключить", "переключение окон", "открытые окна", "окна"]
+        case root.modeClipboard:
+            return ["clip", "clipboard", "history", "paste", "буфер", "буфер обмена", "история буфера", "вставка"]
+        case root.modePower:
+            return ["power", "session", "logout", "shutdown", "reboot", "restart", "sleep", "питание", "выход", "выключение", "перезагрузка", "сон"]
+        case root.modeNetwork:
+            return ["network", "networks", "wifi", "wireless", "internet", "connection", "подключение", "подключения", "интернет", "сеть", "сети"]
+        case root.modeNix:
+            return ["package", "packages", "nix", "nixpkgs", "install", "search packages", "пакет", "пакеты", "поиск пакетов", "установка пакетов"]
+        case root.modePass:
+            return ["pass", "password", "passwords", "password-store", "secret", "secrets", "пароль", "пароли", "менеджер паролей", "секреты"]
+        case root.modeProjects:
+            return ["project", "projects", "workspace", "repository", "repositories", "проект", "проекты", "рабочая папка", "репозиторий", "репозитории"]
+        case root.modeCalculator:
+            return ["calculator", "calc", "math", "calculate", "expression", "вычислить", "вычисления", "математика", "калькулятор"]
         default: return []
+        }
+    }
+
+    function launcherActionDescription(mode) {
+        switch (mode) {
+        case root.modeApps: return "Запуск установленных приложений и поиск по названию или метаданным"
+        case root.modeRun: return "Выполнение shell-команд и повторный запуск сохранённых команд"
+        case root.modeWindows: return "Поиск открытых окон и переключение между ними"
+        case root.modeClipboard: return "История буфера обмена: поиск и повторная вставка элементов"
+        case root.modePower: return "Управление сеансом: выход, сон, перезагрузка и выключение"
+        case root.modeNetwork: return "Просмотр Wi-Fi и управление сетевыми подключениями"
+        case root.modeNix: return "Поиск пакетов Nix и доступные действия с пакетами"
+        case root.modePass: return "Поиск записей password-store и работа с сохранёнными паролями"
+        case root.modeProjects: return "Открытие настроенных проектов и рабочих папок"
+        case root.modeCalculator: return "Вычисление выражений со скобками, степенями и унарными знаками"
+        default: return "Открыть раздел лаунчера"
+        }
+    }
+
+    function builtinActionEnabled(actionId) {
+        return LauncherBuiltinActions.isEnabled(Config.launcherDisabledBuiltinActions, actionId)
+    }
+
+    function builtinActionIdForMode(mode) {
+        switch (mode) {
+        case root.modeApps: return "tab.apps"
+        case root.modeRun: return "tab.run"
+        case root.modeWindows: return "tab.windows"
+        case root.modeClipboard: return "tab.clipboard"
+        case root.modePower: return "tab.power"
+        case root.modeNetwork: return "tab.network"
+        case root.modeNix: return "tab.packages"
+        case root.modePass: return "tab.pass"
+        case root.modeProjects: return "tab.projects"
+        case root.modeCalculator: return "tab.calculator"
+        default: return ""
         }
     }
 
@@ -1744,6 +1831,7 @@ PanelWindow {
         const fuzzyWallpapers = fuzzyWallpapersEnabled !== false
         const variantQuery = LauncherSchemeVariantPicker.parseQuery(normalizedQuery)
         if (variantQuery.active) {
+            if (!root.builtinActionEnabled("tool.schemeVariants")) return []
             if (root.dynamicSchemeBusy)
                 return []
             return LauncherSchemeVariantPicker.buildResults(
@@ -1758,6 +1846,7 @@ PanelWindow {
 
         const dynamicSchemeQuery = LauncherDynamicScheme.parseQuery(normalizedQuery)
         if (dynamicSchemeQuery.active) {
+            if (!root.builtinActionEnabled("tool.wallpaperDynamic")) return []
             return LauncherDynamicScheme.buildResults(
                 root.wallpaperPickerData,
                 root.wallpaperSelectedScreenName,
@@ -1772,19 +1861,22 @@ PanelWindow {
 
         const schemeQuery = LauncherSchemePicker.parseQuery(normalizedQuery)
         if (schemeQuery.active) {
-            const schemeResults = LauncherSchemePicker.buildResults(
-                schemeQuery.query,
-                Settings.themeNames,
-                Settings.activeTheme,
-                function(name) { return Settings.themePreview(name) },
-                function(name) { return Settings.themeDescription(name) },
-                function(searchText, normalizedSearch) {
-                    return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzySchemes)
-                },
-                200
-            )
-            const dynamicScore = schemeQuery.query === "" ? 0
-                : LauncherSearchScoring.fuzzyScore("dynamic wallpaper wallpaper-derived material palette обои динамическая динамика палитра из обоев", schemeQuery.query, fuzzySchemes)
+            const schemeResults = root.builtinActionEnabled("tool.colorSchemes")
+                ? LauncherSchemePicker.buildResults(
+                    schemeQuery.query,
+                    Settings.themeNames,
+                    Settings.activeTheme,
+                    function(name) { return Settings.themePreview(name) },
+                    function(name) { return Settings.themeDescription(name) },
+                    function(searchText, normalizedSearch) {
+                        return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzySchemes)
+                    },
+                    200
+                ) : []
+            const dynamicScore = root.builtinActionEnabled("tool.wallpaperDynamic")
+                ? (schemeQuery.query === "" ? 0
+                    : LauncherSearchScoring.fuzzyScore("dynamic wallpaper wallpaper-derived material palette обои динамическая динамика палитра из обоев", schemeQuery.query, fuzzySchemes))
+                : -1
             if (dynamicScore >= 0) {
                 schemeResults.push({
                     kind: "dynamicSchemeAction",
@@ -1798,6 +1890,44 @@ PanelWindow {
         }
         const wallpaperQuery = LauncherWallpaperPicker.parseQuery(normalizedQuery)
         if (wallpaperQuery.active) {
+            if (!root.builtinActionEnabled("tool.wallpapers")) return []
+            if (wallpaperQuery.random) {
+                const candidates = LauncherWallpaperPicker.buildResults(
+                    wallpaperQuery.query,
+                    root.wallpaperCatalogEntries,
+                    function(searchText, normalizedSearch) {
+                        return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzyWallpapers)
+                    },
+                    LauncherWallpaperPicker.MAX_WALLPAPERS,
+                    root.wallpaperPickerData,
+                    "all",
+                    root.wallpaperSelectedScreenName
+                )
+                let description = "Случайно выбрать обои для " + root.wallpaperSelectedScreenName
+                if (root.wallpaperCatalogLoading || !root.wallpaperCatalogLoaded)
+                    description = "Загрузка каталога обоев…"
+                else if (candidates.length > 0)
+                    description = "Случайный выбор из " + String(candidates.length) + " изображений · " + root.wallpaperSelectedScreenName
+                else
+                    description = LauncherWallpaperPicker.emptyStateMessage(
+                        false,
+                        root.wallpaperCatalogError,
+                        root.wallpaperCatalogRequestedDirectory,
+                        root.wallpaperCatalogEntries.length,
+                        wallpaperQuery.query,
+                        "all",
+                        root.wallpaperSelectedScreenName
+                    )
+                return [{
+                    kind: "wallpaperRandomAction",
+                    name: "Случайные обои",
+                    icon: "",
+                    description: description,
+                    available: !root.wallpaperCatalogLoading && root.wallpaperCatalogLoaded && candidates.length > 0,
+                    score: 0,
+                    order: -1
+                }]
+            }
             return LauncherWallpaperPicker.buildResults(
                 wallpaperQuery.query,
                 root.wallpaperCatalogEntries,
@@ -1812,6 +1942,7 @@ PanelWindow {
         }
         const emojiQuery = LauncherEmojiPicker.parseQuery(normalizedQuery)
         if (emojiQuery.active) {
+            if (!root.builtinActionEnabled("tool.emoji")) return []
             return LauncherEmojiPicker.buildResults(
                 emojiQuery.query,
                 function(searchText, normalizedSearch) {
@@ -1824,9 +1955,10 @@ PanelWindow {
         }
 
         const results = []
-        const schemeActionScore = normalizedQuery === ""
-            ? 0
-            : root.runFuzzyScore("scheme schemes theme themes color-scheme colour-scheme palette colors цвета тема темы палитра оформление", normalizedQuery)
+        const schemeActionScore = root.builtinActionEnabled("tool.colorSchemes")
+            ? (normalizedQuery === "" ? 0
+                : root.runFuzzyScore("scheme schemes theme themes color-scheme colour-scheme palette colors цвета тема темы палитра оформление", normalizedQuery))
+            : -1
         if (schemeActionScore >= 0) {
             results.push({
                 kind: "schemePickerAction",
@@ -1837,9 +1969,10 @@ PanelWindow {
                 order: -3
             })
         }
-        const variantActionScore = normalizedQuery === ""
-            ? 0
-            : root.runFuzzyScore("variant variants scheme-variant scheme-variants material you type style варианты вариант стиль стили тип палитры", normalizedQuery)
+        const variantActionScore = root.builtinActionEnabled("tool.schemeVariants")
+            ? (normalizedQuery === "" ? 0
+                : root.runFuzzyScore("variant variants scheme-variant scheme-variants material you type style варианты вариант стиль стили тип палитры", normalizedQuery))
+            : -1
         if (variantActionScore >= 0) {
             results.push({
                 kind: "schemeVariantPickerAction",
@@ -1850,9 +1983,10 @@ PanelWindow {
                 order: -2
             })
         }
-        const wallpaperActionScore = normalizedQuery === ""
-            ? 0
-            : root.runFuzzyScore("wallpaper wallpapers обои фон", normalizedQuery)
+        const wallpaperActionScore = root.builtinActionEnabled("tool.wallpapers")
+            ? (normalizedQuery === "" ? 0
+                : root.runFuzzyScore("wallpaper wallpapers обои фон", normalizedQuery))
+            : -1
         if (wallpaperActionScore >= 0) {
             results.push({
                 kind: "wallpaperPickerAction",
@@ -1863,9 +1997,10 @@ PanelWindow {
                 order: -1
             })
         }
-        const emojiActionScore = normalizedQuery === ""
-            ? 0
-            : root.runFuzzyScore("emoji picker emoticons смайлы эмодзи", normalizedQuery)
+        const emojiActionScore = root.builtinActionEnabled("tool.emoji")
+            ? (normalizedQuery === "" ? 0
+                : root.runFuzzyScore("emoji picker emoticons смайлы эмодзи", normalizedQuery))
+            : -1
         if (emojiActionScore >= 0) {
             results.push({
                 kind: "emojiPickerAction",
@@ -1880,6 +2015,8 @@ PanelWindow {
         const tabs = root.displayedModeTabs
         for (let i = 0; i < tabs.length; ++i) {
             const tab = tabs[i]
+            // Resolve a stable ID from the mode; displayed tab labels are editable.
+            if (!root.builtinActionEnabled(root.builtinActionIdForMode(tab.mode))) continue
             const aliases = root.launcherActionAliases(tab.mode)
             const searchTerms = [tab.label].concat(aliases)
             let score = normalizedQuery === "" ? 0 : -1
@@ -1893,20 +2030,14 @@ PanelWindow {
                 targetMode: tab.mode,
                 name: tab.label,
                 icon: tab.icon,
-                description: "Открыть раздел лаунчера",
+                description: root.launcherActionDescription(tab.mode),
                 score: score,
                 order: i
             })
         }
 
-        // Explicit saved records are searchable both here and in ordinary Apps search.
-        // The query selects a registered record; raw search text is never executed.
-        const customResults = root.buildCustomActionResults(
-            normalizedQuery, tabs.length, true, fuzzyActionsEnabled
-        )
-        for (let i = 0; i < customResults.length; ++i)
-            results.push(customResults[i])
-
+        // Saved user actions have their own `:` prefix and stay separate from
+        // this built-in `>` navigation palette.
         results.sort(function(a, b) {
             if (b.score !== a.score) return b.score - a.score
             return a.order - b.order
@@ -1942,6 +2073,7 @@ PanelWindow {
         case "dynamicSchemeError": return String(itemData.name || "Dynamic theme error")
         case "dynamicSchemeWallpaperAction": return String(itemData.name || "Open wallpaper picker")
         case "wallpaperPickerAction": return String(itemData.name || "Wallpaper picker")
+        case "wallpaperRandomAction": return String(itemData.name || "Случайные обои")
         case "wallpaper": return String(itemData.name || "")
         case "action":
         case "customAction": return String(itemData.name || "")
@@ -1998,6 +2130,8 @@ PanelWindow {
                 : "Выбрать цветовую тему · " + String(itemData.description || "")
         case "wallpaperPickerAction":
             return "Карусель локальных изображений · >wallpaper"
+        case "wallpaperRandomAction":
+            return "ОБОИ · " + String(itemData.description || "Случайный выбор") + " · Enter — установить"
         case "wallpaper": {
             const labels = []
             if (itemData.isFavorite) labels.push("★ Избранное")
@@ -2013,6 +2147,11 @@ PanelWindow {
 
     function buildAppsUnifiedResults(applicationEntries, fuzzyActionsEnabled, availableCategories, fuzzySchemesEnabled, fuzzyWallpapersEnabled) {
         const rawQuery = root.normalizeRunText(searchField.text)
+        const customActionQuery = LauncherCustomActions.parseQuery(rawQuery)
+        if (customActionQuery.active)
+            return root.buildCustomActionResults(
+                customActionQuery.query, 0, true, fuzzyActionsEnabled
+            )
         if (rawQuery.startsWith(">"))
             return root.buildLauncherActionResults(
                 rawQuery.slice(1).trim(), fuzzyActionsEnabled, fuzzySchemesEnabled, fuzzyWallpapersEnabled
@@ -2217,6 +2356,13 @@ PanelWindow {
             searchField.text = ">wallpaper"
             searchField.cursorPosition = searchField.text.length
             searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "wallpaperRandomAction") {
+            if (result.available === true)
+                root.applyRandomWallpaper()
+            else if (!root.wallpaperCatalogLoading && root.wallpaperCatalogLoaded)
+                root.wallpaperApplyError = String(result.description || "Нет доступных обоев для случайного выбора.")
             return
         }
         if (result.kind === "wallpaper") {
@@ -2712,6 +2858,7 @@ PanelWindow {
         const query = searchField
             ? searchField.text.toLowerCase().trim()
             : ""
+        const alternateQuery = LauncherKeyboardLayout.alternateLayoutQuery(query)
 
         for (const line of lines) {
             if (line.trim() === "")
@@ -2740,7 +2887,8 @@ PanelWindow {
 
             if (
                 query !== "" &&
-                !searchable.includes(query)
+                !searchable.includes(query) &&
+                (alternateQuery === "" || !searchable.includes(alternateQuery))
             ) {
                 continue
             }
@@ -2922,6 +3070,19 @@ PanelWindow {
                 root.moveSelectionDown()
                 event.accepted = true
                 return
+            }
+            if (Config.launcherVimKeybinds && (event.modifiers & Qt.ControlModifier)
+                    && !(event.modifiers & (Qt.AltModifier | Qt.MetaModifier))) {
+                if (event.key === Qt.Key_J || event.key === Qt.Key_N) {
+                    root.moveSelectionDown()
+                    event.accepted = true
+                    return
+                }
+                if (event.key === Qt.Key_K || event.key === Qt.Key_P) {
+                    root.moveSelectionUp()
+                    event.accepted = true
+                    return
+                }
             }
             if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                 root.activate()
@@ -3212,7 +3373,7 @@ PanelWindow {
                             return Config.launcherSearchPlaceholder
                         switch (root.mode) {
                         case root.modeApps:
-                            return "Search apps, @ filters or > actions..."
+                            return "Search apps, @ filters, > commands or : saved actions..."
 
                         case root.modeRun:
                             return "Run command..."
@@ -3356,6 +3517,23 @@ PanelWindow {
                             root.setMode(root.modeApps)
                             event.accepted = true
                             return
+                        }
+
+                        // Optional Caelestia-style selection movement. Use Ctrl so
+                        // ordinary j/k/n/p characters remain editable search text;
+                        // Tab keeps its existing role of switching Launcher tabs.
+                        if (Config.launcherVimKeybinds && (event.modifiers & Qt.ControlModifier)
+                                && !(event.modifiers & (Qt.AltModifier | Qt.MetaModifier))) {
+                            if (event.key === Qt.Key_J || event.key === Qt.Key_N) {
+                                root.moveSelectionDown()
+                                event.accepted = true
+                                return
+                            }
+                            if (event.key === Qt.Key_K || event.key === Qt.Key_P) {
+                                root.moveSelectionUp()
+                                event.accepted = true
+                                return
+                            }
                         }
 
                         // Alt+1..9 and Alt+0 follow the visible tab order. Explicit IPC
@@ -3576,9 +3754,11 @@ PanelWindow {
 
                     onTextChanged: {
                         root.disarmPointerHover()
-                        // The action palette is global: typing > from any tab
-                        // switches to Apps while preserving the current query.
-                        if (root.mode !== root.modeApps && root.normalizeRunText(searchField.text).startsWith(">")) {
+                        // The built-in action palette (>) and saved-action catalog (:)
+                        // are global Launcher searches from every tab.
+                        const launcherQuery = root.normalizeRunText(searchField.text)
+                        if (root.mode !== root.modeApps
+                                && (launcherQuery.startsWith(">") || launcherQuery.startsWith(":"))) {
                             root.setMode(root.modeApps)
                             Qt.callLater(root.restoreLauncherKeyboardFocus)
                         }
@@ -3684,7 +3864,7 @@ PanelWindow {
                     }
 
                     Rectangle {
-                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive && !root.wallpaperRandomMode
                         implicitWidth: scopeAllLabel.implicitWidth + 18
                         implicitHeight: 27
                         radius: 7
@@ -3694,7 +3874,7 @@ PanelWindow {
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("all") }
                     }
                     Rectangle {
-                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive && !root.wallpaperRandomMode
                         implicitWidth: scopeFavoritesLabel.implicitWidth + 18
                         implicitHeight: 27
                         radius: 7
@@ -3704,7 +3884,7 @@ PanelWindow {
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("favorites") }
                     }
                     Rectangle {
-                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive && !root.wallpaperRandomMode
                         implicitWidth: scopeRecentLabel.implicitWidth + 18
                         implicitHeight: 27
                         radius: 7
@@ -3715,7 +3895,7 @@ PanelWindow {
                     }
 
                     Text {
-                        text: (root.dynamicSchemePickerActive ? "Палитра из " : (root.schemeVariantPickerActive ? "Обои для " : "Для ")) + root.wallpaperSelectedScreenName
+                        text: (root.dynamicSchemePickerActive ? "Палитра из " : (root.schemeVariantPickerActive ? "Обои для " : (root.wallpaperRandomMode ? "Случайные обои для " : "Для "))) + root.wallpaperSelectedScreenName
                         color: theme.textVeryDim
                         font.pixelSize: 10
                     }
@@ -3747,8 +3927,8 @@ PanelWindow {
 
                     clip: true
                     flow: GridView.FlowLeftToRight
-                    cellWidth: root.wallpaperPickerActive ? width / wallpaperColumnCount : width
-                    cellHeight: root.wallpaperPickerActive ? 230 : Config.launcherItemHeight + 6
+                    cellWidth: root.wallpaperPickerActive && !root.wallpaperRandomMode ? width / wallpaperColumnCount : width
+                    cellHeight: root.wallpaperPickerActive && !root.wallpaperRandomMode ? 230 : Config.launcherItemHeight + 6
                     keyNavigationEnabled: false
                     keyNavigationWraps: false
 
@@ -3778,8 +3958,8 @@ PanelWindow {
                             NumberAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
-                        width: root.wallpaperPickerActive ? appList.wallpaperTileWidth : appList.width
-                        height: root.wallpaperPickerActive ? 218 : Config.launcherItemHeight
+                        width: root.wallpaperPickerActive && !root.wallpaperRandomMode ? appList.wallpaperTileWidth : appList.width
+                        height: root.wallpaperPickerActive && !root.wallpaperRandomMode ? 218 : Config.launcherItemHeight
 
                         radius: Config.launcherItemRadius
 
@@ -3963,8 +4143,9 @@ PanelWindow {
                                             || appDelegate.itemData.kind === "dynamicSchemeGenerate"
                                             || appDelegate.itemData.kind === "dynamicSchemeUnavailable"
                                             || appDelegate.itemData.kind === "dynamicSchemeError"
-                                            || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
-                                    text: "󰏘"
+                                            || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction"
+                                            || appDelegate.itemData.kind === "wallpaperRandomAction")
+                                    text: appDelegate.itemData.kind === "wallpaperRandomAction" ? "" : "󰏘"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.accent
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 23
@@ -4031,32 +4212,63 @@ PanelWindow {
 
                                 spacing: 2
 
-                                Text {
+                                RowLayout {
                                     Layout.fillWidth: true
+                                    spacing: 6
 
-                                    text: root.highlightFuzzy(
-                                        appDelegate.displayName,
-                                        appDelegate.itemData && appDelegate.itemData.kind === "emoji"
-                                            ? LauncherEmojiPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
-                                            : (appDelegate.itemData && appDelegate.itemData.kind === "scheme"
-                                                ? LauncherSchemePicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
-                                                : (appDelegate.itemData && appDelegate.itemData.kind === "schemeVariant"
-                                                    ? LauncherSchemeVariantPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
-                                                : (appDelegate.itemData && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction" || appDelegate.itemData.kind === "emojiPickerAction" || appDelegate.itemData.kind === "schemePickerAction" || appDelegate.itemData.kind === "schemeVariantPickerAction" || appDelegate.itemData.kind === "schemeVariant" || appDelegate.itemData.kind === "dynamicSchemeAction" || appDelegate.itemData.kind === "dynamicSchemeGenerate" || appDelegate.itemData.kind === "dynamicSchemeUnavailable" || appDelegate.itemData.kind === "dynamicSchemeError" || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
-                                                    ? searchField.text.replace(/^\s*>\s*/, "")
-                                                    : (appDelegate.itemData && appDelegate.itemData.kind === "app" && appModel.specialSearch
-                                                        ? appModel.specialSearch.query
-                                                        : searchField.text))))
-                                    )
+                                    Text {
+                                        Layout.fillWidth: true
 
-                                    textFormat: Text.StyledText
-                                    color: GridView.isCurrentItem
-                                        ? theme.selectedText
-                                        : theme.textWhite
+                                        text: root.highlightFuzzy(
+                                            appDelegate.displayName,
+                                            appDelegate.itemData && appDelegate.itemData.kind === "emoji"
+                                                ? LauncherEmojiPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                                : (appDelegate.itemData && appDelegate.itemData.kind === "scheme"
+                                                    ? LauncherSchemePicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                                    : (appDelegate.itemData && appDelegate.itemData.kind === "schemeVariant"
+                                                        ? LauncherSchemeVariantPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                                    : (appDelegate.itemData && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction" || appDelegate.itemData.kind === "emojiPickerAction" || appDelegate.itemData.kind === "schemePickerAction" || appDelegate.itemData.kind === "schemeVariantPickerAction" || appDelegate.itemData.kind === "schemeVariant" || appDelegate.itemData.kind === "dynamicSchemeAction" || appDelegate.itemData.kind === "dynamicSchemeGenerate" || appDelegate.itemData.kind === "dynamicSchemeUnavailable" || appDelegate.itemData.kind === "dynamicSchemeError" || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
+                                                        ? searchField.text.replace(/^\s*>\s*/, "")
+                                                        : (appDelegate.itemData && appDelegate.itemData.kind === "app" && appModel.specialSearch
+                                                            ? appModel.specialSearch.query
+                                                            : searchField.text))))
+                                        )
 
-                                    font.pixelSize: 16
+                                        textFormat: Text.StyledText
+                                        color: GridView.isCurrentItem
+                                            ? theme.selectedText
+                                            : theme.textWhite
 
-                                    elide: Text.ElideRight
+                                        font.pixelSize: 16
+
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Row {
+                                        // Keep the six dots beside the theme name so they
+                                        // remain visible inside the card's existing text column.
+                                        Layout.preferredWidth: appDelegate.itemData && appDelegate.itemData.kind === "scheme" ? 87 : 0
+                                        Layout.preferredHeight: 14
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 3
+                                        visible: appDelegate.itemData && appDelegate.itemData.kind === "scheme"
+
+                                        Repeater {
+                                            // Use the same live preview provider as Settings.
+                                            // Do not pass the colors through an intermediate result object.
+                                            model: appDelegate.itemData && appDelegate.itemData.kind === "scheme"
+                                                ? Settings.themePreview(String(appDelegate.itemData.name || "")) : []
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                width: 12
+                                                height: 12
+                                                radius: 6
+                                                color: String(modelData || "transparent")
+                                                border.color: theme.borderSubtle
+                                                border.width: 0.5
+                                            }
+                                        }
+                                    }
                                 }
 
                                 Text {
@@ -4071,28 +4283,6 @@ PanelWindow {
                                     font.pixelSize: 12
 
                                     elide: Text.ElideRight
-                                }
-                            }
-
-                            Row {
-                                Layout.preferredWidth: appDelegate.itemData && appDelegate.itemData.kind === "scheme" ? 126 : 0
-                                Layout.preferredHeight: 24
-                                Layout.alignment: Qt.AlignVCenter
-                                spacing: 4
-                                visible: appDelegate.itemData && appDelegate.itemData.kind === "scheme"
-
-                                Repeater {
-                                    model: appDelegate.itemData && Array.isArray(appDelegate.itemData.colors)
-                                        ? appDelegate.itemData.colors : []
-                                    delegate: Rectangle {
-                                        required property var modelData
-                                        width: 17
-                                        height: 17
-                                        radius: 4
-                                        color: String(modelData || "transparent")
-                                        border.color: theme.borderSubtle
-                                        border.width: 1
-                                    }
                                 }
                             }
 
@@ -4261,7 +4451,9 @@ PanelWindow {
                     visible: root.mode === root.modeApps
                         && appList.count === 0
                         && !root.normalizeRunText(searchField.text).startsWith("@")
-                    text: root.wallpaperPickerActive
+                    text: LauncherCustomActions.parseQuery(root.normalizeRunText(searchField.text)).active
+                        ? "Пользовательские действия не найдены."
+                        : (root.wallpaperPickerActive
                         ? LauncherWallpaperPicker.emptyStateMessage(
                             root.wallpaperCatalogLoading,
                             root.wallpaperCatalogError,
@@ -4277,7 +4469,7 @@ PanelWindow {
                             ? "Системный каталог приложений пуст."
                             : (root.normalizeRunText(searchField.text) === ""
                                 ? "Нет доступных приложений. Проверьте избранное и скрытые приложения."
-                                : "Приложения не найдены.")))
+                                : "Приложения не найдены."))))
                     color: theme.textVeryDim
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
@@ -5735,32 +5927,51 @@ PanelWindow {
              */
 
             RowLayout {
+                visible: Config.launcherShowNavigationHints
                 Layout.fillWidth: true
-                Layout.preferredHeight: 24
+                Layout.minimumHeight: 0
+                Layout.preferredHeight: Config.launcherNavigationHintsHeight
 
                 Text {
                     text: "↑ ↓  navigate"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
                 Text {
                     text: "Enter  select"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
                 Text {
                     text: "Alt+1..9, 0  tabs"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
+                }
+
+                Text {
+                    visible: Config.launcherVimKeybinds
+                    text: "Ctrl+J/N ↓  Ctrl+K/P ↑"
+                    color: theme.textVeryDim
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
                 Text {
                     visible: root.mode === root.modeRun
                     text: "Del  remove history"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -5769,13 +5980,17 @@ PanelWindow {
                     visible: root.mode === root.modeNix
                     text: "Enter  copy   click  actions"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
                 Text {
                     text: "Esc  close"
                     color: theme.textVeryDim
-                    font.pixelSize: 11
+                    Layout.alignment: Qt.AlignVCenter
+                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
             }
         }
@@ -5800,7 +6015,7 @@ PanelWindow {
             .trim()
     }
 
-    function fuzzyWindowScore(text, query) {
+    function fuzzyWindowScoreCore(text, query) {
         text = normalizeWindowText(text)
         query = normalizeWindowText(query)
 
@@ -5852,6 +6067,15 @@ PanelWindow {
         }
 
         return score
+    }
+
+    function fuzzyWindowScore(text, query) {
+        return LauncherKeyboardLayout.scoreWithLayout(
+            text, query,
+            function(searchText, searchQuery) {
+                return root.fuzzyWindowScoreCore(searchText, searchQuery)
+            }
+        )
     }
 
     function windowRecentIndex(windowId) {
@@ -6179,30 +6403,11 @@ PanelWindow {
     }
 
     function nixSearchPayload(query) {
-        const positiveWords = String(query || "")
-            .toLowerCase()
-            .split(/\s+/)
-            .filter(word => word !== "")
-
-        const wildcardQueries = []
-        for (const word of positiveWords) {
-            const variants = [word]
-            if (word.indexOf("-") >= 0)
-                variants.push(word.replace(/-/g, "_"))
-            if (word.indexOf("_") >= 0)
-                variants.push(word.replace(/_/g, "-"))
-            for (const variant of variants) {
-                if (variant !== "")
-                    wildcardQueries.push({
-                        wildcard: {
-                            "package_attr_name": {
-                                value: "*" + variant + "*",
-                                case_insensitive: true
-                            }
-                        }
-                    })
-            }
-        }
+        const normalizedQuery = String(query || "").toLowerCase().trim()
+        const queryVariants = [normalizedQuery]
+        const alternateQuery = LauncherKeyboardLayout.alternateLayoutQuery(normalizedQuery)
+        if (alternateQuery !== "" && alternateQuery !== normalizedQuery)
+            queryVariants.push(alternateQuery)
 
         const fields = [
             "package_attr_name^9",
@@ -6212,6 +6417,47 @@ PanelWindow {
             "package_description^1.3",
             "package_longDescription^1"
         ]
+
+        const searchQueries = []
+        for (let queryIndex = 0; queryIndex < queryVariants.length; ++queryIndex) {
+            const positiveWords = queryVariants[queryIndex]
+                .split(/\s+/)
+                .filter(word => word !== "")
+            const boost = queryIndex === 0 ? 1 : 0.8
+
+            searchQueries.push({
+                multi_match: {
+                    type: "cross_fields",
+                    query: positiveWords.join(" "),
+                    analyzer: "whitespace",
+                    auto_generate_synonyms_phrase_query: false,
+                    operator: "and",
+                    fields: fields,
+                    boost: boost
+                }
+            })
+
+            for (const word of positiveWords) {
+                const variants = [word]
+                if (word.indexOf("-") >= 0)
+                    variants.push(word.replace(/-/g, "_"))
+                if (word.indexOf("_") >= 0)
+                    variants.push(word.replace(/_/g, "-"))
+                for (const variant of variants) {
+                    if (variant !== "") {
+                        searchQueries.push({
+                            wildcard: {
+                                "package_attr_name": {
+                                    value: "*" + variant + "*",
+                                    case_insensitive: true,
+                                    boost: boost
+                                }
+                            }
+                        })
+                    }
+                }
+            }
+        }
 
         return JSON.stringify({
             from: 0,
@@ -6235,19 +6481,7 @@ PanelWindow {
                         {
                             dis_max: {
                                 tie_breaker: 0.7,
-                                queries: [
-                                    {
-                                        multi_match: {
-                                            type: "cross_fields",
-                                            query: positiveWords.join(" "),
-                                            analyzer: "whitespace",
-                                            auto_generate_synonyms_phrase_query: false,
-                                            operator: "and",
-                                            fields: fields
-                                        }
-                                    },
-                                    ...wildcardQueries
-                                ]
+                                queries: searchQueries
                             }
                         }
                     ]
@@ -6659,7 +6893,7 @@ PanelWindow {
 
     property var networkResults: []
 
-    function fuzzyNetworkScore(text, query) {
+    function fuzzyNetworkScoreCore(text, query) {
         text = String(text ?? "").toLowerCase()
         query = String(query ?? "").toLowerCase().trim()
 
@@ -6683,6 +6917,15 @@ PanelWindow {
             position = found + 1
         }
         return score
+    }
+
+    function fuzzyNetworkScore(text, query) {
+        return LauncherKeyboardLayout.scoreWithLayout(
+            text, query,
+            function(searchText, searchQuery) {
+                return root.fuzzyNetworkScoreCore(searchText, searchQuery)
+            }
+        )
     }
 
     function rebuildNetworkModel() {
@@ -6719,7 +6962,12 @@ PanelWindow {
 
     function highlightNetwork(text, query) {
         const value = String(text ?? "")
-        const q = String(query ?? "").trim()
+        const q = LauncherKeyboardLayout.bestMatchingQuery(
+            value, query,
+            function(searchText, searchQuery) {
+                return root.fuzzyNetworkScoreCore(searchText, searchQuery)
+            }
+        )
         if (q === "") return root.escapeHtml(value)
 
         let result = ""
@@ -6985,7 +7233,12 @@ PanelWindow {
     // visible parts contributed to a project's match.
     function highlightProjectMatch(text, query) {
         text = String(text ?? "")
-        const queryText = String(query ?? "").toLowerCase().trim()
+        const queryText = LauncherKeyboardLayout.bestMatchingQuery(
+            text, query,
+            function(searchText, searchQuery) {
+                return LauncherSearchScoring.fuzzyScoreNative(searchText, searchQuery, true)
+            }
+        )
         if (queryText === "")
             return root.escapeHtml(text)
 
@@ -7034,7 +7287,12 @@ PanelWindow {
 
     function highlightFuzzy(text, query) {
         text = String(text ?? "")
-        query = normalizeWindowText(query)
+        query = LauncherKeyboardLayout.bestMatchingQuery(
+            text, query,
+            function(searchText, searchQuery) {
+                return LauncherSearchScoring.fuzzyScoreNative(searchText, searchQuery, true)
+            }
+        )
 
         if (query === "")
             return escapeHtml(text)

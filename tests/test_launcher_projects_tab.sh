@@ -33,8 +33,8 @@ grep -q 'function removeLauncherProject(index)' "$SETTINGS"
 grep -q 'function moveLauncherProject(index, delta)' "$SETTINGS"
 
 # Settings subtab supports icon/name/path/IDE, add/remove and movement.
-grep -Fq '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"] }' "$ROOT/js/settings/SettingsPageRegistry.js"
-grep -q 'currentPageSubTabIndex === 3' "$SECTION"
+grep -Fq '{ id: "launcherProjects", saveScope: "launcher", subTabs: [] }' "$ROOT/js/settings/SettingsPageRegistry.js"
+grep -q 'currentPageId === "launcherProjects"' "$SECTION"
 grep -q 'placeholderText: "Иконка"' "$SECTION"
 grep -q 'placeholderText: "Название"' "$SECTION"
 grep -q 'placeholderText: "Путь к проекту' "$SECTION"

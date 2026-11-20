@@ -46,20 +46,13 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
-            spacing: 8
-
-            Text {
-                width: 210
-                height: 30
-                text: root.profileLabel
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            label: root.profileLabel
+            labelWidth: 210
+            labelFontSize: 11
+            controlSpacing: 8
 
             SettingsComboBox {
                 id: profileComboBox
@@ -114,21 +107,14 @@ Column {
             padding: 8
             contentSpacing: 6
 
-            Row {
+            SettingsRow {
                 width: parent.width
                 height: 30
-                spacing: 8
-
-                Text {
-                    width: 210
-                    height: 30
-                    text: root.durationLabel
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
+                label: root.durationLabel
+                labelWidth: 210
+                labelFontSize: 11
+                labelElide: Text.ElideRight
+                controlSpacing: 8
 
                 SettingsNumberField {
                     width: 100

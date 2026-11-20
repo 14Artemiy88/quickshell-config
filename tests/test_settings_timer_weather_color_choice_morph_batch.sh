@@ -55,7 +55,7 @@ for token in (
     'progress: !Config.timerFinishedTitleUsesTimerColor ? 1 : 0',
     'animationDuration: Config.animationDuration(180, "appearance")',
     'animationEasing: Config.animationEasingType("standard", !Config.timerFinishedTitleUsesTimerColor ? "enter" : "exit")',
-    'text: "Свой цвет заголовка"',
+    'label: "Свой цвет заголовка"',
     'targetProperty: "timerFinishedTitleColor"',
     'saveOnEdit: true',
 ):
@@ -69,7 +69,7 @@ for token in (
     'progress: !Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0',
     'animationDuration: Config.animationDuration(180, "appearance")',
     'animationEasing: Config.animationEasingType("standard", !Config.timerFinishedBackgroundUsesTimerColor ? "enter" : "exit")',
-    'text: "Свой цвет фона"',
+    'label: "Свой цвет фона"',
     'targetProperty: "timerFinishedBackgroundColor"',
     'saveOnEdit: true',
 ):

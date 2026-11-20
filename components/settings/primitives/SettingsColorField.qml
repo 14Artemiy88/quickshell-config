@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 
 import "../../.."
 
@@ -7,6 +8,9 @@ Item {
 
     // Settings search metadata is intentionally independent from displayed labels.
     property bool settingsSearchable: true
+    property bool settingsSearchHighlighted: false
+    property bool settingsSearchCurrentMatch: false
+    property string settingsSearchMatchHint: ""
     property string settingsSearchId: ""
     property string settingsSearchLabel: ""
     property string settingsSearchKeywords: ""
@@ -71,18 +75,25 @@ Item {
         }
     }
 
+    SettingsSearchHighlight {
+        anchors.fill: parent
+        overlayZ: 5
+        highlighted: root.settingsSearchHighlighted
+        currentMatch: root.settingsSearchCurrentMatch
+        matchHint: root.settingsSearchMatchHint
+        cornerRadius: 4
+    }
+
     Row {
         anchors.fill: parent
         spacing: 8
 
-        Text {
+        SettingsLabel {
             width: root.compact ? 0 : root.labelWidth
             height: root.fieldHeight
             visible: !root.compact
             text: root.label
-            color: Config.text
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(root.fieldFontSize)
+            settingsFontSize: root.fieldFontSize
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
         }

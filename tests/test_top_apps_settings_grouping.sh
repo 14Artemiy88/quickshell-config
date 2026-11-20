@@ -63,7 +63,7 @@ headers_start = s.index('id: topAppsHeadersMorph')
 headers_end = s.index('\n        }', headers_start)  # closing MorphGeometry wrapper
 headers_block = s[headers_start:headers_end]
 for label in ('Основной заголовок', 'Подзаголовок', 'Размер основного заголовка', 'Размер подзаголовка'):
-    if 'text: "'+label+'"' not in headers_block:
+    if 'label: "'+label+'"' not in headers_block:
         raise SystemExit(f'{label} is missing from the animated header block')
 if 'visible: Config.topAppsShowHeaders' in headers_block:
     raise SystemExit('header children still disappear before the morph finishes')

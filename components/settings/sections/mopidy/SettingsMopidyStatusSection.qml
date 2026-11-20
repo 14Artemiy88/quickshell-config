@@ -27,11 +27,13 @@ Column {
                 font.pixelSize: Config.settingsUiSize(11)
             }
 
-            Row {
+            SettingsRow {
+                label: "Текст «Очередь пуста»"
+                controlSpacing: 8
                 width: parent.width
                 height: 34
                 spacing: 8
-                Text { width: 210; height: 30; text: "Текст «Очередь пуста»"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsTextField {
                     id: mopidyEmptyQueueTextField
                     width: 180; height: 30; text: Config.mopidyEmptyQueueText; color: Config.text; activeFocusOnTab: true
@@ -42,11 +44,13 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Текст «Недоступен»"
+                controlSpacing: 8
                 width: parent.width
                 height: 34
                 spacing: 8
-                Text { width: 210; height: 30; text: "Текст «Недоступен»"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsTextField {
                     id: mopidyUnavailableTextField
                     width: 180; height: 30; text: Config.mopidyUnavailableText; color: Config.text; activeFocusOnTab: true
@@ -57,8 +61,12 @@ Column {
                 }
             }
 
-            Row { width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+
+                label: "Шрифт текста"
+                controlSpacing: 8
+                width: parent.width; height: 30; spacing: 8
+
                 SettingsFontField {
                     width: 218
                     height: 30
@@ -73,18 +81,30 @@ Column {
                 }
             }
 
-            Row { width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Размер текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+
+                label: "Размер текста"
+                controlSpacing: 8
+                width: parent.width; height: 30; spacing: 8
+
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyStatusFontSize; minimum: 8; maximum: 100; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyStatusFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row { width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Размер длинного текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+
+                label: "Размер длинного текста"
+                controlSpacing: 8
+                width: parent.width; height: 30; spacing: 8
+
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyStatusLongFontSize; minimum: 6; maximum: 100; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyStatusLongFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row { width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Ширина текста"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+
+                label: "Ширина текста"
+                controlSpacing: 8
+                width: parent.width; height: 30; spacing: 8
+
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyStatusWidth; minimum: 80; maximum: 600; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyStatusWidth"; settingsObject: root.settings; saveOnEdit: true }
             }
     }

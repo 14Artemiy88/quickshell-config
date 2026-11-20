@@ -17,7 +17,8 @@ Column {
     spacing: 10
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 0
+                visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         padding: 8

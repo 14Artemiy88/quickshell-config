@@ -41,6 +41,15 @@ function parseQuery(value) {
     var firstSpace = remainder.search(/\s/)
     var firstToken = firstSpace < 0 ? remainder : remainder.slice(0, firstSpace)
     var token = normalize(firstToken)
+    var randomAliases = ["random", "shuffle", "рандом", "случайно", "случайный", "случайная", "случайные", "перемешать"]
+    if (randomAliases.indexOf(token) >= 0) {
+        return {
+            active: true,
+            query: firstSpace < 0 ? "" : remainder.slice(firstSpace).trim(),
+            scope: "all",
+            random: true
+        }
+    }
     var scope = "all"
     var scopedAliases = {
         favorites: "favorites", favorite: "favorites", fav: "favorites", starred: "favorites",
@@ -293,6 +302,27 @@ function buildResults(query, entries, scoreFunction, maxResults, storedData, sco
     return matches.slice(0, limit)
 }
 
+
+function chooseRandomEntry(entries, storedData, screenNameValue, randomValue) {
+    var catalog = normalizeEntries(entries)
+    if (!catalog.length)
+        return null
+
+    // Avoid immediately selecting the wallpaper most recently applied through
+    // this picker on the same display, unless it is the only available image.
+    var recent = recentUsageForScreen(storedData, screenNameValue)
+    var currentPath = recent.length ? String(recent[0].path || "") : ""
+    var candidates = catalog.filter(function(item) { return item.path !== currentPath })
+    if (!candidates.length)
+        candidates = catalog
+
+    var sample = Number(randomValue)
+    if (!isFinite(sample)) sample = 0
+    sample = Math.max(0, Math.min(0.999999999999, sample))
+    var index = Math.floor(sample * candidates.length)
+    var selected = candidates[index]
+    return selected ? { path: selected.path, name: selected.displayName } : null
+}
 
 function screenName(screen, index) {
     if (!screen || typeof screen !== "object")

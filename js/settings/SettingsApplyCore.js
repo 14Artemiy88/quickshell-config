@@ -2,8 +2,8 @@
 
 .import "SettingsSchema.js" as Schema
 
-var SETTINGS_TAB_IDS = ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "notifications", "settingsWindow"]
-var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Лаунчер", notifications:"Уведомления", settingsWindow:"Окно настроек"})
+var SETTINGS_TAB_IDS = ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
+var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"})
 
 function normalizeSettingsTabOrder(source) {
     var result = []
@@ -73,10 +73,28 @@ function apply(owner, Config, o) {
             var ss = Number(o.settingsSpacing)
             if (isFinite(ss)) Config.settingsSpacing = Math.max(0, Math.min(40, Math.round(ss)))
         }
+        if (o.settingsSearchHighlightColor !== undefined)
+            Config.settingsSearchHighlightColor = Schema.normalizeSavedColor(o.settingsSearchHighlightColor, String(Config.settingsSearchHighlightColor))
+        if (o.settingsSearchHighlightBorderWidth !== undefined) {
+            var searchBorderWidth = Number(o.settingsSearchHighlightBorderWidth)
+            if (isFinite(searchBorderWidth))
+                Config.settingsSearchHighlightBorderWidth = Math.max(1, Math.min(5, Math.round(searchBorderWidth)))
+        }
+        if (o.settingsSearchMatchCountFontSize !== undefined) {
+            var searchCountFontSize = Number(o.settingsSearchMatchCountFontSize)
+            if (isFinite(searchCountFontSize))
+                Config.settingsSearchMatchCountFontSize = Math.max(6, Math.min(12, Math.round(searchCountFontSize)))
+        }
+        if (o.settingsSearchVisible !== undefined)
+            Config.settingsSearchVisible = o.settingsSearchVisible === true
         if (o.settingsTabOrder !== undefined)
             Config.settingsTabOrder = normalizeSettingsTabOrder(o.settingsTabOrder)
-        if (o.settingsTabLabels !== undefined)
-            Config.settingsTabLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)
+        if (o.settingsTabLabels !== undefined) {
+            var normalizedSettingsLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)
+            // The old single Launcher page is now the first child of its sidebar folder.
+            if (normalizedSettingsLabels.launcher === "Лаунчер") normalizedSettingsLabels.launcher = "Общее"
+            Config.settingsTabLabels = normalizedSettingsLabels
+        }
         if (o.settingsNavigationCollapsedGroups !== undefined)
             Config.settingsNavigationCollapsedGroups = Schema.normalizeSettingsNavigationCollapsedGroups(
                 o.settingsNavigationCollapsedGroups, Config.settingsNavigationCollapsedGroups)

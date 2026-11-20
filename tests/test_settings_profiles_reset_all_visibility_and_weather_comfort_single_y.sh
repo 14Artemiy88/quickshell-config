@@ -17,8 +17,8 @@ assert 'visible: host.currentPageId === "general" && host.currentPageSubTabIndex
 assert 'actionAvailable: host.profileController.canResetScope("all")' in row
 
 comfort = weather.split('heading: "Температура комфорта"', 1)[1].split('heading: "Положение элементов"', 1)[0]
-assert 'text: "Положение Y"' in comfort
-assert 'text: "Смещение X"' in comfort
+assert 'label: "Положение Y"' in comfort
+assert 'label: "Смещение X"' in comfort
 assert 'text: "Смещение X / Y"' not in comfort
 assert 'id: weatherComfortOffsetYField' not in comfort
 assert 'value: Config.weatherComfortY + Config.weatherComfortOffsetY' in comfort

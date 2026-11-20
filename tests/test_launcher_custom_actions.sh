@@ -58,10 +58,10 @@ grep -Fq 'function addLauncherCustomAction()' "$SETTINGS"
 grep -Fq 'function removeLauncherCustomAction(index)' "$SETTINGS"
 grep -Fq 'function moveLauncherCustomAction(index, delta)' "$SETTINGS"
 
-# User actions are edited in their own launcher subtab and appear in the > palette only when complete and enabled.
-grep -Fq 'subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"]' "$REGISTRY"
-grep -Fq 'currentPageSubTabIndex === 4' "$SECTION"
-grep -Fq 'currentPageSubTabIndex === 5' "$SECTION"
+# User actions are edited in their own launcher subtab and appear in the : catalog only when complete and enabled.
+grep -Fq '{ id: "launcherActions", saveScope: "launcher", subTabs: ["Переходы", "Инструменты", "Пользовательские"] }' "$REGISTRY"
+grep -Fq 'currentPageId === "launcherActions" && root.host.currentPageSubTabIndex === 2' "$SECTION"
+grep -Fq 'currentPageId === "launcherAnimation"' "$SECTION"
 grep -Fq 'placeholderText: "Команда для запуска (обязательно)' "$SECTION"
 grep -Fq 'placeholderText: "Краткое описание действия (необязательно)' "$SECTION"
 grep -Fq 'placeholderText: "Название действия (обязательно)' "$SECTION"
@@ -75,4 +75,4 @@ grep -Fq 'if (!name || !command)' "$ROOT/js/launcher/LauncherCustomActions.js"
 grep -Fq 'if (result.kind === "customAction")' "$LAUNCHER"
 grep -Fq 'root.runCommand(result.command)' "$LAUNCHER"
 
-printf 'launcher user-defined action catalog, persistence, editor and explicit > activation: OK\n'
+printf 'launcher user-defined action catalog, persistence, editor and safe saved-record activation: OK\n'

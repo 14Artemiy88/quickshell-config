@@ -16,7 +16,7 @@ grep -Fq 'launcherItemRadius: config.launcherItemRadius' "$PERSIST"
 grep -Fq '["launcherItemRadius", 0, 30]' "$APPLY"
 grep -Fq '"launcherItemHeight", "launcherItemRadius", "launcherRadius"' "$RESETS"
 grep -Fq 'targetProperty: "launcherItemRadius"' "$SECTION"
-grep -Fq 'text: "Скругление элементов"' "$SECTION"
+grep -Fq 'label: "Скругление элементов"' "$SECTION"
 
 # The list-item height and rounding are in their own frame; background color is grouped into Elements.
 grep -Fq 'heading: "Элемент списка"' "$SECTION"

@@ -55,6 +55,10 @@ QtObject {
     property color volumeFill: "#006666"
     property color settingsBackground: "#e6000000"
     property color settingsBorder: "#00cccc"
+    property color settingsSearchHighlightColor: "#ffbf47"
+    property int settingsSearchHighlightBorderWidth: 2
+    property int settingsSearchMatchCountFontSize: 8
+    property bool settingsSearchVisible: true
     property color settingsSubheading: "#00cccc"
 
     // Native notification server presentation and timeout preferences.
@@ -80,15 +84,15 @@ QtObject {
     property string animationNotificationsVisibilityStyle: "fade"
 
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
-    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "notifications", "settingsWindow"]
+    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
     property var settingsTabLabels: ({
         modules: "Модули", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
-        launcher: "Лаунчер", notifications: "Уведомления", settingsWindow: "Окно настроек"
+        launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", settingsWindow: "Окно настроек"
     })
     // Remember expanded/collapsed state for the multi-page sidebar groups.
-    property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false })
+    property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false })
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
 
@@ -127,6 +131,12 @@ QtObject {
     // Empty uses ~/Pictures/Wallpapers; accepts ~ and $HOME prefixes.
     property string launcherWallpaperDirectory: ""
     property bool launcherShowResultCount: true
+    // Optional Caelestia-inspired Ctrl+J/N and Ctrl+K/P list navigation.
+    property bool launcherVimKeybinds: false
+    property bool launcherShowNavigationHints: true
+    property int launcherNavigationHintsHeight: 24
+    property int launcherNavigationHintsFontSize: 11
+    property int launcherNavigationHintsTextY: 0
     property bool launcherCrossSearchProjects: true
     property bool launcherCrossSearchRunHistory: true
     property bool launcherCrossSearchCalculator: true
@@ -134,6 +144,8 @@ QtObject {
     property var launcherTabVisible: [true, true, true, true, true, true, true, true, true, true]
     property var launcherTabLabels: ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
     property var launcherTabIcons: ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
+    // Stable IDs of built-in commands hidden from the Launcher `>` palette only.
+    property var launcherDisabledBuiltinActions: []
     property var launcherProjects: LauncherProjects.defaults()
     property var launcherCustomActions: LauncherActions.normalize([])
     // Application IDs for Launcher favorites and hidden entries.

@@ -41,20 +41,14 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Наведение"
+                controlSpacing: 8
                 width: parent.width
                 height: 30
                 spacing: 8
 
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Наведение"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+
 
                 SettingsComboBox {
                     id: hoverModeComboBox
@@ -196,20 +190,14 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Разделитель альбома"
+                controlSpacing: 8
                 width: parent.width
                 height: 30
                 spacing: 8
 
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Разделитель альбома"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+
 
                 SettingsComboBox {
                     id: albumSeparatorComboBox
@@ -242,11 +230,13 @@ Column {
 
 
 
-            Row {
+            SettingsRow {
+                label: "Шаг колеса"
+                controlSpacing: 8
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text { width: 210; height: 30; text: "Шаг колеса"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsNumberField {
                     width: 72; height: 30; value: Config.mopidyVolumeStep; minimum: 1; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                     targetObject: Config; targetProperty: "mopidyVolumeStep"; settingsObject: root.settings; saveOnEdit: true

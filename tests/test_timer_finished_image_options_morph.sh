@@ -39,7 +39,7 @@ block = s[start:end]
 for label in ('Ширина изображения', 'Отступ изображения', 'Цвет заголовка',
              'Свой цвет заголовка', 'Размер заголовка', 'Шрифт заголовка',
              'Расположение заголовка'):
-    assert block.count(f'text: "{label}"') == 1, f'{label} row missing or duplicated'
+    assert block.count(f'label: "{label}"') == 1, f'{label} row missing or duplicated'
 assert block.count('visible:') == 2, 'only the morph wrapper and custom-title-color row should control visibility'
 assert 'visible: !Config.timerFinishedTitleUsesTimerColor' in block, 'custom title color should remain independently conditional'
 for prop in ('timerFinishedImageWidth', 'timerFinishedImageMargin', 'timerFinishedTitleColor',
@@ -50,8 +50,8 @@ checkbox_area = s[s.find('text: "Оформление и показ"'):start]
 assert 'text: "Показывать изображение"' in checkbox_area, 'image enable checkbox was moved or removed'
 assert 'checked: Config.timerFinishedImageEnabled' in checkbox_area, 'image enable binding changed'
 assert 'Config.timerFinishedImageEnabled = checked' in checkbox_area, 'image enable setting action changed'
-path_row = s[s.find('text: "Путь к изображению"'):start]
+path_row = s[s.find('label: "Путь к изображению"'):start]
 assert 'enabled: Config.timerFinishedImageEnabled' in path_row, 'image path field should remain in place and disabled when image is off'
-assert 'text: "Цвет рамки окна"' in s[end:], 'following static settings row was moved or removed'
+assert 'label: "Цвет рамки окна"' in s[end:], 'following static settings row was moved or removed'
 PYTEST
 printf 'Timer finished-image options MorphGeometry integration: OK\n'

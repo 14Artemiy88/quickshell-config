@@ -14,7 +14,8 @@ Column {
     spacing: 10
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0
+                visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -41,20 +42,14 @@ Column {
             wrapMode: Text.WordWrap
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
             spacing: 8
-            Text {
-                width: 220
-                height: 30
-                text: "Обычные уведомления (с)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-            }
+            label: "Обычные уведомления (с)"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
             SettingsNumberField {
                 width: 100
                 height: 30
@@ -75,20 +70,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
             spacing: 8
-            Text {
-                width: 220
-                height: 30
-                text: "Критические уведомления (с)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-            }
+            label: "Критические уведомления (с)"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
             SettingsNumberField {
                 width: 100
                 height: 30
@@ -120,7 +109,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+                visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -129,11 +119,14 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 220; height: 30; text: "Расстояние между карточками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            label: "Расстояние между карточками"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
             SettingsNumberField {
                 value: Config.notificationsCardSpacing
                 minimum: 0
@@ -150,11 +143,14 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 220; height: 30; text: "Максимальная высота превью"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+            label: "Максимальная высота превью"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
             SettingsNumberField {
                 value: Config.notificationsImageHeight
                 minimum: 0
@@ -173,7 +169,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+                visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -211,7 +208,8 @@ Column {
         }
     }
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 2
+                visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         settings: root.settings
@@ -229,21 +227,13 @@ Column {
             wrapMode: Text.WordWrap
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 30
             spacing: 8
-
-            Text {
-                width: 220
-                height: 30
-                text: "Вертикальная привязка"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-            }
+            label: "Вертикальная привязка"
+            labelWidth: 220
+            labelElide: Text.ElideRight
 
             SettingsComboBox {
                 id: notificationsVerticalAnchorCombo
@@ -286,21 +276,15 @@ Column {
             padding: 8
             contentSpacing: 6
 
-            Row {
+            SettingsRow {
+                label: "Направление движения"
+                labelWidth: 210
+                labelElide: Text.ElideRight
                 width: parent.width
                 height: 30
                 spacing: 8
 
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Направление движения"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
+                
 
                 SettingsComboBox {
                     id: notificationVisibilityStyleBox

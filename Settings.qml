@@ -403,6 +403,20 @@ QtObject {
             if (hasAny(Array.isArray(spec.keys) ? spec.keys : [])) return true
             var prefixList = Array.isArray(spec.prefixes) ? spec.prefixes : []
             if (prefixList.length > 0 && hasPrefixed(prefixList, Array.isArray(spec.exclude) ? spec.exclude : [])) return true
+            // Some settings store independent UI groups in one sparse array.
+            // `arrayContains` lets subtab/frame indicators track only their own
+            // IDs instead of lighting every sibling that shares the same key.
+            var arrayContainsSpec = spec.arrayContains || {}
+            var arrayContainsRoots = Object.keys(arrayContainsSpec)
+            for (var ai = 0; ai < arrayContainsRoots.length; ++ai) {
+                var arrayRootName = arrayContainsRoots[ai]
+                var arrayValues = Array.isArray(overrides[arrayRootName]) ? overrides[arrayRootName] : []
+                var expectedValues = Array.isArray(arrayContainsSpec[arrayRootName]) ? arrayContainsSpec[arrayRootName] : []
+                for (var av = 0; av < arrayValues.length; ++av) {
+                    if (expectedValues.indexOf(String(arrayValues[av])) >= 0)
+                        return true
+                }
+            }
             var nestedSpec = spec.nested || {}
             var nestedRoots = Object.keys(nestedSpec)
             for (var ni = 0; ni < nestedRoots.length; ++ni) {

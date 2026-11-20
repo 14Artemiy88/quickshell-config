@@ -24,7 +24,13 @@ var TAB_DEFINITIONS = [
     { id: "network", defaultLabel: "Сеть", groupId: "modules" },
     { id: "volume", defaultLabel: "Громкость", groupId: "modules" },
     { id: "calendar", defaultLabel: "Календарь", groupId: "modules" },
-    { id: "launcher", defaultLabel: "Лаунчер", groupId: "launcher" },
+    { id: "launcher", defaultLabel: "Общее", groupId: "launcher" },
+    { id: "launcherSearch", defaultLabel: "Поиск", groupId: "launcher" },
+    { id: "launcherTabs", defaultLabel: "Вкладки", groupId: "launcher" },
+    { id: "launcherProjects", defaultLabel: "Проекты", groupId: "launcher" },
+    { id: "launcherActions", defaultLabel: "Действия", groupId: "launcher" },
+    { id: "launcherAnimation", defaultLabel: "Анимация", groupId: "launcher" },
+    { id: "launcherApplications", defaultLabel: "Приложения", groupId: "launcher" },
     { id: "notifications", defaultLabel: "Уведомления", groupId: "modules" },
     { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance" }
 ]
@@ -42,7 +48,13 @@ var OTHER_PAGE_DEFINITIONS = [
     { id: "calendar", saveScope: "calendar", subTabs: ["Разметка", "Цвета", "Метки заметок", "Анимации"] },
     { id: "settingsWindow", saveScope: "settingsWindow", subTabs: ["Интерфейс", "Окно настроек", "Вкладки"] },
     { id: "mopidy", saveScope: "mopidy", subTabs: ["Общее", "Время", "Иконки", "Пусто и недоступен", "Анимация"] },
-    { id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"] },
+    { id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Навигация", "Оформление", "Поиск"] },
+    { id: "launcherSearch", saveScope: "launcher", subTabs: ["Приложения", "Действия", "Схемы", "Обои"] },
+    { id: "launcherTabs", saveScope: "launcher", subTabs: [] },
+    { id: "launcherProjects", saveScope: "launcher", subTabs: [] },
+    { id: "launcherActions", saveScope: "launcher", subTabs: ["Переходы", "Инструменты", "Пользовательские"] },
+    { id: "launcherAnimation", saveScope: "launcher", subTabs: [] },
+    { id: "launcherApplications", saveScope: "launcher", subTabs: [] },
     { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }
 ]
 

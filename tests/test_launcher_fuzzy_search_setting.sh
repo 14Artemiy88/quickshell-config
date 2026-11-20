@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-node - "$ROOT/js/launcher/LauncherAppSearch.js" <<'JS'
+node - "$ROOT/js/launcher/LauncherAppSearch.js" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '');
-const api = vm.runInThisContext(source + '\n({ fuzzyScore, parseSpecialQuery, scoreEntry })');
+const layoutSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '');
+const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
+const context = vm.createContext({ KeyboardLayout });
+vm.runInContext(source + '\nthis.api = { fuzzyScore, parseSpecialQuery, scoreEntry };', context);
+const api = context.api;
 
 // The default fuzzy mode keeps the former subsequence behavior.
 assert(api.fuzzyScore('Firefox', 'ff', true) >= 0, 'fuzzy mode matches non-contiguous letters');
@@ -53,7 +57,7 @@ assert(resets.includes('if (profile.launcherFuzzySearchApps === undefined) confi
   'older profiles retain the former fuzzy behavior');
 assert(ui.includes('heading: "Поиск приложений"') && ui.includes('launcherFuzzySearchAppsCheckBox'),
   'Launcher Search exposes the fuzzy-search control');
-assert(ui.includes('visible: root.host && root.host.currentPageSubTabIndex === 1\n        width: parent.width\n        showFrame: true\n        changeKeys: ({ keys: [\"launcherFuzzySearchApps\"] })'),
+assert(ui.includes('visible: root.host && root.host.currentPageId === \"launcherSearch\" && root.host.currentPageSubTabIndex === 0\n        settingsSearchSubTabIndex: 0\n\n        width: parent.width\n        showFrame: true\n        changeKeys: ({ keys: [\"launcherFuzzySearchApps\"] })'),
   'Apps fuzzy-search control is placed in the Search subtab');
 assert(ui.includes('Config.launcherFuzzySearchApps = checked') && ui.includes('root.settings.save()'),
   'changing the control persists the preference');
@@ -61,10 +65,10 @@ assert(model.includes('readonly property bool fuzzySearchEnabled: Config.launche
   'AppModel tracks the preference reactively');
 assert(model.includes('LauncherAppSearch.fuzzyScore(text, query, root.fuzzySearchEnabled)'),
   'AppModel delegates app scoring to the shared fuzzy helper');
-const begin = navigation.indexOf('"launcher": [');
+const begin = navigation.indexOf('"launcherSearch": [');
 const end = navigation.indexOf('\n            ],', begin);
 assert(begin >= 0 && end > begin, 'find Launcher dirty-state mapping');
-assert(navigation.slice(begin, end).includes('launcherFuzzySearchApps'), 'Search subtab tracks the preference as a profile change');
-assert(navigation.slice(begin, end).includes('launcherFuzzySearchActions') && navigation.slice(begin, end).includes('launcherFuzzySearchSchemes') && navigation.slice(begin, end).includes('launcherFuzzySearchWallpapers'), 'all four fuzzy-search preferences share one Search subtab');
-assert(!navigation.slice(begin, end).split('\n')[0].includes('launcherFuzzySearchApps'), 'General dirty-state group no longer owns fuzzy-search preferences');
+assert(navigation.slice(begin, end).includes('launcherFuzzySearchApps'), 'Apps search subtab tracks the preference as a profile change');
+assert(navigation.slice(begin, end).includes('launcherFuzzySearchActions') && navigation.slice(begin, end).includes('launcherFuzzySearchSchemes') && navigation.slice(begin, end).includes('launcherFuzzySearchWallpapers'), 'fuzzy-search preferences are distributed across Launcher Search subtabs');
+assert(!navigation.slice(navigation.indexOf('\"launcher\": ['), begin).includes('launcherFuzzySearchApps'), 'General no longer owns Apps fuzzy-search preferences');
 JS

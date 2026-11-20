@@ -1,5 +1,7 @@
 .pragma library
 
+.import "LauncherKeyboardLayout.js" as KeyboardLayout
+
 // Caelestia-inspired special application-search prefixes. These selectors
 // only change which DesktopEntry metadata is searched; they never alter how
 // an application is launched.
@@ -82,7 +84,7 @@ function scoreEntry(entry, specialQuery, fuzzyScore) {
 
 // Shared App search scorer. Disabling fuzzy mode still allows exact, prefix,
 // and contiguous substring matches; only subsequence/gapped matching is removed.
-function fuzzyScore(text, query, fuzzyEnabled) {
+function fuzzyScoreCore(text, query, fuzzyEnabled) {
     text = String(text === undefined || text === null ? "" : text).toLowerCase().trim()
     query = String(query === undefined || query === null ? "" : query).toLowerCase().trim()
 
@@ -204,4 +206,19 @@ function collectCategories(entries, hiddenIds) {
     return categories.map(function(item) {
         return { name: item.name, label: item.label, count: item.count }
     })
+}
+
+
+function fuzzyScoreNative(text, query, fuzzyEnabled) {
+    return fuzzyScoreCore(text, query, fuzzyEnabled)
+}
+
+// App search shares the same keyboard-layout correction as Launcher actions.
+function fuzzyScore(text, query, fuzzyEnabled) {
+    return KeyboardLayout.scoreWithLayout(
+        text, query,
+        function(searchText, searchQuery) {
+            return fuzzyScoreNative(searchText, searchQuery, fuzzyEnabled)
+        }
+    )
 }

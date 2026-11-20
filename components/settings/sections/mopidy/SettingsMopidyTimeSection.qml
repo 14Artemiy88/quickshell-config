@@ -33,9 +33,11 @@ Column {
                 Connections { target: Config; function onMopidyShowQueueTotalDurationChanged() { showQueueTimeCheckBox.checked = Config.mopidyShowQueueTotalDuration } }
             }
 
-            Row {
+            SettingsRow {
+                label: "Отображать"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Отображать"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsComboBox {
                     id: queueDurationModeCombo
                     width: 160; height: 30
@@ -46,9 +48,11 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Шрифт"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsFontField {
                     width: 178
                     height: 30
@@ -76,18 +80,22 @@ Column {
                 allowAlpha: true; allowTransparent: true; fieldWidth: 120; fieldHeight: 30
             }
 
-            Row {
+            SettingsRow {
+                label: "Положение"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Положение"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 Text { width: 46; height: 30; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
                 SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationX; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "mopidyQueueDurationX"; settingsObject: root.settings; saveOnEdit: true }
                 Text { width: 46; height: 30; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
                 SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyQueueDurationY"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row {
+            SettingsRow {
+                label: "Выравнивание"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Выравнивание"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsComboBox {
                     id: queueDurationAlignmentCombo
                     width: 140; height: 30
@@ -148,19 +156,13 @@ Column {
 
 
 
-            Row {
+            SettingsRow {
+                label: "Режим отображения"
+                controlSpacing: 8
                 width: parent.width
                 height: 30
                 spacing: 8
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Режим отображения"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+
                 SettingsComboBox {
                     id: trackArtistDisplayModeCombo
                     width: 250
@@ -180,17 +182,11 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Высота строки списка"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Высота строки списка"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+
                 SettingsNumberField {
                     width: 72; height: 30
                     value: Config.mopidyTrackRowHeight
@@ -209,17 +205,11 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Разделитель в одну строку"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Разделитель в одну строку"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+
                 SettingsTextField {
                     id: trackArtistSeparatorField
                     width: 160; height: 30
@@ -273,9 +263,11 @@ Column {
 
             // Keep the existing four queue text settings together so they are no longer
             // mixed into the general Mopidy behavior settings.
-            Row {
+            SettingsRow {
+                label: "Шрифт альбома"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт альбома"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsFontField {
                     width: 178
                     height: 30
@@ -291,9 +283,12 @@ Column {
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyAlbumFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyAlbumFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row {
+            SettingsRow {
+                label: "Шрифт названия трека"
+                labelElide: Text.ElideRight
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт названия трека"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+
                 SettingsFontField {
                     width: 178
                     height: 30
@@ -309,9 +304,11 @@ Column {
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyTrackFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyTrackFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row {
+            SettingsRow {
+                label: "Шрифт исполнителя"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт исполнителя"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsFontField {
                     width: 178
                     height: 30
@@ -327,9 +324,11 @@ Column {
                 SettingsNumberField { width: 72; height: 30; value: Config.mopidyArtistFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 72; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyArtistFontSize"; settingsObject: root.settings; saveOnEdit: true }
             }
 
-            Row {
+            SettingsRow {
+                label: "Шрифт длительности"
+                controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Шрифт длительности"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+
                 SettingsFontField {
                     width: 178
                     height: 30

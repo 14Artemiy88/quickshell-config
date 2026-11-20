@@ -116,7 +116,15 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups"])
+    if (profile.settingsSearchHighlightColor === undefined)
+        config.settingsSearchHighlightColor = owner.defaultConfig.settingsSearchHighlightColor
+    if (profile.settingsSearchHighlightBorderWidth === undefined)
+        config.settingsSearchHighlightBorderWidth = owner.defaultConfig.settingsSearchHighlightBorderWidth
+    if (profile.settingsSearchMatchCountFontSize === undefined)
+        config.settingsSearchMatchCountFontSize = owner.defaultConfig.settingsSearchMatchCountFontSize
+    if (profile.settingsSearchVisible === undefined)
+        config.settingsSearchVisible = owner.defaultConfig.settingsSearchVisible
     if (profile.colors && profile.colors.settingsBackground !== undefined)
         config.settingsBackground = profile.colors.settingsBackground
     if (profile.colors && profile.colors.settingsBorder !== undefined)
@@ -432,9 +440,20 @@ function resetNotificationsSettings(owner, config) {
 function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherFuzzySearchApps", "launcherFuzzySearchActions", "launcherFuzzySearchSchemes", "launcherFuzzySearchWallpapers", "launcherDynamicSchemeVariant", "launcherWallpaperDirectory", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherCrossSearchCalculator", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects", "launcherCustomActions", "launcherFavoriteApps", "launcherHiddenApps", "animationLauncherMorphDuration", "animationLauncherMorphProfile"])
+    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherVimKeybinds", "launcherShowNavigationHints", "launcherNavigationHintsHeight", "launcherNavigationHintsFontSize", "launcherNavigationHintsTextY", "launcherFuzzySearchApps", "launcherFuzzySearchActions", "launcherFuzzySearchSchemes", "launcherFuzzySearchWallpapers", "launcherDynamicSchemeVariant", "launcherWallpaperDirectory", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherCrossSearchCalculator", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherDisabledBuiltinActions", "launcherProjects", "launcherCustomActions", "launcherFavoriteApps", "launcherHiddenApps", "animationLauncherMorphDuration", "animationLauncherMorphProfile"])
     // Older profiles predate calculator cross-search and editable launcher tabs.
     if (profile.launcherCrossSearchCalculator === undefined) config.launcherCrossSearchCalculator = true
+    if (profile.launcherVimKeybinds === undefined) config.launcherVimKeybinds = false
+    if (profile.launcherShowNavigationHints === undefined) config.launcherShowNavigationHints = true
+    var hintHeight = profile.launcherNavigationHintsHeight === undefined
+        ? 24 : Number(config.launcherNavigationHintsHeight)
+    config.launcherNavigationHintsHeight = isFinite(hintHeight) ? Math.max(0, Math.min(48, Math.round(hintHeight))) : 24
+    var hintFontSize = profile.launcherNavigationHintsFontSize === undefined
+        ? 11 : Number(config.launcherNavigationHintsFontSize)
+    config.launcherNavigationHintsFontSize = isFinite(hintFontSize) ? Math.max(8, Math.min(18, Math.round(hintFontSize))) : 11
+    var hintTextY = profile.launcherNavigationHintsTextY === undefined
+        ? 0 : Number(config.launcherNavigationHintsTextY)
+    config.launcherNavigationHintsTextY = isFinite(hintTextY) ? Math.max(-48, Math.min(48, Math.round(hintTextY))) : 0
     if (profile.launcherFuzzySearchApps === undefined) config.launcherFuzzySearchApps = true
     if (profile.launcherFuzzySearchActions === undefined) config.launcherFuzzySearchActions = true
     if (profile.launcherFuzzySearchSchemes === undefined) config.launcherFuzzySearchSchemes = true
@@ -444,6 +463,8 @@ function resetLauncherSettings(owner, config) {
     if (profile.launcherWallpaperDirectory === undefined) config.launcherWallpaperDirectory = ""
     if (profile.launcherTabLabels === undefined) config.launcherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
     if (profile.launcherTabIcons === undefined) config.launcherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
+    config.launcherDisabledBuiltinActions = Array.isArray(profile.launcherDisabledBuiltinActions)
+        ? profile.launcherDisabledBuiltinActions.slice() : []
     if (profile.launcherCustomActions === undefined) config.launcherCustomActions = []
     if (profile.launcherFavoriteApps === undefined) config.launcherFavoriteApps = []
     if (profile.launcherHiddenApps === undefined) config.launcherHiddenApps = []

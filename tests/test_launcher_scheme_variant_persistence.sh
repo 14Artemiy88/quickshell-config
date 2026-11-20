@@ -27,7 +27,7 @@ assert(resets.includes('"launcherDynamicSchemeVariant"'), 'Launcher reset includ
 assert(resets.includes('profile.launcherDynamicSchemeVariant === undefined'), 'older profiles receive a fallback');
 assert(resets.includes('normalizeLauncherDynamicSchemeVariant(profile.launcherDynamicSchemeVariant)'), 'profile reset validates unknown values');
 assert(resets.includes('function normalizeLauncherDynamicSchemeVariant(value)'), 'reset helper validates variants without an external JS realm dependency');
-assert(nav.includes('"launcherWallpaperDirectory", "launcherDynamicSchemeVariant"'), 'variant is tracked with Launcher General dirty state');
+assert(nav.includes('\"launcherSearch\": [') && nav.includes('{ keys: [\"launcherFuzzySearchSchemes\", \"launcherDynamicSchemeVariant\"] }'), 'variant is tracked on Launcher Search > Schemes');
 assert(launcher.includes('Settings.applyGeneratedTheme(LauncherDynamicScheme.GENERATED_THEME_NAME, generated.palette)'), 'variant selection uses the shared theme apply/save path');
 assert(launcher.includes('Config.launcherDynamicSchemeVariant = root.dynamicSchemePendingVariant'), 'selected variant is only persisted after a valid generated palette');
 assert(readme.includes('>scheme variants') && readme.includes('>variant') && readme.includes('Fruit Salad') && readme.includes('Tonal Spot'), 'README documents the canonical command and its legacy alias');

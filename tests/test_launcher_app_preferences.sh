@@ -71,9 +71,11 @@ const vm = require('vm');
 const context = {};
 vm.createContext(context);
 vm.runInContext(nav.slice(start, end).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
-assert.deepStrictEqual(Array.from(context.spec('launcher', 1).keys), ['launcherFuzzySearchApps', 'launcherFuzzySearchActions', 'launcherFuzzySearchSchemes', 'launcherFuzzySearchWallpapers'], 'Search subtab tracks all fuzzy-search preferences');
-assert.deepStrictEqual(Array.from(context.spec('launcher', 4).keys), ['launcherCustomActions'], 'Actions subtab has its own dirty state');
-assert.deepStrictEqual(Array.from(context.spec('launcher', 5).keys), ['animationLauncherMorphDuration', 'animationLauncherMorphProfile'], 'Animation subtab dirty state follows the shifted index');
-assert.deepStrictEqual(Array.from(context.spec('launcher', 6).keys), ['launcherFavoriteApps', 'launcherHiddenApps'], 'Applications subtab has its own dirty state');
+assert.deepStrictEqual(Array.from(context.spec('launcherSearch', 0).keys), ['launcherFuzzySearchApps'], 'Apps search has its own dirty state');
+assert.deepStrictEqual(Array.from(context.spec('launcherActions', 2).keys), ['launcherCustomActions'], 'custom actions have their own dirty state');
+const pageScopes = nav.slice(nav.indexOf('function settingsTabHasChanges'), nav.indexOf('function selectSettingsTab'));
+assert(pageScopes.includes('return root.launcherPageHasChanges(pageId)'), 'Launcher sidebar dirty markers use page-local selectors');
+for (const id of ['launcherApplications', 'launcherAnimation', 'launcherTabs', 'launcherProjects']) assert(!pageScopes.includes(`${id}: \"launcher\"`), `${id} no longer inherits the shared Launcher dirty scope`);
+assert(section.includes('objectName: \"settings-search-page:launcherApplications\"') && section.includes('currentPageId === \"launcherApplications\"'), 'favorites and hidden apps live on their own folder child page');
 JS
 printf 'Launcher app preferences: OK\n'

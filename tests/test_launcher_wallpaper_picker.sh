@@ -100,7 +100,7 @@ assert 'String(root.wallpaperApplyPendingScreenIndex)' in launcher
 assert 'GridView {' in launcher and 'id: appList' in launcher
 assert 'flow: GridView.FlowLeftToRight' in launcher, 'GridView must use the documented row-major flow enum for both wallpaper tiles and one-column app lists'
 assert 'GridView.LeftToRight' not in launcher and 'GridView.TopToBottom' not in launcher, 'GridView flow constants must use their documented Flow-prefixed names'
-assert 'cellWidth: root.wallpaperPickerActive ? width / wallpaperColumnCount : width' in launcher
+assert 'cellWidth: root.wallpaperPickerActive && !root.wallpaperRandomMode ? width / wallpaperColumnCount : width' in launcher
 assert 'property real wallpaperTileWidth: Math.max(1, width / wallpaperColumnCount - 12)' in launcher
 assert 'function moveWallpaperSelection(direction)' in launcher
 assert 'moveGridIndex(' in launcher

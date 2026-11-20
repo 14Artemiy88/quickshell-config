@@ -54,8 +54,8 @@ for (const file of walk(sectionsRoot)) {
     totalFrames++;
     if (/\bchangeKeys\s*:/.test(block.text)) {
       selectedFrames++;
-      const selectorLine = block.text.match(/\bchangeKeys\s*:\s*\((\{.*\})\)/);
-      assert(selectorLine, `${path.relative(root,file)} changeKeys selector should be a one-line object literal for static validation`);
+      const selectorLine = block.text.match(/\bchangeKeys\s*:\s*\((\{[\s\S]*?\})\)/);
+      assert(selectorLine, `${path.relative(root,file)} changeKeys selector should be an object literal for static validation`);
       selectors.push({file:path.relative(root,file), spec:vm.runInNewContext('('+selectorLine[1]+')')});
       continue;
     }
@@ -104,6 +104,13 @@ for (const entry of selectors) {
     for (const name of probes) {
       owner.resetOverrides = {[mapName]:{[name]:'changed'}};
       assert.strictEqual(context.hasResetChanges('keys',spec),true, `${entry.file}: nested ${mapName}.${name} is detected`);
+    }
+  }
+  for (const [arrayName, values] of Object.entries(spec.arrayContains || {})) {
+    assert(values.length > 0, `${entry.file}: arrayContains selector for ${arrayName} has at least one known value`);
+    for (const value of values) {
+      owner.resetOverrides = {[arrayName]:[value]};
+      assert.strictEqual(context.hasResetChanges('keys',spec),true, `${entry.file}: array item ${arrayName}=${value} is detected`);
     }
   }
 }

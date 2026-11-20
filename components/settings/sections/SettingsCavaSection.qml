@@ -14,28 +14,23 @@ Column {
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars", "cavaMode"] })
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+            label: "Режим CAVA"
+            labelWidth: 210
             visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Режим CAVA"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
                 SettingsComboBox {
                 id: cavaModeCombo
@@ -51,21 +46,15 @@ Column {
 
         }
 
-        Row {
+        SettingsRow {
+            label: "Скрывать полоски без звука"
+            labelWidth: 210
             visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Скрывать полоски без звука"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsCheckBox {
                 id: cavaHideWhenSilentCheckBox
@@ -95,21 +84,15 @@ Column {
             animationDuration: Config.animationDuration(180, "appearance")
             animationEasing: Config.animationEasingType("standard", Config.cavaHideWhenSilent ? "enter" : "exit")
 
-            Row {
+            SettingsRow {
                 id: cavaHideZeroBarsContent
+                label: "Скрывать пустые полоски"
+                labelWidth: 210
                 width: parent.width
                 height: 30
                 spacing: 8
 
-                Text {
-                    width: 210
-                    height: 30
-                    text: "Скрывать пустые полоски"
-                    color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11)
-                    verticalAlignment: Text.AlignVCenter
-                }
+                
 
                 SettingsCheckBox {
                     id: cavaHideZeroBarsCheckBox
@@ -131,24 +114,18 @@ Column {
 
 
 
-        Row {
+        SettingsRow {
+            id: cavaFramerateField
+            label: "Частота обновления CAVA (FPS)"
+            labelWidth: 210
             visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 0
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Частота обновления CAVA (FPS)"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
-            id: cavaFramerateField
             width: 100
             height: 30
             value: Config.cavaFramerate
@@ -170,31 +147,26 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cavaBars", "cavaBarWidthRatio", "cavaRowSpacing"] })
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
+            id: cavaBarsField
+            label: "Количество полос CAVA"
+            labelWidth: 210
             visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1
             width: parent.width
             height: 30
             spacing: 8
 
-            Text {
-                width: 210
-                height: 30
-                text: "Количество полос CAVA"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            
 
             SettingsNumberField {
-            id: cavaBarsField
             width: 100
             height: 30
             value: Config.cavaBars
@@ -214,10 +186,13 @@ Column {
         }
         }
 
-        Row { visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Зазор между слотами CAVA"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
+        SettingsRow {
             id: cavaRowSpacingField
+            label: "Зазор между слотами CAVA"
+            labelWidth: 210
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
+            
+            SettingsNumberField {
             width: 100
             height: 30
             value: Config.cavaRowSpacing
@@ -236,10 +211,13 @@ Column {
             saveOnEdit: true
         }
         }
-        Row { visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-            Text { width: 210; height: 30; text: "Ширина полоски (% слота)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsNumberField {
+        SettingsRow {
             id: cavaBarWidthRatioField
+            label: "Ширина полоски (% слота)"
+            labelWidth: 210
+            visible: host.currentPageId === "cava" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
+            
+            SettingsNumberField {
             width: 100
             height: 30
             value: Config.cavaBarWidthRatio

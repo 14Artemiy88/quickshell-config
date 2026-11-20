@@ -35,7 +35,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "mopidy" && root.host.currentPageSubTabIndex === 4
+                visible: root.host && root.host.currentPageId === "mopidy" && root.host.currentPageSubTabIndex === 4
+settingsSearchSubTabIndex: 4
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["animationMopidyVisibilityStyle"] })
@@ -43,19 +44,13 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
-            width: parent.width
+        SettingsRow {
+            label: "Стиль"
+                controlSpacing: 8
+                width: parent.width
             height: 30
             spacing: 8
-            Text {
-                width: 210
-                height: 30
-                text: "Стиль"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+
             SettingsComboBox {
                 id: animationMopidyVisibilityBox
                 width: 180

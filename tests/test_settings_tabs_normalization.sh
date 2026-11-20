@@ -17,7 +17,7 @@ function loadLibrary(relativePath, appended = '') {
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
   'this.api = { normalizeSettingsTabOrder, normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
-const ids = ['modules','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','notifications','settingsWindow'];
+const ids = ['modules','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
 // Keep all duplicated registries aligned so a future tab cannot accidentally
@@ -46,16 +46,19 @@ assert.deepStrictEqual(widgetIds, ids, 'sidebar definitions match normalized tab
 const otherIds = otherPages.map(page => page.id);
 assert.deepStrictEqual(otherIds.slice().sort(), ids.filter(id => id !== 'modules' && id !== 'themes').slice().sort(), 'every non-core tab has exactly one content route');
 assert.deepStrictEqual(otherPages.map(page => page.id), otherIds, 'page metadata order matches route order');
-assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','notifications'], 'page save scopes remain aligned with their stable IDs');
+assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications'], 'page save scopes remain aligned with their stable IDs');
 for (let i = 0; i < otherPages.length; i++)
   assert.strictEqual(registrySource.api.saveScopeForPageId(otherPages[i].id, 0), otherPages[i].saveScope, `page ${otherPages[i].id} resolves its own save scope`);
-assert(otherPages.every(page => Array.isArray(page.subTabs) && page.subTabs.length > 0), 'each registered page has at least one subtab');
-assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcher')), ['Общее', 'Поиск', 'Вкладки', 'Проекты', 'Действия', 'Анимация', 'Приложения'], 'launcher subtabs stay registered');
+assert(otherPages.every(page => Array.isArray(page.subTabs)), 'each registered page declares its subtab list');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcher')), ['Общее', 'Навигация', 'Оформление', 'Поиск'], 'Launcher general page contains compact logical subtabs');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcherSearch')), ['Приложения', 'Действия', 'Схемы', 'Обои'], 'Launcher search options are split by search source');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcherActions')), ['Переходы', 'Инструменты', 'Пользовательские'], 'built-in and custom actions have independent subtabs');
+for (const id of ['launcherTabs', 'launcherProjects', 'launcherAnimation', 'launcherApplications']) assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId(id)), [], `${id} is a direct page without extra subtabs`);
 assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('notifications')), ['Поведение', 'Внешний вид', 'Размещение', 'Анимация'], 'notification animation subtab stays registered');
 assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('unknown')), [], 'invalid routes return no subtabs');
 assert.strictEqual(registrySource.api.saveScopeForPageId('general', 0), 'general', 'general interface keeps its scoped save');
 assert.strictEqual(registrySource.api.saveScopeForPageId('general', 1), '', 'profile subtab has no unrelated scoped save');
-assert.strictEqual(registrySource.api.saveScopeForPageId('launcher', 0), 'launcher', 'launcher scope remains stable');
+for (const id of ids.filter(id => id.startsWith('launcher'))) assert.strictEqual(registrySource.api.saveScopeForPageId(id, 0), 'launcher', `${id} shares the Launcher save scope`);
 assert.strictEqual(registrySource.api.saveScopeForPageId('unknown', 0), '', 'unknown routes have no save scope');
 const configOrder = configSource.match(/property var settingsTabOrder: \[([^\]]*)\]/);
 assert(configOrder, 'Config tab defaults must exist');

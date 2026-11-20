@@ -33,7 +33,7 @@ grep -Fq 'ToolTip.text: modelData.label' "$LAUNCHER"
 grep -Fq 'return tabs[i].label' "$LAUNCHER"
 grep -Fq 'var labels = Config.launcherTabLabels instanceof Array' "$LAUNCHER"
 grep -Fq 'var icons = Config.launcherTabIcons instanceof Array' "$LAUNCHER"
-grep -Fq '"launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects", "launcherCustomActions"' "$RESETS"
+for key in launcherTabOrder launcherTabVisible launcherTabLabels launcherTabIcons; do grep -Fq "\"$key\"" "$RESETS"; done
 grep -Fq 'if (profile.launcherTabLabels === undefined) config.launcherTabLabels' "$RESETS"
 grep -Fq 'if (profile.launcherTabIcons === undefined) config.launcherTabIcons' "$RESETS"
 

@@ -28,8 +28,6 @@ Item {
     property alias settingsSearchIndex: settingsSearchController.settingsSearchIndex
     property alias settingsSearchResults: settingsSearchController.settingsSearchResults
     property alias settingsSearchQuery: settingsSearchController.settingsSearchQuery
-    property alias settingsSearchSelectedIndex: settingsSearchController.settingsSearchSelectedIndex
-    property alias settingsSearchCandidateSubTab: settingsSearchController.settingsSearchCandidateSubTab
     signal layoutEditRequested()
     signal settingsMoveRequested()
     signal closeRequested()
@@ -41,6 +39,18 @@ Item {
         onActivated: root.closeRequested()
     }
 
+    Shortcut {
+        sequence: "F3"
+        enabled: !root.settingsMoveMode && root.settingsSearchQuery.trim().length > 0
+        onActivated: settingsSearchController.cycleSettingsSearchMatch(1)
+    }
+
+    Shortcut {
+        sequence: "Shift+F3"
+        enabled: !root.settingsMoveMode && root.settingsSearchQuery.trim().length > 0
+        onActivated: settingsSearchController.cycleSettingsSearchMatch(-1)
+    }
+
     SettingsProfileController {
         id: settingsProfileController
         settings: root.settings
@@ -50,9 +60,6 @@ Item {
         id: settingsSearchController
         host: root
         searchRoot: root
-        searchInput: settingsSearchInput
-        highlight: settingsSearchHighlight
-        highlightTimer: settingsSearchHighlightTimer
     }
 
     function clearSettingsFocus() {
@@ -109,7 +116,7 @@ Item {
         }
         return groups
     }
-    readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false })
+    readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false, launcher: false })
     readonly property var currentPageSubTabs: settingsNavigationController.currentPageSubTabs
     readonly property string currentPageTitle: settingsNavigationController.currentPageTitle
 
@@ -153,7 +160,7 @@ Item {
 
     function toggleSettingsNavigationGroup(id) {
         var key = String(id)
-        if (key !== "appearance" && key !== "modules") return
+        if (key !== "appearance" && key !== "modules" && key !== "launcher") return
         var next = Object.assign({}, root.collapsedSettingsNavigationGroups || ({}))
         next[key] = next[key] !== true
         root.setSettingsNavigationCollapsedGroups(next)
@@ -172,6 +179,11 @@ Item {
         settingsSearchController.rebuildSettingsSearchIndex()
     }
 
+    function clearSettingsSearchQuery() {
+        settingsNavigation.searchInput.text = ""
+        root.updateSettingsSearchResults("")
+    }
+
     function updateSettingsSearchResults(query) {
         settingsSearchController.updateSettingsSearchResults(query)
     }
@@ -180,11 +192,52 @@ Item {
         settingsSearchController.openSettingsSearchResult(entry)
     }
 
+    function settingsSearchPageHasMatches(pageId) {
+        return settingsSearchController.settingsSearchPageHasMatches(pageId)
+    }
+
+    function settingsSearchPageMatchCount(pageId) {
+        return settingsSearchController.settingsSearchPageMatchCount(pageId)
+    }
+
+    function settingsSearchNavigationGroupHasMatches(groupId) {
+        return settingsSearchController.settingsSearchNavigationGroupHasMatches(groupId)
+    }
+
+    function settingsSearchNavigationGroupMatchCount(groupId) {
+        return settingsSearchController.settingsSearchNavigationGroupMatchCount(groupId)
+    }
+
+    function settingsSearchSubTabHasMatches(pageId, subTabIndex) {
+        return settingsSearchController.settingsSearchSubTabHasMatches(pageId, subTabIndex)
+    }
+
+    function settingsSearchSubTabMatchCount(pageId, subTabIndex) {
+        return settingsSearchController.settingsSearchSubTabMatchCount(pageId, subTabIndex)
+    }
+
+    function settingsSearchPageMatchHint(pageId) {
+        return settingsSearchController.settingsSearchPageMatchHint(pageId)
+    }
+
+    function settingsSearchNavigationGroupMatchHint(groupId) {
+        return settingsSearchController.settingsSearchNavigationGroupMatchHint(groupId)
+    }
+
+    function settingsSearchSubTabMatchHint(pageId, subTabIndex) {
+        return settingsSearchController.settingsSearchSubTabMatchHint(pageId, subTabIndex)
+    }
+
     function handleSettingsSearchKey(event) {
         settingsSearchController.handleSettingsSearchKey(event)
     }
 
+    function cycleSettingsSearchMatch(direction) {
+        return settingsSearchController.cycleSettingsSearchMatch(direction)
+    }
+
     Component.onCompleted: {
+        settingsSearchController.searchInput = settingsNavigation.searchInput
         root.settingsNavigationReady = true
         Qt.callLater(root.rebuildSettingsSearchIndex)
     }
@@ -212,25 +265,12 @@ Item {
             width: parent.width
             height: 28
             Text {
-                width: Math.max(70, parent.width - settingsSearchInput.width - 260)
+                width: Math.max(70, parent.width - 260)
                 text: "НАСТРОЙКИ"
                 color: Config.accent
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(20)
                 verticalAlignment: Text.AlignVCenter
-            }
-            SettingsInputField {
-                id: settingsSearchInput
-                width: Math.min(220, Math.max(145, parent.width * 0.30))
-                height: 28
-                placeholderText: "Поиск настроек…"
-                selectByMouse: true
-                activeFocusOnTab: true
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(10)
-                onTextChanged: root.updateSettingsSearchResults(text)
-                onActiveFocusChanged: if (activeFocus) Qt.callLater(root.rebuildSettingsSearchIndex)
-                Keys.onPressed: event => root.handleSettingsSearchKey(event)
             }
             Text {
                 id: resetIndicator
@@ -277,142 +317,20 @@ Item {
             // Keep the settings text visually separated from the sidebar tabs.
             spacing: 16
 
-            Flickable {
-                id: mainSettingsTabs
+            SettingsNavigation {
+                id: settingsNavigation
                 width: 176
                 height: parent.height
-                contentWidth: width
-                contentHeight: mainSettingsGroupsColumn.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.VerticalFlick
-                interactive: contentHeight > height
-
-                Column {
-                    id: mainSettingsGroupsColumn
-                    width: mainSettingsTabs.width - 10
-                    spacing: 8
-
-                    Repeater {
-                        model: root.settingsNavigationGroups
-
-                        delegate: Column {
-                            id: navigationGroupDelegate
-                            required property var modelData
-                            width: mainSettingsGroupsColumn.width
-                            spacing: 3
-
-                            Rectangle {
-                                id: navigationGroupHeader
-                                width: parent.width
-                                height: 30
-                                radius: 4
-                                color: root.settingsNavigationGroupCollapsed(modelData.id)
-                                    ? Config.settingsBackground
-                                    : Qt.darker(Config.settingsBackground, 1.04)
-                                border.width: 1
-                                border.color: root.settingsNavigationGroupHasCurrentPage(modelData.id)
-                                    ? Config.accent
-                                    : Config.baseColor
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    anchors.rightMargin: 8
-                                    spacing: 7
-
-                                    Text {
-                                        width: 15
-                                        height: parent.height
-                                        text: modelData.symbol
-                                        color: Config.accent
-                                        font.family: Config.settingsFont
-                                        font.pixelSize: Config.settingsUiSize(12)
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-
-                                    Text {
-                                        width: parent.width - 15 - (modelData.items.length > 1 ? 18 : 0) - 14
-                                        height: parent.height
-                                        text: modelData.items.length === 1
-                                            ? modelData.items[0].label : modelData.label
-                                        color: root.settingsNavigationGroupCollapsed(modelData.id)
-                                            ? Config.textMuted : Config.text
-                                        font.family: Config.settingsFont
-                                        font.pixelSize: Config.settingsUiSize(10)
-                                        font.bold: true
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Text {
-                                        visible: modelData.items.length > 1
-                                        width: visible ? 18 : 0
-                                        height: parent.height
-                                        text: root.settingsNavigationGroupCollapsed(modelData.id) ? "⌄" : "⌃"
-                                        color: Config.textMuted
-                                        font.family: Config.settingsFont
-                                        font.pixelSize: Config.settingsUiSize(12)
-                                        horizontalAlignment: Text.AlignRight
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        if (modelData.items.length === 1)
-                                            root.selectSettingsTab(modelData.items[0].id)
-                                        else
-                                            root.toggleSettingsNavigationGroup(modelData.id)
-                                    }
-                                }
-                            }
-
-                            Column {
-                                id: navigationGroupItems
-                                width: parent.width
-                                spacing: 3
-                                visible: navigationGroupDelegate.modelData.items.length > 1
-                                    && !root.settingsNavigationGroupCollapsed(navigationGroupDelegate.modelData.id)
-                                height: visible ? implicitHeight : 0
-
-                                Repeater {
-                                    model: navigationGroupDelegate.modelData.items
-
-                                    delegate: Item {
-                                        required property var modelData
-                                        width: navigationGroupItems.width
-                                        height: 34
-
-                                        SettingsSubTab {
-                                            anchors.left: parent.left
-                                            anchors.leftMargin: 8
-                                            width: parent.width - 8
-                                            height: 34
-                                            selected: root.isSettingsTabSelected(parent.modelData.id)
-                                            modified: root.settingsTabHasChanges(parent.modelData.id)
-                                            text: parent.modelData.label
-                                            leftAligned: true
-                                            horizontalPadding: 8
-                                            onClicked: root.selectSettingsTab(parent.modelData.id)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                ScrollBar.vertical: SettingsScrollBar {
-                    visible: mainSettingsTabs.contentHeight > mainSettingsTabs.height + 1
-                }
+                host: root
+                navigationGroups: root.settingsNavigationGroups
+                searchQuery: root.settingsSearchQuery
+                searchResults: root.settingsSearchResults
+                onSearchQueryEdited: query => root.updateSettingsSearchResults(query)
             }
 
             SettingsPageContent {
                 id: settingsPageContent
-                width: parent.width - mainSettingsTabs.width - 16
+                width: parent.width - settingsNavigation.width - 16
                 height: parent.height
                 host: root
                 settings: root.settings
@@ -420,120 +338,7 @@ Item {
         }
     }
 
-    // Search results are rendered above the settings pages so they remain
-    // usable regardless of the active page's own Flickable/scroll container.
-    Rectangle {
-        id: settingsSearchPopup
-        z: 1000
-        visible: settingsSearchInput.activeFocus && root.settingsSearchQuery.trim().length > 0
-        x: {
-            var inputPosition = settingsSearchInput.mapToItem(root, 0, 0)
-            return Math.max(8, Math.min(root.width - width - 8, inputPosition.x + settingsSearchInput.width - width))
-        }
-        y: settingsSearchInput.mapToItem(root, 0, 0).y + settingsSearchInput.height + 4
-        width: Math.min(360, root.width - 16)
-        height: Math.min(7 * 46 + 8, Math.max(42, root.settingsSearchResults.length * 46 + 8))
-        color: Config.settingsBackground
-        border.color: Config.accent
-        border.width: 1
-        radius: Config.frameRadius
-        clip: true
-
-        ListView {
-            id: settingsSearchList
-            anchors.fill: parent
-            anchors.margins: 4
-            clip: true
-            spacing: 2
-            ScrollBar.vertical: SettingsScrollBar {
-                visible: root.settingsSearchResults.length > 7
-            }
-            model: root.settingsSearchResults
-            visible: root.settingsSearchResults.length > 0
-            currentIndex: root.settingsSearchSelectedIndex
-
-            delegate: Item {
-                id: searchResultDelegate
-                required property var modelData
-                required property int index
-                width: settingsSearchList.width
-                height: 44
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: 3
-                    color: index === root.settingsSearchSelectedIndex ? Config.accent : "transparent"
-                    border.width: index === root.settingsSearchSelectedIndex ? 1 : 0
-                    border.color: Config.accent
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    anchors.topMargin: 4
-                    anchors.bottomMargin: 4
-                    spacing: 1
-
-                    Text {
-                        width: parent.width
-                        height: 17
-                        text: modelData.label
-                        color: index === root.settingsSearchSelectedIndex ? Config.black : Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11)
-                        font.bold: index === root.settingsSearchSelectedIndex
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                    Text {
-                        width: parent.width
-                        height: 15
-                        text: modelData.navigationGroupLabel + " › " + modelData.pageLabel
-                            + (modelData.group ? " · " + modelData.group : "")
-                        color: index === root.settingsSearchSelectedIndex ? Config.black : Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(9)
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onEntered: root.settingsSearchSelectedIndex = index
-                    onClicked: root.openSettingsSearchResult(modelData)
-                }
-            }
-        }
-
-        Text {
-            anchors.centerIn: parent
-            visible: root.settingsSearchResults.length === 0
-            text: "Ничего не найдено"
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
-        }
-    }
-
-    Rectangle {
-        id: settingsSearchHighlight
-        z: 1100
-        visible: false
-        color: "transparent"
-        border.color: Config.accent
-        border.width: 2
-        radius: 4
-        antialiasing: true
-    }
-
-    Timer {
-        id: settingsSearchHighlightTimer
-        interval: 1600
-        repeat: false
-        onTriggered: settingsSearchHighlight.visible = false
-    }
+    // Search results stay in-place: matching navigation groups, pages,
+    // sub-tabs, section frames and setting controls receive the configured outline.
 
 }

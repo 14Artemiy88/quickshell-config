@@ -14,7 +14,8 @@ Column {
     width: parent ? parent.width : 0
     spacing: 10
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing", "cpuUpdateInterval"] })
@@ -29,10 +30,12 @@ Column {
                 font.pixelSize: Config.settingsUiSize(10)
             }
 
-            Row {
+            SettingsRow {
+                label: "Интервал обновления CPU (мс)"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Интервал обновления CPU (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
                     id: cpuSettingsIntervalField
                     value: Config.cpuUpdateInterval
@@ -50,10 +53,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Направление заполнения полос"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Направление заполнения полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsComboBox {
                     id: cpuBarDirectionCombo
                     width: 170
@@ -67,10 +72,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Толщина полос"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Толщина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuBarThicknessField
             width: 100
@@ -92,10 +99,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Ширина полос"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Ширина полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuBarWidthField
             width: 100
@@ -117,10 +126,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Высота строки"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuRowHeightField
             width: 100
@@ -142,10 +153,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Расстояние между строками"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Расстояние между строками"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuRowSpacingField
             width: 100
@@ -167,10 +180,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Отступ подписи слева"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Отступ подписи слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuLabelPaddingField
             width: 100
@@ -192,10 +207,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Смещение полос слева"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Смещение полос слева"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuBarOffsetField
             width: 100
@@ -217,10 +234,12 @@ Column {
         }
             }
 
-            Row {
+            SettingsRow {
+                label: "Радиус полос"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Радиус полос"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
             id: cpuBarRadiusField
             width: 100
@@ -245,15 +264,19 @@ Column {
 
 
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1
+settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["cpuGraphBarWidth", "cpuGraphMode", "cpuGraphSegmentSlotWidth", "cpuShowRam"] })
         padding: 8
         contentSpacing: 6
 
-            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Режим графика CPU"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Режим графика CPU"
+                labelWidth: 210
+            visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
+                
                 SettingsComboBox {
                     id: cpuGraphModeCombo
                     width: 130
@@ -267,8 +290,11 @@ Column {
                 }
             }
 
-            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Ширина сегмента графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Ширина сегмента графика"
+                labelWidth: 210
+            visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
+                
                 SettingsNumberField {
             id: cpuGraphSlotField
             width: 100
@@ -290,8 +316,11 @@ Column {
         }
             }
 
-            Row { visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Толщина полос графика"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            SettingsRow {
+                label: "Толщина полос графика"
+                labelWidth: 210
+            visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 1; width: parent.width; height: 30; spacing: 8
+                
                 SettingsNumberField {
             id: cpuGraphBarWidthField
             width: 100
@@ -326,7 +355,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: false
         padding: 8
@@ -353,7 +383,8 @@ Column {
 
     // Заголовки: зависимые параметры сгруппированы сразу под переключателем.
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Заголовки"
@@ -399,9 +430,11 @@ Column {
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Основной заголовок"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsTextField {
                         id: topAppsCpuHeaderTitleField
                         width: 180; height: 30
@@ -414,9 +447,11 @@ Column {
                     }
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Подзаголовок"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsTextField {
                         id: topAppsCpuHeaderSubtitleField
                         width: 180; height: 30
@@ -436,9 +471,11 @@ Column {
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Основной заголовок"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Основной заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsTextField {
                         id: topAppsRamHeaderTitleField
                         width: 180; height: 30
@@ -451,9 +488,11 @@ Column {
                     }
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Подзаголовок"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Подзаголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsTextField {
                         id: topAppsRamHeaderSubtitleField
                         width: 180; height: 30
@@ -466,9 +505,11 @@ Column {
                     }
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Размер основного заголовка"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Размер основного заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsNumberField {
                         value: Config.topAppsHeaderTitleFontSize
                         minimum: 6; maximum: 32; step: 1; wheelStep: 1
@@ -478,9 +519,11 @@ Column {
                     }
                 }
 
-                Row {
+                SettingsRow {
+                    label: "Размер подзаголовка"
+                    labelWidth: 210
                     width: parent.width; height: 30; spacing: 8
-                    Text { width: 210; height: 30; text: "Размер подзаголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                    
                     SettingsNumberField {
                         value: Config.topAppsHeaderSubtitleFontSize
                         minimum: 6; maximum: 32; step: 1; wheelStep: 1
@@ -495,7 +538,8 @@ Column {
 
     // Полосы: цвета расположены непосредственно под переключателем показа.
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Положение и размер полос"
@@ -533,20 +577,14 @@ Column {
                     width: parent.width
                     spacing: 6
 
-                    Row {
+                    SettingsRow {
+                        label: "X — положение по горизонтали"
+                        labelWidth: 210
                         visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text {
-                            width: 210
-                            height: 30
-                            text: "X — положение по горизонтали"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                        
                         SettingsNumberField {
                             value: Config.topAppsBarX
                             minimum: 45
@@ -563,20 +601,14 @@ Column {
                         }
                     }
 
-                    Row {
+                    SettingsRow {
+                        label: "Y — смещение по вертикали"
+                        labelWidth: 210
                         visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text {
-                            width: 210
-                            height: 30
-                            text: "Y — смещение по вертикали"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                        
                         SettingsNumberField {
                             value: Config.topAppsBarY
                             minimum: -10
@@ -593,20 +625,14 @@ Column {
                         }
                     }
 
-                    Row {
+                    SettingsRow {
+                        label: "Высота полосы"
+                        labelWidth: 210
                         visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text {
-                            width: 210
-                            height: 30
-                            text: "Высота полосы"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                        
                         SettingsNumberField {
                             value: Config.topAppsBarHeight
                             minimum: 1
@@ -623,20 +649,14 @@ Column {
                         }
                     }
 
-                    Row {
+                    SettingsRow {
+                        label: "Длина полосы"
+                        labelWidth: 210
                         visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                         width: parent.width
                         height: 30
                         spacing: 8
-                        Text {
-                            width: 210
-                            height: 30
-                            text: "Длина полосы"
-                            color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(11)
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                        
                         SettingsNumberField {
                             value: Config.topAppsBarWidth
                             minimum: 1
@@ -671,6 +691,7 @@ Column {
         animationEasing: Config.animationEasingType("standard", Config.topAppsShowBars ? "enter" : "exit")
 
         SettingsGroup {
+        settingsSearchSubTabIndex: 2
             id: topAppsBarColorsGroup
             visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
             width: parent.width
@@ -756,7 +777,8 @@ Column {
 
     // Строка «Система/прочее»: зависимое поле раскрывается под переключателем.
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Строка «Система/прочее»"
@@ -792,14 +814,12 @@ Column {
                 width: parent.width
                 spacing: 6
 
-                Row {
+                SettingsRow {
+                    label: "Название строки остатка"
+                    labelWidth: 210
+                    labelElide: Text.ElideRight
                     width: parent.width; height: 30; spacing: 8
-                    Text {
-                        width: 210; height: 30; text: "Название строки остатка"
-                        color: Config.text; font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
+                    
                     SettingsTextField {
                         id: topAppsSystemRemainderLabelField
                         width: 180; height: 30
@@ -824,7 +844,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
         heading: "Список приложений"
@@ -833,15 +854,13 @@ Column {
         contentSpacing: 6
 
 
-            Row {
+            SettingsRow {
+                label: "Шрифт списка"
+                labelWidth: 210
+                labelElide: Text.ElideRight
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
-                Text {
-                    width: 210; height: 30; text: "Шрифт списка"
-                    color: Config.text; font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
+                
                 SettingsFontField {
                     width: 218
                     height: 30
@@ -856,10 +875,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Размер шрифта списка"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Размер шрифта списка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
                     value: Config.topAppsFontSize
                     minimum: 1; step: 1; wheelStep: 1
@@ -869,10 +890,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Межстрочный интервал"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Межстрочный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
                     value: Config.topAppsRowSpacing
                     minimum: 0; step: 1; wheelStep: 1
@@ -882,10 +905,12 @@ Column {
                 }
             }
 
-            Row {
+            SettingsRow {
+                label: "Отступ от верхнего края"
+                labelWidth: 210
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width; height: 30; spacing: 8
-                Text { width: 210; height: 30; text: "Отступ от верхнего края"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                
                 SettingsNumberField {
                     value: Config.topAppsTopOffset
                     minimum: 0; step: 1; wheelStep: 1

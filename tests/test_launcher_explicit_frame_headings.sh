@@ -54,13 +54,13 @@ def groups(text):
     return result
 
 expected = {
-    "Поведение при открытии": ("root.host && root.host.currentPageSubTabIndex === 0", "id: launcherDefaultModeCombo"),
-    "Окно лаунчера": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherRadius"'),
-    "Элемент списка": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherItemHeight"'),
-    "Заголовок лаунчера": ("root.host && root.host.currentPageSubTabIndex === 0", "id: launcherTitleTextField"),
-    "Строка поиска": ("root.host && root.host.currentPageSubTabIndex === 0", 'targetProperty: "launcherSearchHeight"'),
-    "Сквозной поиск": ("root.host && root.host.currentPageSubTabIndex === 0", "launcherCrossSearchProjects"),
-    "Проекты": ("root.host && root.host.currentPageSubTabIndex === 3", "root.updateProject"),
+    "Поведение при открытии": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 0", "id: launcherDefaultModeCombo"),
+    "Окно лаунчера": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 2", 'targetProperty: "launcherRadius"'),
+    "Элемент списка": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 2", 'targetProperty: "launcherItemHeight"'),
+    "Заголовок лаунчера": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 2", "id: launcherTitleTextField"),
+    "Строка поиска": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 2", 'targetProperty: "launcherSearchHeight"'),
+    "Сквозной поиск": ("root.host && root.host.currentPageId === \"launcher\" && root.host.currentPageSubTabIndex === 3", "launcherCrossSearchProjects"),
+    "Проекты": ("root.host && root.host.currentPageId === \"launcherProjects\"", "root.updateProject"),
 }
 all_groups = groups(source)
 for heading, (guard, control_marker) in expected.items():

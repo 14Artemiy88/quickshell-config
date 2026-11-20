@@ -42,8 +42,11 @@ launcher_row = modules.index('id: launcherModuleRow')
 assert launcher_row > repeater_end
 # Keep the dedicated Launcher tab and its original three subtabs intact.
 registry = (root / 'js/settings/SettingsPageRegistry.js').read_text()
-assert '"Лаунчер"' in registry and '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"] }' in registry
-assert 'visible: host && host.currentPageId === "launcher"' in launcher
+assert '{ id: "launcher", defaultLabel: "Общее", groupId: "launcher" }' in registry
+for page_id in ('launcherSearch', 'launcherTabs', 'launcherProjects', 'launcherActions', 'launcherAnimation', 'launcherApplications'):
+    assert f'groupId: "launcher"' in registry and f'id: "{page_id}"' in registry
+assert 'function isLauncherSettingsPage(pageId)' in launcher
+assert 'root.isLauncherSettingsPage(host.currentPageId)' in launcher
 assert 'property int currentLauncherSubTab' not in launcher
 # Enabling/disabling is persisted and applied, and prevents IPC launches when disabled.
 assert 'property bool launcherEnabled: true' in config

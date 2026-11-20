@@ -50,7 +50,7 @@ for i in range(opening, len(s)):
 assert end is not None, "player text outline morph braces are unbalanced"
 block = s[start:end]
 for token in (
-    'text: "Цвет обводки"',
+    'label: "Цвет обводки"',
     'value: Config.playerTextOutlineColor',
     'targetProperty: "playerTextOutlineColor"',
     'saveOnEdit: true',

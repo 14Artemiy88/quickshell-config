@@ -365,7 +365,7 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "settingsWindow") {
         if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
         if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
-        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings"])
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings"])
     }
     if (scope === "general")
         return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0

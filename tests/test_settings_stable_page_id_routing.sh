@@ -66,6 +66,8 @@ const resetMethods = {
   weather: 'resetWeatherSettings', cava: 'resetCavaSettings', cpuRam: 'resetCpuSettings',
   network: 'resetNetworkSettings', volume: 'resetVolumeSettings', calendar: 'resetCalendarSettings',
   settingsWindow: 'resetSettingsWindow', mopidy: 'resetMopidySettings', launcher: 'resetLauncherSettings',
+  launcherSearch: 'resetLauncherSettings', launcherTabs: 'resetLauncherSettings', launcherProjects: 'resetLauncherSettings',
+  launcherActions: 'resetLauncherSettings', launcherAnimation: 'resetLauncherSettings', launcherApplications: 'resetLauncherSettings',
   notifications: 'resetNotificationsSettings'
 };
 for (const [pageId, method] of Object.entries(resetMethods)) {
@@ -85,8 +87,10 @@ assert(specStart >= 0 && specEnd > specStart, 'dirty-indicator selector accepts 
 const context = {};
 vm.createContext(context);
 vm.runInContext(navigation.slice(specStart, specEnd).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
-for (const page of otherPages)
-  assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
+for (const page of otherPages) {
+  if (page.subTabs.length > 0) assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
+  else assert.strictEqual(registry.saveScopeForPageId(page.id, 0), 'launcher', `${page.id} still uses the shared Launcher save scope`);
+}
 
 console.log(`Settings stable page-ID routing: ${ids.length} pages and ${Object.keys(resetMethods).length} reset routes: OK`);
 NODE

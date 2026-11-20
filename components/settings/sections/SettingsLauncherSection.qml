@@ -6,6 +6,7 @@ import "../primitives"
 import "../../primitives"
 import "../../../js/settings/SettingsLauncherActions.js" as LauncherActions
 import "../../../js/launcher/LauncherAppPreferences.js" as LauncherAppPreferences
+import "../../../js/launcher/LauncherBuiltinActions.js" as LauncherBuiltinActions
 
 Column {
     id: root
@@ -14,7 +15,11 @@ Column {
     property var settings: Settings
     property string applicationPreferenceSearch: ""
 
-    visible: host && host.currentPageId === "launcher"
+    function isLauncherSettingsPage(pageId) {
+        return ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"].indexOf(String(pageId || "")) >= 0
+    }
+
+    visible: host && root.isLauncherSettingsPage(host.currentPageId)
     width: parent ? parent.width : 0
     spacing: 10
 
@@ -151,6 +156,17 @@ Column {
         return field === "enabled" ? !!list[index][field] : String(list[index][field] === undefined ? "" : list[index][field])
     }
 
+    function builtinActionEnabled(actionId) {
+        return LauncherBuiltinActions.isEnabled(Config.launcherDisabledBuiltinActions, actionId)
+    }
+
+    function setBuiltinActionEnabled(actionId, enabled) {
+        Config.launcherDisabledBuiltinActions = LauncherBuiltinActions.setEnabled(
+            Config.launcherDisabledBuiltinActions, actionId, enabled
+        )
+        root.settings.save()
+    }
+
     function setLauncherAppPreference(kind, appId, enabled) {
         var favorites = LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps)
         var hidden = LauncherAppPreferences.normalizeIds(Config.launcherHiddenApps)
@@ -204,7 +220,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 0
+        settingsSearchSubTabIndex: 0
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherDefaultMode", "launcherShowResultCount"] })
@@ -212,21 +231,12 @@ Column {
         padding: 8
         contentSpacing: 7
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Вкладка по умолчанию"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Вкладка по умолчанию"
             SettingsComboBox {
                 id: launcherDefaultModeCombo
                 width: 235
@@ -246,21 +256,12 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Показывать счётчик RESULTS"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Показывать счётчик RESULTS"
             SettingsCheckBox {
                 id: launcherResultCountCheckBox
                 width: 58
@@ -282,7 +283,299 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 1
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 1
+        settingsSearchSubTabIndex: 1
+
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherVimKeybinds"] })
+        heading: "Клавиатурная навигация"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsRow {
+            width: parent.width
+            height: 34
+            spacing: 8
+            labelWidth: 190
+            label: "Vim-сочетания клавиш"
+            SettingsCheckBox {
+                id: launcherVimKeybindsCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherVimKeybinds
+                onToggled: {
+                    Config.launcherVimKeybinds = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherVimKeybindsChanged() {
+                        launcherVimKeybindsCheckBox.checked = Config.launcherVimKeybinds
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Ctrl+J или Ctrl+N — следующий результат; Ctrl+K или Ctrl+P — предыдущий. Стрелки и переключение вкладок через Tab остаются без изменений. Vim-сочетания по умолчанию выключены."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 1
+        settingsSearchSubTabIndex: 1
+
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherShowNavigationHints", "launcherNavigationHintsHeight", "launcherNavigationHintsFontSize", "launcherNavigationHintsTextY"] })
+        heading: "Панель подсказок"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsRow {
+            width: parent.width
+            height: 34
+            spacing: 8
+            labelWidth: 190
+            label: "Отображать панель подсказок"
+            SettingsCheckBox {
+                id: launcherShowNavigationHintsCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherShowNavigationHints
+                onToggled: {
+                    Config.launcherShowNavigationHints = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherShowNavigationHintsChanged() {
+                        launcherShowNavigationHintsCheckBox.checked = Config.launcherShowNavigationHints
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: launcherNavigationHintsControlsClip
+            width: parent.width
+            height: Config.launcherShowNavigationHints ? launcherNavigationHintsControls.implicitHeight : 0
+            opacity: Config.launcherShowNavigationHints ? 1 : 0
+            clip: true
+            enabled: Config.launcherShowNavigationHints
+
+            Behavior on height {
+                NumberAnimation {
+                    duration: Config.animationDuration(180, "size")
+                    easing.type: Config.easingType()
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Config.animationDuration(140, "appearance")
+                    easing.type: Config.easingType()
+                }
+            }
+
+            Column {
+                id: launcherNavigationHintsControls
+                width: parent.width
+                spacing: 6
+
+                SettingsRow {
+                    width: parent.width
+                    height: 34
+                    spacing: 8
+                    labelWidth: 190
+                    label: "Высота панели"
+                    SettingsNumberField {
+                        width: 100
+                        compact: true
+                        fieldWidth: 100
+                        value: Config.launcherNavigationHintsHeight
+                        minimum: 0
+                        maximum: 48
+                        step: 1
+                        wheelStep: 1
+                        targetObject: Config
+                        targetProperty: "launcherNavigationHintsHeight"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                    }
+                }
+
+                SettingsRow {
+                    width: parent.width
+                    height: 34
+                    spacing: 8
+                    labelWidth: 190
+                    label: "Размер шрифта"
+                    SettingsNumberField {
+                        width: 100
+                        compact: true
+                        fieldWidth: 100
+                        value: Config.launcherNavigationHintsFontSize
+                        minimum: 8
+                        maximum: 18
+                        step: 1
+                        wheelStep: 1
+                        targetObject: Config
+                        targetProperty: "launcherNavigationHintsFontSize"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                    }
+                }
+
+                SettingsRow {
+                    width: parent.width
+                    height: 34
+                    spacing: 8
+                    labelWidth: 190
+                    label: "Смещение текста по Y"
+                    SettingsNumberField {
+                        width: 100
+                        compact: true
+                        fieldWidth: 100
+                        value: Config.launcherNavigationHintsTextY
+                        minimum: -48
+                        maximum: 48
+                        step: 1
+                        wheelStep: 1
+                        targetObject: Config
+                        targetProperty: "launcherNavigationHintsTextY"
+                        settingsObject: root.settings
+                        saveOnEdit: true
+                    }
+                }
+
+                Text {
+                    width: parent.width
+                    text: "Высота задаёт размер нижней панели. Смещение Y перемещает подписи относительно центра; настройки действуют только на Launcher."
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(9)
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+        objectName: "settings-search-page:launcherActions"
+        visible: root.host && root.host.currentPageId === "launcherActions" && root.host.currentPageSubTabIndex === 0
+        settingsSearchSubTabIndex: 0
+
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ arrayContains: { launcherDisabledBuiltinActions: [
+            "tab.apps", "tab.run", "tab.windows", "tab.clipboard", "tab.power",
+            "tab.network", "tab.packages", "tab.pass", "tab.projects", "tab.calculator"
+        ] } })
+        heading: "Переходы между вкладками"
+        padding: 8
+        contentSpacing: 7
+
+        Text {
+            width: parent.width
+            text: "Отключённые пункты исчезают из командного поиска >. Сами вкладки остаются доступны через панель вкладок. Каталог пользовательских действий : не затрагивается."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        Repeater {
+            model: LauncherBuiltinActions.tabActions
+            delegate: SettingsRow {
+                required property var modelData
+                width: parent.width
+                height: 32
+                spacing: 8
+                labelWidth: 235
+                label: modelData.label
+                SettingsCheckBox {
+                    id: builtinTabActionCheckBox
+                    width: 58
+                    height: 30
+                    indicatorOnly: true
+                    checked: root.builtinActionEnabled(modelData.id)
+                    onToggled: root.setBuiltinActionEnabled(modelData.id, checked)
+                    Connections {
+                        target: Config
+                        function onLauncherDisabledBuiltinActionsChanged() {
+                            builtinTabActionCheckBox.checked = root.builtinActionEnabled(modelData.id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+        objectName: "settings-search-page:launcherActions"
+        visible: root.host && root.host.currentPageId === "launcherActions" && root.host.currentPageSubTabIndex === 1
+        settingsSearchSubTabIndex: 1
+
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ arrayContains: { launcherDisabledBuiltinActions: [
+            "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic"
+        ] } })
+        heading: "Инструменты"
+        padding: 8
+        contentSpacing: 7
+
+        Text {
+            width: parent.width
+            text: "Отключённые инструменты и их подкоманды исчезают из командного поиска >. Сами инструменты и их данные не удаляются. Чтобы вернуть команду, снова включите её здесь. Каталог пользовательских действий : не затрагивается."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        Repeater {
+            model: LauncherBuiltinActions.toolActions
+            delegate: SettingsRow {
+                required property var modelData
+                width: parent.width
+                height: 32
+                spacing: 8
+                labelWidth: 235
+                label: modelData.label
+                SettingsCheckBox {
+                    id: builtinToolActionCheckBox
+                    width: 58
+                    height: 30
+                    indicatorOnly: true
+                    checked: root.builtinActionEnabled(modelData.id)
+                    onToggled: root.setBuiltinActionEnabled(modelData.id, checked)
+                    Connections {
+                        target: Config
+                        function onLauncherDisabledBuiltinActionsChanged() {
+                            builtinToolActionCheckBox.checked = root.builtinActionEnabled(modelData.id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    SettingsGroup {
+        objectName: "settings-search-page:launcherSearch"
+        visible: root.host && root.host.currentPageId === "launcherSearch" && root.host.currentPageSubTabIndex === 0
+        settingsSearchSubTabIndex: 0
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherFuzzySearchApps"] })
@@ -290,21 +583,12 @@ Column {
         padding: 8
         contentSpacing: 5
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 32
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Нечёткий поиск"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Нечёткий поиск"
             SettingsCheckBox {
                 id: launcherFuzzySearchAppsCheckBox
                 width: 58
@@ -335,7 +619,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 1
+        objectName: "settings-search-page:launcherSearch"
+        visible: root.host && root.host.currentPageId === "launcherSearch" && root.host.currentPageSubTabIndex === 1
+        settingsSearchSubTabIndex: 1
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherFuzzySearchActions"] })
@@ -343,21 +630,12 @@ Column {
         padding: 8
         contentSpacing: 5
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 32
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Нечёткий поиск действий"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Нечёткий поиск действий"
             SettingsCheckBox {
                 id: launcherFuzzySearchActionsCheckBox
                 width: 58
@@ -379,7 +657,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Включено: пользовательские действия ищутся по непоследовательным буквам в названии, описании и команде. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в Apps и палитре >."
+            text: "Включено: пользовательские действия ищутся по непоследовательным буквам в названии, описании и команде. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в обычном поиске Apps и отдельном каталоге пользовательских действий `:`."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(9)
@@ -389,7 +667,10 @@ Column {
 
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 1
+        objectName: "settings-search-page:launcherSearch"
+        visible: root.host && root.host.currentPageId === "launcherSearch" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherFuzzySearchSchemes"] })
@@ -397,19 +678,12 @@ Column {
         padding: 8
         contentSpacing: 5
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 32
             spacing: 8
-            Text {
-                width: 190
-                height: 30
-                text: "Нечёткий поиск тем"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            labelWidth: 190
+            label: "Нечёткий поиск тем"
             SettingsCheckBox {
                 id: launcherFuzzySearchSchemesCheckBox
                 width: 58
@@ -440,7 +714,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 1
+        objectName: "settings-search-page:launcherSearch"
+        visible: root.host && root.host.currentPageId === "launcherSearch" && root.host.currentPageSubTabIndex === 3
+        settingsSearchSubTabIndex: 3
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherFuzzySearchWallpapers"] })
@@ -448,19 +725,12 @@ Column {
         padding: 8
         contentSpacing: 5
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 32
             spacing: 8
-            Text {
-                width: 190
-                height: 30
-                text: "Нечёткий поиск обоев"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
+            labelWidth: 190
+            label: "Нечёткий поиск обоев"
             SettingsCheckBox {
                 id: launcherFuzzySearchWallpapersCheckBox
                 width: 58
@@ -491,7 +761,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcherSearch"
+        visible: root.host && root.host.currentPageId === "launcherSearch" && root.host.currentPageSubTabIndex === 3
+        settingsSearchSubTabIndex: 3
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherWallpaperDirectory"] })
@@ -499,24 +772,15 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Папка с изображениями"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Папка с изображениями"
             SettingsTextField {
                 id: launcherWallpaperDirectoryField
-                width: Math.max(120, parent.width - 198)
+                width: Math.max(120, parent.width)
                 height: 30
                 text: Config.launcherWallpaperDirectory
                 placeholderText: "~/Pictures/Wallpapers"
@@ -548,7 +812,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherBackdropOpacity", "launcherBackground", "launcherRadius"] })
@@ -556,21 +823,12 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Скругление окна"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Скругление окна"
             SettingsNumberField {
                 width: 100
                 compact: true
@@ -587,21 +845,12 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Затемнение фона"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Затемнение фона"
             SettingsNumberField {
                 width: 100
                 compact: true
@@ -636,7 +885,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherItemHeight", "launcherItemRadius"] })
@@ -644,21 +896,12 @@ Column {
         padding: 8
         contentSpacing: 7
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Высота элемента списка"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Высота элемента списка"
             SettingsNumberField {
                 width: 100
                 compact: true
@@ -675,21 +918,12 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-
-            Text {
-                width: 190
-                height: 30
-                text: "Скругление элементов"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-
+            labelWidth: 190
+            label: "Скругление элементов"
             SettingsNumberField {
                 width: 100
                 compact: true
@@ -708,7 +942,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] })
@@ -716,14 +953,15 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Текст заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Текст заголовка"
             SettingsTextField {
                 id: launcherTitleTextField
-                width: Math.min(260, parent.width - 198)
+                width: Math.min(260, parent.width)
                 height: 30
                 text: Config.launcherTitleText
                 color: Config.text
@@ -738,16 +976,17 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Шрифт заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Шрифт заголовка"
             SettingsFontField {
-                width: parent.width - 198
+                width: parent.width
                 height: 30
                 compact: true
-                fieldWidth: Math.max(80, Math.min(222, parent.width - 236))
+                fieldWidth: Math.max(80, Math.min(222, parent.width - 38))
                 fieldFontSize: 11
                 value: Config.launcherTitleFont
                 targetObject: Config
@@ -757,19 +996,21 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Размер шрифта заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Размер шрифта заголовка"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleFontSize; minimum: 6; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleFontSize"; settingsObject: root.settings; saveOnEdit: true }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Положение Y заголовка"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Положение Y заголовка"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleY; minimum: -40; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleY"; settingsObject: root.settings; saveOnEdit: true }
         }
 
@@ -787,19 +1028,21 @@ Column {
             fieldWidth: 120
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Межбуквенный интервал"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Межбуквенный интервал"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherTitleLetterSpacing; minimum: 0; maximum: 12; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherTitleLetterSpacing"; settingsObject: root.settings; saveOnEdit: true }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Жирный заголовок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Жирный заголовок"
             SettingsCheckBox {
                 id: launcherTitleBoldCheckBox
                 width: 58; height: 30; indicatorOnly: true
@@ -811,7 +1054,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius"] })
@@ -819,16 +1065,17 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Шрифт поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Шрифт поиска"
             SettingsFontField {
-                width: parent.width - 198
+                width: parent.width
                 height: 30
                 compact: true
-                fieldWidth: Math.max(80, Math.min(222, parent.width - 236))
+                fieldWidth: Math.max(80, Math.min(222, parent.width - 38))
                 fieldFontSize: 11
                 value: Config.launcherSearchFont
                 targetObject: Config
@@ -838,14 +1085,15 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Плейсхолдер поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Плейсхолдер поиска"
             SettingsTextField {
                 id: launcherSearchPlaceholderField
-                width: Math.min(260, parent.width - 198)
+                width: Math.min(260, parent.width)
                 height: 30
                 text: Config.launcherSearchPlaceholder
                 placeholderText: "Текст-подсказка"
@@ -857,27 +1105,30 @@ Column {
             }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Размер шрифта поиска"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Размер шрифта поиска"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchFontSize; minimum: 8; maximum: 40; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherSearchFontSize"; settingsObject: root.settings; saveOnEdit: true }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Высота строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Высота строки"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchHeight; minimum: 36; maximum: 100; step: 2; wheelStep: 2; targetObject: Config; targetProperty: "launcherSearchHeight"; settingsObject: root.settings; saveOnEdit: true }
         }
 
-        Row {
+        SettingsRow {
             width: parent.width
             height: 34
             spacing: 8
-            Text { width: 190; height: 30; text: "Скругление строки"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            labelWidth: 190
+            label: "Скругление строки"
             SettingsNumberField { width: 100; compact: true; fieldWidth: 100; value: Config.launcherSearchRadius; minimum: 0; maximum: 36; step: 1; wheelStep: 1; targetObject: Config; targetProperty: "launcherSearchRadius"; settingsObject: root.settings; saveOnEdit: true }
         }
 
@@ -897,7 +1148,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 0
+        objectName: "settings-search-page:launcher"
+        visible: root.host && root.host.currentPageId === "launcher" && root.host.currentPageSubTabIndex === 3
+        settingsSearchSubTabIndex: 3
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] })
@@ -934,7 +1188,9 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 2
+        objectName: "settings-search-page:launcherTabs"
+        visible: root.host && root.host.currentPageId === "launcherTabs"
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons"] })
@@ -1083,7 +1339,9 @@ Column {
 
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 3
+        objectName: "settings-search-page:launcherProjects"
+        visible: root.host && root.host.currentPageId === "launcherProjects"
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherProjects"] })
@@ -1221,7 +1479,10 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 4
+        objectName: "settings-search-page:launcherActions"
+        visible: root.host && root.host.currentPageId === "launcherActions" && root.host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherCustomActions"] })
@@ -1231,7 +1492,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Действия доступны в обычном поиске Apps и через префикс > с любой вкладки Launcher. Для включённого действия обязательны название и команда; краткое описание можно оставить пустым. Новая запись создаётся с пустыми полями: подсказки внутри полей показывают, что нужно ввести. При сохранении любого поля проверяются название и команда. Незаполненное обязательное поле подсвечивается мягкой красной рамкой, а сохранение блокируется до исправления. Команда запускается через Zsh от имени текущего пользователя. Добавляйте только команды, которым доверяете."
+            text: "Действия доступны в обычном поиске Apps и через префикс : с любой вкладки Launcher. Для включённого действия обязательны название и команда; краткое описание можно оставить пустым. Новая запись создаётся с пустыми полями: подсказки внутри полей показывают, что нужно ввести. При сохранении любого поля проверяются название и команда. Незаполненное обязательное поле подсвечивается мягкой красной рамкой, а сохранение блокируется до исправления. Команда запускается через Zsh от имени текущего пользователя. Добавляйте только команды, которым доверяете."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(9)
@@ -1442,7 +1703,9 @@ Column {
     }
 
     SettingsAnimationGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 5
+        objectName: "settings-search-page:launcherAnimation"
+        visible: root.host && root.host.currentPageId === "launcherAnimation"
+
         width: parent.width
         settings: root.settings
         heading: "Внутренние переходы лаунчера"
@@ -1461,7 +1724,9 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 6
+        objectName: "settings-search-page:launcherApplications"
+        visible: root.host && root.host.currentPageId === "launcherApplications"
+
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherFavoriteApps", "launcherHiddenApps"] })

@@ -63,9 +63,24 @@ overrides({colors:{settingsBackground:'#202020'}});
 assert.strictEqual(has('keys', spec('settingsWindow',1)), true, 'nested settings background marks the Settings Window subtab');
 overrides({moduleBlurEnabled:{settings:true}});
 assert.strictEqual(has('keys', spec('settingsWindow',1)), true, 'nested settings blur marks the Settings Window subtab');
+// Shared Launcher disabled-action array must light only the matching subtab.
+overrides({launcherDisabledBuiltinActions:['tab.apps']});
+assert.strictEqual(has('keys', spec('launcherActions',0)), true, 'Launcher transitions subtab sees its own disabled tab action');
+assert.strictEqual(has('keys', spec('launcherActions',1)), false, 'Launcher tools subtab ignores a transitions-only change');
+overrides({launcherDisabledBuiltinActions:['tool.emoji']});
+assert.strictEqual(has('keys', spec('launcherActions',0)), false, 'Launcher transitions subtab ignores a tools-only change');
+assert.strictEqual(has('keys', spec('launcherActions',1)), true, 'Launcher tools subtab sees its own disabled tool');
+overrides({launcherDisabledBuiltinActions:['tab.network','tool.wallpapers']});
+assert.strictEqual(has('keys', spec('launcherActions',0)), true, 'Launcher transitions subtab detects its entries in a mixed override');
+assert.strictEqual(has('keys', spec('launcherActions',1)), true, 'Launcher tools subtab detects its entries in a mixed override');
+overrides({launcherDisabledBuiltinActions:[]});
+assert.strictEqual(has('keys', spec('launcherActions',0)), false, 'empty disabled-action array does not mark transitions');
+assert.strictEqual(has('keys', spec('launcherActions',1)), false, 'empty disabled-action array does not mark tools');
 overrides({colors:{topAppsCpuBarColor:'#123456'}});
 const cpuSection = fs.readFileSync(path.join(base,'components/settings/sections/SettingsCpuRamSection.qml'),'utf8');
 assert(cpuSection.includes('changeKeys: ({ nested: { colors: ["topAppsCpuBarColor"'), 'Top Apps color frame detects colors stored in the nested color map');
+const launcherSection = fs.readFileSync(path.join(base,'components/settings/sections/SettingsLauncherSection.qml'),'utf8');
+assert((launcherSection.match(/changeKeys: \(\{ arrayContains: \{ launcherDisabledBuiltinActions:/g) || []).length === 2, 'Launcher built-in frames use separate action-array selectors');
 
 // Frame indicators opt into precise keys; headings render the marker only when modified.
 assert(group.includes('property var changeKeys: null'), 'SettingsGroup exposes optional change selector');

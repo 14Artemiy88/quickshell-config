@@ -35,7 +35,8 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 7
+                visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 7
+settingsSearchSubTabIndex: 7
         width: parent.width
         showFrame: true
         heading: "Что управляется"

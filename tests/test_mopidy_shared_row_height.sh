@@ -13,6 +13,6 @@ assert 'height: Config.mopidyTrackRowHeight' in browser[browser.index('id: brows
 playlists_start = library.index('model: controller.playlists')
 playlists_end = library.index('text: "Плейлистов нет"', playlists_start)
 assert 'height: Config.mopidyTrackRowHeight' in library[playlists_start:playlists_end]
-assert 'text: "Высота строки списка"' in settings
+assert 'label: "Высота строки списка"' in settings
 print('Mopidy shared row height: OK')
 PYCODE

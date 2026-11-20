@@ -17,7 +17,7 @@ from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text()
 start = s.index('id: cavaHideZeroBarsMorph')
-end = s.index('\n        }\n\n\n\n        Row {', start)
+end = s.index('\n        SettingsRow {\n            id: cavaFramerateField', start)
 block = s[start:end]
 assert block.count('visible:') == 1, 'only MorphGeometry should control the row visibility'
 assert 'id: cavaHideZeroBarsContent' in block

@@ -123,3 +123,75 @@ function search(entries, query, limit) {
         result.push(matches[j].entry)
     return result
 }
+
+
+
+// Return the next matching entry index for one already-open page. Cycling stays
+// inside the current page so keyboard navigation never silently changes pages.
+function cycleIndex(entries, pageId, currentId, direction) {
+    var source = entries || []
+    var page = String(pageId || "")
+    var current = String(currentId || "")
+    var step = Number(direction) < 0 ? -1 : 1
+    var indices = []
+
+    for (var i = 0; i < source.length; ++i) {
+        if (String(source[i].pageId || "") === page)
+            indices.push(i)
+    }
+
+    if (indices.length === 0)
+        return -1
+
+    var localIndex = -1
+    for (var j = 0; j < indices.length; ++j) {
+        if (String(source[indices[j]].id || "") === current) {
+            localIndex = j
+            break
+        }
+    }
+
+    if (localIndex < 0)
+        return step > 0 ? indices[0] : indices[indices.length - 1]
+
+    var nextLocalIndex = (localIndex + step + indices.length) % indices.length
+    return indices[nextLocalIndex]
+}
+
+// Explain why an indexed settings control matched the current query. This is
+// used by hover tooltips on highlighted controls and their containing frames.
+function explainMatch(entry, query) {
+    if (!entry)
+        return "Совпадение по настройке"
+    var tokens = words(query)
+    var label = normalize(entry.label || "")
+    var keywords = normalize(entry.keywords || "")
+    var targetKey = normalize(entry.targetKey || "")
+    var page = normalize(entry.pageLabel || entry.pageId || "")
+    var group = normalize(entry.group || entry.navigationGroupLabel || "")
+    var aliases = normalize(entry.keyTerms || "")
+    var reasons = []
+
+    for (var i = 0; i < tokens.length; ++i) {
+        var token = tokens[i]
+        var reason = ""
+        if (label.indexOf(token) >= 0)
+            reason = "название «" + String(entry.label || "настройка") + "»"
+        else if (keywords.indexOf(token) >= 0)
+            reason = "поисковая метка «" + token + "»"
+        else if (targetKey.indexOf(token) >= 0)
+            reason = "имя параметра «" + humanizeKey(entry.targetKey || "") + "»"
+        else if (page.indexOf(token) >= 0)
+            reason = "страница «" + String(entry.pageLabel || entry.pageId || "") + "»"
+        else if (group.indexOf(token) >= 0)
+            reason = "группа «" + String(entry.group || entry.navigationGroupLabel || "") + "»"
+        else if (aliases.indexOf(token) >= 0)
+            reason = "синоним «" + token + "»"
+        if (reason.length > 0 && reasons.indexOf(reason) < 0)
+            reasons.push(reason)
+    }
+
+    return reasons.length > 0
+        ? "Совпало по: " + reasons.join("; ")
+        : "Совпадение найдено по связанным терминам"
+}

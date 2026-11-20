@@ -27,7 +27,7 @@ grep -Fq 'if (o.topAppsShowSystemRemainder !== undefined) Config.topAppsShowSyst
 grep -Fq 'Config.topAppsSystemRemainderLabel = remainderLabel || "Система/прочее"' "$apply" || fail 'label restore/sanitization fallback is missing'
 grep -Fq 'text: "Показывать строку «Система/прочее»"' "$ui" || fail 'visibility checkbox is missing'
 grep -Fq 'Config.topAppsShowSystemRemainder = checked; settings.save()' "$ui" || fail 'visibility checkbox does not persist'
-grep -Fq 'text: "Название строки остатка"' "$ui" || fail 'custom label field is missing'
+grep -Fq 'label: "Название строки остатка"' "$ui" || fail 'custom label row is missing'
 grep -Fq 'Config.topAppsSystemRemainderLabel = text.replace' "$ui" || fail 'custom label field does not sanitize and save'
 grep -Fq 'Config.topAppsShowSystemRemainder ? "1" : "0"' "$service" || fail 'service does not forward visibility option'
 grep -Fq 'Config.topAppsSystemRemainderLabel' "$service" || fail 'service does not forward custom label'
