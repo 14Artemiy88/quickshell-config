@@ -6,6 +6,8 @@ TextField {
     id: root
 
     property bool pointerHovered: hoverArea.containsMouse
+    // Optional validation state shared by text fields across settings pages.
+    property bool validationFailed: false
 
     function clearSettingsFocus() {
         var item = parent
@@ -34,11 +36,10 @@ TextField {
 
     background: Rectangle {
         color: Config.settingsBackground
-        border.color:
-            (root.activeFocus || root.pointerHovered)
-            ? Config.accent
-            : Config.baseColor
-        border.width: 1
+        border.color: root.validationFailed
+            ? ((root.activeFocus || root.pointerHovered) ? "#ff6666" : "#ff9999")
+            : ((root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor)
+        border.width: root.validationFailed ? Math.max(1, Config.frameBorderWidth) : 1
         radius: 4
     }
 }

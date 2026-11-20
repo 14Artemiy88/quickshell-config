@@ -15,12 +15,12 @@ CPU="$ROOT/components/settings/sections/SettingsCpuRamSection.qml"
 
 # Default sidebar order keeps Mopidy directly below Player; stable tab IDs preserve internal routing.
 grep -Fq '"player", "mopidy", "weather"' "$ROOT/Config.qml"
-grep -Fq 'model: root.settingsNavigationItems' "$WIDGET"
+grep -Fq 'model: root.settingsNavigationGroups' "$WIDGET"
 grep -Fq 'function isSettingsTabSelected(id)' "$WIDGET"
 grep -Fq 'root.currentPageId === String(id)' "$NAVIGATION"
-grep -Fq 'onClicked: root.selectSettingsTab(modelData.id)' "$WIDGET"
-grep -Fq '{ id: "mopidy", defaultLabel: "Mopidy" }' "$REGISTRY"
-grep -Fq '{ id: "launcher", defaultLabel: "Лаунчер" }' "$REGISTRY"
+grep -Fq 'onClicked: root.selectSettingsTab(parent.modelData.id)' "$WIDGET"
+grep -Fq '{ id: "mopidy", defaultLabel: "Mopidy", groupId: "modules" }' "$REGISTRY"
+grep -Fq '{ id: "launcher", defaultLabel: "Лаунчер", groupId: "launcher" }' "$REGISTRY"
 
 # Calendar controls are split into separate, visibility-scoped subtabs.
 grep -Fq '{ id: "calendar", saveScope: "calendar", subTabs: ["Разметка", "Цвета", "Метки заметок", "Анимации"] }' "$REGISTRY"
@@ -75,8 +75,9 @@ grep -Fq 'id: volumeVerticalPaddingField' "$VOLUME"
 grep -Fq 'id: volumeStreamTrackOffsetField' "$VOLUME"
 grep -Fq 'text: "Адаптивные блоки"' "$VOLUME"
 grep -Fq 'visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5' "$VOLUME"
-grep -Fq 'heading: "Анимация списка потоков"' "$VOLUME"
-grep -Fq 'targetProperty: "volumeStreamsAnimationDuration"' "$VOLUME"
+grep -Fq 'heading: "Внутренние переходы списка потоков"' "$VOLUME"
+grep -Fq 'duration: Config.volumeStreamsAnimationDuration' "$VOLUME"
+grep -Fq 'profile: Config.animationVolumeMorphProfile' "$VOLUME"
 
 # Settings Window controls must use the actual section id and avoid repeated tab headings.
 ! grep -Fq 'root.settings' "$WINDOW"

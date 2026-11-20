@@ -15,7 +15,7 @@ for token in \
     'opacity: forecastHighTemperatureMorph.normalizedProgress' \
     'opacity: forecastLowTemperatureMorph.normalizedProgress' \
     'animationDuration: root.forecastMorphDuration' \
-    'Config.animationEasingType("standard"'; do
+    'Config.animationEasingType(Config.animationWeatherMorphProfile'; do
     grep -Fq "$token" "$QML" || fail "missing $token"
 done
 

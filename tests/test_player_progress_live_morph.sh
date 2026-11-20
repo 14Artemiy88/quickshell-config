@@ -11,8 +11,8 @@ for token in \
     'progress: Config.playerShowProgress ? 1 : 0' \
     'visible: Config.playerShowProgress || normalizedProgress > 0.001' \
     'enabled: Config.playerShowProgress' \
-    'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", Config.playerShowProgress ? "enter" : "exit")' \
+    'animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")' \
+    'animationEasing: Config.animationEasingType(Config.animationPlayerMorphProfile, Config.playerShowProgress ? "enter" : "exit")' \
     'opacity: playerProgressMorph.normalizedProgress' \
     'scale: 0.96 + 0.04 * playerProgressMorph.normalizedProgress' \
     'anchors.fill: parent' \

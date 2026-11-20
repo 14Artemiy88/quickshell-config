@@ -33,14 +33,14 @@ grep -Fq 'ToolTip.text: modelData.label' "$LAUNCHER"
 grep -Fq 'return tabs[i].label' "$LAUNCHER"
 grep -Fq 'var labels = Config.launcherTabLabels instanceof Array' "$LAUNCHER"
 grep -Fq 'var icons = Config.launcherTabIcons instanceof Array' "$LAUNCHER"
-grep -Fq '"launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"' "$RESETS"
+grep -Fq '"launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects", "launcherCustomActions"' "$RESETS"
 grep -Fq 'if (profile.launcherTabLabels === undefined) config.launcherTabLabels' "$RESETS"
 grep -Fq 'if (profile.launcherTabIcons === undefined) config.launcherTabIcons' "$RESETS"
 
 # Player keeps the seven original settings subtabs; this task is specifically for the launcher.
 ! grep -Fq 'playerSettingsTabLabels' "$CONFIG"
 ! grep -Fq 'playerSettingsTabIcons' "$CONFIG"
-grep -Fq '{ id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"] }' "$REGISTRY"
+grep -Fq '{ id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон", "Анимация"] }' "$REGISTRY"
 ! grep -Fq 'playerSettingsTabLabel' "$WIDGET"
 
 python3 - "$CONFIG" "$DEFAULTS" <<'PY'

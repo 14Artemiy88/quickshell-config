@@ -66,8 +66,9 @@ Item {
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
             toGeometry: Qt.rect(0, 0, parent.width, 31)
             progress: controller.fileFilterOpen ? 1 : 0
-            animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", controller.fileFilterOpen ? "enter" : "exit")
+            animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+            animationProfile: Config.animationMopidyMorphProfile
+            animationPhase: controller.fileFilterOpen ? "enter" : "exit"
 
             Column {
                 width: parent.width

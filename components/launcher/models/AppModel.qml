@@ -1,11 +1,22 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "../../../"
+import "../../../js/launcher/LauncherAppSearch.js" as LauncherAppSearch
+import "../../../js/launcher/LauncherAppPreferences.js" as LauncherAppPreferences
 
 Item {
     id: root
 
     property string query: ""
+
+    // Bind directly to the live ObjectModel values. Quickshell documents this
+    // as the reactive list view: it updates when DesktopEntries inserts or
+    // removes application entries, without taking a one-time JS snapshot.
+    readonly property int desktopEntryCount: DesktopEntries.applications.values.length
+
+    readonly property var specialSearch: LauncherAppSearch.parseSpecialQuery(root.query)
+    readonly property bool fuzzySearchEnabled: Config.launcherFuzzySearchApps !== false
 
     // How many applications to show when there is no search query.
     property int emptyQueryLimit: 8
@@ -15,6 +26,14 @@ Item {
 
     // Most recently launched applications, newest first.
     property var recentApplications: []
+    readonly property var favoriteAppIds: LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps || [])
+    readonly property var hiddenAppIds: LauncherAppPreferences.normalizeIds(Config.launcherHiddenApps || [])
+
+    // Categories are discovered from installed desktop entries and exposed
+    // only for the bare `@c` browser in the Apps result list.
+    readonly property var availableCategories: LauncherAppSearch.collectCategories(
+        DesktopEntries.applications.values || [], root.hiddenAppIds
+    )
 
     Process {
         id: usageHistoryProcess
@@ -84,84 +103,21 @@ Item {
      * тем выше score.
      */
     function fuzzyScore(text, query) {
-        text = normalize(text);
-        query = normalize(query);
-
-        if (query === "")
-            return 0;
-
-        if (text === query)
-            return 10000;
-
-        if (text.startsWith(query))
-            return 9000 - text.length;
-
-        if (text.includes(query))
-            return 8000 - text.indexOf(query);
-
-        let score = 0;
-        let position = 0;
-        let firstMatch = -1;
-        let previousMatch = -1;
-
-        for (let i = 0; i < query.length; ++i) {
-            const character = query[i];
-
-            const found = text.indexOf(character, position);
-
-            if (found === -1)
-                return -1;
-
-            if (firstMatch === -1)
-                firstMatch = found;
-
-            /*
-             * Бонус за последовательные символы.
-             *
-             * Например:
-             *
-             *   ff -> Firefox
-             *
-             * второй f находится недалеко от первого.
-             */
-            if (previousMatch >= 0) {
-                const gap = found - previousMatch - 1;
-
-                if (gap === 0)
-                    score += 500;
-                else
-                    score += Math.max(0, 200 - gap * 30);
-            }
-
-            /*
-             * Бонус за совпадение с началом слова.
-             *
-             * firefox
-             * ^ ^
-             */
-            if (found === 0 || text[found - 1] === " " || text[found - 1] === "-" || text[found - 1] === "_" || text[found - 1] === ".") {
-                score += 300;
-            }
-
-            /*
-             * Чем раньше начинается совпадение,
-             * тем лучше.
-             */
-            score += Math.max(0, 200 - found * 10);
-
-            previousMatch = found;
-            position = found + 1;
-        }
-
-        /*
-         * Небольшой бонус за короткое имя.
-         */
-        score += Math.max(0, 100 - text.length);
-
-        return score;
+        return LauncherAppSearch.fuzzyScore(text, query, root.fuzzySearchEnabled)
     }
 
     function scoreEntry(entry) {
+        const special = root.specialSearch
+        if (special) {
+            return LauncherAppSearch.scoreEntry(
+                entry,
+                special,
+                function(searchText, searchQuery) {
+                    return root.fuzzyScore(searchText, searchQuery)
+                }
+            )
+        }
+
         const query = normalize(root.query);
 
         if (query === "")
@@ -197,10 +153,24 @@ Item {
     }
 
     property var applications: {
+        // Read ObjectModel.values directly inside this binding. This is the
+        // native reactive path used by Quickshell and the pre-preferences Apps model.
+        const entries = DesktopEntries.applications.values || []
         const result = []
-        const query = normalize(root.query)
+        const special = root.specialSearch
+        const query = special ? normalize(special.query) : normalize(root.query)
 
-        for (const entry of DesktopEntries.applications.values) {
+        if (special && query === "")
+            return []
+
+        for (const entry of entries) {
+            const appId = String(entry.id || "").trim()
+            // Hidden applications stay out of every Apps result source, including
+            // metadata-filter searches, but remain manageable from Settings.
+            if (appId && root.hiddenAppIds.indexOf(appId) >= 0)
+                continue
+
+            const favoriteIndex = appId ? root.favoriteAppIds.indexOf(appId) : -1
             if (query === "") {
                 const usage = root.usageCounts[entry.name] || 0
                 const recentIndex = root.recentApplications.indexOf(entry.name)
@@ -210,6 +180,7 @@ Item {
 
                 result.push({
                     entry: entry,
+                    favoriteIndex: favoriteIndex,
                     usage: usage,
                     recency: recency,
                     rank: usage * 1000 + recency
@@ -221,16 +192,22 @@ Item {
             if (score >= 0) {
                 result.push({
                     entry: entry,
+                    favoriteIndex: favoriteIndex,
                     score: score
                 })
             }
         }
 
         if (query === "") {
-            // Empty search: combine frequency and recency.
-            // Frequency is intentionally much stronger, while recency
-            // breaks ties and keeps recently used apps near the top.
+            // Favorites are pinned in the user's saved order. Remaining slots
+            // retain the existing frequency/recency ranking.
             result.sort(function(a, b) {
+                const aFavorite = a.favoriteIndex >= 0
+                const bFavorite = b.favoriteIndex >= 0
+                if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
+                    return a.favoriteIndex - b.favoriteIndex
+                if (aFavorite !== bFavorite)
+                    return aFavorite ? -1 : 1
                 if (b.rank !== a.rank)
                     return b.rank - a.rank
 
@@ -242,14 +219,27 @@ Item {
                 )
             })
 
+            let favoriteCount = 0
+            for (let i = 0; i < result.length; ++i) {
+                if (result[i].favoriteIndex >= 0)
+                    favoriteCount++
+            }
             return result
-                .slice(0, root.emptyQueryLimit)
+                .slice(0, Math.max(root.emptyQueryLimit, favoriteCount))
                 .map(function(item) { return item.entry })
         }
 
         // With a query, keep the existing fuzzy ranking and show all matches.
         result.sort(function(a, b) {
-            return b.score - a.score
+            const aFavorite = a.favoriteIndex >= 0
+            const bFavorite = b.favoriteIndex >= 0
+            if (aFavorite !== bFavorite)
+                return aFavorite ? -1 : 1
+            if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
+                return a.favoriteIndex - b.favoriteIndex
+            if (b.score !== a.score)
+                return b.score - a.score
+            return String(a.entry.name).localeCompare(String(b.entry.name))
         })
 
         return result.map(function(item) { return item.entry })

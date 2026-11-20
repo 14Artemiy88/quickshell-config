@@ -77,6 +77,9 @@ function apply(owner, Config, o) {
             Config.settingsTabOrder = normalizeSettingsTabOrder(o.settingsTabOrder)
         if (o.settingsTabLabels !== undefined)
             Config.settingsTabLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)
+        if (o.settingsNavigationCollapsedGroups !== undefined)
+            Config.settingsNavigationCollapsedGroups = Schema.normalizeSettingsNavigationCollapsedGroups(
+                o.settingsNavigationCollapsedGroups, Config.settingsNavigationCollapsedGroups)
         if (o.notificationsDefaultTimeout !== undefined) {
             var notificationTimeout = Number(o.notificationsDefaultTimeout)
             if (isFinite(notificationTimeout)) Config.notificationsDefaultTimeout = Math.max(0, Math.min(120000, Math.round(notificationTimeout)))

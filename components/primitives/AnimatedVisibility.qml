@@ -202,6 +202,7 @@ Item {
         to: 0
         duration: root.activeTransitionDuration
         easing.type: Config.animationEasingType(root.activeAnimationProfile, "enter")
+        easing.bezierCurve: Config.animationBezierCurve(root.activeAnimationProfile, "enter")
         onFinished: {
             if (root.shown) {
                 contentHost.visible = true
@@ -218,6 +219,7 @@ Item {
         to: 1
         duration: root.activeTransitionDuration
         easing.type: Config.animationEasingType(root.activeAnimationProfile, "exit")
+        easing.bezierCurve: Config.animationBezierCurve(root.activeAnimationProfile, "exit")
         onFinished: {
             if (!root.shown) {
                 contentHost.visible = false

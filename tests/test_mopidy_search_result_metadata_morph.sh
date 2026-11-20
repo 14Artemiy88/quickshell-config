@@ -12,3 +12,7 @@ grep -Fq 'progress: searchResultTextArea.metadataText.length > 0 ? 1 : 0' "$FILE
 grep -Fq 'visible: searchResultTextArea.metadataText.length > 0 || normalizedProgress > 0.001' "$FILE"
 grep -Fq 'model: controller.searchResults' "$FILE"
 printf 'Mopidy search result metadata morph: OK\n'
+
+grep -Fq 'animationProfile: Config.animationMopidyMorphProfile' "$FILE"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")' "$FILE"
+grep -Fq 'animationPhase: searchResultTextArea.metadataText.length > 0 ? "enter" : "exit"' "$FILE"

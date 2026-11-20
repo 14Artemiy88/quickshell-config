@@ -12,8 +12,8 @@ grep -Fq 'fromRadius: Config.frameRadius + 4' "$QML"
 grep -Fq 'toRadius: Config.frameRadius' "$QML"
 grep -Fq 'progress: root.noteOverlayMode !== "" ? 1 : 0' "$QML"
 grep -Fq 'visible: root.noteOverlayMode !== "" || normalizedProgress > 0.001' "$QML"
-grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$QML"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", root.noteOverlayMode !== "" ? "enter" : "exit")' "$QML"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance")' "$QML"
+grep -Fq 'animationProfile: Config.animationCalendarMorphProfile' "$QML"
 
 python3 - "$QML" <<'PYCODE'
 from pathlib import Path

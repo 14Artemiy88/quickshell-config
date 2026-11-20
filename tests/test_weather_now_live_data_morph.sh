@@ -12,7 +12,7 @@ for token in \
     'id: weatherWindMorph' \
     'progress: root.hasData ? 1 : 0' \
     'visible: root.hasData || normalizedProgress > 0.001' \
-    'animationDuration: Config.animationDuration(180, "appearance")' \
+    'animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")' \
     'scale: 0.96 + 0.04 * weatherIconMorph.normalizedProgress' \
     'scale: 0.96 + 0.04 * weatherWindMorph.normalizedProgress' \
     'active: !root.hasData'; do

@@ -9,8 +9,9 @@ s = (root / "components/Cava.qml").read_text(encoding="utf-8")
 assert 'readonly property bool graphShouldBeVisible: !Config.cavaHideWhenSilent || root.soundActive' in s
 assert 'property real graphVisibilityProgress: graphShouldBeVisible ? 1 : 0' in s
 assert 'Behavior on graphVisibilityProgress' in s
-assert 'duration: Config.animationDuration(180, "appearance")' in s
-assert 'easing.type: Config.animationEasingType("standard", root.graphShouldBeVisible ? "enter" : "exit")' in s
+assert 'duration: Config.animationDurationForProfile(true, Config.animationCavaMorphProfile, Config.animationCavaMorphDuration, "appearance")' in s
+assert 'easing.type: Config.animationEasingType(Config.animationCavaMorphProfile, root.graphShouldBeVisible ? "enter" : "exit")' in s
+assert 'easing.bezierCurve: Config.animationBezierCurve(Config.animationCavaMorphProfile, root.graphShouldBeVisible ? "enter" : "exit")' in s
 assert 'id: cavaGraphMorph' in s
 assert 'progress: root.graphVisibilityProgress' in s
 assert 'visible: root.graphShouldBeVisible || normalizedProgress > 0.001' in s

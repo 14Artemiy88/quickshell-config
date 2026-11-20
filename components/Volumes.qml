@@ -50,12 +50,16 @@ Primitives.ModuleFrame {
         streamListContentHeight,
         Math.max(0, adaptiveHeight - mainContentHeight - streamListGapHeight)
     )
-    readonly property int streamAnimationDuration: Config.animationVolumeStreamsVisibilityStyle === "none"
-        ? 0
-        : Config.animationDuration(Config.volumeStreamsAnimationDuration, "appearance")
+    readonly property int streamAnimationDuration: Config.animationDurationForProfile(
+        true, Config.animationVolumeMorphProfile, Config.volumeStreamsAnimationDuration, "appearance")
+    readonly property string streamAnimationPhase: root.streamsExpanded ? "enter" : "exit"
     property real animatedAdaptiveHeight: adaptiveHeight
     Behavior on animatedAdaptiveHeight {
-        NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+        NumberAnimation {
+            duration: root.streamAnimationDuration
+            easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+        }
     }
     implicitHeight: animatedAdaptiveHeight
 
@@ -307,7 +311,11 @@ Primitives.ModuleFrame {
             width: parent.width
             height: root.streamListGapHeight
             Behavior on height {
-                NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+                NumberAnimation {
+                    duration: root.streamAnimationDuration
+                    easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                }
             }
         }
 
@@ -320,12 +328,17 @@ Primitives.ModuleFrame {
             opacity: Config.animationVolumeStreamsVisibilityStyle === "fade" && !root.streamsExpanded ? 0 : 1
 
             Behavior on height {
-                NumberAnimation { duration: root.streamAnimationDuration; easing.type: Config.easingType() }
+                NumberAnimation {
+                    duration: root.streamAnimationDuration
+                    easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                }
             }
             Behavior on opacity {
                 NumberAnimation {
                     duration: Config.animationVolumeStreamsVisibilityStyle === "fade" ? root.streamAnimationDuration : 0
-                    easing.type: Config.easingType()
+                    easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
                 }
             }
 
@@ -348,10 +361,18 @@ Primitives.ModuleFrame {
                     return 0
                 }
                 Behavior on x {
-                    NumberAnimation { duration: Config.animationVolumeStreamsVisibilityStyle === "slideLeft" || Config.animationVolumeStreamsVisibilityStyle === "slideRight" ? root.streamAnimationDuration : 0; easing.type: Config.easingType() }
+                    NumberAnimation {
+                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideLeft" || Config.animationVolumeStreamsVisibilityStyle === "slideRight" ? root.streamAnimationDuration : 0
+                        easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    }
                 }
                 Behavior on y {
-                    NumberAnimation { duration: Config.animationVolumeStreamsVisibilityStyle === "slideUp" || Config.animationVolumeStreamsVisibilityStyle === "slideDown" ? root.streamAnimationDuration : 0; easing.type: Config.easingType() }
+                    NumberAnimation {
+                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideUp" || Config.animationVolumeStreamsVisibilityStyle === "slideDown" ? root.streamAnimationDuration : 0
+                        easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    }
                 }
 
                 Repeater {

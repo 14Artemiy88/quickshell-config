@@ -52,7 +52,7 @@ for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificatio
 
 assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления" }'), 'sidebar declares the Notifications page');
 assert(config.includes('"launcher", "notifications", "settingsWindow"') && defaults.includes('"launcher", "notifications", "settingsWindow"'), 'default sidebar order places Notifications before Settings Window');
-assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
+assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
 assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
 assert(navigation.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
 assert(pageContent.includes('SettingsNotificationsSection {'), 'SettingsPageContent instantiates the notification settings section');
@@ -79,7 +79,7 @@ assert(modulesSection.includes('settings.setModuleBlurEnabled(moduleRow.moduleNa
 assert(modulesSection.includes('settings.moduleFrames[moduleRow.moduleName]') && modulesSection.includes('settings.moduleBackgrounds[moduleRow.moduleName]') && modulesSection.includes('settings.moduleBlurEnabled[moduleRow.moduleName]'), 'appearance options use the common module control maps');
 assert(notifications.includes('Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent'), 'background checkbox changes card fill without affecting the frame');
 assert(notifications.includes('Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0'), 'frame checkbox independently controls card border');
-assert(notifications.includes('Settings.moduleBlurEnabled.notifications === true') && notifications.includes('? (notificationServer.trackedNotifications.values.length > 0 ? notificationList : layoutEditPreview)'), 'blur checkbox controls compositor blur behind the queue or its smart-edit preview');
+assert(notifications.includes('Settings.moduleBlurEnabled.notifications === true') && notifications.includes('? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0 ? notificationList : layoutEditPreview)'), 'blur checkbox controls compositor blur behind the queue or its smart-edit preview');
 assert(cliSettings.includes('"notifications":true'), 'CLI settings defaults also enable the Notifications module');
 assert(notifications.includes('Settings.geometry') && notifications.includes('margins.left: root.notificationCoordinate(0)') && notifications.includes('margins.bottom:'), 'toast window uses module X and a top/bottom vertical inset');
 assert(notifications.includes('anchors.left: true') && notifications.includes('anchors.top: String(Config.notificationsVerticalAnchor || \"top\") !== \"bottom\"') && notifications.includes('anchors.bottom: String(Config.notificationsVerticalAnchor || \"top\") === \"bottom\"'), 'toast window can anchor to the selected screen top or bottom while remaining left-anchored');
@@ -92,10 +92,10 @@ assert(read('shell.qml').includes('NotificationComponents.Notifications {}'), 'l
 assert(!widget.includes('notificationsMargin'), 'legacy margin is absent from Notifications Appearance dirty tracking');
 assert(section.includes('onNotificationsShowAppIconChanged()') && section.includes('onNotificationsShowBodyImagesChanged()') && section.includes('onNotificationsShowProgressChanged()'), 'display toggles stay synchronized when settings profiles switch');
 assert(settings.includes('function resetNotificationsSettings()'), 'Settings object exposes notification reset adapter');
-assert(settings.includes('notifications: ["notifications"]'), 'reset visibility includes notification scope');
+assert(settings.includes('notifications: ["notifications", "animationNotifications"]'), 'reset visibility includes notification scope');
 assert(resetsSource.includes('function resetNotificationsSettings(owner, config)') && resetsSource.includes('\"notificationsVerticalAnchor\"'), 'profile reset implementation includes the vertical anchor');
 assert(!resetsSource.includes('geometry.notifications = profile.geometry && profile.geometry.notifications'), 'Notifications content reset no longer resets module geometry');
-assert(profilesSource.includes('notifications: ["notifications"]'), 'save-profile scope includes notification preferences');
+assert(profilesSource.includes('notifications: ["notifications", "animationNotifications"]'), 'save-profile scope includes notification preferences');
 assert(navigation.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
 assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks only the remaining notification-content fields');
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');

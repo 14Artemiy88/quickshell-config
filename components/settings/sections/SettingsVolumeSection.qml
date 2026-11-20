@@ -442,113 +442,89 @@ Column {
     }
 
 
-    SettingsGroup {
+    SettingsAnimationGroup {
         visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
-        width: parent.width
-        showFrame: true
-        heading: "Анимация списка потоков"
-        changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] })
-        padding: 8
-        contentSpacing: 6
+        width: root.width
+        settings: root.settings
+        heading: "Внутренние переходы списка потоков"
+        detailsHeading: "Параметры анимации"
+        changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] })
+        duration: Config.volumeStreamsAnimationDuration
+        profile: Config.animationVolumeMorphProfile
 
-        Row {
-            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
+        onDurationEdited: function(value) {
+            Config.volumeStreamsAnimationDuration = value
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationVolumeMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
             width: parent.width
-            height: 30
-            spacing: 8
-            Text {
-                width: 210
+            showFrame: true
+            heading: "Вид перехода"
+            changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle"] })
+            padding: 8
+            contentSpacing: 6
+
+            Row {
+                width: parent.width
                 height: 30
-                text: "Стиль"
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: Config.settingsUiSize(11)
-                verticalAlignment: Text.AlignVCenter
-            }
-            SettingsComboBox {
-                id: volumeStreamsAnimationStyleBox
-                width: 180
-                height: 30
-                property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
-                model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
-                currentIndex: Math.max(0, values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
-                onItemChosen: function(index) {
-                    Config.animationVolumeStreamsVisibilityStyle = values[index]
-                    settings.save()
-                }
-                Connections {
-                    target: Config
-                    function onAnimationVolumeStreamsVisibilityStyleChanged() {
-                        volumeStreamsAnimationStyleBox.currentIndex = Math.max(0, volumeStreamsAnimationStyleBox.values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
-                    }
-                }
-                background: Rectangle {
-                    color: Config.settingsBackground
-                    border.color: (volumeStreamsAnimationStyleBox.activeFocus || volumeStreamsAnimationStyleBox.pointerHovered) ? Config.accent : Config.baseColor
-                    border.width: 1
-                    radius: 4
-                }
-                contentItem: Text {
-                    text: volumeStreamsAnimationStyleBox.currentText
+                spacing: 8
+                Text {
+                    width: 210
+                    height: 30
+                    text: "Направление"
                     color: Config.text
                     font.family: Config.settingsFont
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: 8
                 }
-            }
-        }
-
-        MorphGeometry {
-            id: volumeStreamsAnimationDurationMorph
-            width: parent.width
-            clip: true
-            visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5
-                && (Config.animationVolumeStreamsVisibilityStyle !== "none" || normalizedProgress > 0.001)
-            fromGeometry: Qt.rect(0, 0, parent.width, 0)
-            toGeometry: Qt.rect(0, 0, parent.width, volumeStreamsAnimationDurationContent.implicitHeight)
-            progress: Config.animationVolumeStreamsVisibilityStyle !== "none" ? 1 : 0
-            animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.animationVolumeStreamsVisibilityStyle !== "none" ? "enter" : "exit")
-
-            Column {
-                id: volumeStreamsAnimationDurationContent
-                width: parent.width
-                spacing: 0
-
-                Row {
-                    width: parent.width
+                SettingsComboBox {
+                    id: volumeStreamsAnimationStyleBox
+                    width: 180
                     height: 30
-                    spacing: 8
-                    Text {
-                        width: 210
-                        height: 30
-                        text: "Длительность (мс)"
+                    property var values: ["fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                    model: ["Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                    currentIndex: Math.max(0, values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
+                    onItemChosen: function(index) {
+                        if (index >= 0 && index < values.length) {
+                            Config.animationVolumeStreamsVisibilityStyle = values[index]
+                            root.settings.save()
+                        }
+                    }
+                    Connections {
+                        target: Config
+                        function onAnimationVolumeStreamsVisibilityStyleChanged() {
+                            volumeStreamsAnimationStyleBox.currentIndex = Math.max(0, volumeStreamsAnimationStyleBox.values.indexOf(Config.animationVolumeStreamsVisibilityStyle))
+                        }
+                    }
+                    background: Rectangle {
+                        color: Config.settingsBackground
+                        border.color: (volumeStreamsAnimationStyleBox.activeFocus || volumeStreamsAnimationStyleBox.pointerHovered) ? Config.accent : Config.baseColor
+                        border.width: 1
+                        radius: 4
+                    }
+                    contentItem: Text {
+                        text: volumeStreamsAnimationStyleBox.currentText
                         color: Config.text
                         font.family: Config.settingsFont
                         font.pixelSize: Config.settingsUiSize(11)
                         verticalAlignment: Text.AlignVCenter
-                    }
-                    SettingsNumberField {
-                        id: volumeStreamsAnimationDurationField
-                        width: 100
-                        height: 30
-                        value: Config.volumeStreamsAnimationDuration
-                        minimum: 0
-                        maximum: 5000
-                        step: 50
-                        wheelStep: 50
-                        decimals: 0
-                        compact: true
-                        fieldWidth: 100
-                        fieldFontSize: 11
-                        inputMethodHints: Qt.ImhDigitsOnly
-                        targetObject: Config
-                        targetProperty: "volumeStreamsAnimationDuration"
-                        settingsObject: root.settings
-                        saveOnEdit: true
+                        leftPadding: 8
                     }
                 }
+            }
+
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Профиль кривой и длительность управляют раскрытием и сворачиванием списка. Направление задаёт затухание или сторону сдвига. Анимация появления самого модуля остаётся независимой."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
             }
         }
     }

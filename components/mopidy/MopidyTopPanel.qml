@@ -27,8 +27,9 @@ Item {
         fromGeometry: Qt.rect(0, 0, parent.width, 0)
         toGeometry: Qt.rect(0, 0, parent.width, 24)
         progress: topPanelWrapper.topPanelRevealed ? 1 : 0
-        animationDuration: Config.mopidyHideTopPanel ? Config.animationDuration(180, "appearance") : 0
-        animationEasing: Config.animationEasingType("standard", topPanelWrapper.topPanelRevealed ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled && Config.mopidyHideTopPanel, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+        animationProfile: Config.animationMopidyMorphProfile
+        animationPhase: topPanelWrapper.topPanelRevealed ? "enter" : "exit"
 
         Rectangle {
             id: topPanelBackground
@@ -149,8 +150,9 @@ Item {
                     progress: topPanelRow.queueDurationTargetVisible ? 1 : 0
                     visible: topPanelRow.queueDurationTargetVisible || normalizedProgress > 0.001
                     clip: false
-                    animationDuration: Config.animationDuration(180, "appearance")
-                    animationEasing: Config.animationEasingType("standard", topPanelRow.queueDurationTargetVisible ? "enter" : "exit")
+                    animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+                    animationProfile: Config.animationMopidyMorphProfile
+                    animationPhase: topPanelRow.queueDurationTargetVisible ? "enter" : "exit"
 
                     Text {
                         id: queueDurationText
@@ -210,8 +212,9 @@ Item {
                 progress: Config.mopidyShowVolumePercent ? 1 : 0
                 visible: Config.mopidyShowVolumeIcon && controller.queueAvailable && controller.tracks.length > 0
                 clip: true
-                animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", Config.mopidyShowVolumePercent ? "enter" : "exit")
+                animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+                animationProfile: Config.animationMopidyMorphProfile
+                animationPhase: Config.mopidyShowVolumePercent ? "enter" : "exit"
 
                 Rectangle {
                     anchors.fill: parent

@@ -6,8 +6,9 @@ MAIN="$ROOT/components/mopidy/Mopidy.qml"
 # The add/error notice stays mounted until the complete exit animation ends.
 grep -Fq 'progress: root.addNoticeVisible ? 1 : 0' "$MAIN"
 grep -Fq 'visible: root.addNoticeVisible || normalizedProgress > 0.001' "$MAIN"
-grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$MAIN"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", root.addNoticeVisible ? "enter" : "exit")' "$MAIN"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")' "$MAIN"
+grep -Fq 'animationProfile: Config.animationMopidyMorphProfile' "$MAIN"
+grep -Fq 'animationPhase: root.addNoticeVisible ? "enter" : "exit"' "$MAIN"
 # The toast keeps a stable 28px-high geometry, while the inner content scales and fades.
 grep -Fq 'toGeometry: fromGeometry' "$MAIN"
 grep -Fq 'opacity: addNoticeMorph.normalizedProgress' "$MAIN"

@@ -5,8 +5,9 @@ import QtQuick
 Item {
     id: root
 
-    property var values: []
-    property int barCount: values && values.length !== undefined ? values.length : 0
+    // A shared ListModel lets CAVA update only bars whose samples changed.
+    property var valuesModel: null
+    property int barCount: valuesModel ? valuesModel.count : 0
     property int spacing: 0
     // Set slotWidth > 0 for fixed-width slots; otherwise slots share available width.
     property real slotWidth: 0
@@ -33,9 +34,10 @@ Item {
         spacing: root.spacing
 
         Repeater {
-            model: Math.max(0, root.barCount)
+            model: root.valuesModel
 
             delegate: Item {
+                required property real value
                 width: root.slotWidth > 0
                     ? root.slotWidth
                     : (root.barCount > 0
@@ -47,7 +49,7 @@ Item {
                     width: root.barWidthRatio > 0
                         ? Math.max(1, Math.round(parent.width * root.barWidthRatio))
                         : root.barWidth
-                    height: root.barHeightFor(root.values && root.values.length > index ? root.values[index] : 0, parent.height)
+                    height: root.barHeightFor(value, parent.height)
                     visible: !root.hideZeroBars || height > 0
                     x: (parent.width - width) / 2
                     y: root.direction === "up" ? parent.height - height : 0

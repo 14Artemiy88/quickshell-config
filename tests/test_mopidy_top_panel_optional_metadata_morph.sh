@@ -35,8 +35,9 @@ for token, message in [
     ('width: 60', 'queue duration Text must keep full fixed width'),
     ('scale: 0.96 + 0.04 * queueDurationMorph.normalizedProgress', 'queue duration must use geometric scale rather than fade'),
     ('transformOrigin: Config.mopidyQueueDurationAlignment === "left" ? Item.Left : Item.Right', 'queue duration scale must originate at its aligned edge'),
-    ('animationDuration: Config.animationDuration(180, "appearance")', 'queue duration must use shared appearance duration'),
-    ('Config.animationEasingType("standard", topPanelRow.queueDurationTargetVisible ? "enter" : "exit")', 'queue duration must use directional shared easing'),
+    ('animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")', 'queue duration must use the configurable Mopidy duration'),
+    ('animationProfile: Config.animationMopidyMorphProfile', 'queue duration must use the configurable Mopidy profile'),
+    ('animationPhase: topPanelRow.queueDurationTargetVisible ? "enter" : "exit"', 'queue duration must use the target state to select its phase'),
     ('Config.mopidyQueueDurationMode === "remaining" ? controller.formatDuration(controller.queueRemainingDuration, true) : controller.formatDuration(controller.queueTotalDuration, false)', 'queue duration formatting changed'),
     ('horizontalAlignment: Config.mopidyQueueDurationAlignment === "left" ? Text.AlignLeft : Text.AlignRight', 'queue duration alignment changed'),
 ]:

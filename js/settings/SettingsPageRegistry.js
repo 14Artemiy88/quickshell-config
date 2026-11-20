@@ -2,43 +2,88 @@
 
 // Stable settings page identities live here rather than in the rendering
 // component. Keep these IDs aligned with Config/settings persistence IDs.
+// Sidebar groups are presentation-only. Page IDs remain stable and keep their
+// existing routes, profiles, reset scopes and user-customized labels.
+var NAVIGATION_GROUPS = [
+    { id: "appearance", label: "Внешний вид", symbol: "◈" },
+    { id: "modules", label: "Модули", symbol: "▦" },
+    { id: "launcher", label: "Лаунчер", symbol: "⌕" },
+    { id: "general", label: "Общие", symbol: "⚙" }
+]
+
 var TAB_DEFINITIONS = [
-    { id: "modules", defaultLabel: "Модули" },
-    { id: "themes", defaultLabel: "Темы" },
-    { id: "general", defaultLabel: "Общие" },
-    { id: "timers", defaultLabel: "Таймеры" },
-    { id: "player", defaultLabel: "Плеер" },
-    { id: "mopidy", defaultLabel: "Mopidy" },
-    { id: "weather", defaultLabel: "Погода" },
-    { id: "cava", defaultLabel: "CAVA" },
-    { id: "cpuRam", defaultLabel: "CPU/RAM" },
-    { id: "network", defaultLabel: "Сеть" },
-    { id: "volume", defaultLabel: "Громкость" },
-    { id: "calendar", defaultLabel: "Календарь" },
-    { id: "launcher", defaultLabel: "Лаунчер" },
-    { id: "notifications", defaultLabel: "Уведомления" },
-    { id: "settingsWindow", defaultLabel: "Окно настроек" }
+    { id: "modules", defaultLabel: "Включение модулей", groupId: "modules" },
+    { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance" },
+    { id: "general", defaultLabel: "Общие", groupId: "general" },
+    { id: "timers", defaultLabel: "Таймеры", groupId: "modules" },
+    { id: "player", defaultLabel: "Плеер", groupId: "modules" },
+    { id: "mopidy", defaultLabel: "Mopidy", groupId: "modules" },
+    { id: "weather", defaultLabel: "Погода", groupId: "modules" },
+    { id: "cava", defaultLabel: "CAVA", groupId: "modules" },
+    { id: "cpuRam", defaultLabel: "CPU/RAM", groupId: "modules" },
+    { id: "network", defaultLabel: "Сеть", groupId: "modules" },
+    { id: "volume", defaultLabel: "Громкость", groupId: "modules" },
+    { id: "calendar", defaultLabel: "Календарь", groupId: "modules" },
+    { id: "launcher", defaultLabel: "Лаунчер", groupId: "launcher" },
+    { id: "notifications", defaultLabel: "Уведомления", groupId: "modules" },
+    { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance" }
 ]
 
 // Page IDs are the canonical route identity. Array order is only presentation metadata.
 var OTHER_PAGE_DEFINITIONS = [
     { id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] },
     { id: "timers", saveScope: "timer", subTabs: ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"] },
-    { id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон"] },
-    { id: "weather", saveScope: "weather", subTabs: ["Общие", "Сейчас", "По часам", "По дням"] },
-    { id: "cava", saveScope: "cava", subTabs: ["Основные", "Полосы"] },
-    { id: "cpuRam", saveScope: "cpu", subTabs: ["Общие", "График CPU", "Top Apps"] },
-    { id: "network", saveScope: "network", subTabs: ["Обновления", "Сеть"] },
+    { id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон", "Анимация"] },
+    { id: "weather", saveScope: "weather", subTabs: ["Общие", "Сейчас", "По часам", "По дням", "Анимация"] },
+    { id: "cava", saveScope: "cava", subTabs: ["Основные", "Полосы", "Анимация"] },
+    { id: "cpuRam", saveScope: "cpu", subTabs: ["Общие", "График CPU", "Top Apps", "Анимация CPU"] },
+    { id: "network", saveScope: "network", subTabs: ["Обновления", "Сеть", "Анимация"] },
     { id: "volume", saveScope: "volume", subTabs: ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"] },
     { id: "calendar", saveScope: "calendar", subTabs: ["Разметка", "Цвета", "Метки заметок", "Анимации"] },
     { id: "settingsWindow", saveScope: "settingsWindow", subTabs: ["Интерфейс", "Окно настроек", "Вкладки"] },
-    { id: "mopidy", saveScope: "mopidy", subTabs: ["Общее", "Время", "Иконки", "Пусто и недоступен"] },
-    { id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Вкладки", "Проекты"] },
-    { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }
+    { id: "mopidy", saveScope: "mopidy", subTabs: ["Общее", "Время", "Иконки", "Пусто и недоступен", "Анимация"] },
+    { id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"] },
+    { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }
 ]
 
 function tabDefinitions() {
     return TAB_DEFINITIONS.slice()
+}
+
+function navigationGroupDefinitions() {
+    return NAVIGATION_GROUPS.slice()
+}
+
+function navigationGroupIdForTabId(id) {
+    var pageId = String(id === undefined || id === null ? "" : id)
+    for (var i = 0; i < TAB_DEFINITIONS.length; ++i) {
+        if (TAB_DEFINITIONS[i].id === pageId)
+            return TAB_DEFINITIONS[i].groupId
+    }
+    return "general"
+}
+
+function navigationGroupLabelForTabId(id) {
+    var groupId = navigationGroupIdForTabId(id)
+    for (var i = 0; i < NAVIGATION_GROUPS.length; ++i) {
+        if (NAVIGATION_GROUPS[i].id === groupId)
+            return NAVIGATION_GROUPS[i].label
+    }
+    return "Общие"
+}
+
+function groupedTabOrder(order) {
+    var source = Array.isArray(order) ? order : []
+    var result = []
+    for (var groupIndex = 0; groupIndex < NAVIGATION_GROUPS.length; ++groupIndex) {
+        var groupId = NAVIGATION_GROUPS[groupIndex].id
+        for (var itemIndex = 0; itemIndex < source.length; ++itemIndex) {
+            var pageId = String(source[itemIndex])
+            if (navigationGroupIdForTabId(pageId) === groupId)
+                result.push(pageId)
+        }
+    }
+    return result
 }
 
 function otherPageDefinitions() {

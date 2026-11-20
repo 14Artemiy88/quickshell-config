@@ -16,7 +16,8 @@ Item {
     property int rowHeight: 32
     readonly property bool active: root.status === "on"
     readonly property bool hovered: buttonSurface.hovered
-    readonly property int rowTransitionDuration: Config.animationDuration(220, "appearance")
+    readonly property string rowAnimationProfile: Config.animationNetworkMorphProfile
+    readonly property int rowTransitionDuration: rowAnimationProfile === "none" ? 0 : Config.animationNetworkMorphDuration
 
     signal removalFinished(string networkName)
 
@@ -97,7 +98,8 @@ Item {
         property: "rowProgress"
         to: 1
         duration: root.rowTransitionDuration
-        easing.type: Config.animationEasingType("standard", "enter")
+        easing.type: Config.animationEasingType(root.rowAnimationProfile, "enter")
+        easing.bezierCurve: Config.animationBezierCurve(root.rowAnimationProfile, "enter")
     }
 
     NumberAnimation {
@@ -106,7 +108,8 @@ Item {
         property: "rowProgress"
         to: 0
         duration: root.rowTransitionDuration
-        easing.type: Config.animationEasingType("standard", "exit")
+        easing.type: Config.animationEasingType(root.rowAnimationProfile, "exit")
+        easing.bezierCurve: Config.animationBezierCurve(root.rowAnimationProfile, "exit")
         onFinished: root.finishExitTransition()
     }
 

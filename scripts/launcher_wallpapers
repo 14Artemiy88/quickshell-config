@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+requested_dir="${1:-${HOME}/Pictures/Wallpapers}"
+generation="${2:-0}"
+
+case "$requested_dir" in
+    "~") requested_dir="$HOME" ;;
+    "~/"*) requested_dir="$HOME/${requested_dir:2}" ;;
+    '$HOME') requested_dir="$HOME" ;;
+    '$HOME/'*) requested_dir="$HOME/${requested_dir#\$HOME/}" ;;
+esac
+
+json_escape() {
+    local value="${1-}"
+    value=${value//\\/\\\\}
+    value=${value//\"/\\\"}
+    value=${value//$'\n'/\\n}
+    value=${value//$'\r'/\\r}
+    value=${value//$'\t'/\\t}
+    printf '%s' "$value"
+}
+
+directory_error=""
+if [[ -d "$requested_dir" ]]; then
+    requested_dir="$(cd -- "$requested_dir" && pwd -P)"
+else
+    directory_error="directory-not-found"
+fi
+
+printf '{"generation":%s,"directory":"%s","error":"%s","items":[' \
+    "$generation" "$(json_escape "$requested_dir")" "$directory_error"
+
+if [[ -n "$directory_error" ]]; then
+    printf ']}\n'
+    exit 0
+fi
+
+first=1
+count=0
+while IFS= read -r -d '' file; do
+    # Defensive check: only readable regular files with a real basename may
+    # enter the QML image model. Never emit the configured directory itself.
+    [[ -f "$file" && -r "$file" && "$file" == /* && "$file" != "/" && "${file##*/}" != "" ]] || continue
+    name="${file##*/}"
+    if (( first == 0 )); then printf ','; fi
+    printf '{"path":"%s","name":"%s"}' \
+        "$(json_escape "$file")" "$(json_escape "$name")"
+    first=0
+    count=$((count + 1))
+    (( count < 300 )) || break
+done < <(
+    find -L "$requested_dir" -maxdepth 2 -type f \
+        \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o \
+           -iname '*.webp' -o -iname '*.avif' -o -iname '*.bmp' -o -iname '*.gif' \) \
+        -print0 2>/dev/null | LC_ALL=C sort -z
+)
+printf ']}\n'

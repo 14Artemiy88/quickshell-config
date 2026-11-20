@@ -17,7 +17,10 @@ assert 'notificationsModuleLoader.item.layoutEditMode = shell.layoutEditMode' in
 assert 'property bool layoutEditMode: false' in notifications
 assert 'property var layoutEditor: null' in notifications
 assert 'Settings.geometryForLayout("notifications")' in notifications
-assert 'visible: notificationServer.trackedNotifications.values.length > 0 || root.layoutEditMode' in notifications
+panel_block = notifications.split('PanelWindow {\n        id: popupWindow', 1)[1].split('Item {\n            id: notificationContent', 1)[0]
+assert 'visible: true' in panel_block
+assert 'root.layoutEditMode && notificationServer.trackedNotifications.values.length === 0' in notifications
+assert 'visible: root.notificationSurfaceActive' in notifications
 assert 'root.layoutEditMode && notificationServer.trackedNotifications.values.length === 0' in notifications
 assert 'text: "Предварительный просмотр уведомления"' in notifications
 assert 'Settings.beginGeometryDrag("notifications")' in notifications

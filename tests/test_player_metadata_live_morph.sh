@@ -9,8 +9,8 @@ for token in \
     'id: playerMetadataMorph' \
     'visible: root.playerMetadataTargetHeight > 0 || normalizedProgress > 0.001' \
     'progress: root.playerMetadataMaxHeight > 0 ? root.playerMetadataTargetHeight / root.playerMetadataMaxHeight : 0' \
-    'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", root.playerMetadataExpanding ? "enter" : "exit")' \
+    'animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")' \
+    'animationEasing: Config.animationEasingType(Config.animationPlayerMorphProfile, root.playerMetadataExpanding ? "enter" : "exit")' \
     'readonly property int playerMetadataLineCount:' \
     'readonly property real playerMetadataTargetHeight:' \
     'readonly property real playerMetadataMaxHeight:' \

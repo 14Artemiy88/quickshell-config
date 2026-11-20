@@ -86,8 +86,10 @@ Primitives.ModuleFrame {
                 Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX),
                 Config.weatherComfortHeight)
             progress: weatherComfortLabel.shouldShow ? 1 : 0
-            animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", weatherComfortLabel.shouldShow ? "enter" : "exit")
+            animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+            animationProfile: Config.animationWeatherMorphProfile
+            animationPhase: weatherComfortLabel.shouldShow ? "enter" : "exit"
+            animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, weatherComfortLabel.shouldShow ? "enter" : "exit")
 
             Item {
                 id: weatherComfortLabel
@@ -166,8 +168,10 @@ Primitives.ModuleFrame {
             Config.weatherIconSize)
         progress: root.hasData && Config.weatherIconPlacement !== "off" ? 1 : 0
         visible: (root.hasData && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+        animationProfile: Config.animationWeatherMorphProfile
+        animationPhase: root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
 
         Item {
             anchors.fill: parent
@@ -191,8 +195,10 @@ Primitives.ModuleFrame {
         toGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)
         progress: root.hasData ? 1 : 0
         visible: root.hasData || normalizedProgress > 0.001
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.hasData ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+        animationProfile: Config.animationWeatherMorphProfile
+        animationPhase: root.hasData ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData ? "enter" : "exit")
 
         Item {
             anchors.fill: parent

@@ -32,7 +32,8 @@ Primitives.ModuleFrame {
             toGeometry: Qt.rect(0, 0, parent.width, root.networkStatRowHeight)
             progress: Config.networkShowUpload ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.networkShowUpload ? "enter" : "exit")
+            animationProfile: "expressive"
+            animationPhase: Config.networkShowUpload ? "enter" : "exit"
 
             NetworkStatRow {
                 width: parent.width
@@ -51,7 +52,8 @@ Primitives.ModuleFrame {
             toGeometry: Qt.rect(0, 0, parent.width, root.networkStatRowHeight)
             progress: Config.networkShowDownload ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.networkShowDownload ? "enter" : "exit")
+            animationProfile: "expressive"
+            animationPhase: Config.networkShowDownload ? "enter" : "exit"
 
             NetworkStatRow {
                 width: parent.width

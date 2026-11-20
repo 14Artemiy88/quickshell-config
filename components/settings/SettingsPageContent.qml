@@ -53,6 +53,10 @@ Item {
                 host: root.host
                 settings: root.settings
             }
+            SettingsWeatherAnimationSection {
+                host: root.host
+                settings: root.settings
+            }
 
             SettingsGeneralSection {
                 id: generalSectionSettingsSection

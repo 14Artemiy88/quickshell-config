@@ -18,12 +18,18 @@ Primitives.ModuleFrame {
     readonly property int selectedIndex: {
         if (!selectedFile) return -1
         for (let i = 0; i < timerModel.count; ++i) {
-            if (timerModel.get(i).file === selectedFile) return i
+            if (timerModel.get(i).file === selectedFile && !timerModel.get(i).removing) return i
         }
         return -1
     }
     readonly property int visibleTimerCount: Math.min((timers || []).length, 5)
+    // Include outgoing delegates until their MorphGeometry collapse finishes;
+    // shell.qml uses adaptiveHeight as the timer surface's content height.
+    readonly property int layoutTimerCount: Math.min(5, Math.max(visibleTimerCount, timerModel.count))
     readonly property int timerRowHeight: visibleTimerCount >= 5 ? 26 : 30
+    readonly property int timerRowMorphDuration: Config.animationDurationForProfile(
+        Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile,
+        Config.animationTimerMorphDuration, "appearance")
     // Preserve the existing density-based scaling while exposing a configurable base size.
     readonly property int elapsedTimeDisplaySize: {
         const baseSize = Number(Config.timerElapsedFontSize)
@@ -39,7 +45,7 @@ Primitives.ModuleFrame {
     }
     readonly property int adaptiveHeight: Math.max(
         configuredMinHeight,
-        14 + visibleTimerCount * timerRowHeight + Math.max(0, visibleTimerCount - 1) * Config.timerRowSpacing
+        14 + layoutTimerCount * timerRowHeight + Math.max(0, layoutTimerCount - 1) * Config.timerRowSpacing
     )
 
     // Alarm target is kept at minute precision. It starts at the current
@@ -166,7 +172,7 @@ Primitives.ModuleFrame {
 
     function commentForFile(file) {
         for (let i = 0; i < timerModel.count; ++i) {
-            if (timerModel.get(i).file === file)
+            if (timerModel.get(i).file === file && !timerModel.get(i).removing)
                 return String(timerModel.get(i).comment || "")
         }
         return ""
@@ -175,13 +181,18 @@ Primitives.ModuleFrame {
     function syncTimerModel(items) {
         const visible = (items || []).slice(0, 5)
 
-        // Remove timers that disappeared.
+        // Mark disappeared timers as outgoing rather than removing their rows
+        // immediately. If a timer reappears during the transition, its shared
+        // progress reverses back toward the expanded geometry.
         for (let i = timerModel.count - 1; i >= 0; --i) {
             let exists = false
             for (let j = 0; j < visible.length; ++j) {
                 if (timerModel.get(i).file === visible[j].file) { exists = true; break }
             }
-            if (!exists) timerModel.remove(i)
+            if (!exists && !timerModel.get(i).removing)
+                timerModel.setProperty(i, "removing", true)
+            else if (exists && timerModel.get(i).removing)
+                timerModel.setProperty(i, "removing", false)
         }
 
         // Update existing delegates in place and append new timers. This keeps
@@ -192,7 +203,13 @@ Primitives.ModuleFrame {
             for (let i = 0; i < timerModel.count; ++i) {
                 if (timerModel.get(i).file === item.file) { found = i; break }
             }
-            if (found < 0) timerModel.append(item)
+            if (found < 0) {
+                const inserted = {}
+                for (const key in item) inserted[key] = item[key]
+                inserted.removing = false
+                inserted.appearing = true
+                timerModel.append(inserted)
+            }
             else {
                 const current = timerModel.get(found)
                 for (const key of ["file", "comment", "timer", "color", "sign", "time_passed", "duration_minutes", "ding"]) {
@@ -221,14 +238,47 @@ Primitives.ModuleFrame {
             if (!exists) delete root.dingState[file]
         }
 
-        // Keep server order. Reorder only when the file sequence actually changed.
-        for (let target = 0; target < visible.length; ++target) {
-            if (timerModel.get(target).file === visible[target].file) continue
-            let source = -1
-            for (let i = target + 1; i < timerModel.count; ++i) {
-                if (timerModel.get(i).file === visible[target].file) { source = i; break }
+        // Keep server order. While an outgoing row is still collapsing, do not
+        // move active rows across it: ListModel.move() would carry the tombstone
+        // along and make a middle timer jump to the end before its exit finishes.
+        let hasOutgoingRows = false
+        for (let i = 0; i < timerModel.count; ++i) {
+            if (timerModel.get(i).removing) {
+                hasOutgoingRows = true
+                break
             }
-            if (source >= 0) timerModel.move(source, target, 1)
+        }
+        if (!hasOutgoingRows) {
+            // Reorder only when the file sequence actually changed.
+            for (let target = 0; target < visible.length; ++target) {
+                if (timerModel.get(target).file === visible[target].file) continue
+                let source = -1
+                for (let i = target + 1; i < timerModel.count; ++i) {
+                    if (timerModel.get(i).file === visible[target].file) { source = i; break }
+                }
+                if (source >= 0) timerModel.move(source, target, 1)
+            }
+        }
+    }
+
+    function finishTimerRowAppearance(file) {
+        for (let i = 0; i < timerModel.count; ++i) {
+            const item = timerModel.get(i)
+            if (item.file === file && item.appearing && !item.removing) {
+                timerModel.setProperty(i, "appearing", false)
+                return
+            }
+        }
+    }
+
+    function finishTimerRowRemoval(file) {
+        for (let i = timerModel.count - 1; i >= 0; --i) {
+            const item = timerModel.get(i)
+            if (item.file === file && item.removing) {
+                timerModel.remove(i)
+                if (root.selectedFile === file) root.selectedFile = ""
+                return
+            }
         }
     }
 
@@ -341,9 +391,11 @@ Primitives.ModuleFrame {
                 (parent.height - 33) / 2 + Config.timerIconY, 30, 33)
             progress: Config.timerIconEnabled && root.controlsMode === 0 ? 1 : 0
             visible: (Config.timerIconEnabled && root.controlsMode === 0) || normalizedProgress > 0.001
-            animationDuration: Config.animationTimerVisibilityStyle === "none"
+            animationDuration: !Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)
                 ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.timerIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
+            animationProfile: Config.animationTimerMorphProfile
+            animationPhase: Config.timerIconEnabled && root.controlsMode === 0 ? "enter" : "exit"
+            animationEasing: Config.animationEasingType(Config.animationTimerMorphProfile, Config.timerIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
 
             Text {
                 anchors.fill: parent
@@ -364,9 +416,11 @@ Primitives.ModuleFrame {
                 (parent.height - 33) / 2 + Config.timerAlarmIconY, 30, 33)
             progress: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? 1 : 0
             visible: (Config.timerAlarmIconEnabled && root.controlsMode === 0) || normalizedProgress > 0.001
-            animationDuration: Config.animationTimerVisibilityStyle === "none"
+            animationDuration: !Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)
                 ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.timerAlarmIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
+            animationProfile: Config.animationTimerMorphProfile
+            animationPhase: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? "enter" : "exit"
+            animationEasing: Config.animationEasingType(Config.animationTimerMorphProfile, Config.timerAlarmIconEnabled && root.controlsMode === 0 ? "enter" : "exit")
 
             Text {
                 anchors.fill: parent
@@ -387,8 +441,9 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 1
-            animationStyle: Config.animationTimerVisibilityStyle
-            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
+            animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"
+            animationProfile: Config.animationTimerMorphProfile
+            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile, Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Flickable {
                 id: timerButtons
@@ -438,8 +493,9 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 2
-            animationStyle: Config.animationTimerVisibilityStyle
-            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
+            animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"
+            animationProfile: Config.animationTimerMorphProfile
+            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile, Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Item {
                 id: alarmButtons
@@ -553,106 +609,229 @@ Primitives.ModuleFrame {
             spacing: Config.timerRowSpacing
 
             Repeater {
+                id: timerRowsRepeater
                 model: timerModel
                 delegate: Item {
+                    id: timerRowSlot
+                    // With required delegate properties Qt no longer injects the
+                    // legacy `model` context object. Declare every role used by
+                    // this delegate explicitly so outgoing tombstones retain data.
+                    required property string file
+                    required property string comment
+                    required property string timer
+                    required property string color
+                    required property string sign
+                    required property bool removing
+                    required property bool appearing
                     width: parent.width
-                    height: root.timerRowHeight
-                    property var timerData: model
+                    height: timerRowMorph.geometryHeight
+                    clip: true
+                    property var timerData: ({
+                        file: timerRowSlot.file,
+                        comment: timerRowSlot.comment,
+                        timer: timerRowSlot.timer,
+                        color: timerRowSlot.color,
+                        sign: timerRowSlot.sign
+                    })
+                    // The model keeps a tombstone, but this delegate owns the
+                    // actual animated progress. This avoids starting an exit
+                    // from zero when a delegate is (re)created while removing.
+                    property real rowProgress: 0
+                    property bool transitionInitialized: false
+                    property bool removalSignalSent: false
+                    readonly property int rowTransitionDuration: root.timerRowMorphDuration
 
-                    Row {
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: Config.timerCommentGap
-                        height: parent.height
+                    function finishExitTransition() {
+                        if (!timerRowSlot.removing || timerRowSlot.removalSignalSent)
+                            return
+                        timerRowSlot.rowProgress = 0
+                        timerRowSlot.removalSignalSent = true
+                        root.finishTimerRowRemoval(String(timerRowSlot.file || ""))
+                    }
 
-                        Text {
-                            // Keep the original timer value/comment directly next
-                            // to the live countdown. Limit it to 10 characters so
-                            // long timers can never collide with the countdown.
-                            width: Config.timerCommentWidth
-                            height: parent.height
-                            text: String(timerData.comment || "").slice(0, Config.timerCommentMaxLength)
-                            color: timerData.color || Config.text
-                            font.family: "Pixel LCD7"
-                            font.pixelSize: 15
-                            horizontalAlignment: Text.AlignRight
-                            verticalAlignment: Text.AlignVCenter
+                    function startEntryTransition() {
+                        timerExitAnimation.stop()
+                        timerEntryAnimation.stop()
+                        timerRowSlot.removalSignalSent = false
+                        if (timerRowSlot.rowTransitionDuration <= 0 || timerRowSlot.rowProgress >= 0.999) {
+                            timerRowSlot.rowProgress = 1
+                            root.finishTimerRowAppearance(String(timerRowSlot.file || ""))
+                            return
                         }
+                        timerEntryAnimation.start()
+                    }
+
+                    function startExitTransition() {
+                        timerEntryAnimation.stop()
+                        timerExitAnimation.stop()
+                        if (timerRowSlot.rowTransitionDuration <= 0 || timerRowSlot.rowProgress <= 0.001) {
+                            timerRowSlot.finishExitTransition()
+                            return
+                        }
+                        timerExitAnimation.start()
+                    }
+
+                    onRemovingChanged: {
+                        if (!timerRowSlot.transitionInitialized)
+                            return
+                        if (timerRowSlot.removing)
+                            timerRowSlot.startExitTransition()
+                        else
+                            timerRowSlot.startEntryTransition()
+                    }
+
+                    Component.onCompleted: {
+                        timerRowSlot.transitionInitialized = true
+                        if (timerRowSlot.removing) {
+                            // A tombstone whose delegate appears late still
+                            // receives a full visible exit transition.
+                            timerRowSlot.rowProgress = 1
+                            timerRowSlot.startExitTransition()
+                        } else if (timerRowSlot.appearing) {
+                            timerRowSlot.rowProgress = 0
+                            timerRowSlot.startEntryTransition()
+                        } else {
+                            timerRowSlot.rowProgress = 1
+                        }
+                    }
+
+                    NumberAnimation {
+                        id: timerEntryAnimation
+                        target: timerRowSlot
+                        property: "rowProgress"
+                        to: 1
+                        duration: timerRowSlot.rowTransitionDuration
+                        easing.type: Config.animationEasingType(Config.animationTimerMorphProfile, "enter")
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerMorphProfile, "enter")
+                        onFinished: root.finishTimerRowAppearance(String(timerRowSlot.file || ""))
+                    }
+
+                    NumberAnimation {
+                        id: timerExitAnimation
+                        target: timerRowSlot
+                        property: "rowProgress"
+                        to: 0
+                        duration: timerRowSlot.rowTransitionDuration
+                        easing.type: Config.animationEasingType(Config.animationTimerMorphProfile, "exit")
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerMorphProfile, "exit")
+                        onFinished: timerRowSlot.finishExitTransition()
+                    }
+
+                    Primitives.MorphGeometry {
+                        id: timerRowMorph
+                        fromGeometry: Qt.rect(0, 0, parent.width, 0)
+                        toGeometry: Qt.rect(0, 0, parent.width, root.timerRowHeight)
+                        progress: timerRowSlot.rowProgress
+                        // Progress is animated by the delegate so that a late
+                        // tombstone can initialize at full size before exiting.
+                        animationDuration: 0
+                        animationProfile: Config.animationTimerMorphProfile
+                        clip: true
 
                         Item {
-                            id: timerDisplay
-                            // Size the countdown column to the rendered text instead of
-                            // reserving a fixed 100 px. This keeps the comment gap visually
-                            // constant for both short and long countdown values.
-                            width: Config.timerCommentAlignFurthest && root.widestTimerTextWidth > 0
-                                ? root.widestTimerTextWidth
-                                : Math.ceil(textMetrics.advanceWidth) + 2
-                            height: parent.height
-                            property string displayText: (timerData.sign || "") + (timerData.timer || "")
-                            property color outlineColor: timerData.color || Config.text
-                            property int displaySize: root.elapsedTimeDisplaySize
-                            property var outlineOffsets: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
-                            property bool hasSign: String(timerData.sign || "") !== ""
+                            x: 0
+                            y: (timerRowMorph.height - height) / 2
+                            width: parent.width
+                            height: root.timerRowHeight
 
-                            TextMetrics {
-                                id: textMetrics
-                                font.family: Config.timerElapsedFont
-                                font.pixelSize: timerDisplay.displaySize
-                                text: timerDisplay.displayText
-                            }
+                            Row {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 0
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Config.timerCommentGap
+                                height: parent.height
 
-                            Repeater {
-                                model: timerDisplay.hasSign ? timerDisplay.outlineOffsets.length : 0
-                                delegate: Text {
-                                    x: timerDisplay.outlineOffsets[index][0]
-                                    y: timerDisplay.outlineOffsets[index][1]
-                                    width: timerDisplay.width
-                                    height: timerDisplay.height
-                                    text: timerDisplay.displayText
-                                    color: timerDisplay.outlineColor
-                                    font.family: Config.timerElapsedFont
-                                    font.pixelSize: timerDisplay.displaySize
+                                Text {
+                                    // Keep the original timer value/comment directly next
+                                    // to the live countdown. Limit it to 10 characters so
+                                    // long timers can never collide with the countdown.
+                                    width: Config.timerCommentWidth
+                                    height: parent.height
+                                    text: String(timerData.comment || "").slice(0, Config.timerCommentMaxLength)
+                                    color: timerData.color || Config.text
+                                    font.family: "Pixel LCD7"
+                                    font.pixelSize: 15
                                     horizontalAlignment: Text.AlignRight
                                     verticalAlignment: Text.AlignVCenter
                                 }
+
+                                Item {
+                                    id: timerDisplay
+                                    // Size the countdown column to the rendered text instead of
+                                    // reserving a fixed 100 px. This keeps the comment gap visually
+                                    // constant for both short and long timers.
+                                    width: Config.timerCommentAlignFurthest && root.widestTimerTextWidth > 0
+                                        ? root.widestTimerTextWidth
+                                        : Math.ceil(textMetrics.advanceWidth) + 2
+                                    height: parent.height
+                                    property string displayText: (timerData.sign || "") + (timerData.timer || "")
+                                    property color outlineColor: timerData.color || Config.text
+                                    property int displaySize: root.elapsedTimeDisplaySize
+                                    property var outlineOffsets: [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]
+                                    property bool hasSign: String(timerData.sign || "") !== ""
+
+                                    TextMetrics {
+                                        id: textMetrics
+                                        font.family: Config.timerElapsedFont
+                                        font.pixelSize: timerDisplay.displaySize
+                                        text: timerDisplay.displayText
+                                    }
+
+                                    Repeater {
+                                        model: timerDisplay.hasSign ? timerDisplay.outlineOffsets.length : 0
+                                        delegate: Text {
+                                            x: timerDisplay.outlineOffsets[index][0]
+                                            y: timerDisplay.outlineOffsets[index][1]
+                                            width: timerDisplay.width
+                                            height: timerDisplay.height
+                                            text: timerDisplay.displayText
+                                            color: timerDisplay.outlineColor
+                                            font.family: Config.timerElapsedFont
+                                            font.pixelSize: timerDisplay.displaySize
+                                            horizontalAlignment: Text.AlignRight
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                    }
+
+                                    Text {
+                                        anchors.fill: parent
+                                        text: timerDisplay.displayText
+                                        color: timerDisplay.hasSign ? Config.black : timerDisplay.outlineColor
+                                        font.family: Config.timerElapsedFont
+                                        font.pixelSize: timerDisplay.displaySize
+                                        horizontalAlignment: Text.AlignRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
                             }
 
-                            Text {
+                            MouseArea {
                                 anchors.fill: parent
-                                text: timerDisplay.displayText
-                                color: timerDisplay.hasSign ? Config.black : timerDisplay.outlineColor
-                                font.family: Config.timerElapsedFont
-                                font.pixelSize: timerDisplay.displaySize
-                                horizontalAlignment: Text.AlignRight
-                                verticalAlignment: Text.AlignVCenter
+                                enabled: !timerRowSlot.removing
+                                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                                hoverEnabled: false
+                                onClicked: mouse => {
+                                    if (mouse.button === Qt.LeftButton) {
+                                        root.selectedFile = root.selectedFile === timerData.file ? "" : timerData.file
+                                    } else if (mouse.button === Qt.MiddleButton) {
+                                        Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "delete", timerData.file])
+                                        if (root.selectedFile === timerData.file) root.selectedFile = ""
+                                    } else if (mouse.button === Qt.RightButton) {
+                                        Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file, Config.timerRandomColorMode, String(Config.timerRandomColorMin), String(Config.timerRandomColorMax)])
+                                    }
+                                }
+                                onWheel: wheel => {
+                                    const step = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
+                                    Quickshell.execDetached([
+                                        Quickshell.shellDir + "/scripts/timer",
+                                        wheel.angleDelta.y > 0 ? "up" : "down", timerData.file, String(step)
+                                    ])
+                                    wheel.accepted = true
+                                }
                             }
                         }
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                        hoverEnabled: false
-                        onClicked: mouse => {
-                            if (mouse.button === Qt.LeftButton) {
-                                root.selectedFile = root.selectedFile === timerData.file ? "" : timerData.file
-                            } else if (mouse.button === Qt.MiddleButton) {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "delete", timerData.file])
-                                if (root.selectedFile === timerData.file) root.selectedFile = ""
-                            } else if (mouse.button === Qt.RightButton) {
-                                Quickshell.execDetached([Quickshell.shellDir + "/scripts/timer", "update_color", timerData.file, Config.timerRandomColorMode, String(Config.timerRandomColorMin), String(Config.timerRandomColorMax)])
-                            }
-                        }
-                        onWheel: wheel => {
-                            const step = (wheel.modifiers & Qt.ShiftModifier) ? 10 : 1
-                            Quickshell.execDetached([
-                                Quickshell.shellDir + "/scripts/timer",
-                                wheel.angleDelta.y > 0 ? "up" : "down", timerData.file, String(step)
-                            ])
-                            wheel.accepted = true
-                        }
-                    }
                 }
             }
         }

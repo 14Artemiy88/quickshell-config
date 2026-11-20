@@ -16,7 +16,7 @@ checks = {
     "visible viewport uses actual mapped coordinates": "card.mapToItem(notificationList, 0, 0)",
     "viewport reacts to scroll and relayout changes": "notificationList.contentY",
     "visible timeout is accumulated separately for each card": "property real visibleTimeoutElapsed: 0",
-    "card timeout is paused outside the viewport": "running: card.notification !== null && card.inViewport && card.effectiveTimeout > 0",
+    "card timeout is paused outside the viewport": "running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0",
     "timeout timer repeats so paused time can resume": "repeat: true",
     "new notifications remain tracked in the model": "notification.tracked = true",
 }

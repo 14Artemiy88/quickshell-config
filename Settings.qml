@@ -10,6 +10,7 @@ import "js/settings/SettingsPersistence.js" as SettingsPersistence
 import "js/settings/SettingsThemeManager.js" as SettingsThemeManager
 import "js/settings/SettingsTimerPresets.js" as SettingsTimerPresets
 import "js/settings/SettingsLauncherProjects.js" as SettingsLauncherProjects
+import "js/settings/SettingsLauncherActions.js" as SettingsLauncherActions
 import "js/settings/SettingsGeometry.js" as SettingsGeometry
 import "js/NotificationsGeometry.js" as NotificationsGeometry
 import "js/settings/SettingsApply.js" as SettingsApply
@@ -324,6 +325,31 @@ QtObject {
         root.save()
     }
 
+    function updateLauncherCustomAction(index, field, value) {
+        Config.launcherCustomActions = SettingsLauncherActions.update(Config.launcherCustomActions, index, field, value)
+        root.save()
+    }
+
+    function updateLauncherCustomActionFields(index, values) {
+        Config.launcherCustomActions = SettingsLauncherActions.updateFields(Config.launcherCustomActions, index, values)
+        root.save()
+    }
+
+    function addLauncherCustomAction() {
+        Config.launcherCustomActions = SettingsLauncherActions.add(Config.launcherCustomActions)
+        root.save()
+    }
+
+    function removeLauncherCustomAction(index) {
+        Config.launcherCustomActions = SettingsLauncherActions.remove(Config.launcherCustomActions, index)
+        root.save()
+    }
+
+    function moveLauncherCustomAction(index, delta) {
+        Config.launcherCustomActions = SettingsLauncherActions.move(Config.launcherCustomActions, index, delta)
+        root.save()
+    }
+
     function resetConfigKeys(names) { SettingsResets.resetConfigKeys(root, Config, names) }
 
     // Reset-button visibility follows the sparse profileOverrides payload used by
@@ -415,8 +441,8 @@ QtObject {
             var prefixes = {
                 calendar: ["calendar", "animationCalendar"], cpu: ["cpu"], cpuGraph: ["cpuGraph"],
                 topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
-                weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"], timer: ["timer"],
-                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications"],
+                weatherNow: ["weather", "animationWeather"], weatherHourly: ["weather", "animationWeather"], weatherDaily: ["weather", "animationWeather"], timer: ["timer"],
+                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications", "animationNotifications"],
                 // The clock module has no clock-prefixed configuration keys;
                 // "time" would also match "timer..." and show a false reset action.
                 time: []
@@ -444,11 +470,11 @@ QtObject {
             return hasAny(["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"])
 
         var prefixesByScope = {
-            timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"], cava: ["cava"],
+            timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather", "animationWeather"], cava: ["cava"],
             cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
-            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
-            notifications: ["notifications"]
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings", "settingsBackground", "settingsBorder"],
+            notifications: ["notifications", "animationNotifications"]
         }
         if (scope === "settingsWindow") {
             if (hasNested("moduleBlurEnabled", "settings")) return true
@@ -530,6 +556,10 @@ QtObject {
     function saveCurrentTheme(name) { return SettingsThemeManager.saveCurrentTheme(root, colorNames, Config, name) }
 
     function applyTheme(name) { SettingsThemeManager.applyTheme(root, SettingsThemes, Config, name) }
+
+    function applyGeneratedTheme(name, palette) {
+        return SettingsThemeManager.applyGeneratedTheme(root, SettingsThemes, Config, colorNames, name, palette)
+    }
 
     function themePreview(name) { return SettingsThemeManager.preview(root, SettingsThemes, name) }
 

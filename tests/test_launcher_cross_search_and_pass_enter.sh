@@ -21,7 +21,7 @@ assert 'application.entry' in builder and 'entry: appEntry' in builder, 'unwrap 
 assert builder.index('kind: "app"') < builder.index('kind: "project"')
 assert 'Config.launcherCrossSearchProjects' in builder and 'Config.launcherCrossSearchRunHistory' in builder
 assert 'Config.launcherCrossSearchCalculator' in builder and 'Calculator.evaluate(query)' in builder
-assert 'kind: \"calculator\"' in launcher and 'function copyCalculatorResult(value)' in launcher
+assert 'kind: \"calculator\"' in launcher and 'function copyCalculatorResult(value, expression)' in launcher
 assert 'function activateAppsSearchResult' in launcher and 'root.launchProject(result.project)' in launcher and 'root.runCommand(result.command)' in launcher
 assert 'String(appDelegate.itemData.project && appDelegate.itemData.project.icon || "")' in launcher, 'cross-search project results should use configured project icons'
 assert 'id: runCommandFallback' in launcher and 'text: ">_"' in launcher, 'cross-search saved commands should show a font-independent terminal icon'

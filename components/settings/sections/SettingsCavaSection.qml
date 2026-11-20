@@ -259,4 +259,39 @@ Column {
         }
         }
     }
+
+    SettingsAnimationGroup {
+        visible: host && host.currentPageId === "cava" && host.currentPageSubTabIndex === 2
+        width: root.width
+        settings: root.settings
+        heading: "Внутренние переходы CAVA"
+        changeKeys: ({ keys: ["animationCavaMorphDuration", "animationCavaMorphProfile"] })
+        duration: Config.animationCavaMorphDuration
+        profile: Config.animationCavaMorphProfile
+
+        onDurationEdited: function(value) {
+            Config.animationCavaMorphDuration = value
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationCavaMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
+            width: parent.width
+            showFrame: true
+            heading: "Что управляется"
+            padding: 8
+            contentSpacing: 4
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Профиль и длительность управляют плавным появлением и скрытием графика при обнаружении или потере звука. Эффект используется, когда включено «Скрывать полоски без звука». Анимация появления самого модуля остаётся независимой."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+            }
+        }
+    }
 }

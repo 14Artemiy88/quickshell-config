@@ -16,6 +16,7 @@ Item {
     // Stable page IDs, labels and non-core routes are owned by a dedicated
     // registry. User-customized labels/order remain in Config and profiles.
     readonly property var settingsTabDefinitions: SettingsPageRegistry.tabDefinitions()
+    readonly property var settingsNavigationGroupDefinitions: SettingsPageRegistry.navigationGroupDefinitions()
 
     function defaultSettingsTabLabel(id) {
         for (var i = 0; i < root.settingsTabDefinitions.length; ++i)
@@ -49,14 +50,20 @@ Item {
             var fallbackId = root.settingsTabDefinitions[j].id
             if (!seen[fallbackId]) result.push(fallbackId)
         }
-        return result
+        // Keep group order fixed while preserving each group's user-defined
+        // page order. The flattened result is also used by the tab-order editor.
+        return SettingsPageRegistry.groupedTabOrder(result)
     }
 
     readonly property var settingsNavigationItems: {
         var order = root.settingsTabOrderNormalized()
         var rows = []
         for (var i = 0; i < order.length; ++i)
-            rows.push({ id: order[i], label: root.settingsTabLabelForId(order[i]) })
+            rows.push({
+                id: order[i],
+                label: root.settingsTabLabelForId(order[i]),
+                groupId: SettingsPageRegistry.navigationGroupIdForTabId(order[i])
+            })
         return rows
     }
 
@@ -79,7 +86,7 @@ Item {
                 { prefixes: ["timerFinished"] },
                 { prefixes: ["timerIcon", "timerAlarmIcon"], keys: ["timerIconOrder"] },
                 { keys: ["timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth"] },
-                { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
+                { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerMorphEnabled", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
                 { prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
             ],
             "player": [
@@ -89,26 +96,31 @@ Item {
                 { prefixes: ["playerMeta", "playerMetadata"], keys: ["playerFont", "playerBoldArtist", "playerTextOutlineColor", "playerTextOutlineEnabled"] },
                 { prefixes: ["playerNextIcon", "playerPausedIcon", "playerPlayingIcon"] },
                 { prefixes: ["playerProgress"], keys: ["playerShowProgress"], nested: { colors: ["playerProgressFill", "playerProgressTrack"] } },
-                { prefixes: ["playerCover"], nested: { colors: ["playerOverlay"] } }
+                { prefixes: ["playerCover"], nested: { colors: ["playerOverlay"] } },
+                { keys: ["animationPlayerMorphDuration", "animationPlayerMorphProfile"] }
             ],
             "weather": [
                 { keys: ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds"] },
                 { prefixes: ["weatherIcon", "weatherWind", "weatherArrow", "weatherTemp", "weatherPressure", "weatherDescription"], keys: ["weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherComfortY", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherShowComfort"] },
                 { prefixes: ["weatherHourly"], exclude: ["weatherHourlyIntervalMinutes"] },
-                { prefixes: ["weatherDaily"], exclude: ["weatherDailyIntervalMinutes"] }
+                { prefixes: ["weatherDaily"], exclude: ["weatherDailyIntervalMinutes"] },
+                { keys: ["animationWeatherMorphDuration", "animationWeatherHourlyDuration", "animationWeatherMorphProfile"] }
             ],
             "cava": [
                 { keys: ["cavaMode", "cavaFramerate", "cavaHideWhenSilent", "cavaHideZeroBars"] },
-                { keys: ["cavaBars", "cavaRowSpacing", "cavaBarWidthRatio"] }
+                { keys: ["cavaBars", "cavaRowSpacing", "cavaBarWidthRatio"] },
+                { keys: ["animationCavaMorphDuration", "animationCavaMorphProfile"] }
             ],
             "cpuRam": [
                 { keys: ["cpuUpdateInterval", "cpuShowRam", "cpuBarDirection", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarThickness", "cpuBarWidth", "cpuLabelLeftPadding", "cpuRowHeight", "cpuRowSpacing"] },
                 { prefixes: ["cpuGraph"] },
-                { prefixes: ["topApps"], nested: { colors: ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"] } }
+                { prefixes: ["topApps"], nested: { colors: ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"] } },
+                { keys: ["animationCpuMorphDuration", "animationCpuMorphProfile"] }
             ],
             "network": [
                 { keys: ["systemMonitorInterval"] },
-                { prefixes: ["network"], keys: ["networksAlwaysVisible"] }
+                { prefixes: ["network"], keys: ["networksAlwaysVisible"] },
+                { keys: ["animationNetworkMorphDuration", "animationNetworkMorphProfile"] }
             ],
             "volume": [
                 { keys: ["volumeIcon", "volumeMutedIcon"] },
@@ -116,7 +128,7 @@ Item {
                 { prefixes: ["volumeMainTrack", "volumeStreamTrack", "volumeTrack"], keys: ["volumeMainIconWidth", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeStreamLabelFontSize"], nested: { colors: ["volumeTrack", "volumeFill"] } },
                 { prefixes: ["volumeStream"] , keys: ["volumeShowStreams"] },
                 { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] },
-                { keys: ["animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"] }
+                { keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] }
             ],
             "calendar": [
                 { keys: ["calendarAlwaysVisible", "calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] },
@@ -130,20 +142,26 @@ Item {
                 { keys: ["settingsTabOrder", "settingsTabLabels"] }
             ],
             "mopidy": [
-                { keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyBackground", "mopidyGroupAlbums", "mopidyHoverColor", "mopidyHoverMode", "mopidyShowTrackNumbers", "mopidyShowVolumePercent", "mopidyToggleWithPlayerRightClick", "mopidyVolumeStep", "animationMopidyVisibilityStyle"] },
+                { keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyBackground", "mopidyGroupAlbums", "mopidyHoverColor", "mopidyHoverMode", "mopidyShowTrackNumbers", "mopidyShowVolumePercent", "mopidyToggleWithPlayerRightClick", "mopidyVolumeStep"] },
                 { prefixes: ["mopidyTrack", "mopidyArtist", "mopidyAlbum", "mopidyDuration", "mopidyQueueDuration"], keys: ["mopidyShowAlbumRemaining", "mopidyShowQueueTotalDuration", "mopidyShowTrackRemaining"] },
                 { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyMoveDownIcon", "mopidyMoveUpIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
-                { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] }
+                { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] },
+                { keys: ["animationMopidyVisibilityStyle", "animationMopidyMorphDuration", "animationMopidyMorphProfile"] }
             ],
             "launcher": [
-                { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
+                { keys: ["launcherBackdropOpacity", "launcherBackground", "launcherDefaultMode", "launcherWallpaperDirectory", "launcherDynamicSchemeVariant", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherSearchBackground", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchPlaceholder", "launcherSearchRadius", "launcherShowResultCount", "launcherTitleBold", "launcherTitleColor", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleLetterSpacing", "launcherTitleText", "launcherTitleY"] },
+                { keys: ["launcherFuzzySearchApps", "launcherFuzzySearchActions", "launcherFuzzySearchSchemes", "launcherFuzzySearchWallpapers"] },
                 { keys: ["launcherTabIcons", "launcherTabLabels", "launcherTabOrder", "launcherTabVisible", "launcherCrossSearchCalculator", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory"] },
-                { keys: ["launcherProjects"] }
+                { keys: ["launcherProjects"] },
+                { keys: ["launcherCustomActions"] },
+                { keys: ["animationLauncherMorphDuration", "animationLauncherMorphProfile"] },
+                { keys: ["launcherFavoriteApps", "launcherHiddenApps"] }
             ],
             "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] },
                 { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
-                { keys: ["notificationsVerticalAnchor"] }
+                { keys: ["notificationsVerticalAnchor"] },
+                { keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] }
             ]
         }
         var row = specs[String(pageId)]
@@ -208,14 +226,37 @@ Item {
         root.settings.save()
     }
 
-    function moveSettingsTab(id, delta) {
+    function settingsTabCanMove(id, delta) {
+        var pageId = String(id)
+        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
+        var groupOrder = []
         var order = root.settingsTabOrderNormalized()
-        var from = order.indexOf(id)
+        for (var i = 0; i < order.length; ++i) {
+            if (SettingsPageRegistry.navigationGroupIdForTabId(order[i]) === groupId)
+                groupOrder.push(order[i])
+        }
+        var from = groupOrder.indexOf(pageId)
         var to = from + Number(delta)
-        if (from < 0 || to < 0 || to >= order.length || to === from) return
-        var temporary = order[from]
-        order[from] = order[to]
-        order[to] = temporary
+        return from >= 0 && to >= 0 && to < groupOrder.length && to !== from
+    }
+
+    function moveSettingsTab(id, delta) {
+        if (!root.settingsTabCanMove(id, delta)) return
+        var pageId = String(id)
+        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
+        var order = root.settingsTabOrderNormalized()
+        var groupOrder = []
+        for (var i = 0; i < order.length; ++i) {
+            if (SettingsPageRegistry.navigationGroupIdForTabId(order[i]) === groupId)
+                groupOrder.push(order[i])
+        }
+        var from = groupOrder.indexOf(pageId)
+        var neighborId = groupOrder[from + Number(delta)]
+        var pageIndex = order.indexOf(pageId)
+        var neighborIndex = order.indexOf(neighborId)
+        var temporary = order[pageIndex]
+        order[pageIndex] = order[neighborIndex]
+        order[neighborIndex] = temporary
         Config.settingsTabOrder = order
         root.settings.save()
     }

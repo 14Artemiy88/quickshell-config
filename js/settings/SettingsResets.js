@@ -1,5 +1,12 @@
 // Settings reset logic extracted from Settings.qml.
 
+function normalizeLauncherDynamicSchemeVariant(value) {
+    var candidate = String(value === undefined || value === null ? "" : value).trim()
+    var supported = ["scheme-content", "scheme-expressive", "scheme-fidelity", "scheme-fruit-salad", "scheme-monochrome", "scheme-neutral", "scheme-rainbow", "scheme-tonal-spot"]
+    return supported.indexOf(candidate) >= 0 ? candidate : "scheme-tonal-spot"
+}
+
+
 function restoreProfileTheme(owner, profile, themes, colorNames) {
     var themeName = profile && profile.activeTheme !== undefined ? String(profile.activeTheme) : ""
     if (themeName && themes && themes.palette) {
@@ -67,6 +74,23 @@ function applyConfigKeysFromProfile(owner, config, profile, names) {
         var name = names[i]
         if (profile[name] !== undefined) config[name] = profile[name]
     }
+
+    // Older profiles stored an independent master checkbox. Translate a
+    // disabled legacy value into the new explicit "none" profile on reset.
+    var legacyAnimationPairs = [
+        ["animationMopidyMorphEnabled", "animationMopidyMorphProfile"],
+        ["animationPlayerMorphEnabled", "animationPlayerMorphProfile"],
+        ["animationWeatherMorphEnabled", "animationWeatherMorphProfile"],
+        ["animationTimerMorphEnabled", "animationTimerMorphProfile"]
+    ]
+    for (var a = 0; a < legacyAnimationPairs.length; ++a) {
+        var enabledKey = legacyAnimationPairs[a][0]
+        var profileKey = legacyAnimationPairs[a][1]
+        if (names.indexOf(enabledKey) < 0) continue
+        config[enabledKey] = true
+        if (profile[enabledKey] === false)
+            config[profileKey] = "none"
+    }
 }
 
 function resetColorsFromProfile(owner, config, names, themes, colorNames) {
@@ -92,7 +116,7 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups"])
     if (profile.colors && profile.colors.settingsBackground !== undefined)
         config.settingsBackground = profile.colors.settingsBackground
     if (profile.colors && profile.colors.settingsBorder !== undefined)
@@ -165,12 +189,12 @@ function resetModule(owner, config, moduleName) {
     owner.moduleMonitors = m
 
     if (moduleName === "calendar") {
-        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
+        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
     } else if (moduleName === "cpu") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
             "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth",
-            "cpuGraphBarWidth", "cpuShowRam"
+            "cpuGraphBarWidth", "cpuShowRam", "animationCpuMorphDuration", "animationCpuMorphProfile"
         ])
     } else if (moduleName === "cpuGraph") {
         applyConfigKeysFromProfile(owner, config, profile, ["cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode"])
@@ -182,8 +206,11 @@ function resetModule(owner, config, moduleName) {
             "networkIconSize", "networkValueFontSize", "networkRightPadding",
             "networkIconLeftPadding", "networkFont"
         ])
+        if (moduleName === "networks")
+            applyConfigKeysFromProfile(owner, config, profile, ["animationNetworkMorphDuration", "animationNetworkMorphProfile"])
     } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
         applyConfigKeysFromProfile(owner, config, profile, [
+            "animationWeatherMorphEnabled", "animationWeatherMorphDuration", "animationWeatherHourlyDuration", "animationWeatherMorphProfile",
             "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes",
             "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX",
             "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount",
@@ -227,7 +254,7 @@ function resetModule(owner, config, moduleName) {
             "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY",
             "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize",
             "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight",
-            "animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"
+            "animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"
         ])
     } else if (moduleName === "player") {
         applyConfigKeysFromProfile(owner, config, profile, [
@@ -244,12 +271,14 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "cava") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent", "cavaHideZeroBars"
+            "cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaHideWhenSilent", "cavaHideZeroBars",
+            "animationCavaMorphDuration", "animationCavaMorphProfile"
         ])
     } else if (moduleName === "notifications") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
-            "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"
+            "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress",
+            "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
         ])
         // Geometry is authoritative for module placement. Keep its width and the
         // legacy scalar aligned when resetting profiles created before this move.
@@ -320,22 +349,22 @@ function resetColors(owner, config, names, themes, colorNames) {
 
 function resetCpuSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "animationCpuMorphDuration", "animationCpuMorphProfile", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
 }
 
 function resetNetworkSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont", "animationNetworkMorphDuration", "animationNetworkMorphProfile"]); owner.save()
 }
 
 function resetVolumeSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight", "animationVolumeStreamsVisibilityStyle", "volumeStreamsAnimationDuration"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight", "animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"]); owner.save()
 }
 
 function resetTimerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerVisibilityStyle", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration", "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize", "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerMorphEnabled", "animationTimerMorphDuration", "animationTimerMorphProfile", "animationTimerVisibilityStyle", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration", "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize", "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
     if (profile.timerOptionsActionIconOrder === undefined)
         config.timerOptionsActionIconOrder = ["comment", "duration", "refresh", "toggle_pause", "color"]
     if (profile.timerIconOrder === undefined) {
@@ -355,29 +384,29 @@ function resetTimerSettings(owner, config) {
 
 function resetPlayerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval", "animationPlayerMorphEnabled", "animationPlayerMorphDuration", "animationPlayerMorphProfile"]); owner.save()
 }
 
 function resetMopidySettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyTrackRowHeight", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyQueueDurationAlignment", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "animationMopidyMorphEnabled", "animationMopidyMorphDuration", "animationMopidyMorphProfile", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyTrackRowHeight", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyQueueDurationAlignment", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
 }
 
 function resetWeatherSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindColumnY", "weatherPressureX", "weatherDescriptionX", "weatherDescriptionWidth", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherIconPlacement", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
+    applyConfigKeysFromProfile(owner, config, profile, ["animationWeatherMorphEnabled", "animationWeatherMorphDuration", "animationWeatherHourlyDuration", "animationWeatherMorphProfile", "weatherNowIntervalMinutes", "weatherHourlyIntervalMinutes", "weatherDailyIntervalMinutes", "weatherRetryDelayMinutes", "weatherManualRefreshCooldownSeconds", "weatherIconSize", "weatherIconX", "weatherArrowSize", "weatherArrowYOffset", "weatherWindArrowGap", "weatherHourlyCount", "weatherDailyCount", "weatherIconY", "weatherWindColumnX", "weatherWindColumnY", "weatherPressureX", "weatherDescriptionX", "weatherDescriptionWidth", "weatherMiddleBlockWidth", "weatherLeftBlockAlignment", "weatherMiddleBlockAlignment", "weatherRightBlockAlignment", "weatherIconPlacement", "weatherWindSpeedFontSize", "weatherWindUnitFontSize", "weatherPressureY", "weatherDescriptionY", "weatherDescriptionFontSize", "weatherTempFontSize", "weatherComfortFontSize", "weatherComfortOutlineColor", "weatherComfortOutlineWidth", "weatherShowComfort", "weatherTempColumnWidth", "weatherTempX", "weatherTempWidth", "weatherTempOffsetX", "weatherTempOffsetY", "weatherComfortY", "weatherComfortOffsetX", "weatherComfortOffsetY", "weatherComfortHeight", "weatherWindColumnWidth", "weatherWindArrowWidth", "weatherWindIcon", "weatherWindCalmIcon", "weatherWindCalmFont", "weatherWindNIcon", "weatherWindNFont", "weatherWindNEIcon", "weatherWindNEFont", "weatherWindEIcon", "weatherWindEFont", "weatherWindSEIcon", "weatherWindSEFont", "weatherWindSIcon", "weatherWindSFont", "weatherWindSWIcon", "weatherWindSWFont", "weatherWindWIcon", "weatherWindWFont", "weatherWindNWIcon", "weatherWindNWFont", "weatherWindArrowHeight", "weatherWindSpeedX", "weatherWindSpeedY", "weatherWindSpeedWidth", "weatherWindUnitX", "weatherWindUnitY", "weatherWindUnitWidth", "weatherPressureValueWidth", "weatherPressureFontSize", "weatherPressureUnitX", "weatherPressureUnitY", "weatherPressureUnitFontSize", "weatherDescriptionHeight", "weatherHourlyTopPadding", "weatherHourlyDayY", "weatherHourlyDayFontSize", "weatherHourlyIconWidth", "weatherHourlyIconY", "weatherHourlyTempY", "weatherHourlyTempHeight", "weatherHourlyTempFontSize", "weatherDailyTopPadding", "weatherDailyDayY", "weatherDailyDayFontSize", "weatherDailyIconWidth", "weatherDailyIconY", "weatherDailyHighTempX", "weatherDailyHighTempY", "weatherDailyHighTempFontSize", "weatherDailyLowTempX", "weatherDailyLowTempY", "weatherDailyLowTempFontSize"]);
     if (profile.weatherToken !== undefined) owner.weatherToken = String(profile.weatherToken)
     owner.save()
 }
 
 function resetCalendarSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor", "animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile"]); owner.save()
 }
 
 function resetCavaSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode", "cavaHideWhenSilent", "cavaHideZeroBars"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cavaBars", "cavaFramerate", "cavaRowSpacing", "cavaBarWidthRatio", "cavaMode", "cavaHideWhenSilent", "cavaHideZeroBars", "animationCavaMorphDuration", "animationCavaMorphProfile"]); owner.save()
 }
 
 function resetGeneralSettings(owner, config) {
@@ -395,7 +424,7 @@ function resetNotificationsSettings(owner, config) {
     applyConfigKeysFromProfile(owner, config, profile, [
         "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardSpacing",
         "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages",
-        "notificationsShowProgress"
+        "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
     ])
     owner.save()
 }
@@ -403,11 +432,21 @@ function resetNotificationsSettings(owner, config) {
 function resetLauncherSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherCrossSearchCalculator", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects"])
+    applyConfigKeysFromProfile(owner, config, profile, ["launcherEnabled", "launcherWidth", "launcherHeight", "launcherItemHeight", "launcherItemRadius", "launcherRadius", "launcherBackdropOpacity", "launcherBackground", "launcherTitleText", "launcherTitleFont", "launcherTitleFontSize", "launcherTitleY", "launcherTitleColor", "launcherTitleLetterSpacing", "launcherTitleBold", "launcherSearchFont", "launcherSearchFontSize", "launcherSearchHeight", "launcherSearchRadius", "launcherSearchBackground", "launcherSearchPlaceholder", "launcherDefaultMode", "launcherShowResultCount", "launcherFuzzySearchApps", "launcherFuzzySearchActions", "launcherFuzzySearchSchemes", "launcherFuzzySearchWallpapers", "launcherDynamicSchemeVariant", "launcherWallpaperDirectory", "launcherCrossSearchProjects", "launcherCrossSearchRunHistory", "launcherCrossSearchCalculator", "launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons", "launcherProjects", "launcherCustomActions", "launcherFavoriteApps", "launcherHiddenApps", "animationLauncherMorphDuration", "animationLauncherMorphProfile"])
     // Older profiles predate calculator cross-search and editable launcher tabs.
     if (profile.launcherCrossSearchCalculator === undefined) config.launcherCrossSearchCalculator = true
+    if (profile.launcherFuzzySearchApps === undefined) config.launcherFuzzySearchApps = true
+    if (profile.launcherFuzzySearchActions === undefined) config.launcherFuzzySearchActions = true
+    if (profile.launcherFuzzySearchSchemes === undefined) config.launcherFuzzySearchSchemes = true
+    if (profile.launcherFuzzySearchWallpapers === undefined) config.launcherFuzzySearchWallpapers = true
+    if (profile.launcherDynamicSchemeVariant === undefined) config.launcherDynamicSchemeVariant = "scheme-tonal-spot"
+    else config.launcherDynamicSchemeVariant = normalizeLauncherDynamicSchemeVariant(profile.launcherDynamicSchemeVariant)
+    if (profile.launcherWallpaperDirectory === undefined) config.launcherWallpaperDirectory = ""
     if (profile.launcherTabLabels === undefined) config.launcherTabLabels = ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
     if (profile.launcherTabIcons === undefined) config.launcherTabIcons = ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
+    if (profile.launcherCustomActions === undefined) config.launcherCustomActions = []
+    if (profile.launcherFavoriteApps === undefined) config.launcherFavoriteApps = []
+    if (profile.launcherHiddenApps === undefined) config.launcherHiddenApps = []
     // Older full-profile snapshots predate the launcher title position/color fields.
     if (profile.launcherTitleY === undefined) config.launcherTitleY = 0
     if (profile.launcherTitleColor === undefined) config.launcherTitleColor = "#ffffff"

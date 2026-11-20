@@ -1,4 +1,5 @@
 import QtQuick
+import "../.."
 
 // Reusable geometry interpolator for shared-element morph transitions.
 // Animate only `progress` from 0 (fromGeometry) to 1 (toGeometry).
@@ -14,7 +15,10 @@ Item {
     property color surfaceColor: "transparent"
     property bool surfaceVisible: false
     property int animationDuration: 0
-    property int animationEasing: Easing.OutCubic
+    property string animationProfile: "standard"
+    property string animationPhase: "enter"
+    property int animationEasing: Config.animationEasingType(root.animationProfile, root.animationPhase)
+    property var animationBezierCurve: Config.animationBezierCurve(root.animationProfile, root.animationPhase)
 
     readonly property real normalizedProgress: Math.max(0, Math.min(1, Number(progress) || 0))
     readonly property real geometryX: fromGeometry.x + (toGeometry.x - fromGeometry.x) * normalizedProgress
@@ -33,6 +37,7 @@ Item {
         NumberAnimation {
             duration: root.animationDuration
             easing.type: root.animationEasing
+            easing.bezierCurve: root.animationBezierCurve
         }
     }
 

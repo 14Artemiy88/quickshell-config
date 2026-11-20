@@ -10,7 +10,7 @@ Item {
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     readonly property bool hasHighTemperature: root.highText(root.entry) !== ""
     readonly property bool hasLowTemperature: !root.hourly && root.lowText(root.entry) !== ""
-    readonly property int forecastMorphDuration: Config.animationDuration(180, "appearance")
+    readonly property int forecastMorphDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
 
     Text {
         x: 0
@@ -46,7 +46,9 @@ Item {
         progress: root.hasHighTemperature ? 1 : 0
         visible: root.hasHighTemperature || normalizedProgress > 0.001
         animationDuration: root.forecastMorphDuration
-        animationEasing: Config.animationEasingType("standard", root.hasHighTemperature ? "enter" : "exit")
+        animationProfile: Config.animationWeatherMorphProfile
+        animationPhase: root.hasHighTemperature ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasHighTemperature ? "enter" : "exit")
 
         Text {
             anchors.fill: parent
@@ -68,7 +70,9 @@ Item {
         progress: root.hasLowTemperature ? 1 : 0
         visible: root.hasLowTemperature || normalizedProgress > 0.001
         animationDuration: root.forecastMorphDuration
-        animationEasing: Config.animationEasingType("standard", root.hasLowTemperature ? "enter" : "exit")
+        animationProfile: Config.animationWeatherMorphProfile
+        animationPhase: root.hasLowTemperature ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasLowTemperature ? "enter" : "exit")
 
         Text {
             anchors.fill: parent

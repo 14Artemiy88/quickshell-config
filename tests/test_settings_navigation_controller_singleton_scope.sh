@@ -14,7 +14,7 @@ grep -Fq 'import "../.."' "$NAV" || {
 grep -Fq 'var saved = Config.settingsTabOrder' "$NAV"
 grep -Fq 'var labels = Config.settingsTabLabels' "$NAV"
 grep -Fq 'settings: root.settings' "$WIDGET"
-grep -Fq 'model: root.settingsNavigationItems' "$WIDGET"
+grep -Fq 'model: root.settingsNavigationGroups' "$WIDGET"
 
 node - "$REGISTRY" <<'NODE'
 const fs = require('fs');

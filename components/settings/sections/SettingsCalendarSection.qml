@@ -626,7 +626,7 @@ Item {
         visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
-        heading: "Анимация"
+        heading: "Появление модуля"
         changeKeys: ({ keys: ["animationCalendarFadeDuration", "animationCalendarSlideDuration", "animationCalendarVisibilityStyle"] })
         padding: 8
         contentSpacing: 6
@@ -683,6 +683,41 @@ Item {
                 minimum: 0; maximum: 5000; step: 50; wheelStep: 50; decimals: 0; compact: true
                 fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "animationCalendarFadeDuration"; settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+    }
+
+    SettingsAnimationGroup {
+        visible: host && host.currentPageId === "calendar" && host.currentPageSubTabIndex === 3
+        width: root.width
+        settings: root.settings
+        heading: "Внутренние переходы календаря"
+        changeKeys: ({ keys: ["animationCalendarMorphDuration", "animationCalendarMorphProfile"] })
+        duration: Config.animationCalendarMorphDuration
+        profile: Config.animationCalendarMorphProfile
+
+        onDurationEdited: function(value) {
+            Config.animationCalendarMorphDuration = value
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationCalendarMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
+            width: parent.width
+            showFrame: true
+            heading: "Что управляется"
+            padding: 8
+            contentSpacing: 4
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Профиль и длительность управляют открытием и закрытием встроенного просмотра и редактора заметки. Они не меняют перелистывание месяцев и анимацию появления самого календаря."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
             }
         }
     }

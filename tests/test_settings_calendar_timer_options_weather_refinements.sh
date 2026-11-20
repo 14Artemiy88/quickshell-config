@@ -49,7 +49,8 @@ assert 'heading: "Анимация окна опций"' in timers
 assert 'visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5' in timers
 assert 'Config.animationTimerOptionsVisibilityStyle' in timers
 assert 'targetProperty: "animationTimerOptionsDuration"' in timers
-assert 'text: "Стиль анимации таймера"' in timers
+assert 'heading: "Анимация кнопок таймера"' in timers
+assert 'text: "Стиль появления кнопок"' in timers
 assert 'currentPageSubTabIndex === 4' in timers and 'Config.animationTimerVisibilityStyle' in timers
 options = read("components/TimerOptions.qml")
 assert 'Config.animationTimerOptionsVisibilityStyle' in options

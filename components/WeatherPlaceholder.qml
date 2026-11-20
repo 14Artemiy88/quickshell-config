@@ -21,8 +21,9 @@ Item {
         fromGeometry: Qt.rect(0, 0, root.width, root.height)
         toGeometry: Qt.rect(0, 0, root.width, root.height)
         progress: root.active ? 1 : 0
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.active ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+        animationProfile: Config.animationWeatherMorphProfile
+        animationPhase: root.active ? "enter" : "exit"
 
         Item {
             anchors.fill: parent

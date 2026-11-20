@@ -110,13 +110,15 @@ Item {
                 var stableId = occurrence === 0 ? baseId : baseId + "#" + String(occurrence + 1)
                 var group = root.settingsSearchGroupHeading(item, activePageRoot)
                 var pageLabel = root.host ? root.host.settingsTabLabelForId(activePageId) : activePageId
+                var navigationGroupLabel = SettingsPageRegistry.navigationGroupLabelForTabId(activePageId)
                 var keywords = item.settingsSearchKeywords !== undefined ? String(item.settingsSearchKeywords || "") : ""
-                var keyTerms = SettingsSearch.keyTerms([label, group, activePageId, targetKey, explicitId].join(" "))
-                var searchable = [label, group, pageLabel, activePageId, targetKey, explicitId, keywords, keyTerms].join(" ")
+                var keyTerms = SettingsSearch.keyTerms([label, group, navigationGroupLabel, activePageId, targetKey, explicitId].join(" "))
+                var searchable = [label, group, navigationGroupLabel, pageLabel, activePageId, targetKey, explicitId, keywords, keyTerms].join(" ")
                 entries.push({
                     id: stableId,
                     label: label,
                     group: group,
+                    navigationGroupLabel: navigationGroupLabel,
                     pageId: activePageId,
                     pageLabel: pageLabel,
                     target: item,
@@ -146,7 +148,7 @@ Item {
 
     function updateSettingsSearchResults(query) {
         root.settingsSearchQuery = String(query === undefined || query === null ? "" : query)
-        root.settingsSearchResults = SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, 7)
+        root.settingsSearchResults = SettingsSearch.search(root.settingsSearchIndex, root.settingsSearchQuery, 40)
         root.settingsSearchSelectedIndex = 0
     }
 
@@ -173,6 +175,7 @@ Item {
         root.settingsSearchResults = []
         if (root.searchInput)
             root.searchInput.text = ""
+        root.host.expandSettingsNavigationGroupForPage(entry.pageId)
         if (entry.pageId === "modules" || entry.pageId === "themes") {
             root.host.currentPageId = entry.pageId
             Qt.callLater(function() { root.finishSettingsSearchNavigation(entry) })

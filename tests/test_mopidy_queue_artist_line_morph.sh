@@ -16,3 +16,8 @@ if grep -Fq 'visible: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!i
     exit 1
 fi
 printf 'Mopidy queue artist line morph: OK\n'
+
+# Entry/exit motion uses the shared Expressive profile without changing geometry timing.
+grep -Fq 'animationProfile: Config.animationMopidyMorphProfile' "$FILE"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")' "$FILE"
+grep -Fq 'animationPhase: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? "enter" : "exit"' "$FILE"

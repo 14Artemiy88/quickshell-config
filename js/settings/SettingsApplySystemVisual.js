@@ -1,6 +1,9 @@
 .pragma library
 
 .import "SettingsLauncherProjects.js" as LauncherProjects
+.import "SettingsLauncherActions.js" as LauncherActions
+.import "../launcher/LauncherAppPreferences.js" as LauncherAppPreferences
+.import "../launcher/LauncherSchemeVariantPicker.js" as LauncherSchemeVariantPicker
 .import "SettingsSchema.js" as Schema
 
 function apply(Config, o) {
@@ -57,6 +60,18 @@ function apply(Config, o) {
         }
         if (o.launcherShowResultCount !== undefined)
             Config.launcherShowResultCount = !!o.launcherShowResultCount
+        if (o.launcherFuzzySearchApps !== undefined)
+            Config.launcherFuzzySearchApps = !!o.launcherFuzzySearchApps
+        if (o.launcherFuzzySearchActions !== undefined)
+            Config.launcherFuzzySearchActions = !!o.launcherFuzzySearchActions
+        if (o.launcherFuzzySearchSchemes !== undefined)
+            Config.launcherFuzzySearchSchemes = !!o.launcherFuzzySearchSchemes
+        if (o.launcherFuzzySearchWallpapers !== undefined)
+            Config.launcherFuzzySearchWallpapers = !!o.launcherFuzzySearchWallpapers
+        if (o.launcherDynamicSchemeVariant !== undefined)
+            Config.launcherDynamicSchemeVariant = LauncherSchemeVariantPicker.normalizeVariant(o.launcherDynamicSchemeVariant) || LauncherSchemeVariantPicker.DEFAULT_VARIANT
+        if (o.launcherWallpaperDirectory !== undefined)
+            Config.launcherWallpaperDirectory = String(o.launcherWallpaperDirectory || "")
         if (o.launcherCrossSearchProjects !== undefined)
             Config.launcherCrossSearchProjects = !!o.launcherCrossSearchProjects
         if (o.launcherCrossSearchRunHistory !== undefined)
@@ -104,6 +119,12 @@ function apply(Config, o) {
         Config.launcherTabIcons = validLauncherIcons
         if (o.launcherProjects instanceof Array)
             Config.launcherProjects = LauncherProjects.normalize(o.launcherProjects)
+        if (Array.isArray(o.launcherCustomActions))
+            Config.launcherCustomActions = LauncherActions.normalize(o.launcherCustomActions)
+        if (o.launcherFavoriteApps instanceof Array || (o.launcherFavoriteApps && typeof o.launcherFavoriteApps.length === "number"))
+            Config.launcherFavoriteApps = LauncherAppPreferences.normalizeIds(o.launcherFavoriteApps)
+        if (o.launcherHiddenApps instanceof Array || (o.launcherHiddenApps && typeof o.launcherHiddenApps.length === "number"))
+            Config.launcherHiddenApps = LauncherAppPreferences.normalizeIds(o.launcherHiddenApps)
 
         // CPU / RAM tuning
         var cpuNumberFields = [

@@ -50,8 +50,8 @@ assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['general','timer
 for (let i = 0; i < otherPages.length; i++)
   assert.strictEqual(registrySource.api.saveScopeForPageId(otherPages[i].id, 0), otherPages[i].saveScope, `page ${otherPages[i].id} resolves its own save scope`);
 assert(otherPages.every(page => Array.isArray(page.subTabs) && page.subTabs.length > 0), 'each registered page has at least one subtab');
-assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcher')), ['Общее', 'Вкладки', 'Проекты'], 'launcher subtabs stay registered');
-assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('notifications')), ['Поведение', 'Внешний вид', 'Размещение'], 'notification subtabs stay registered');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcher')), ['Общее', 'Поиск', 'Вкладки', 'Проекты', 'Действия', 'Анимация', 'Приложения'], 'launcher subtabs stay registered');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('notifications')), ['Поведение', 'Внешний вид', 'Размещение', 'Анимация'], 'notification animation subtab stays registered');
 assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('unknown')), [], 'invalid routes return no subtabs');
 assert.strictEqual(registrySource.api.saveScopeForPageId('general', 0), 'general', 'general interface keeps its scoped save');
 assert.strictEqual(registrySource.api.saveScopeForPageId('general', 1), '', 'profile subtab has no unrelated scoped save');

@@ -971,10 +971,42 @@ Column {
         }
                     }
     }
+    SettingsAnimationGroup {
+        visible: root.host && root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
+        settings: root.settings
+        heading: "Внутренние переходы таймера"
+        changeKeys: ({ keys: ["animationTimerMorphDuration", "animationTimerMorphProfile"] })
+        duration: Config.animationTimerMorphDuration
+        durationLabel: "Добавление/удаление строк (мс)"
+        profile: Config.animationTimerMorphProfile
+
+        onDurationEdited: function(value) {
+            Config.animationTimerMorphDuration = value
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            // Legacy compatibility flag is no longer exposed in the UI.
+            // Keep it enabled so the selected profile is the sole control.
+            Config.animationTimerMorphEnabled = true
+            Config.animationTimerMorphProfile = value
+            root.settings.save()
+        }
+
+        Text {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: "Профиль управляет появлением и удалением строк, морфингом иконок таймера/будильника и показом кнопок пресетов. Длительность выше относится к строкам; интервалы и стиль кнопок настраиваются ниже. Окно опций имеет отдельные параметры."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+        }
+    }
+
     SettingsGroup {
         visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 4
         width: parent.width
         showFrame: true
+        heading: "Анимация кнопок таймера"
         changeKeys: ({ keys: ["animationTimerVisibilityStyle", "timerButtonFadeDuration", "timerButtonIconFadeDuration", "timerButtonSlideDuration"] })
         padding: 8
         contentSpacing: 6
@@ -985,7 +1017,7 @@ Column {
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Стиль анимации таймера"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            Text { width: 210; height: 30; text: "Стиль появления кнопок"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
             SettingsComboBox {
                 id: timerWidgetVisibilityBox
                 width: 180
@@ -1003,9 +1035,9 @@ Column {
             }
         }
 
-                    Row { width: parent.width; height: 30; spacing: 8
+                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
-                        Text { width: 210; height: 30; text: "Анимация появления кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                        Text { width: 210; height: 30; text: "Затухание кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
             id: timerFadeField
             width: 100
@@ -1026,7 +1058,7 @@ Column {
             saveOnEdit: true
         }
                     }
-                    Row { width: parent.width; height: 30; spacing: 8
+                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
                         Text { width: 210; height: 30; text: "Сдвиг кнопок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
@@ -1049,9 +1081,9 @@ Column {
             saveOnEdit: true
         }
                     }
-                    Row { width: parent.width; height: 30; spacing: 8
+                    Row { width: parent.width; height: visible ? 30 : 0; spacing: 8
                         visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 4
-                        Text { width: 210; height: 30; text: "Исчезновение иконки (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
+                        Text { width: 210; height: 30; text: "Появление/исчезновение иконок (мс)"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight }
                         SettingsNumberField {
             id: timerIconFadeField
             width: 100

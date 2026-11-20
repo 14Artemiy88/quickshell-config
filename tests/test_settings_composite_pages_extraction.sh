@@ -13,13 +13,16 @@ grep -Fq 'SettingsPages.SettingsMopidyPage {' "$CONTENT" || fail 'Mopidy page is
 grep -Fq 'objectName: "settings-search-page:player"' "$PLAYER" || fail 'Player stable search root is missing'
 grep -Fq 'objectName: "settings-search-page:mopidy"' "$MOPIDY" || fail 'Mopidy stable search root is missing'
 grep -Fq 'SettingsPlayerSection {' "$PLAYER" || fail 'Player section was not kept inside the Player page'
+grep -Fq 'SettingsPlayerAnimationSection {' "$PLAYER" || fail 'Player animation section was not kept inside the Player page'
 grep -Fq 'SettingsNumberField {' "$PLAYER" || fail 'Player update interval control was not moved into Player page'
-for section in SettingsMopidySection SettingsMopidyTimeSection SettingsMopidyIconsSection SettingsMopidyStatusSection; do
+for section in SettingsMopidySection SettingsMopidyTimeSection SettingsMopidyIconsSection SettingsMopidyStatusSection SettingsMopidyAnimationSection; do
     grep -Fq "MopidySettings.$section {" "$MOPIDY" || fail "$section is not owned by the Mopidy page"
 done
-! grep -Eq 'SettingsPlayerSection[[:space:]]*\{|MopidySettings\.SettingsMopidy(Time|Icons|Status)?Section[[:space:]]*\{' "$CONTENT" || fail 'composite page sections remain duplicated in SettingsPageContent'
+! grep -Eq 'SettingsPlayerSection[[:space:]]*\{|MopidySettings\.SettingsMopidy(Animation|Time|Icons|Status)?Section[[:space:]]*\{' "$CONTENT" || fail 'composite page sections remain duplicated in SettingsPageContent'
 
-node - "$CONTENT" "$PLAYER" "$MOPIDY" <<'NODE'
+ANIMATION="$ROOT/components/settings/sections/mopidy/SettingsMopidyAnimationSection.qml"
+PLAYER_ANIMATION="$ROOT/components/settings/sections/SettingsPlayerAnimationSection.qml"
+node - "$CONTENT" "$PLAYER" "$MOPIDY" "$ANIMATION" "$PLAYER_ANIMATION" <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 for (const file of process.argv.slice(2)) {

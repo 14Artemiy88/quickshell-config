@@ -1,4 +1,5 @@
 import QtQuick
+import "../.."
 
 // Shared filled-track renderer used by CPU/RAM gauges and Top Apps.
 // value is expressed as a percentage (0..100); direction controls the edge
@@ -7,15 +8,29 @@ Item {
     id: root
 
     property real value: 0
+    property int valueAnimationDuration: 0
+    property string valueAnimationProfile: "standard"
+    property real displayedValue: value
     property color fillColor: "white"
     property color trackColor: "transparent"
     property real radius: 0
     property string direction: "leftToRight"
     readonly property real normalizedValue: {
-        const v = Number(value)
+        const v = Number(displayedValue)
         return isFinite(v) ? Math.max(0, Math.min(100, v)) : 0
     }
     readonly property bool vertical: direction === "topToBottom" || direction === "bottomToTop"
+
+    // Opt-in smoothing for sampled metrics. Consumers that leave the duration
+    // at zero (Top Apps, Volumes and other tracks) retain immediate updates.
+    Behavior on displayedValue {
+        enabled: root.valueAnimationDuration > 0
+        NumberAnimation {
+            duration: root.valueAnimationDuration
+            easing.type: Config.animationEasingType(root.valueAnimationProfile, "enter")
+            easing.bezierCurve: Config.animationBezierCurve(root.valueAnimationProfile, "enter")
+        }
+    }
 
     Rectangle {
         id: track

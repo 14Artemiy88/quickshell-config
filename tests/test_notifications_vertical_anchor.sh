@@ -61,8 +61,8 @@ assert(runtime.includes('current[1] = Math.max(0, Math.min(500, Math.round(Numbe
 assert(page.includes('currentPageSubTabIndex === 2') && page.includes('Вертикальная привязка') &&
        page.includes('model: ["Сверху", "Снизу"]'),
   'vertical anchor control lives on the Notifications page');
-assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение"] }'),
-  'Notifications page has a dedicated Placement subtab');
+assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'),
+  'Notifications page keeps the Placement subtab alongside Animation');
 assert(modules.includes('model: settings.moduleNames') &&
        modules.includes('moduleRow.moduleName === "notifications"') &&
        modules.includes('modulesSection.writeNotificationsGeometry(index, n)'),

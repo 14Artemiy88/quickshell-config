@@ -34,8 +34,9 @@ Rectangle {
                 toGeometry: Qt.rect(0, 0, 18, parent.height)
                 progress: Config.mopidyShowTrackNumbers ? 1 : 0
                 visible: Config.mopidyShowTrackNumbers || normalizedProgress > 0.001
-                animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", Config.mopidyShowTrackNumbers ? "enter" : "exit")
+                animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+                animationProfile: Config.animationMopidyMorphProfile
+                animationPhase: Config.mopidyShowTrackNumbers ? "enter" : "exit"
 
                 Text {
                     width: 18
@@ -97,8 +98,9 @@ Rectangle {
                 toGeometry: Qt.rect(0, Math.round(parent.height * 0.57), parent.width,
                     Math.max(0, parent.height - Math.round(parent.height * 0.57)))
                 progress: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? 1 : 0
-                animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", progress > 0.5 ? "enter" : "exit")
+                animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+                animationProfile: Config.animationMopidyMorphProfile
+                animationPhase: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? "enter" : "exit"
 
                 Text {
                     id: trackArtistText

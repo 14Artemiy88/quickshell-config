@@ -1,6 +1,7 @@
 import QtQuick
 import "primitives" as Primitives
 import ".."
+import "../js/cava/GraphValuesModel.js" as CavaGraphValuesModel
 import Quickshell
 import Quickshell.Io
 
@@ -9,6 +10,8 @@ Primitives.ModuleFrame {
     moduleName: "cava"
     width: 300
     height: 80
+    // Keep the latest raw snapshot for signal detection, while graph delegates
+    // consume one shared ListModel with per-row change notifications.
     property var values: []
     property bool soundActive: true
     readonly property bool graphShouldBeVisible: !Config.cavaHideWhenSilent || root.soundActive
@@ -16,8 +19,9 @@ Primitives.ModuleFrame {
 
     Behavior on graphVisibilityProgress {
         NumberAnimation {
-            duration: Config.animationDuration(180, "appearance")
-            easing.type: Config.animationEasingType("standard", root.graphShouldBeVisible ? "enter" : "exit")
+            duration: Config.animationDurationForProfile(true, Config.animationCavaMorphProfile, Config.animationCavaMorphDuration, "appearance")
+            easing.type: Config.animationEasingType(Config.animationCavaMorphProfile, root.graphShouldBeVisible ? "enter" : "exit")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationCavaMorphProfile, root.graphShouldBeVisible ? "enter" : "exit")
         }
     }
 
@@ -34,6 +38,10 @@ Primitives.ModuleFrame {
         }
     }
 
+    ListModel { id: cavaValuesModel }
+
+    Component.onCompleted: root.syncGraphValues([])
+
     Process {
         id: cavaProc
         command: [Quickshell.shellDir + "/scripts/cava", String(Config.cavaBars), String(Config.cavaFramerate)]
@@ -42,22 +50,31 @@ Primitives.ModuleFrame {
             onRead: line => {
                 try {
                     var sample = JSON.parse(line.trim())
+                    var update = root.syncGraphValues(sample)
                     root.values = sample
-                    root.updateSignalState(sample)
+                    root.updateSignalState(sample, update.peak)
                 } catch(e) {}
             }
         }
     }
 
-    function updateSignalState(samples) {
+    // Update a stable model in place. ListModel emits dataChanged only for a
+    // row whose value actually changed, so unchanged bars do not re-evaluate
+    // their height/visibility bindings on every audio frame. Both mirrored
+    // graph regions share this model rather than maintaining duplicate arrays.
+    function syncGraphValues(samples) {
+        return CavaGraphValuesModel.sync(cavaValuesModel, samples, Config.cavaBars)
+    }
+
+    function updateSignalState(samples, knownPeak) {
         if (!Config.cavaHideWhenSilent) {
             silenceTimer.stop()
             soundActive = true
             return
         }
 
-        var peak = 0
-        if (samples && samples.length) {
+        var peak = typeof knownPeak === "number" && isFinite(knownPeak) ? knownPeak : 0
+        if (knownPeak === undefined && samples && samples.length) {
             for (var i = 0; i < samples.length; ++i) {
                 var value = Number(samples[i])
                 if (isFinite(value) && value > peak) peak = value
@@ -76,6 +93,7 @@ Primitives.ModuleFrame {
     function restartCava() {
         if (!Settings.loaded || !Settings.cava) return
         root.values = []
+        root.syncGraphValues([])
         cavaProc.running = false
         Qt.callLater(function() {
             if (Settings.loaded && Settings.cava) cavaProc.running = true
@@ -127,7 +145,7 @@ Primitives.ModuleFrame {
                 height: parent.height / 2
                 Primitives.SegmentBarGraph {
                     anchors.fill: parent
-                    values: root.values
+                    valuesModel: cavaValuesModel
                     barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
                     barWidthRatio: Config.cavaBarWidthRatio
@@ -143,7 +161,7 @@ Primitives.ModuleFrame {
                 height: parent.height / 2
                 Primitives.SegmentBarGraph {
                     anchors.fill: parent
-                    values: root.values
+                    valuesModel: cavaValuesModel
                     barCount: Config.cavaBars
                     spacing: Config.cavaRowSpacing
                     barWidthRatio: Config.cavaBarWidthRatio
@@ -161,7 +179,7 @@ Primitives.ModuleFrame {
         // Upper-only mode: bars use full widget height and grow upward.
         Primitives.SegmentBarGraph {
             anchors.fill: parent
-            values: root.values
+            valuesModel: cavaValuesModel
             barCount: Config.cavaBars
             spacing: Config.cavaRowSpacing
             barWidthRatio: Config.cavaBarWidthRatio
@@ -177,7 +195,7 @@ Primitives.ModuleFrame {
         // Lower-only mode: bars use full widget height and grow downward.
         Primitives.SegmentBarGraph {
             anchors.fill: parent
-            values: root.values
+            valuesModel: cavaValuesModel
             barCount: Config.cavaBars
             spacing: Config.cavaRowSpacing
             barWidthRatio: Config.cavaBarWidthRatio

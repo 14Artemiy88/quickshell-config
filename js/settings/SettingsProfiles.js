@@ -128,6 +128,30 @@ function expandStoredSettings(owner, stored) {
         profiles = migratedTimerStyles
     }
 
+    // Normalize the former per-module master checkbox into the explicit
+    // "none" curve profile. Remove the obsolete key from every stored profile
+    // so a later scoped save cannot resurrect the old false value.
+    var legacyAnimationPairs = [
+        ["animationMopidyMorphEnabled", "animationMopidyMorphProfile"],
+        ["animationPlayerMorphEnabled", "animationPlayerMorphProfile"],
+        ["animationWeatherMorphEnabled", "animationWeatherMorphProfile"],
+        ["animationTimerMorphEnabled", "animationTimerMorphProfile"]
+    ]
+    var normalizedAnimationProfiles = {}
+    for (var animationProfileName in profiles) {
+        if (!Object.prototype.hasOwnProperty.call(profiles, animationProfileName)) continue
+        var animationProfile = mergeValue(defaults, profiles[animationProfileName])
+        for (var ap = 0; ap < legacyAnimationPairs.length; ++ap) {
+            var legacyEnabledKey = legacyAnimationPairs[ap][0]
+            var animationProfileKey = legacyAnimationPairs[ap][1]
+            if (animationProfile[legacyEnabledKey] === false)
+                animationProfile[animationProfileKey] = "none"
+            delete animationProfile[legacyEnabledKey]
+        }
+        normalizedAnimationProfiles[animationProfileName] = sparseProfile(owner, animationProfile)
+    }
+    profiles = normalizedAnimationProfiles
+
     var requested = String(stored.activeProfile || "").trim()
     var active = requested && Object.prototype.hasOwnProperty.call(profiles, requested) ? requested : ""
     var base = clone(defaults)
@@ -301,13 +325,13 @@ function modulePathMatches(path, moduleName) {
 
     var prefixes = {
         calendar: ["calendar", "animationCalendar"],
-        cpu: ["cpu"],
+        cpu: ["cpu", "animationCpu"],
         cpuGraph: ["cpuGraph"],
         topAppsCpu: ["topApps"], topAppsRam: ["topApps"],
-        networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
-        weatherNow: ["weather"], weatherHourly: ["weather"], weatherDaily: ["weather"],
-        timer: ["timer"], volumes: ["volume"], player: ["player"],
-        mopidy: ["mopidy", "animationMopidy"], cava: ["cava"], launcher: ["launcher"], notifications: ["notifications"]
+        networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor", "animationNetwork"],
+        weatherNow: ["weather", "animationWeather"], weatherHourly: ["weather", "animationWeather"], weatherDaily: ["weather", "animationWeather"],
+        timer: ["timer"], volumes: ["volume", "animationVolume"], player: ["player", "animationPlayer"],
+        mopidy: ["mopidy", "animationMopidy"], cava: ["cava", "animationCava"], launcher: ["launcher", "animationLauncher"], notifications: ["notifications", "animationNotifications"]
     }[String(moduleName)] || []
     if (String(moduleName) === "cpu" && root === "cpuGraphMode") return false
     return startsWithAny(root, prefixes)
@@ -336,22 +360,22 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "launcher") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
             return path.length < 2 || child === "launcher"
-        return startsWithAny(root, ["launcher"])
+        return startsWithAny(root, ["launcher", "animationLauncher"])
     }
     if (scope === "settingsWindow") {
         if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
         if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
-        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings"])
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings"])
     }
     if (scope === "general")
         return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0
 
     var prefixesByScope = {
-        timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather"],
-        cava: ["cava"], cpu: ["cpu", "cpuGraph", "topApps"],
-        network: ["network", "systemMonitor"], volume: ["volume"],
+        timer: ["timer", "animationTimer"], player: ["player", "animationPlayer"], weather: ["weather", "animationWeather"],
+        cava: ["cava", "animationCava"], cpu: ["cpu", "cpuGraph", "topApps", "animationCpu"],
+        network: ["network", "systemMonitor", "animationNetwork"], volume: ["volume", "animationVolume"],
         calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
-        notifications: ["notifications"]
+        notifications: ["notifications", "animationNotifications"]
     }
     var prefixes = prefixesByScope[scope]
     if (scope === "notifications" && root === "notificationsCardWidth") return false

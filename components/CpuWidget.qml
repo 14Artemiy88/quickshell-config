@@ -13,6 +13,13 @@ Primitives.ModuleFrame {
     property real ramValue: 0
     property var colors: [Config.cpu1, Config.cpu2, Config.cpu3, Config.cpu4, Config.cpu5, Config.cpu6, Config.cpu7, Config.cpu8]
     property var trackColors: [Config.cpu1Track, Config.cpu2Track, Config.cpu3Track, Config.cpu4Track, Config.cpu5Track, Config.cpu6Track, Config.cpu7Track, Config.cpu8Track]
+    // CPU core bars use the shared module animation profile. RAM stays immediate,
+    // and the independent module entrance/exit animation is not affected.
+    readonly property int cpuBarAdaptiveDuration: Math.max(
+        80, Math.min(260, Math.round(Number(Config.cpuUpdateInterval || 1000) * 0.25)))
+    readonly property int cpuBarAnimationDuration: Config.animationDurationForProfile(
+        true, Config.animationCpuMorphProfile,
+        Math.min(cpuBarAdaptiveDuration, Number(Config.animationCpuMorphDuration) || 0), "appearance")
 
     Process {
         id: cpuProc
@@ -74,6 +81,8 @@ Primitives.ModuleFrame {
                 delegate: MetricBar {
                     label: index === 8 ? " " : " "
                     value: index === 8 ? root.ramValue : Number(root.stats.cpu && root.stats.cpu.length > index ? root.stats.cpu[index] : 0)
+                    valueAnimationDuration: index === 8 ? 0 : root.cpuBarAnimationDuration
+                    valueAnimationProfile: Config.animationCpuMorphProfile
                     fillColor: index === 8 ? Config.ram : root.colors[index % root.colors.length]
                     trackColor: index === 8 ? Config.ramTrack : root.trackColors[index % root.trackColors.length]
                 }
@@ -99,6 +108,8 @@ Primitives.ModuleFrame {
                     height: parent.height
                     label: index === 8 ? "" : ""
                     value: index === 8 ? root.ramValue : Number(root.stats.cpu && root.stats.cpu.length > index ? root.stats.cpu[index] : 0)
+                    valueAnimationDuration: index === 8 ? 0 : root.cpuBarAnimationDuration
+                    valueAnimationProfile: Config.animationCpuMorphProfile
                     fillColor: index === 8 ? Config.ram : root.colors[index % root.colors.length]
                     trackColor: index === 8 ? Config.ramTrack : root.trackColors[index % root.trackColors.length]
                 }

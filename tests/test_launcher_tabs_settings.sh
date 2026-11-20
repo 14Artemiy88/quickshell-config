@@ -22,15 +22,46 @@ grep -q 'Config.launcherTabVisible = validLauncherVisibility' "$APPLY"
 grep -q 'launcherTabOrder.*launcherTabVisible.*launcherTabLabels.*launcherTabIcons.*launcherProjects' "$RESETS"
 
 # The unified settings navigation exposes the new subtab before/alongside common options.
-grep -Fq '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Вкладки", "Проекты"] }' "$ROOT/js/settings/SettingsPageRegistry.js"
+grep -Fq '{ id: "launcher", saveScope: "launcher", subTabs: ["Общее", "Поиск", "Вкладки", "Проекты", "Действия", "Анимация", "Приложения"] }' "$ROOT/js/settings/SettingsPageRegistry.js"
 grep -q 'visible: root.host && root.host.currentPageSubTabIndex === 0' "$SECTION"
 grep -q 'visible: root.host && root.host.currentPageSubTabIndex === 1' "$SECTION"
+grep -q 'visible: root.host && root.host.currentPageSubTabIndex === 2' "$SECTION"
 grep -q 'function setTabVisible(tabId, value)' "$SECTION"
 grep -q 'function visibleTabCount()' "$SECTION"
-grep -q 'root.visibleTabCount() > 1' "$SECTION"
+grep -q 'root.visibleTabCount() <= 1' "$SECTION"
+! grep -q 'enabled: launcherTabRow.modelData.visible' "$SECTION"
 grep -q 'function moveTab(tabId, delta)' "$SECTION"
 grep -q 'MoveArrowButton {' "$SECTION"
 grep -q 'onToggled: root.setTabVisible' "$SECTION"
+
+# Hidden tabs remain re-enableable even when only one other tab is visible.
+node - "$SECTION" <<'JS'
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+const source = fs.readFileSync(process.argv[2], 'utf8');
+const start = source.indexOf('    function visibleTabCount() {');
+const end = source.indexOf('    function moveTab(tabId, delta) {', start);
+assert(start >= 0 && end > start, 'tab visibility functions exist');
+const context = {
+  Config: {},
+  root: { tabDefinitions: Array.from({ length: 10 }, (_, id) => ({ id })), settings: { save() {} } }
+};
+vm.createContext(context);
+vm.runInContext('Config.launcherTabVisible = [true, true, false, false, false, false, false, false, false, false];', context);
+vm.runInContext(source.slice(start, end) + '\nroot.visibleTabCount = visibleTabCount; root.setTabVisible = setTabVisible;', context);
+context.root.setTabVisible(0, false);
+assert.strictEqual(context.Config.launcherTabVisible[0], false, 'Apps can be disabled while Run remains visible');
+context.root.setTabVisible(0, true);
+assert.strictEqual(context.Config.launcherTabVisible[0], true, 'Apps can be re-enabled when Run is the only visible tab');
+context.root.setTabVisible(1, false);
+assert.strictEqual(context.Config.launcherTabVisible[1], false, 'Run can be disabled while Apps remains visible');
+context.root.setTabVisible(1, true);
+assert.strictEqual(context.Config.launcherTabVisible[1], true, 'Run can be re-enabled when Apps is the only visible tab');
+context.root.setTabVisible(0, false);
+context.root.setTabVisible(1, false);
+assert.strictEqual(context.Config.launcherTabVisible[1], true, 'the last visible tab cannot be disabled');
+JS
 grep -q 'onClicked: root.moveTab' "$SECTION"
 ! grep -q 'Цвета из активной темы' "$SECTION"
 ! grep -q 'Палитра лаунчера автоматически' "$SECTION"

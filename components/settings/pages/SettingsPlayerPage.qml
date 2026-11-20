@@ -41,4 +41,9 @@ Column {
         host: root.host
         settings: root.settings
     }
+    SettingsPlayerAnimationSection {
+        width: parent.width
+        host: root.host
+        settings: root.settings
+    }
 }

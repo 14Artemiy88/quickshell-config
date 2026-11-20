@@ -31,4 +31,8 @@ Column {
         host: root.host
         settings: root.settings
     }
+    MopidySettings.SettingsMopidyAnimationSection {
+        host: root.host
+        settings: root.settings
+    }
 }

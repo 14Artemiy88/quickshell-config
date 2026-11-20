@@ -256,4 +256,97 @@ Column {
         }
     }
 
+    SettingsAnimationGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 3
+        width: parent.width
+        settings: root.settings
+        heading: "Переходы карточек уведомлений"
+        detailsHeading: "Параметры переходов"
+        changeKeys: ({ keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] })
+        duration: Config.animationNotificationsMorphDuration
+        durationLabel: "Длительность (мс)"
+        minimumDuration: 0
+        maximumDuration: 2000
+        durationStep: 10
+        profile: Config.animationNotificationsMorphProfile
+        onDurationEdited: value => {
+            Config.animationNotificationsMorphDuration = Math.max(0, Math.min(2000, Math.round(Number(value) || 0)))
+            root.settings.save()
+        }
+        onProfileEdited: value => {
+            Config.animationNotificationsMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
+            width: parent.width
+            showFrame: true
+            heading: "Вид появления и исчезновения"
+            changeKeys: ({ keys: ["animationNotificationsVisibilityStyle"] })
+            padding: 8
+            contentSpacing: 6
+
+            Row {
+                width: parent.width
+                height: 30
+                spacing: 8
+
+                Text {
+                    width: 210
+                    height: 30
+                    text: "Направление движения"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                SettingsComboBox {
+                    id: notificationVisibilityStyleBox
+                    width: 180
+                    height: 30
+                    property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                    model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                    currentIndex: Math.max(0, values.indexOf(Config.animationNotificationsVisibilityStyle))
+                    onItemChosen: function(index) {
+                        if (index >= 0 && index < values.length) {
+                            Config.animationNotificationsVisibilityStyle = values[index]
+                            root.settings.save()
+                        }
+                    }
+                    Connections {
+                        target: Config
+                        function onAnimationNotificationsVisibilityStyleChanged() {
+                            notificationVisibilityStyleBox.currentIndex = Math.max(0, notificationVisibilityStyleBox.values.indexOf(Config.animationNotificationsVisibilityStyle))
+                        }
+                    }
+                    background: Rectangle {
+                        color: Config.settingsBackground
+                        border.color: (notificationVisibilityStyleBox.activeFocus || notificationVisibilityStyleBox.pointerHovered) ? Config.accent : Config.baseColor
+                        border.width: 1
+                        radius: 4
+                    }
+                    contentItem: Text {
+                        text: notificationVisibilityStyleBox.currentText
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(11)
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: 8
+                    }
+                }
+            }
+
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Стиль применяется к появлению и исчезновению новых карточек. Профиль кривой и длительность задают характер движения; перемещение остальных карточек в очереди настраивается отдельно."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+            }
+        }
+    }
+
 }

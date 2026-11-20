@@ -9,6 +9,7 @@ for file in \
     SettingsGeneralSection.qml \
     SettingsTimersSection.qml \
     SettingsPlayerSection.qml \
+    SettingsPlayerAnimationSection.qml \
     SettingsWeatherSection.qml \
     SettingsCalendarSection.qml \
     SettingsCavaSection.qml \
@@ -47,7 +48,8 @@ for file in \
     SettingsMopidySection.qml \
     SettingsMopidyTimeSection.qml \
     SettingsMopidyIconsSection.qml \
-    SettingsMopidyStatusSection.qml
+    SettingsMopidyStatusSection.qml \
+    SettingsMopidyAnimationSection.qml
 do
     path="$SECTIONS/mopidy/$file"
     test -f "$path"

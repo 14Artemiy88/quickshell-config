@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+image_path="${1:-}"
+variant="${2:-scheme-tonal-spot}"
+
+case "$variant" in
+    scheme-content|scheme-expressive|scheme-fidelity|scheme-fruit-salad|scheme-monochrome|scheme-neutral|scheme-rainbow|scheme-tonal-spot) ;;
+    *)
+        printf 'Unsupported Matugen scheme variant: %s\n' "$variant" >&2
+        exit 2
+        ;;
+esac
+
+if [[ -z "$image_path" || ! -f "$image_path" || ! -r "$image_path" ]]; then
+    printf 'Wallpaper image is missing or unreadable: %s\n' "${image_path:-<empty>}" >&2
+    exit 2
+fi
+
+if ! command -v matugen >/dev/null 2>&1; then
+    printf 'MATUGEN_NOT_FOUND: matugen is optional and must be installed separately.\n' >&2
+    exit 127
+fi
+
+# Use a private, temporary Matugen config so a scheme preview has no side
+# effects: do not run the user's templates and do not let Matugen change the
+# wallpaper. The launcher applies only the parsed palette to its own theme.
+config_file="$(mktemp "${TMPDIR:-/tmp}/qsw-matugen-XXXXXX.toml")"
+cleanup() {
+    rm -f -- "$config_file"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+chmod 600 "$config_file"
+cat > "$config_file" <<'TOML'
+[config]
+# Choose the dominant extracted source color without an interactive prompt.
+source_color_index = 0
+# Do not write Matugen's image cache from this one-shot Launcher action.
+caching = false
+version_check = false
+
+[config.wallpaper]
+# Matugen 4.2.0 requires a command even when wallpaper setting is disabled.
+# "true" is a harmless no-op and is never called while set = false.
+command = "true"
+set = false
+
+# Matugen 4.x requires the templates table even when no user templates are used.
+[templates]
+TOML
+
+# Matugen 3.x emits mode-first JSON (colors.dark.primary), while 4.x emits
+# token-first JSON (colors.primary.dark.color). The launcher parser accepts
+# both formats, so keep Matugen's native JSON output instead of forcing the
+# compatibility serializer.
+matugen -c "$config_file" image "$image_path" \
+    -m dark -t "$variant" --json hex --dry-run

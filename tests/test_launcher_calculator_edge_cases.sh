@@ -57,13 +57,14 @@ import sys
 root = Path(sys.argv[1])
 launcher = (root / 'components/launcher/Launcher.qml').read_text()
 assert 'root.mode === root.modeCalculator &&\n                            (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)' in launcher
-assert 'root.copyCalculatorResult(root.calculatorResults[0].result)' in launcher
+assert 'root.activateCalculatorItem(root.calculatorDisplayResults[calculatorList.currentIndex])' in launcher
 assert 'case root.modeCalculator:\n\n            if (calculatorList.count > 0)\n                calculatorList.currentIndex = 0' in launcher
-assert 'root.copyCalculatorResult(root.calculatorResults[calculatorList.currentIndex].result)' in launcher
+assert 'model: root.calculatorDisplayResults' in launcher
 # Clipboard content is passed as a positional argument rather than shell-interpolated.
 assert 'command: ["sh", "-c", "printf \'%s\' \\"$1\\" | wl-copy", "launcher-calculator-copy", root.calculatorCopyPending]' in launcher
-copy_function = launcher[launcher.index('function copyCalculatorResult(value)'):launcher.index('Process {\n        id: calculatorCopyProcess')]
+copy_function = launcher[launcher.index('function copyCalculatorResult(value, expression)'):launcher.index('Process {\n        id: calculatorCopyProcess')]
 assert 'if (!text || calculatorCopyProcess.running)' in copy_function
+assert 'root.rememberCalculatorCalculation(acceptedExpression, text)' in copy_function
 assert 'root.hideLauncher()' in copy_function
 print('Launcher calculator keyboard activation and safe clipboard routing: OK')
 PY

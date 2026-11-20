@@ -7,7 +7,9 @@ ui="$ROOT/components/TopApps.qml"
 # A fixed 52 px column clipped values such as 1001.1 Mb to an ellipsis.
 grep -Fq 'function valueColumnWidth(entries)' "$ui" || fail "dynamic value-column sizing function is missing"
 grep -Fq 'maxLength * root.displayFontSize * 0.68 + 8' "$ui" || fail "value width does not account for longest text and configured font size"
-grep -Fq 'property int valueWidth: root.valueColumnWidth(root.sectionEntries)' "$ui" || fail "value column is not bound to dynamic width"
+grep -Fq 'readonly property int sectionValueColumnWidth: root.valueColumnWidth(root.sectionEntries)' "$ui" || fail "widest value column is not calculated once at section scope"
+grep -Fq 'property int valueWidth: root.sectionValueColumnWidth' "$ui" || fail "rows do not reuse the cached value width"
+if grep -Fq 'property int valueWidth: root.valueColumnWidth(root.sectionEntries)' "$ui"; then fail "each row still rescans the complete entries model"; fi
 grep -Fq 'width: appRow.valueWidth' "$ui" || fail "value text is not bound to the calculated column width"
 grep -Fq 'elide: Text.ElideNone' "$ui" || fail "value text is still elided"
 if grep -Eq 'width: 52|parent\.width - 52| - 52 - ' "$ui"; then

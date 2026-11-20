@@ -2,6 +2,8 @@
 
 .import "SettingsProfiles.js" as Profiles
 
+var GENERATED_WALLPAPER_THEME_NAME = "Wallpaper Dynamic"
+
 function palette(owner, themes, name) {
     return themes.palette(name, owner.customThemes)
 }
@@ -27,7 +29,7 @@ function isCurrentThemeModified(owner, themes, colorNames, Config) {
 
 function saveCurrentTheme(owner, colorNames, Config, name) {
     var n = String(name || "").trim().slice(0, 32)
-    if (!n) return false
+    if (!n || (n === GENERATED_WALLPAPER_THEME_NAME && owner.activeTheme !== n)) return false
     var next = Object.assign({}, owner.customThemes || {})
     next[n] = currentThemeColors(owner, colorNames, Config)
     owner.customThemes = next
@@ -69,6 +71,31 @@ function applyTheme(owner, themes, Config, name) {
     owner.save()
 }
 
+function applyGeneratedTheme(owner, themes, Config, colorNames, name, paletteValue) {
+    var n = String(name || "").trim().slice(0, 32)
+    if (n !== GENERATED_WALLPAPER_THEME_NAME || !paletteValue || typeof paletteValue !== "object")
+        return false
+
+    var generated = {}
+    var names = Array.isArray(colorNames) ? colorNames : []
+    for (var i = 0; i < names.length; ++i) {
+        var key = String(names[i])
+        var value = paletteValue[key]
+        if (typeof value !== "string") return false
+        var normalized = value.trim().toLowerCase()
+        if (!(/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(normalized) || normalized === "transparent"))
+            return false
+        generated[key] = normalized
+    }
+    if (!names.length) return false
+
+    var next = Object.assign({}, owner.customThemes || {})
+    next[n] = generated
+    owner.customThemes = next
+    applyTheme(owner, themes, Config, n)
+    return true
+}
+
 function preview(owner, themes, name) {
     return themes.preview(name, owner.customThemes)
 }
@@ -107,7 +134,8 @@ function setThemeDraftColor(owner, name, value) {
 
 function saveCustomTheme(owner, themes, Config, name) {
     var n = String(name || "").trim().slice(0, 32)
-    if (!n || themes.builtinThemeNames.indexOf(n) >= 0 || !owner.themeDraft) return false
+    if (!n || themes.builtinThemeNames.indexOf(n) >= 0 || !owner.themeDraft
+            || (n === GENERATED_WALLPAPER_THEME_NAME && owner.themeDraftSource !== n)) return false
     var next = Object.assign({}, owner.customThemes || {})
     next[n] = JSON.parse(JSON.stringify(owner.themeDraft))
     owner.customThemes = next
@@ -125,7 +153,7 @@ function renameCustomTheme(owner, themes, Config, oldName, newName) {
     var oldN = String(oldName || "").trim()
     var newN = String(newName || "").trim().slice(0, 32)
     if (!isCustomTheme(owner, oldN) || !newN || oldN === newN) return oldN === newN && isCustomTheme(owner, oldN)
-    if (themes.builtinThemeNames.indexOf(newN) >= 0) return false
+    if (themes.builtinThemeNames.indexOf(newN) >= 0 || newN === GENERATED_WALLPAPER_THEME_NAME) return false
     if (owner.customThemes && owner.customThemes[newN] !== undefined) return false
 
     var next = Object.assign({}, owner.customThemes || {})

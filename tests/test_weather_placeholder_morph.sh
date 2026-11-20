@@ -13,8 +13,9 @@ grep -Fq 'id: placeholderMorph' "$WEATHER"
 grep -Fq 'fromGeometry: Qt.rect(0, 0, root.width, root.height)' "$WEATHER"
 grep -Fq 'toGeometry: Qt.rect(0, 0, root.width, root.height)' "$WEATHER"
 grep -Fq 'progress: root.active ? 1 : 0' "$WEATHER"
-grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$WEATHER"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", root.active ? "enter" : "exit")' "$WEATHER"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")' "$WEATHER"
+grep -Fq 'animationProfile: Config.animationWeatherMorphProfile' "$WEATHER"
+grep -Fq 'animationPhase: root.active ? "enter" : "exit"' "$WEATHER"
 grep -Fq 'active: !root.hasData' "$LIST"
 
 python3 - "$WEATHER" "$LIST" <<'PYCODE'

@@ -896,4 +896,42 @@ Column {
             }
     }
 
+    SettingsAnimationGroup {
+        visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 3
+        width: root.width
+        settings: root.settings
+        heading: "Внутренние переходы CPU"
+        durationLabel: "Максимальная длительность (мс)"
+        maximumDuration: 260
+        durationStep: 10
+        durationWheelStep: 10
+        duration: Config.animationCpuMorphDuration
+        profile: Config.animationCpuMorphProfile
+        changeKeys: ({ keys: ["animationCpuMorphDuration", "animationCpuMorphProfile"] })
+
+        onDurationEdited: function(value) {
+            Config.animationCpuMorphDuration = Math.max(0, Math.min(260, Math.round(Number(value) || 0)))
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationCpuMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
+            width: parent.width
+            showFrame: true
+            heading: "Что управляется"
+            padding: 8
+            contentSpacing: 4
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Профиль управляет кривой сглаживания загрузки ядер CPU в горизонтальном и вертикальном режимах. Фактическая длительность автоматически подстраивается под интервал обновления CPU и не превышает заданный предел. Полоса RAM сохраняет мгновенное обновление, а график истории CPU продолжает прокручиваться с собственной частотой. Анимация появления самого модуля остаётся независимой."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+            }
+        }
+    }
 }

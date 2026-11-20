@@ -6,8 +6,9 @@ DIALOG="$ROOT/components/mopidy/MopidyPlaylistDialog.qml"
 # The management dialog remains mounted through both its enter and exit transitions.
 grep -Fq 'visible: controller.playlistDialogVisible || dialogOverlayMorph.normalizedProgress > 0.001' "$DIALOG"
 grep -Fq 'progress: controller.playlistDialogVisible ? 1 : 0' "$DIALOG"
-grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$DIALOG"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", controller.playlistDialogVisible ? "enter" : "exit")' "$DIALOG"
+grep -Fq 'animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")' "$DIALOG"
+grep -Fq 'animationProfile: Config.animationMopidyMorphProfile' "$DIALOG"
+grep -Fq 'animationPhase: controller.playlistDialogVisible ? "enter" : "exit"' "$DIALOG"
 # The overlay dims progressively while the fixed-size dialog panel scales in place.
 grep -Fq 'color: Qt.rgba(0, 0, 0, 0.5333333 * dialogOverlayMorph.normalizedProgress)' "$DIALOG"
 grep -Fq 'opacity: dialogOverlayMorph.normalizedProgress' "$DIALOG"

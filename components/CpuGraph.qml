@@ -50,7 +50,7 @@ Primitives.ModuleFrame {
             Item {
                 width: parent.width
                 height: parent.height / 2
-                Primitives.SegmentBarGraph {
+                Primitives.FlowingSegmentBarGraph {
                     anchors.fill: parent
                     values: root.values
                     barCount: 51
@@ -66,7 +66,7 @@ Primitives.ModuleFrame {
             Item {
                 width: parent.width
                 height: parent.height / 2
-                Primitives.SegmentBarGraph {
+                Primitives.FlowingSegmentBarGraph {
                     anchors.fill: parent
                     values: root.values
                     barCount: 51
@@ -88,7 +88,7 @@ Primitives.ModuleFrame {
         Item {
             anchors.fill: parent
             anchors.margins: 3
-            Primitives.SegmentBarGraph {
+            Primitives.FlowingSegmentBarGraph {
                 anchors.fill: parent
                 values: root.values
                 barCount: 51
@@ -109,7 +109,7 @@ Primitives.ModuleFrame {
         Item {
             anchors.fill: parent
             anchors.margins: 3
-            Primitives.SegmentBarGraph {
+            Primitives.FlowingSegmentBarGraph {
                 anchors.fill: parent
                 values: root.values
                 barCount: 51

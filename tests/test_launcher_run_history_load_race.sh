@@ -36,7 +36,7 @@ assert "root.runHistoryPendingMutations = []" in load
 for name, end in (
     ("function deleteRunHistory(", "function clearRunHistory()"),
     ("function clearRunHistory()", "function rememberRunCommand("),
-    ("function rememberRunCommand(", "function buildAppsUnifiedResults()"),
+    ("function rememberRunCommand(", "function buildAppsUnifiedResults(applicationEntries, fuzzyActionsEnabled, availableCategories, fuzzySchemesEnabled, fuzzyWallpapersEnabled)"),
 ):
     body = section(name, end)
     assert 'root.recordRunHistoryMutation(' in body, f"{name}: user mutation not journaled"

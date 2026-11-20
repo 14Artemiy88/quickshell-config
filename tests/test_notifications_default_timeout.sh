@@ -16,7 +16,7 @@ checks = {
     "default critical notification uses its own policy": "return root.defaultCriticalNotificationTimeout",
     "other default notifications use the server policy": "return root.defaultNotificationTimeout",
     "each card uses the normalized timeout": "property real effectiveTimeout: root.notificationTimeout(notification)",
-    "only visible cards tick the normalized timeout": "running: card.notification !== null && card.inViewport && card.effectiveTimeout > 0",
+    "only visible cards tick the normalized timeout": "running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0",
     "elapsed visible time compares to normalized timeout": "const timeout = card.effectiveTimeout",
 }
 for description, needle in checks.items():

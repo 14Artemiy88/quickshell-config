@@ -40,7 +40,7 @@ assert 'root.runHistoryWriteHasQueuedPayload' in finish
 assert 'root.startRunHistoryWrite(latestPayload)' in finish
 assert 'root.runHistoryWriteHasQueuedPayload = false' in finish
 
-remember = section('function rememberRunCommand(', 'function buildAppsUnifiedResults()')
+remember = section('function rememberRunCommand(', 'function buildAppsUnifiedResults(applicationEntries, fuzzyActionsEnabled, availableCategories, fuzzySchemesEnabled, fuzzyWallpapersEnabled)')
 assert 'root.persistRunHistory()' in remember
 assert 'Quickshell.execDetached' not in remember
 assert 'tail -n 100' not in remember

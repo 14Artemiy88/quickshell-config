@@ -14,7 +14,7 @@ checks = {
     'entry starts synchronously when delegate completes': 'Component.onCompleted: {' in row and 'root.startEntryTransition();' in row,
     'new rows are appended as stable tombstones only when removed': 'networkRows.append({' in widget and 'removing: false' in widget and 'rowProgress: 0' not in widget,
     'row slot remains full size': 'toGeometry: Qt.rect(0, 0, parent.width, parent.height)' in row,
-    'shared appearance duration': 'Config.animationDuration(220, "appearance")' in row,
+    'shared appearance duration': 'rowAnimationProfile === "none" ? 0 : Config.animationNetworkMorphDuration' in row,
     'entry and exit use explicit reversible animations': 'id: entryAnimation' in row and 'id: exitAnimation' in row and 'onFinished: root.finishExitTransition()' in row,
     'clicks disabled during exit': 'interactionEnabled: !root.removing' in row,
     'network action remains': 'onClicked: root.toggleConnection()' in row,

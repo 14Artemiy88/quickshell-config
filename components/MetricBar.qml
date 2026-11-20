@@ -9,6 +9,8 @@ Item {
     property color fillColor: Config.accent
     property color trackColor: Config.metricTrack
     property bool verticalGauge: false
+    property int valueAnimationDuration: 0
+    property string valueAnimationProfile: "standard"
     property string direction: Config.cpuBarDirection
     readonly property bool verticalDirection: direction === "topToBottom" || direction === "bottomToTop"
     height: verticalGauge ? (parent ? parent.height : 200) : Config.cpuRowHeight
@@ -34,6 +36,8 @@ Item {
         height: Config.cpuBarThickness
         radius: Config.cpuBarRadius
         value: root.value
+        valueAnimationDuration: root.valueAnimationDuration
+        valueAnimationProfile: root.valueAnimationProfile
         direction: root.direction
         fillColor: root.fillColor
         trackColor: root.trackColor
@@ -50,6 +54,8 @@ Item {
         y: 4
         radius: Math.min(Config.cpuBarRadius, width / 2)
         value: root.value
+        valueAnimationDuration: root.valueAnimationDuration
+        valueAnimationProfile: root.valueAnimationProfile
         direction: root.direction
         fillColor: root.fillColor
         trackColor: root.trackColor

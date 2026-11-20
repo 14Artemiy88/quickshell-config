@@ -9,8 +9,8 @@ for token in \
     'id: weatherComfortMorph' \
     'visible: weatherComfortLabel.shouldShow || normalizedProgress > 0.001' \
     'progress: weatherComfortLabel.shouldShow ? 1 : 0' \
-    'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", weatherComfortLabel.shouldShow ? "enter" : "exit")' \
+    'animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")' \
+    'animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, weatherComfortLabel.shouldShow ? "enter" : "exit")' \
     'readonly property bool shouldShow: Config.weatherShowComfort && comfortValue !== ""' \
     'Config.weatherComfortHeight)' \
     'model: weatherComfortLabel.outlineOffsets' \

@@ -457,8 +457,9 @@ Column {
                             parent.height - 6 - Math.min(14, Math.max(0, parent.height - 6)),
                             parent.width, Math.min(14, Math.max(0, parent.height - 6)))
                         progress: searchResultTextArea.metadataText.length > 0 ? 1 : 0
-                        animationDuration: Config.animationDuration(180, "appearance")
-                        animationEasing: Config.animationEasingType("standard", progress > 0.5 ? "enter" : "exit")
+                        animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+                        animationProfile: Config.animationMopidyMorphProfile
+                        animationPhase: searchResultTextArea.metadataText.length > 0 ? "enter" : "exit"
 
                         Text {
                             anchors.fill: parent

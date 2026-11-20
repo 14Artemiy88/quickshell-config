@@ -7,6 +7,7 @@ import Quickshell.Services.Notifications
 import Quickshell.Io
 import "../.."
 import "../../js/NotificationsGeometry.js" as NotificationsGeometry
+import "../../js/notifications/NotificationAnimation.js" as NotificationAnimation
 
 Item {
     id: root
@@ -18,6 +19,16 @@ Item {
     property real dragBaseGlobalY: 0
     property real dragPressX: 0
     property real dragPressY: 0
+    // Keep the notification surface alive while a removed delegate completes its
+    // explicit exit animation. ListView.delayRemove keeps the delegate in layout.
+    property int activeNotificationExitCount: 0
+    property real notificationListLastContentHeight: 0
+    // Keep the layer-surface mapped for the lifetime of the Notifications module.
+    // Mapping/unmapping PanelWindow for every toast triggers the compositor's
+    // own window open/close fade, which is independent of the selected card style.
+    // When idle the surface is reduced to 1x1 and its content is hidden.
+    readonly property bool notificationSurfaceActive: notificationServer.trackedNotifications.values.length > 0
+        || activeNotificationExitCount > 0 || layoutEditMode
     readonly property int layoutPreviewHeight: 104
 
     function notificationTargetScreen() {
@@ -48,6 +59,12 @@ Item {
             Config.notificationsVerticalAnchor, verticalOffset,
             Number(screen && screen.height || 1080), Number(panelHeight) || 0
         )
+    }
+
+    function finishNotificationCardExit() {
+        activeNotificationExitCount = Math.max(0, activeNotificationExitCount - 1)
+        if (activeNotificationExitCount === 0)
+            notificationListLastContentHeight = Math.max(0, Number(notificationList.contentHeight) || 0)
     }
 
     function screenStorageName(screen) {
@@ -466,6 +483,15 @@ Item {
     readonly property int notificationMaxHeight: Math.max(0, Math.min(10000,
         Math.round(Number(Settings.geometry && Settings.geometry.notifications && Settings.geometry.notifications[3]) || 0)))
     readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))
+    readonly property int notificationTransitionDuration: Config.animationDurationForProfile(
+        true, Config.animationNotificationsMorphProfile, Config.animationNotificationsMorphDuration, "appearance")
+    // Card entrance/exit direction is independent from queue reflow. A disabled
+    // shared profile always wins and makes both transitions immediate.
+    readonly property string notificationCardAnimationStyle: NotificationAnimation.effectiveStyle(
+        Config.animationNotificationsMorphProfile, Config.animationNotificationsVisibilityStyle)
+    readonly property int notificationCardVisibilityDuration: NotificationAnimation.visibilityDuration(
+        notificationCardAnimationStyle, notificationTransitionDuration)
+
     readonly property int notificationImageGap: 8
     readonly property int progressBarHeight: 5
     readonly property int progressBarGap: 8
@@ -521,7 +547,11 @@ Item {
     PanelWindow {
         id: popupWindow
         screen: root.notificationTargetScreen()
-        visible: notificationServer.trackedNotifications.values.length > 0 || root.layoutEditMode
+        // Do not map/unmap this layer surface for individual notifications.
+        // KWin applies its window-level fade on map/unmap, which is visible even
+        // when a card uses "none" or a pure directional slide animation.
+        // Keep a tiny transparent surface mapped while the queue is idle.
+        visible: true
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         // X remains absolute from the selected monitor's left edge. Y is an
@@ -533,16 +563,23 @@ Item {
         margins.top: String(Config.notificationsVerticalAnchor || "top") !== "bottom" ? root.notificationCoordinate(1) : 0
         margins.bottom: String(Config.notificationsVerticalAnchor || "top") === "bottom" ? root.notificationCoordinate(1) : 0
         margins.left: root.notificationCoordinate(0)
-        onHeightChanged: Settings.notificationsWindowHeight = height
-        Component.onCompleted: Settings.notificationsWindowHeight = height
-        implicitWidth: root.notificationCardWidth
+        onHeightChanged: Settings.notificationsWindowHeight = root.notificationSurfaceActive ? height : 0
+        Component.onCompleted: Settings.notificationsWindowHeight = root.notificationSurfaceActive ? height : 0
+        implicitWidth: root.notificationSurfaceActive ? root.notificationCardWidth : 1
         implicitHeight: {
+            // Keep the mapped idle layer surface at 1x1. This avoids triggering
+            // compositor open/close effects when the first/last toast arrives.
+            if (!root.notificationSurfaceActive)
+                return 1
             // Keep an editable preview available even when the notification queue is empty.
             if (root.layoutEditMode && notificationServer.trackedNotifications.values.length === 0)
                 return root.layoutPreviewHeight
             // Zero preserves the natural content-driven height. A positive value
             // limits the notification queue and lets ListView scroll the overflow.
-            const contentHeight = Math.max(0, notificationList.contentHeight)
+            const measuredContentHeight = Math.max(0, Number(notificationList.contentHeight) || 0)
+            const contentHeight = root.activeNotificationExitCount > 0
+                ? Math.max(measuredContentHeight, root.notificationListLastContentHeight)
+                : measuredContentHeight
             const availableHeight = screen
                 ? Math.max(52, screen.height - root.notificationCoordinate(1) - 16)
                 : contentHeight
@@ -558,7 +595,7 @@ Item {
         // behind the cards without changing their own text or imagery.
         BackgroundEffect.blurRegion: Region {
             item: Settings.moduleBlurEnabled.notifications === true
-                ? (notificationServer.trackedNotifications.values.length > 0 ? notificationList : layoutEditPreview)
+                ? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0 ? notificationList : layoutEditPreview)
                 : null
             radius: Math.max(0, Config.backgroundBlurRadius)
         }
@@ -566,17 +603,39 @@ Item {
         Item {
             id: notificationContent
             anchors.fill: parent
+            visible: root.notificationSurfaceActive
             opacity: root.layoutDragging ? 0 : 1
 
             ListView {
                 id: notificationList
                 anchors.fill: parent
-                visible: notificationServer.trackedNotifications.values.length > 0
+                visible: notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0
+                onContentHeightChanged: {
+                    const currentHeight = Math.max(0, Number(contentHeight) || 0)
+                    if (currentHeight > 0) {
+                        root.notificationListLastContentHeight = root.activeNotificationExitCount > 0
+                            ? Math.max(root.notificationListLastContentHeight, currentHeight)
+                            : currentHeight
+                    }
+                }
                 spacing: Config.notificationsCardSpacing
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.StopAtBounds
                 model: notificationServer.trackedNotifications
+
+                // The card owns its entrance animation. ListView's add/populate
+                // transitions only animate view-managed x/y and were not reliably
+                // applied to every ObjectModel insertion/reload path. The delegate
+                // now initializes its own opacity/translation on completion and on
+                // the attached add signal, guarded against double starts.
+                displaced: Transition {
+                    NumberAnimation {
+                        property: "y"
+                        duration: root.notificationTransitionDuration
+                        easing.type: Config.animationEasingType(Config.animationNotificationsMorphProfile, "enter")
+                    }
+                }
 
                 // Make overflow discoverable and easy to browse with either a mouse
                 // wheel or a touchpad. The scrollbar is shown only when the queue is
@@ -619,6 +678,31 @@ Item {
                     id: card
                     required property var modelData
                     property var notification: modelData || null
+                    // Notification is Quickshell.Retainable. The server emits
+                    // Notification.closed before removing it from trackedNotifications,
+                    // then destroys it after signal handlers return. Keep it alive
+                    // for the full lifetime of this delegate so ListView can process
+                    // removal and finish a delayed exit transition safely.
+                    RetainableLock {
+                        object: card.notification
+                        locked: card.notification !== null
+                    }
+                    // A single normalized transition drives opacity and translation.
+                    // Style/profile/duration are snapshotted per transition so editing
+                    // settings cannot mutate a card while it is already animating.
+                    property string activeTransitionStyle: "none"
+                    property string activeTransitionProfile: "expressive"
+                    property string activeTransitionPhase: "enter"
+                    property int activeTransitionDuration: 0
+                    property real transitionProgress: 1
+                    readonly property real animatedOpacity: NotificationAnimation.opacityForProgress(
+                        activeTransitionStyle, activeTransitionPhase, transitionProgress)
+                    readonly property real motionOffsetX: NotificationAnimation.motionOffsetXForProgress(
+                        activeTransitionStyle, width, activeTransitionPhase, transitionProgress)
+                    readonly property real motionOffsetY: NotificationAnimation.motionOffsetYForProgress(
+                        activeTransitionStyle, height, activeTransitionPhase, transitionProgress)
+                    property bool entryAnimationStarted: false
+                    property bool exitKeepsWindowAlive: false
                     property var defaultAction: root.notificationDefaultAction(notification)
                     property var buttonActions: root.notificationButtonActions(notification)
                     property string formattedBody: notification ? root.formatNotificationBody(notification.body) : ""
@@ -643,6 +727,61 @@ Item {
                     property bool imageLoadFailed: false
                     readonly property bool hasMessengerAvatar: root.notificationIsMessenger(notification) && imageSource.length > 0 && !imageLoadFailed
                     readonly property bool hasNotificationImage: Config.notificationsShowBodyImages && root.notificationImageHeight > 0 && imageSource.length > 0 && !imageLoadFailed && !hasMessengerAvatar
+
+                    function startNotificationEntry() {
+                        if (entryAnimationStarted || removalPending || notification === null)
+                            return
+
+                        entryAnimationStarted = true
+                        activeTransitionStyle = root.notificationCardAnimationStyle
+                        activeTransitionProfile = String(Config.animationNotificationsMorphProfile || "standard")
+                        activeTransitionDuration = root.notificationCardVisibilityDuration
+                        activeTransitionPhase = "enter"
+                        // Starting from zero lets a single progress animation drive
+                        // slide position and fade opacity without independent fallbacks.
+                        transitionProgress = 0
+
+                        if (!NotificationAnimation.shouldAnimate(activeTransitionStyle, activeTransitionDuration)) {
+                            transitionProgress = 1
+                            return
+                        }
+                        entryAnimation.start()
+                    }
+
+                    function startNotificationExit(trigger) {
+                        if (removalPending) {
+                            return
+                        }
+                        removalPending = true
+                        expirationTimer.stop()
+                        entryAnimation.stop()
+                        exitAnimation.stop()
+
+                        activeTransitionStyle = root.notificationCardAnimationStyle
+                        activeTransitionProfile = String(Config.animationNotificationsMorphProfile || "standard")
+                        activeTransitionDuration = root.notificationCardVisibilityDuration
+                        activeTransitionPhase = "exit"
+                        transitionProgress = 0
+                        if (!NotificationAnimation.shouldAnimate(activeTransitionStyle, activeTransitionDuration)) {
+                            transitionProgress = 1
+                            return
+                        }
+
+                        // Defer destruction until the explicit exit animation finishes.
+                        // The parent window remains visible through activeExitCount.
+                        ListView.delayRemove = true
+                        exitKeepsWindowAlive = true
+                        root.activeNotificationExitCount += 1
+                        exitAnimation.start()
+                    }
+
+                    function finishNotificationExit() {
+                        if (exitKeepsWindowAlive) {
+                            exitKeepsWindowAlive = false
+                            root.finishNotificationCardExit()
+                        }
+                        ListView.delayRemove = false
+                    }
 
                     function resolveNotificationImageSource() {
                         imageSourceInitialized = true
@@ -694,6 +833,7 @@ Item {
                     }
                     property int progressValue: root.notificationProgressValue(notification)
                     visible: notification !== null
+                    opacity: animatedOpacity
                     // Start a timeout only while the notification is actually in the
                     // visible viewport. Off-screen queue entries must not expire unseen.
                     property bool inViewport: {
@@ -711,12 +851,34 @@ Item {
                         return viewportPosition.y + card.height > 0 && viewportPosition.y < notificationList.height
                     }
                     property real visibleTimeoutElapsed: 0
+                    property bool removalPending: false
+                    property bool timeoutExpirationRequested: false
                     property real effectiveTimeout: root.notificationTimeout(notification)
                     property real measuredSummaryHeight: root.notificationHasSummary(notification) ? summaryMeasure.implicitHeight : 0
                     readonly property int textColumnWidth: Math.max(0, root.notificationCardWidth - (hasMessengerAvatar ? 84 : 24))
-                    onNotificationChanged: visibleTimeoutElapsed = 0
+                    onNotificationChanged: {
+                        visibleTimeoutElapsed = 0
+                        removalPending = false
+                        timeoutExpirationRequested = false
+                    }
+                    ListView.onAdd: card.startNotificationEntry()
+                    // Quickshell emits Notification.closed(reason) before removing
+                    // the object from NotificationServer.trackedNotifications.
+                    // Start the exit while this delegate is still in the model so
+                    // delayRemove is already true when ListView processes removal.
+                    Connections {
+                        target: card.notification
+                        ignoreUnknownSignals: true
+                        function onClosed(reason) {
+                            card.startNotificationExit("notification-closed")
+                        }
+                    }
+                    ListView.onRemove: card.startNotificationExit("listview-remove")
                     onImageHintsSnapshotChanged: resolveNotificationImageSource()
                     Component.onCompleted: {
+                        // Existing tracked notifications can be created by the
+                        // ListView populate path instead of its add signal.
+                        card.startNotificationEntry()
                         // Initial bound values can be set either side of completion;
                         // avoid restarting an existing check if the snapshot handler
                         // already began resolving this notification.
@@ -733,6 +895,29 @@ Item {
                     color: Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent
                     border.width: Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0
                     border.color: card.notification && card.notification.urgency === NotificationUrgency.Critical ? "#e05b64" : Config.baseColor
+                    transform: Translate {
+                        x: card.motionOffsetX
+                        y: card.motionOffsetY
+                    }
+                    NumberAnimation {
+                        id: entryAnimation
+                        target: card
+                        property: "transitionProgress"
+                        to: 1
+                        duration: card.activeTransitionDuration
+                        easing.type: Config.animationEasingType(card.activeTransitionProfile, "enter")
+                        easing.bezierCurve: Config.animationBezierCurve(card.activeTransitionProfile, "enter")
+                    }
+                    NumberAnimation {
+                        id: exitAnimation
+                        target: card
+                        property: "transitionProgress"
+                        to: 1
+                        duration: card.activeTransitionDuration
+                        easing.type: Config.animationEasingType(card.activeTransitionProfile, "exit")
+                        easing.bezierCurve: Config.animationBezierCurve(card.activeTransitionProfile, "exit")
+                        onFinished: card.finishNotificationExit()
+                    }
 
                     // The freedesktop "default" action is activated by clicking the
                     // notification body. Keep this MouseArea behind the content so
@@ -741,7 +926,7 @@ Item {
                     MouseArea {
                         id: cardBodyMouseArea
                         anchors.fill: parent
-                        enabled: card.defaultAction !== null
+                        enabled: card.defaultAction !== null && !card.removalPending
                         acceptedButtons: Qt.LeftButton
                         onClicked: {
                             if (card.defaultAction && typeof card.defaultAction.invoke === "function")
@@ -755,15 +940,17 @@ Item {
                         // repeating timer pauses the accumulated visible time instead of
                         // restarting a full timeout or allowing off-screen cards to expire.
                         interval: 100
-                        running: card.notification !== null && card.inViewport && card.effectiveTimeout > 0
+                        running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0
                         repeat: true
                         onTriggered: {
                             if (!card.notification) return
                             const timeout = card.effectiveTimeout
                             if (timeout <= 0) return
                             card.visibleTimeoutElapsed += interval
-                            if (card.visibleTimeoutElapsed >= timeout)
+                            if (card.visibleTimeoutElapsed >= timeout && !card.timeoutExpirationRequested) {
+                                card.timeoutExpirationRequested = true
                                 card.notification.expire()
+                            }
                         }
                     }
 
@@ -837,8 +1024,9 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                         MouseArea {
                             anchors.fill: parent
+                            enabled: !card.removalPending
                             onClicked: {
-                                if (card.notification) card.notification.dismiss()
+                                if (card.notification && !card.removalPending) card.notification.dismiss()
                             }
                         }
                     }
@@ -995,8 +1183,9 @@ Item {
                                     id: actionMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
+                                    enabled: !card.removalPending
                                     onClicked: {
-                                        if (modelData && typeof modelData.invoke === "function") modelData.invoke()
+                                        if (!card.removalPending && modelData && typeof modelData.invoke === "function") modelData.invoke()
                                     }
                                 }
                             }

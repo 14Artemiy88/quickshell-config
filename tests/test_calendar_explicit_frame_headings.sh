@@ -55,7 +55,7 @@ expected = {
     "Стрелки навигации": "host.currentPageSubTabIndex === 0",
     "Выходные и отмеченные дни": "host.currentPageSubTabIndex === 1",
     "Прошедшие дни": "host.currentPageSubTabIndex === 1",
-    "Анимация": "host.currentPageSubTabIndex === 3",
+    "Появление модуля": "host.currentPageSubTabIndex === 3",
 }
 all_groups = groups(source)
 for heading, guard in expected.items():

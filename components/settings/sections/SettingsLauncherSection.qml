@@ -1,13 +1,18 @@
 import QtQuick
+import QtQuick.Controls
+import Quickshell
 import "../../.."
 import "../primitives"
 import "../../primitives"
+import "../../../js/settings/SettingsLauncherActions.js" as LauncherActions
+import "../../../js/launcher/LauncherAppPreferences.js" as LauncherAppPreferences
 
 Column {
     id: root
 
     property var host
     property var settings: Settings
+    property string applicationPreferenceSearch: ""
 
     visible: host && host.currentPageId === "launcher"
     width: parent ? parent.width : 0
@@ -140,6 +145,64 @@ Column {
         root.settings.updateLauncherProject(index, field, value)
     }
 
+    function customActionValue(index, field) {
+        var list = Array.isArray(Config.launcherCustomActions) ? Config.launcherCustomActions : []
+        if (index < 0 || index >= list.length || !list[index]) return ""
+        return field === "enabled" ? !!list[index][field] : String(list[index][field] === undefined ? "" : list[index][field])
+    }
+
+    function setLauncherAppPreference(kind, appId, enabled) {
+        var favorites = LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps)
+        var hidden = LauncherAppPreferences.normalizeIds(Config.launcherHiddenApps)
+        if (kind === "favorite") {
+            favorites = LauncherAppPreferences.setId(favorites, appId, enabled)
+            if (enabled) hidden = LauncherAppPreferences.setId(hidden, appId, false)
+        } else if (kind === "hidden") {
+            hidden = LauncherAppPreferences.setId(hidden, appId, enabled)
+            if (enabled) favorites = LauncherAppPreferences.setId(favorites, appId, false)
+        } else {
+            return
+        }
+        Config.launcherFavoriteApps = favorites
+        Config.launcherHiddenApps = hidden
+        root.settings.save()
+    }
+
+    readonly property var applicationPreferenceRows: {
+        var entries = DesktopEntries.applications.values || []
+        var favorites = LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps)
+        var hidden = LauncherAppPreferences.normalizeIds(Config.launcherHiddenApps)
+        var needle = String(root.applicationPreferenceSearch || "").trim().toLowerCase()
+        var rows = []
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i]
+            if (!entry || !entry.id) continue
+            var id = String(entry.id).trim()
+            var isFavorite = favorites.indexOf(id) >= 0
+            var isHidden = hidden.indexOf(id) >= 0
+            if (!needle && !isFavorite && !isHidden) continue
+            if (needle) {
+                var haystack = [entry.name, entry.genericName, entry.comment, id]
+                if (entry.keywords && typeof entry.keywords.length === "number") {
+                    for (var k = 0; k < entry.keywords.length; ++k) haystack.push(entry.keywords[k])
+                }
+                if (haystack.join(" ").toLowerCase().indexOf(needle) < 0) continue
+            }
+            rows.push({
+                id: id,
+                name: String(entry.name || id),
+                comment: String(entry.comment || entry.genericName || ""),
+                favorite: isFavorite,
+                hidden: isHidden
+            })
+        }
+        rows.sort(function(a, b) {
+            return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+        })
+        if (needle && rows.length > 40) rows = rows.slice(0, 40)
+        return rows
+    }
+
     SettingsGroup {
         visible: root.host && root.host.currentPageSubTabIndex === 0
         width: parent.width
@@ -215,6 +278,272 @@ Column {
                     }
                 }
             }
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherFuzzySearchApps"] })
+        heading: "Поиск приложений"
+        padding: 8
+        contentSpacing: 5
+
+        Row {
+            width: parent.width
+            height: 32
+            spacing: 8
+
+            Text {
+                width: 190
+                height: 30
+                text: "Нечёткий поиск"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsCheckBox {
+                id: launcherFuzzySearchAppsCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherFuzzySearchApps
+                onToggled: {
+                    Config.launcherFuzzySearchApps = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherFuzzySearchAppsChanged() {
+                        launcherFuzzySearchAppsCheckBox.checked = Config.launcherFuzzySearchApps
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Включено: ищет также по непоследовательным буквам (например, ff → Firefox). Выключено: только точное, начальное или непрерывное совпадение. Работает и для фильтров @."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherFuzzySearchActions"] })
+        heading: "Поиск действий"
+        padding: 8
+        contentSpacing: 5
+
+        Row {
+            width: parent.width
+            height: 32
+            spacing: 8
+
+            Text {
+                width: 190
+                height: 30
+                text: "Нечёткий поиск действий"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsCheckBox {
+                id: launcherFuzzySearchActionsCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherFuzzySearchActions
+                onToggled: {
+                    Config.launcherFuzzySearchActions = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherFuzzySearchActionsChanged() {
+                        launcherFuzzySearchActionsCheckBox.checked = Config.launcherFuzzySearchActions
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Включено: пользовательские действия ищутся по непоследовательным буквам в названии, описании и команде. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в Apps и палитре >."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherFuzzySearchSchemes"] })
+        heading: "Поиск цветовых схем"
+        padding: 8
+        contentSpacing: 5
+
+        Row {
+            width: parent.width
+            height: 32
+            spacing: 8
+            Text {
+                width: 190
+                height: 30
+                text: "Нечёткий поиск тем"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsCheckBox {
+                id: launcherFuzzySearchSchemesCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherFuzzySearchSchemes
+                onToggled: {
+                    Config.launcherFuzzySearchSchemes = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherFuzzySearchSchemesChanged() {
+                        launcherFuzzySearchSchemesCheckBox.checked = Config.launcherFuzzySearchSchemes
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Включено: ищет темы по непоследовательным буквам в названии и описании. Выключено: остаются точные, начальные и непрерывные совпадения. Работает также для >scheme dynamic."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherFuzzySearchWallpapers"] })
+        heading: "Поиск обоев"
+        padding: 8
+        contentSpacing: 5
+
+        Row {
+            width: parent.width
+            height: 32
+            spacing: 8
+            Text {
+                width: 190
+                height: 30
+                text: "Нечёткий поиск обоев"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+            SettingsCheckBox {
+                id: launcherFuzzySearchWallpapersCheckBox
+                width: 58
+                height: 30
+                indicatorOnly: true
+                checked: Config.launcherFuzzySearchWallpapers
+                onToggled: {
+                    Config.launcherFuzzySearchWallpapers = checked
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherFuzzySearchWallpapersChanged() {
+                        launcherFuzzySearchWallpapersCheckBox.checked = Config.launcherFuzzySearchWallpapers
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Включено: ищет файлы обоев по непоследовательным буквам в имени. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в режимах Все, Избранное и Недавние."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 0
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherWallpaperDirectory"] })
+        heading: "Обои рабочего стола"
+        padding: 8
+        contentSpacing: 6
+
+        Row {
+            width: parent.width
+            height: 34
+            spacing: 8
+
+            Text {
+                width: 190
+                height: 30
+                text: "Папка с изображениями"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            SettingsTextField {
+                id: launcherWallpaperDirectoryField
+                width: Math.max(120, parent.width - 198)
+                height: 30
+                text: Config.launcherWallpaperDirectory
+                placeholderText: "~/Pictures/Wallpapers"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                onEditingFinished: {
+                    Config.launcherWallpaperDirectory = text.replace(/[\r\n\t]/g, " ").trim()
+                    text = Config.launcherWallpaperDirectory
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onLauncherWallpaperDirectoryChanged() {
+                        launcherWallpaperDirectoryField.text = Config.launcherWallpaperDirectory
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Пустое значение использует ~/Pictures/Wallpapers. В Launcher откройте >wallpaper; установка поддерживает plasma-apply-wallpaperimage (KDE) и swww (Wayland)."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
         }
     }
 
@@ -605,7 +934,7 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 1
+        visible: root.host && root.host.currentPageSubTabIndex === 2
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherTabOrder", "launcherTabVisible", "launcherTabLabels", "launcherTabIcons"] })
@@ -671,7 +1000,9 @@ Column {
                     width: 40
                     height: 30
                     indicatorOnly: true
-                    enabled: launcherTabRow.modelData.visible || root.visibleTabCount() > 1
+                    // Keep every checkbox interactive so a hidden final tab can
+                    // always be restored. setTabVisible() still prevents hiding
+                    // the last remaining visible tab.
                     checked: launcherTabRow.modelData.visible
                     onToggled: root.setTabVisible(launcherTabRow.modelData.id, checked)
                 }
@@ -752,7 +1083,7 @@ Column {
 
 
     SettingsGroup {
-        visible: root.host && root.host.currentPageSubTabIndex === 2
+        visible: root.host && root.host.currentPageSubTabIndex === 3
         width: parent.width
         showFrame: true
         changeKeys: ({ keys: ["launcherProjects"] })
@@ -888,4 +1219,387 @@ Column {
             onClicked: root.settings.addLauncherProject()
         }
     }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 4
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherCustomActions"] })
+        heading: "Пользовательские действия"
+        padding: 8
+        contentSpacing: 7
+
+        Text {
+            width: parent.width
+            text: "Действия доступны в обычном поиске Apps и через префикс > с любой вкладки Launcher. Для включённого действия обязательны название и команда; краткое описание можно оставить пустым. Новая запись создаётся с пустыми полями: подсказки внутри полей показывают, что нужно ввести. При сохранении любого поля проверяются название и команда. Незаполненное обязательное поле подсвечивается мягкой красной рамкой, а сохранение блокируется до исправления. Команда запускается через Zsh от имени текущего пользователя. Добавляйте только команды, которым доверяете."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        Repeater {
+            model: Array.isArray(Config.launcherCustomActions) ? Config.launcherCustomActions : []
+
+            delegate: SettingsGroup {
+                id: customActionCard
+                required property var modelData
+                required property int index
+                property bool validationAttempted: false
+                property bool validationTargetEnabled: modelData.enabled !== false
+                property var pendingEnabledOverride: null
+                width: customActionCard.parent ? customActionCard.parent.width : root.width
+                showFrame: true
+
+                function saveAction(enabledOverride) {
+                    var nextEnabled = enabledOverride === undefined
+                        ? (pendingEnabledOverride === null ? modelData.enabled !== false : !!pendingEnabledOverride)
+                        : !!enabledOverride
+                    var actionName = String(customActionNameField.text || "").trim()
+                    var actionCommand = String(customActionCommandField.text || "").trim()
+                    var validation = LauncherActions.validateRequiredFields({
+                        enabled: nextEnabled,
+                        name: actionName,
+                        command: actionCommand
+                    })
+                    validationAttempted = true
+                    validationTargetEnabled = nextEnabled
+                    if (!validation.valid) {
+                        pendingEnabledOverride = nextEnabled
+                        if (validation.missingName) customActionNameField.forceActiveFocus()
+                        else if (validation.missingCommand) customActionCommandField.forceActiveFocus()
+                        return false
+                    }
+                    root.settings.updateLauncherCustomActionFields(customActionCard.index, {
+                        enabled: nextEnabled,
+                        icon: customActionIconField.text,
+                        name: actionName,
+                        description: customActionDescriptionField.text,
+                        command: actionCommand
+                    })
+                    validationAttempted = false
+                    pendingEnabledOverride = null
+                    return true
+                }
+                changeKeys: ({ keys: ["launcherCustomActions"] })
+                padding: 6
+                contentSpacing: 5
+
+                Row {
+                    width: parent.width
+                    height: 30
+                    spacing: 5
+
+                    SettingsCheckBox {
+                        width: 34
+                        height: 28
+                        indicatorOnly: true
+                        checked: customActionCard.modelData.enabled !== false
+                        onToggled: customActionCard.saveAction(checked)
+                    }
+
+                    SettingsTextField {
+                        id: customActionIconField
+                        width: 48
+                        height: 28
+                        text: String(customActionCard.modelData.icon || "󰌌")
+                        placeholderText: "Иконка"
+                        color: Config.text
+                        font.family: "Symbols Nerd Font Mono"
+                        font.pixelSize: Config.settingsUiSize(13)
+                        horizontalAlignment: TextInput.AlignHCenter
+                        onEditingFinished: customActionCard.saveAction()
+                    }
+
+                    SettingsTextField {
+                        id: customActionNameField
+                        width: Math.max(90, parent.width - 34 - 48 - 22 - 22 - 54 - 5 * parent.spacing)
+                        height: 28
+                        validationFailed: customActionCard.validationAttempted
+                            && customActionCard.validationTargetEnabled && text.trim().length === 0
+                        text: String(customActionCard.modelData.name || "")
+                        placeholderText: "Название действия (обязательно)"
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        onEditingFinished: customActionCard.saveAction()
+                    }
+
+                    Item {
+                        width: 22
+                        height: 28
+                        MoveArrowButton {
+                            anchors.centerIn: parent
+                            width: 22
+                            height: 22
+                            iconText: "↑"
+                            iconSize: Config.settingsUiSize(12)
+                            baseColor: Config.text
+                            hoverMode: "frame"
+                            hoverColor: Config.accent
+                            interactionEnabled: customActionCard.index > 0
+                            toolTipText: "Поднять выше"
+                            onClicked: root.settings.moveLauncherCustomAction(customActionCard.index, -1)
+                        }
+                    }
+
+                    Item {
+                        width: 22
+                        height: 28
+                        MoveArrowButton {
+                            anchors.centerIn: parent
+                            width: 22
+                            height: 22
+                            iconText: "↓"
+                            iconSize: Config.settingsUiSize(12)
+                            baseColor: Config.text
+                            hoverMode: "frame"
+                            hoverColor: Config.accent
+                            interactionEnabled: customActionCard.index < Config.launcherCustomActions.length - 1
+                            toolTipText: "Опустить ниже"
+                            onClicked: root.settings.moveLauncherCustomAction(customActionCard.index, 1)
+                        }
+                    }
+
+                    SettingsButton {
+                        width: 54
+                        height: 28
+                        text: "Удалить"
+                        fontSize: 9
+                        radius: 4
+                        fillOnHover: false
+                        borderOnHover: true
+                        backgroundColor: Config.settingsBackground
+                        textColor: Config.text
+                        onClicked: root.settings.removeLauncherCustomAction(customActionCard.index)
+                    }
+                }
+
+                SettingsTextField {
+                    id: customActionDescriptionField
+                    width: parent.width
+                    height: 28
+                    text: String(customActionCard.modelData.description || "")
+                    placeholderText: "Краткое описание действия (необязательно)"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    onEditingFinished: customActionCard.saveAction()
+                }
+
+                Row {
+                    width: parent.width
+                    height: 28
+                    spacing: 6
+
+                    SettingsTextField {
+                        id: customActionCommandField
+                        width: Math.max(100, parent.width - 130)
+                        height: 28
+                        validationFailed: customActionCard.validationAttempted
+                            && customActionCard.validationTargetEnabled && text.trim().length === 0
+                        text: String(customActionCard.modelData.command || "")
+                        placeholderText: "Команда для запуска (обязательно), например: foot -- nvim ~/WORK"
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        // Every commit path validates and saves the whole action, including when this
+                        // field was never visited and a different field is edited or submitted.
+                        onAccepted: customActionCard.saveAction()
+                        onEditingFinished: customActionCard.saveAction()
+                    }
+
+                    SettingsButton {
+                        width: 124
+                        height: 28
+                        text: "Сохранить действие"
+                        fontSize: 8
+                        radius: 4
+                        fillOnHover: false
+                        borderOnHover: true
+                        backgroundColor: Config.settingsBackground
+                        textColor: Config.text
+                        tooltip: "Проверить обязательные поля и сохранить действие"
+                        onClicked: customActionCard.saveAction()
+                    }
+                }
+            }
+        }
+
+        SettingsButton {
+            width: 175
+            height: 30
+            enabled: !(Array.isArray(Config.launcherCustomActions)) || Config.launcherCustomActions.length < 100
+            text: "+ Добавить действие"
+            fontSize: 10
+            radius: 4
+            fillOnHover: false
+            borderOnHover: true
+            backgroundColor: Config.settingsBackground
+            textColor: Config.text
+            onClicked: root.settings.addLauncherCustomAction()
+        }
+    }
+
+    SettingsAnimationGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 5
+        width: parent.width
+        settings: root.settings
+        heading: "Внутренние переходы лаунчера"
+        detailsHeading: "Параметры анимации"
+        profile: Config.animationLauncherMorphProfile
+        duration: Config.animationLauncherMorphDuration
+        changeKeys: ({ keys: ["animationLauncherMorphDuration", "animationLauncherMorphProfile"] })
+        onDurationEdited: function(value) {
+            Config.animationLauncherMorphDuration = Math.max(0, Math.min(5000, Math.round(Number(value) || 0)))
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationLauncherMorphProfile = value
+            root.settings.save()
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageSubTabIndex === 6
+        width: parent.width
+        showFrame: true
+        changeKeys: ({ keys: ["launcherFavoriteApps", "launcherHiddenApps"] })
+        heading: "Избранные и скрытые приложения"
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            width: parent.width
+            text: "Избранные приложения поднимаются в начало списка Apps. Скрытые приложения не показываются в поиске, включая фильтры @. Один и тот же пункт нельзя одновременно добавить в избранное и скрыть."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        SettingsInputField {
+            id: launcherApplicationPreferenceSearch
+            width: parent.width
+            height: 30
+            placeholderText: "Найти установленное приложение…"
+            color: Config.text
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            onTextChanged: root.applicationPreferenceSearch = text
+        }
+
+        Row {
+            width: parent.width
+            height: 22
+            spacing: 6
+            Text {
+                width: Math.max(80, parent.width - 150)
+                text: "Приложение"
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                width: 66
+                text: "Избр."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                width: 66
+                text: "Скрыть"
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
+
+        Repeater {
+            model: root.applicationPreferenceRows
+            delegate: Row {
+                required property var modelData
+                width: parent.width
+                height: 34
+                spacing: 6
+
+                Column {
+                    width: Math.max(80, parent.width - 150)
+                    height: parent.height
+                    spacing: 1
+                    Text {
+                        width: parent.width
+                        height: 17
+                        text: modelData.name
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(10)
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Text {
+                        width: parent.width
+                        height: 14
+                        text: modelData.comment || modelData.id
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(8)
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                SettingsCheckBox {
+                    width: 66
+                    height: 30
+                    indicatorOnly: true
+                    checked: modelData.favorite
+                    ToolTip.visible: pointerHovered
+                    ToolTip.text: modelData.favorite ? "Убрать из избранного" : "Добавить в избранное"
+                    ToolTip.delay: 450
+                    onToggled: root.setLauncherAppPreference("favorite", modelData.id, checked)
+                }
+
+                SettingsCheckBox {
+                    width: 66
+                    height: 30
+                    indicatorOnly: true
+                    checked: modelData.hidden
+                    ToolTip.visible: pointerHovered
+                    ToolTip.text: modelData.hidden ? "Показать в Launcher Apps" : "Скрыть из Launcher Apps"
+                    ToolTip.delay: 450
+                    onToggled: root.setLauncherAppPreference("hidden", modelData.id, checked)
+                }
+            }
+        }
+
+        Text {
+            visible: root.applicationPreferenceRows.length === 0
+            width: parent.width
+            text: root.applicationPreferenceSearch.trim().length > 0
+                ? "Ничего не найдено."
+                : "Пока нет выбранных приложений. Введите часть названия, чтобы найти приложение и добавить его в избранное или скрыть."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        Text {
+            visible: root.applicationPreferenceSearch.trim().length > 0 && root.applicationPreferenceRows.length === 40
+            width: parent.width
+            text: "Выдача ограничена 40 совпадениями. Уточните запрос, чтобы найти нужное приложение."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(8)
+            wrapMode: Text.WordWrap
+        }
+    }
+
 }

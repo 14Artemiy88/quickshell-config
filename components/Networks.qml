@@ -91,11 +91,16 @@ Primitives.ModuleFrame {
             networkRows.remove(index);
     }
 
+    readonly property bool internalAnimationsEnabled: Config.animationNetworkMorphProfile !== "none"
+    readonly property int internalAnimationDuration: root.internalAnimationsEnabled ? Config.animationNetworkMorphDuration : 0
+
     implicitHeight: root.contentDrivenHeight
     Behavior on implicitHeight {
+        enabled: root.internalAnimationDuration > 0
         NumberAnimation {
-            duration: Config.animationDuration(180, "appearance")
-            easing.type: Config.animationEasingType("standard", root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
+            duration: root.internalAnimationDuration
+            easing.type: Config.animationEasingType(Config.animationNetworkMorphProfile, root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationNetworkMorphProfile, root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
         }
     }
     clip: true
@@ -135,8 +140,9 @@ Primitives.ModuleFrame {
             move: Transition {
                 NumberAnimation {
                     properties: "x,y"
-                    duration: Config.animationDuration(180, "appearance")
-                    easing.type: Config.animationEasingType("standard", root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
+                    duration: root.internalAnimationDuration
+                    easing.type: Config.animationEasingType(Config.animationNetworkMorphProfile, root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationNetworkMorphProfile, root.contentDrivenHeight > root.implicitHeight ? "enter" : "exit")
                 }
             }
 

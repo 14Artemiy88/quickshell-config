@@ -10,6 +10,7 @@ root = Path(sys.argv[1])
 cpu = (root / 'components/CpuGraph.qml').read_text()
 cava = (root / 'components/Cava.qml').read_text()
 primitive = (root / 'components/primitives/SegmentBarGraph.qml').read_text()
+flow_primitive = (root / 'components/primitives/FlowingSegmentBarGraph.qml').read_text()
 
 def need(condition, message):
     if not condition:
@@ -61,9 +62,12 @@ for source, name, mode_prop in ((cpu, 'CpuGraph', 'cpuGraphMode'), (cava, 'Cava'
     counts = {}
     for mode in ('bothModeComponent', 'topModeComponent', 'bottomModeComponent'):
         body = component_body(source, mode)
-        counts[mode] = body.count('Primitives.SegmentBarGraph {')
+        counts[mode] = body.count(('Primitives.FlowingSegmentBarGraph {' if name == 'CpuGraph' else 'Primitives.SegmentBarGraph {'))
     need(counts == {'bothModeComponent': 2, 'topModeComponent': 1, 'bottomModeComponent': 1},
          f'{name} graph counts per mode are unexpected: {counts}')
+    if name == 'CpuGraph':
+        need('NumberAnimation' in flow_primitive and 'Easing.Linear' in flow_primitive,
+             'CPU history should use the continuous flowing renderer')
 
 need('root.barCount > 0' in primitive, 'slot widths should be based on the requested bar count')
 need('(barRow.width - (root.barCount - 1) * root.spacing) / root.barCount' in primitive,

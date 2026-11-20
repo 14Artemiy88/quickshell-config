@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "../.."
 import "primitives"
 import "../../js/settings/SettingsPageRegistry.js" as SettingsPageRegistry
+import "../../js/settings/SettingsSchema.js" as SettingsSchema
 
 Item {
     id: root
@@ -15,6 +16,7 @@ Item {
     }
     property var settings: Settings
     property bool settingsMoveMode: false
+    property bool settingsNavigationReady: false
     property alias profileController: settingsProfileController
     readonly property bool quickSaveProfileAvailable: profileController.canSaveScope("all")
     readonly property string currentPageSaveScope: SettingsPageRegistry.saveScopeForPageId(
@@ -62,6 +64,7 @@ Item {
     }
 
     function openWeatherSettings() {
+        root.expandSettingsNavigationGroupForPage("weather")
         root.currentPageId = "weather"
         root.currentPageSubTabIndex = 0
         root.clearSettingsFocus()
@@ -86,6 +89,27 @@ Item {
     property alias currentPageSubTabIndex: settingsNavigationController.currentPageSubTabIndex
     readonly property var settingsTabDefinitions: settingsNavigationController.settingsTabDefinitions
     readonly property var settingsNavigationItems: settingsNavigationController.settingsNavigationItems
+    readonly property var settingsNavigationGroups: {
+        var definitions = settingsNavigationController.settingsNavigationGroupDefinitions
+        var items = root.settingsNavigationItems
+        var groups = []
+        for (var i = 0; i < definitions.length; ++i) {
+            var definition = definitions[i]
+            var groupItems = []
+            for (var j = 0; j < items.length; ++j) {
+                if (items[j].groupId === definition.id)
+                    groupItems.push(items[j])
+            }
+            groups.push({
+                id: definition.id,
+                label: definition.label,
+                symbol: definition.symbol,
+                items: groupItems
+            })
+        }
+        return groups
+    }
+    readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false })
     readonly property var currentPageSubTabs: settingsNavigationController.currentPageSubTabs
     readonly property string currentPageTitle: settingsNavigationController.currentPageTitle
 
@@ -96,10 +120,53 @@ Item {
     function settingsSubTabChangeSpec(pageId, sub) { return settingsNavigationController.settingsSubTabChangeSpec(pageId, sub) }
     function settingsSubTabHasChanges(pageId, sub) { return settingsNavigationController.settingsSubTabHasChanges(pageId, sub) }
     function settingsTabHasChanges(id) { return settingsNavigationController.settingsTabHasChanges(id) }
-    function selectSettingsTab(id) { return settingsNavigationController.selectSettingsTab(id) }
+    function selectSettingsTab(id) {
+        root.expandSettingsNavigationGroupForPage(id)
+        return settingsNavigationController.selectSettingsTab(id)
+    }
     function resetCurrentSettingsPage() { return settingsNavigationController.resetCurrentSettingsPage() }
     function setSettingsTabLabel(id, value) { return settingsNavigationController.setSettingsTabLabel(id, value) }
     function moveSettingsTab(id, delta) { return settingsNavigationController.moveSettingsTab(id, delta) }
+    function settingsTabCanMove(id, delta) { return settingsNavigationController.settingsTabCanMove(id, delta) }
+
+    function settingsNavigationGroupCollapsed(id) {
+        return collapsedSettingsNavigationGroups[String(id)] === true
+    }
+
+    function settingsNavigationGroupHasCurrentPage(id) {
+        var groups = root.settingsNavigationGroups
+        for (var i = 0; i < groups.length; ++i) {
+            if (groups[i].id !== String(id)) continue
+            for (var j = 0; j < groups[i].items.length; ++j) {
+                if (groups[i].items[j].id === root.currentPageId)
+                    return true
+            }
+        }
+        return false
+    }
+
+    function setSettingsNavigationCollapsedGroups(value) {
+        Config.settingsNavigationCollapsedGroups = SettingsSchema.normalizeSettingsNavigationCollapsedGroups(
+            value, Config.settingsNavigationCollapsedGroups)
+        root.settings.save()
+    }
+
+    function toggleSettingsNavigationGroup(id) {
+        var key = String(id)
+        if (key !== "appearance" && key !== "modules") return
+        var next = Object.assign({}, root.collapsedSettingsNavigationGroups || ({}))
+        next[key] = next[key] !== true
+        root.setSettingsNavigationCollapsedGroups(next)
+    }
+
+    function expandSettingsNavigationGroupForPage(pageId) {
+        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
+        if (root.settingsNavigationGroupCollapsed(groupId)) {
+            var next = Object.assign({}, root.collapsedSettingsNavigationGroups || ({}))
+            next[groupId] = false
+            root.setSettingsNavigationCollapsedGroups(next)
+        }
+    }
 
     function rebuildSettingsSearchIndex() {
         settingsSearchController.rebuildSettingsSearchIndex()
@@ -117,7 +184,15 @@ Item {
         settingsSearchController.handleSettingsSearchKey(event)
     }
 
-    Component.onCompleted: Qt.callLater(root.rebuildSettingsSearchIndex)
+    Component.onCompleted: {
+        root.settingsNavigationReady = true
+        Qt.callLater(root.rebuildSettingsSearchIndex)
+    }
+
+    onCurrentPageIdChanged: {
+        if (root.settingsNavigationReady)
+            root.expandSettingsNavigationGroupForPage(root.currentPageId)
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -202,24 +277,136 @@ Item {
             // Keep the settings text visually separated from the sidebar tabs.
             spacing: 16
 
-            Column {
+            Flickable {
                 id: mainSettingsTabs
-                width: 128
+                width: 176
                 height: parent.height
-                spacing: 5
+                contentWidth: width
+                contentHeight: mainSettingsGroupsColumn.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
+                interactive: contentHeight > height
 
-                Repeater {
-                    model: root.settingsNavigationItems
+                Column {
+                    id: mainSettingsGroupsColumn
+                    width: mainSettingsTabs.width - 10
+                    spacing: 8
 
-                    delegate: SettingsSubTab {
-                        width: mainSettingsTabs.width
-                        selected: root.isSettingsTabSelected(modelData.id)
-                        modified: root.settingsTabHasChanges(modelData.id)
-                        text: modelData.label
-                        leftAligned: true
-                        horizontalPadding: 8
-                        onClicked: root.selectSettingsTab(modelData.id)
+                    Repeater {
+                        model: root.settingsNavigationGroups
+
+                        delegate: Column {
+                            id: navigationGroupDelegate
+                            required property var modelData
+                            width: mainSettingsGroupsColumn.width
+                            spacing: 3
+
+                            Rectangle {
+                                id: navigationGroupHeader
+                                width: parent.width
+                                height: 30
+                                radius: 4
+                                color: root.settingsNavigationGroupCollapsed(modelData.id)
+                                    ? Config.settingsBackground
+                                    : Qt.darker(Config.settingsBackground, 1.04)
+                                border.width: 1
+                                border.color: root.settingsNavigationGroupHasCurrentPage(modelData.id)
+                                    ? Config.accent
+                                    : Config.baseColor
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 8
+                                    anchors.rightMargin: 8
+                                    spacing: 7
+
+                                    Text {
+                                        width: 15
+                                        height: parent.height
+                                        text: modelData.symbol
+                                        color: Config.accent
+                                        font.family: Config.settingsFont
+                                        font.pixelSize: Config.settingsUiSize(12)
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
+                                    Text {
+                                        width: parent.width - 15 - (modelData.items.length > 1 ? 18 : 0) - 14
+                                        height: parent.height
+                                        text: modelData.items.length === 1
+                                            ? modelData.items[0].label : modelData.label
+                                        color: root.settingsNavigationGroupCollapsed(modelData.id)
+                                            ? Config.textMuted : Config.text
+                                        font.family: Config.settingsFont
+                                        font.pixelSize: Config.settingsUiSize(10)
+                                        font.bold: true
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        visible: modelData.items.length > 1
+                                        width: visible ? 18 : 0
+                                        height: parent.height
+                                        text: root.settingsNavigationGroupCollapsed(modelData.id) ? "⌄" : "⌃"
+                                        color: Config.textMuted
+                                        font.family: Config.settingsFont
+                                        font.pixelSize: Config.settingsUiSize(12)
+                                        horizontalAlignment: Text.AlignRight
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        if (modelData.items.length === 1)
+                                            root.selectSettingsTab(modelData.items[0].id)
+                                        else
+                                            root.toggleSettingsNavigationGroup(modelData.id)
+                                    }
+                                }
+                            }
+
+                            Column {
+                                id: navigationGroupItems
+                                width: parent.width
+                                spacing: 3
+                                visible: navigationGroupDelegate.modelData.items.length > 1
+                                    && !root.settingsNavigationGroupCollapsed(navigationGroupDelegate.modelData.id)
+                                height: visible ? implicitHeight : 0
+
+                                Repeater {
+                                    model: navigationGroupDelegate.modelData.items
+
+                                    delegate: Item {
+                                        required property var modelData
+                                        width: navigationGroupItems.width
+                                        height: 34
+
+                                        SettingsSubTab {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: 8
+                                            width: parent.width - 8
+                                            height: 34
+                                            selected: root.isSettingsTabSelected(parent.modelData.id)
+                                            modified: root.settingsTabHasChanges(parent.modelData.id)
+                                            text: parent.modelData.label
+                                            leftAligned: true
+                                            horizontalPadding: 8
+                                            onClicked: root.selectSettingsTab(parent.modelData.id)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
+                }
+
+                ScrollBar.vertical: SettingsScrollBar {
+                    visible: mainSettingsTabs.contentHeight > mainSettingsTabs.height + 1
                 }
             }
 
@@ -258,6 +445,9 @@ Item {
             anchors.margins: 4
             clip: true
             spacing: 2
+            ScrollBar.vertical: SettingsScrollBar {
+                visible: root.settingsSearchResults.length > 7
+            }
             model: root.settingsSearchResults
             visible: root.settingsSearchResults.length > 0
             currentIndex: root.settingsSearchSelectedIndex
@@ -299,7 +489,8 @@ Item {
                     Text {
                         width: parent.width
                         height: 15
-                        text: modelData.pageLabel + (modelData.group ? " · " + modelData.group : "")
+                        text: modelData.navigationGroupLabel + " › " + modelData.pageLabel
+                            + (modelData.group ? " · " + modelData.group : "")
                         color: index === root.settingsSearchSelectedIndex ? Config.black : Config.textMuted
                         font.family: Config.settingsFont
                         font.pixelSize: Config.settingsUiSize(9)

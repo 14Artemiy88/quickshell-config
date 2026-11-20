@@ -63,6 +63,7 @@ for (const file of walk(sectionsRoot)) {
       /\bid\s*:\s*storagePathsGroup\b/.test(block.text) ? 'app storage paths are not profile settings' :
       /\bid\s*:\s*projectSettingsCard\b/.test(block.text) ? 'launcherProjects array is tracked at its parent frame' :
       /heading\s*:\s*"Токен Gismeteo"/.test(block.text) ? 'weather token is intentionally excluded from profile markers' :
+      /heading\s*:\s*"Что управляется"/.test(block.text) ? 'informational animation panel has no editable settings' :
       /text\s*:\s*"Сбросить все настройки"/.test(block.text) ? 'profile action panel is not a setting group' : null;
     assert(reason, `${path.relative(root, file)} has a framed SettingsGroup without changeKeys: ${block.text.slice(0,180).replace(/\s+/g,' ')}`);
     exceptions.push({file:path.relative(root,file), reason});

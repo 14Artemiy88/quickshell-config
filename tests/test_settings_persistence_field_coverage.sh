@@ -31,9 +31,18 @@ if "weatherWindDirectionKeys" in apply_source:
                     for direction in ("Calm", "N", "NE", "E", "SE", "S", "SW", "W", "NW")
                     for suffix in ("Icon", "Font"))
 
-not_saved = sorted(mutated - persisted - color_names)
+# These former module-level animation master toggles are retained only as
+# migration/runtime compatibility bridges. New profiles and snapshots encode
+# their state through the explicit MorphProfile value instead.
+legacy_animation_compatibility = {
+    "animationMopidyMorphEnabled", "animationPlayerMorphEnabled",
+    "animationWeatherMorphEnabled", "animationTimerMorphEnabled"
+}
+not_saved = sorted(mutated - persisted - color_names - legacy_animation_compatibility)
 not_loaded = sorted(mutated - loadable - color_names)
 persisted_not_loaded = sorted(persisted - loadable - color_names)
+for key in legacy_animation_compatibility:
+    assert f"{key}: config.{key}" not in snapshot_body, f"legacy-only key unexpectedly returned to snapshots: {key}"
 assert not not_saved, "Settings UI fields missing from snapshots or color map: " + ", ".join(not_saved)
 assert not not_loaded, "Settings UI fields missing load handling: " + ", ".join(not_loaded)
 assert not persisted_not_loaded, "Persisted settings without detected loader handling: " + ", ".join(persisted_not_loaded)

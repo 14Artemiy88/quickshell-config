@@ -26,11 +26,13 @@ grep -Fq '{ id: "settingsWindow", saveScope: "settingsWindow", subTabs: ["Инт
 grep -Fq 'readonly property var settingsNavigationItems:' "$WIDGET"
 grep -Fq 'function moveSettingsTab(id, delta)' "$WIDGET"
 grep -Fq 'function setSettingsTabLabel(id, value)' "$WIDGET"
-grep -Fq 'model: root.settingsNavigationItems' "$WIDGET"
+grep -Fq 'model: root.settingsNavigationGroups' "$WIDGET"
 grep -Fq 'heading: "Вкладки панели настроек"' "$WINDOW"
 grep -Fq 'visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2' "$WINDOW"
 grep -Fq 'host.setSettingsTabLabel(modelData.id, text)' "$WINDOW"
 grep -Fq 'host.moveSettingsTab(modelData.id, -1)' "$WINDOW"
 grep -Fq 'host.moveSettingsTab(modelData.id, 1)' "$WINDOW"
+grep -Fq 'host.settingsTabCanMove(modelData.id, -1)' "$WINDOW"
+grep -Fq 'внутри групп' "$WINDOW"
 
 echo 'settings sidebar labels/order customization and persistence: OK'

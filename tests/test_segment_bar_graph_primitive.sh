@@ -3,10 +3,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PRIMITIVE="$ROOT/components/primitives/SegmentBarGraph.qml"
 CPU_GRAPH="$ROOT/components/CpuGraph.qml"
+FLOW_PRIMITIVE="$ROOT/components/primitives/FlowingSegmentBarGraph.qml"
 CAVA="$ROOT/components/Cava.qml"
-for file in "$PRIMITIVE" "$CPU_GRAPH" "$CAVA"; do test -f "$file"; done
+for file in "$PRIMITIVE" "$FLOW_PRIMITIVE" "$CPU_GRAPH" "$CAVA"; do test -f "$file"; done
 
-grep -Fq 'property var values: []' "$PRIMITIVE"
+grep -Fq 'property var valuesModel: null' "$PRIMITIVE"
 grep -Fq 'property int barCount:' "$PRIMITIVE"
 grep -Fq 'property real slotWidth: 0' "$PRIMITIVE"
 grep -Fq 'property real barWidthRatio: 0' "$PRIMITIVE"
@@ -19,7 +20,7 @@ grep -Fq 'Config.cavaMode === "both"' "$CAVA"
 grep -Fq 'Config.cavaMode === "top"' "$CAVA"
 grep -Fq 'Config.cavaMode === "bottom"' "$CAVA"
 
-python3 - "$PRIMITIVE" "$CPU_GRAPH" "$CAVA" <<'PYCODE'
+python3 - "$PRIMITIVE" "$FLOW_PRIMITIVE" "$CPU_GRAPH" "$CAVA" <<'PYCODE'
 from pathlib import Path
 import re, sys
 pairs={')':'(',']':'[','}':'{'}
@@ -50,17 +51,24 @@ def check_balance(name):
         i+=1
     if stack: raise SystemExit(f'{name}: unclosed {stack[-1][0]} at offset {stack[-1][1]}')
 for name in sys.argv[1:]: check_balance(name)
-primitive, cpu, cava = [Path(name).read_text(encoding='utf-8') for name in sys.argv[1:]]
+primitive, flow_primitive, cpu, cava = [Path(name).read_text(encoding='utf-8') for name in sys.argv[1:]]
+if cpu.count('Primitives.FlowingSegmentBarGraph {') != 4:
+    raise SystemExit('CpuGraph must use the flowing segment graph in all four display regions')
+if cava.count('Primitives.SegmentBarGraph {') != 4:
+    raise SystemExit('Cava must use the shared segment graph in all four display regions')
 for source, label in ((cpu,'CpuGraph'),(cava,'Cava')):
-    if source.count('Primitives.SegmentBarGraph {') != 4:
-        raise SystemExit(f'{label} must use the shared segment graph in all four display regions')
     if re.search(r'(?m)^\s*(?:Repeater|Rectangle) \{', source):
         raise SystemExit(f'{label} still duplicates the bar repeater/rectangle renderer')
-if primitive.count('Repeater {') != 1 or primitive.count('Rectangle {') != 1:
-    raise SystemExit('SegmentBarGraph must own exactly one repeater and one rectangle renderer')
-if 'root.values[index]' not in primitive or 'root.spacing' not in primitive:
-    raise SystemExit('SegmentBarGraph is missing data/spacing binding')
-print('CPU graph and CAVA use the shared segment-bar renderer: OK')
+for source, label in ((primitive,'SegmentBarGraph'),(flow_primitive,'FlowingSegmentBarGraph')):
+    if source.count('Repeater {') != 1 or source.count('Rectangle {') != 1:
+        raise SystemExit(f'{label} must own exactly one repeater and one rectangle renderer')
+if 'model: root.valuesModel' not in primitive or 'required property real value' not in primitive or 'root.barHeightFor(value, parent.height)' not in primitive or 'root.spacing' not in primitive:
+    raise SystemExit('SegmentBarGraph is missing role-based model/spacing binding')
+if 'valuesModel: cavaValuesModel' not in cava or cava.count('valuesModel: cavaValuesModel') != 4:
+    raise SystemExit('CAVA regions must share one incremental value model')
+if 'CpuGraphData.buildFlowFrame' not in flow_primitive or 'Easing.Linear' not in flow_primitive:
+    raise SystemExit('FlowingSegmentBarGraph is missing continuous sample flow')
+print('CPU graph uses flowing renderer; CAVA uses shared incremental segment-bar model: OK')
 PYCODE
 
 echo 'Segment bar graph primitive test: OK'

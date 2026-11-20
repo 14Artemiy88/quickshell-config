@@ -31,6 +31,9 @@ Item {
     readonly property int layoutRowWidth: Math.max(1, root.layoutContentWidth - 20)
     readonly property int requiredContentWidth: Config.topAppsShowBars ? Math.ceil(
         Number(Config.topAppsBarX) + Number(Config.topAppsBarWidth) + 20) : 0
+    // Calculate the widest value once per data/font update, not once per row.
+    // The old per-delegate scan made each refresh O(rows²) for no visual benefit.
+    readonly property int sectionValueColumnWidth: root.valueColumnWidth(root.sectionEntries)
 
     // Reserve enough width for the longest value so larger RAM values
     // (for example "1001.1 Mb") remain fully readable.
@@ -103,7 +106,7 @@ Item {
                             id: appRow
                             property real relativeUsage: Math.max(0, Math.min(1, Number(modelData.ratio ?? 0)))
                             property int horizontalGap: 5
-                            property int valueWidth: root.valueColumnWidth(root.sectionEntries)
+                            property int valueWidth: root.sectionValueColumnWidth
                             // X and length only affect bar placement; the value column
                             // stays anchored to the logical module width and is painted above it.
                             property int barStartX: Math.max(45, Number(Config.topAppsBarX))

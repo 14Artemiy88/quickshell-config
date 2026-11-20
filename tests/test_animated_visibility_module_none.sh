@@ -31,8 +31,12 @@ assert 'animationStyle: Config.animationMopidyVisibilityStyle' in shell
 assert 'duration: Config.animationMopidyVisibilityStyle === \"none\" ? 0 :' in shell
 assert 'animationStyle: Config.animationSettingsVisibilityStyle' in shell
 assert 'duration: Config.animationSettingsVisibilityStyle === \"none\" ? 0 :' in shell
-assert 'animationStyle: Config.animationTimerVisibilityStyle' in timer
-assert 'Config.animationTimerVisibilityStyle === "none" ? 0 :' in timer, "timer icon fades must also stop when module style is none"
+assert 'animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"' in timer
+assert timer.count('duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(') >= 2, "preset button visibility style must still support immediate mode"
+for morph_id in ("timerIconMorph", "alarmIconMorph"):
+    block = timer.split(f"id: {morph_id}", 1)[1].split("\n        }", 1)[0]
+    assert 'Config.animationTimerVisibilityStyle' not in block, f"{morph_id} must not inherit the preset-button style"
+    assert 'Config.timerButtonIconFadeDuration' in block and 'Config.animationProfileIsEnabled' in block
 active = options.split("function animationsActive()", 1)[1].split("function syncVisualState()", 1)[0]
 assert 'Config.animationTimerOptionsVisibilityStyle !== "none"' in active
 assert 'function onAnimationTimerOptionsVisibilityStyleChanged() { root.syncVisualState() }' in options

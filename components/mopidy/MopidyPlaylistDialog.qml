@@ -26,8 +26,9 @@ Item {
         fromGeometry: Qt.rect(0, 0, parent.width, parent.height)
         toGeometry: fromGeometry
         progress: controller.playlistDialogVisible ? 1 : 0
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", controller.playlistDialogVisible ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+        animationProfile: Config.animationMopidyMorphProfile
+        animationPhase: controller.playlistDialogVisible ? "enter" : "exit"
 
         Rectangle {
             anchors.fill: parent

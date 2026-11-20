@@ -18,7 +18,9 @@ assert 'case "calculator":' in launcher and 'case "calc":' in launcher
 assert 'visible: root.mode === root.modeCalculator' in launcher
 assert 'function buildCalculatorResults()' in launcher
 assert 'Config.launcherCrossSearchCalculator !== false && Calculator.hasOperators(query)' in launcher
-assert 'root.copyCalculatorResult(root.calculatorResults[0].result)' in launcher
+assert 'property var calculatorDisplayResults: root.buildCalculatorDisplayResults()' in launcher
+assert 'root.copyCalculatorResult(item.result, item.expression)' in launcher
+assert 'loadCalculatorHistoryFromDisk()' in launcher
 assert 'function openCalculator(): void' in (root / 'shell.qml').read_text()
 for file in (config, defaults, persist, apply, resets, settings):
     assert 'launcherCrossSearchCalculator' in file, 'calculator cross-search must be persisted and resettable'

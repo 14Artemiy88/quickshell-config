@@ -373,4 +373,39 @@ Column {
             }
         }
     }
+
+    SettingsAnimationGroup {
+        visible: root.host && root.host.currentPageId === "network" && root.host.currentPageSubTabIndex === 2
+        width: root.width
+        settings: root.settings
+        heading: "Внутренние переходы Networks"
+        changeKeys: ({ keys: ["animationNetworkMorphDuration", "animationNetworkMorphProfile"] })
+        duration: Config.animationNetworkMorphDuration
+        profile: Config.animationNetworkMorphProfile
+
+        onDurationEdited: function(value) {
+            Config.animationNetworkMorphDuration = value
+            root.settings.save()
+        }
+        onProfileEdited: function(value) {
+            Config.animationNetworkMorphProfile = value
+            root.settings.save()
+        }
+
+        SettingsGroup {
+            width: parent.width
+            showFrame: true
+            heading: "Что управляется"
+            padding: 8
+            contentSpacing: 4
+            Text {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                text: "Настройки влияют на появление и удаление строк подключений, перестройку списка и изменение высоты панели Networks. Анимация появления самого модуля остаётся независимой."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(10)
+            }
+        }
+    }
 }

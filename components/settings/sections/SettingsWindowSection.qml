@@ -314,7 +314,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Изменяйте названия и порядок вкладок левой панели. Изменения сохраняются автоматически."
+            text: "Изменяйте названия страниц и их порядок внутри групп. Сами группы имеют фиксированный порядок. Изменения сохраняются автоматически."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)
@@ -366,8 +366,8 @@ Column {
                         height: 30
                         SettingsButton {
                             anchors.fill: parent
-                            visible: index > 0
-                            enabled: index > 0
+                            visible: host && host.settingsTabCanMove(modelData.id, -1)
+                            enabled: visible
                             iconText: "↑"
                             fontSize: 10
                             tooltip: "Переместить выше"
@@ -380,8 +380,8 @@ Column {
                         height: 30
                         SettingsButton {
                             anchors.fill: parent
-                            visible: host && index < host.settingsNavigationItems.length - 1
-                            enabled: host && index < host.settingsNavigationItems.length - 1
+                            visible: host && host.settingsTabCanMove(modelData.id, 1)
+                            enabled: visible
                             iconText: "↓"
                             fontSize: 10
                             tooltip: "Переместить ниже"

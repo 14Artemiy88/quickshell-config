@@ -490,8 +490,9 @@ Primitives.ModuleFrame {
         toRadius: Config.frameRadius
         progress: root.noteOverlayMode !== "" ? 1 : 0
         visible: root.noteOverlayMode !== "" || normalizedProgress > 0.001
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.noteOverlayMode !== "" ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance")
+        animationProfile: Config.animationCalendarMorphProfile
+        animationPhase: root.noteOverlayMode !== "" ? "enter" : "exit"
 
         // Keep the interaction shield full-size while the visible overlay content
         // performs a restrained scale morph. This avoids clipping the TextArea or

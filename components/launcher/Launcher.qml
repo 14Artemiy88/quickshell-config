@@ -9,12 +9,86 @@ import "./modules/common"
 import "./theme"
 import "./models"
 import "../../js/launcher/Calculator.js" as Calculator
+import "../../js/launcher/CalculatorHistory.js" as CalculatorHistory
+import "../../js/launcher/LauncherCustomActions.js" as LauncherCustomActions
+import "../../js/launcher/LauncherSearchScoring.js" as LauncherSearchScoring
+import "../../js/launcher/LauncherEmojiPicker.js" as LauncherEmojiPicker
+import "../../js/launcher/LauncherWallpaperPicker.js" as LauncherWallpaperPicker
+import "../../js/launcher/LauncherSchemePicker.js" as LauncherSchemePicker
+import "../../js/launcher/LauncherSchemeVariantPicker.js" as LauncherSchemeVariantPicker
+import "../../js/launcher/LauncherDynamicScheme.js" as LauncherDynamicScheme
 
 
 PanelWindow {
     id: root
 
+    // Internal hover/selection transitions share the launcher's local animation profile.
+    // The separate launcher window entrance/exit animation below remains independent.
+    readonly property int interactionAnimationDuration: Config.animationDurationForProfile(
+        true, Config.animationLauncherMorphProfile,
+        Config.animationLauncherMorphDuration, "appearance")
+    readonly property int interactionAnimationEasing: Config.animationEasingType(
+        Config.animationLauncherMorphProfile, "enter")
+    readonly property var interactionAnimationBezierCurve: Config.animationBezierCurve(
+        Config.animationLauncherMorphProfile, "enter")
+
     Theme { id: theme }
+
+    // A single overlay frame is reused by each result view. It follows the
+    // current item instead of fading separate borders on individual delegates.
+    Component {
+        id: launcherSelectionHighlight
+
+        Rectangle {
+            // Let the highlight follow the selected delegate itself. Keeping
+            // the geometry animation here (rather than inside ListView) makes
+            // keyboard-driven selection animate even when the key handlers
+            // also scroll the view with positionViewAtIndex().
+            readonly property var selectedDelegate: GridView.view ? GridView.view.currentItem
+                : (ListView.view ? ListView.view.currentItem : null)
+
+            x: selectedDelegate ? selectedDelegate.x : 0
+            y: selectedDelegate ? selectedDelegate.y : 0
+            width: selectedDelegate ? selectedDelegate.width : 0
+            height: selectedDelegate ? selectedDelegate.height : 0
+
+            z: 2
+            color: "transparent"
+            radius: Config.launcherItemRadius
+            border.color: theme.borderAccent
+            border.width: 1
+            antialiasing: true
+
+            Behavior on x {
+                NumberAnimation {
+                    duration: root.interactionAnimationDuration
+                    easing.type: root.interactionAnimationEasing
+                    easing.bezierCurve: root.interactionAnimationBezierCurve
+                }
+            }
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.interactionAnimationDuration
+                    easing.type: root.interactionAnimationEasing
+                    easing.bezierCurve: root.interactionAnimationBezierCurve
+                }
+            }
+            Behavior on width {
+                NumberAnimation {
+                    duration: root.interactionAnimationDuration
+                    easing.type: root.interactionAnimationEasing
+                    easing.bezierCurve: root.interactionAnimationBezierCurve
+                }
+            }
+            Behavior on height {
+                NumberAnimation {
+                    duration: root.interactionAnimationDuration
+                    easing.type: root.interactionAnimationEasing
+                    easing.bezierCurve: root.interactionAnimationBezierCurve
+                }
+            }
+        }
+    }
 
     anchors {
         top: true
@@ -28,6 +102,43 @@ PanelWindow {
     focusable: !root.layoutEditMode
     visible: false
     screen: root.resolveLauncherScreen()
+
+    // PanelWindow/QsWindow does not expose Qt.Window.active. Track the
+    // actual keyboard-focus items instead: the search field for result tabs
+    // and launcherBox for the Power tab. This also works across monitors on
+    // layer-shell compositors where a visible panel can lose keyboard focus.
+    property bool launcherSessionHadFocus: false
+
+    function launcherKeyboardFocusIsActive() {
+        if (root.mode === root.modePower)
+            return launcherBox.activeFocus
+        return searchField.activeFocus
+    }
+
+    function handleLauncherKeyboardFocusChanged() {
+        if (!root.visible || root.layoutEditMode)
+            return
+
+        if (root.launcherKeyboardFocusIsActive()) {
+            launcherFocusLossTimer.stop()
+            root.launcherSessionHadFocus = true
+        } else if (root.launcherSessionHadFocus) {
+            launcherFocusLossTimer.restart()
+        }
+    }
+
+    Timer {
+        id: launcherFocusLossTimer
+        interval: 100
+        repeat: false
+        onTriggered: {
+            if (root.visible && !root.launcherKeyboardFocusIsActive()
+                    && root.launcherSessionHadFocus && !root.layoutEditMode) {
+                root.launcherSessionHadFocus = false
+                root.hideLauncher()
+            }
+        }
+    }
 
     color: theme.transparent
 
@@ -263,6 +374,15 @@ PanelWindow {
         return result
     }
 
+    readonly property int selectedModeTabIndex: {
+        var tabs = root.displayedModeTabs
+        for (var i = 0; i < tabs.length; ++i) {
+            if (tabs[i].mode === root.mode)
+                return i
+        }
+        return -1
+    }
+
     property string currentModeName: {
         var tabs = root.allModeTabs
         for (var i = 0; i < tabs.length; ++i) {
@@ -301,12 +421,24 @@ PanelWindow {
         return modeValue
     }
 
+    function restoreLauncherKeyboardFocus() {
+        if (!root.visible || root.layoutEditMode)
+            return
+        if (root.mode === root.modePower)
+            launcherBox.forceActiveFocus()
+        else
+            searchField.forceActiveFocus()
+    }
+
     function showLauncher() {
         root.visible = true
         root.setMode(root.configuredDefaultMode())
+        Qt.callLater(root.restoreLauncherKeyboardFocus)
     }
 
     function hideLauncher() {
+        launcherFocusLossTimer.stop()
+        root.launcherSessionHadFocus = false
         // Invalidate completion callbacks from work started in the previous
         // visible session so they cannot close a launcher reopened meanwhile.
         root.launcherInteractionGeneration += 1
@@ -383,6 +515,7 @@ PanelWindow {
         const requestedMode = root.modeFromName(modeName)
         root.visible = true
         root.setMode(requestedMode)
+        Qt.callLater(root.restoreLauncherKeyboardFocus)
     }
 
     function setMode(newMode) {
@@ -438,7 +571,7 @@ PanelWindow {
             root.rebuildProjectsModel()
 
         if (root.mode === root.modeCalculator)
-            calculatorList.currentIndex = root.calculatorResults.length > 0 ? 0 : -1
+            calculatorList.currentIndex = root.calculatorDisplayResults.length > 0 ? 0 : -1
 
         if (root.mode === root.modePower)
             launcherBox.forceActiveFocus()
@@ -629,6 +762,53 @@ PanelWindow {
     }
 
     /*
+     * CALCULATOR HISTORY
+     */
+
+    property var calculatorHistoryEntries: []
+    property int calculatorHistoryGeneration: 0
+    property int calculatorHistoryPendingGeneration: -1
+    property bool calculatorHistoryLoadPending: false
+    property var calculatorHistoryPendingMutations: []
+    property bool calculatorHistoryPersistAfterLoad: false
+    property string calculatorHistoryWriteActivePayload: ""
+    property string calculatorHistoryWriteQueuedPayload: ""
+    property bool calculatorHistoryWriteHasQueuedPayload: false
+    property int calculatorHistoryWriteSequence: 0
+    property string calculatorHistoryFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-calculator-history.json"
+
+    Process {
+        id: calculatorHistoryProcess
+        command: [
+            "sh",
+            "-c",
+            "cat -- \"$1\" 2>/dev/null; status=$?; printf '\\n__CALCULATOR_HISTORY_REQUEST__%s\\n' \"$2\"; exit \"$status\"",
+            "launcher-calculator-history",
+            root.calculatorHistoryFile,
+            String(root.calculatorHistoryPendingGeneration)
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: root.acceptCalculatorHistory(this.text)
+        }
+    }
+
+    Process {
+        id: calculatorHistoryWriteProcess
+        command: [
+            "sh",
+            "-c",
+            "mkdir -p \"$HOME/.cache\" && tmp=\"$1.tmp.$$.$3\" && printf '%s\\n' \"$2\" > \"$tmp\" && mv \"$tmp\" \"$1\"",
+            "launcher-calculator-history-write",
+            root.calculatorHistoryFile,
+            root.calculatorHistoryWriteActivePayload,
+            String(root.calculatorHistoryWriteSequence)
+        ]
+        onExited: function(exitCode) {
+            root.finishCalculatorHistoryWrite(exitCode)
+        }
+    }
+
+    /*
      * RUN HISTORY
      */
 
@@ -703,6 +883,116 @@ PanelWindow {
                 root.loadRunCommands(this.text)
             }
         }
+    }
+
+    function parseCalculatorHistory(output) {
+        return CalculatorHistory.parseHistory(output)
+    }
+
+    function recordCalculatorHistoryMutation(type, entry) {
+        root.calculatorHistoryGeneration += 1
+        if (!root.calculatorHistoryLoadPending)
+            return
+
+        const mutations = Array.isArray(root.calculatorHistoryPendingMutations)
+            ? root.calculatorHistoryPendingMutations.slice()
+            : []
+        mutations.push({ type: String(type), entry: entry ? { expression: String(entry.expression || ""), result: String(entry.result || "") } : null })
+        root.calculatorHistoryPendingMutations = mutations
+    }
+
+    function acceptCalculatorHistory(output) {
+        const text = String(output ?? "")
+        const marker = "\n__CALCULATOR_HISTORY_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0)
+            return
+
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration)
+                || requestGeneration !== root.calculatorHistoryPendingGeneration
+                || !root.calculatorHistoryLoadPending) {
+            return
+        }
+
+        const diskEntries = root.parseCalculatorHistory(text.slice(0, markerIndex))
+        const mutations = Array.isArray(root.calculatorHistoryPendingMutations)
+            ? root.calculatorHistoryPendingMutations.slice()
+            : []
+        const mergedEntries = CalculatorHistory.applyMutations(diskEntries, mutations)
+        const shouldPersistMergedHistory = mutations.length > 0 || root.calculatorHistoryPersistAfterLoad
+
+        root.calculatorHistoryEntries = mergedEntries
+        root.calculatorHistoryLoadPending = false
+        root.calculatorHistoryPendingMutations = []
+        root.calculatorHistoryPersistAfterLoad = false
+        if (shouldPersistMergedHistory)
+            root.persistCalculatorHistory()
+    }
+
+    function loadCalculatorHistoryFromDisk() {
+        if (calculatorHistoryProcess.running)
+            calculatorHistoryProcess.running = false
+
+        root.calculatorHistoryGeneration += 1
+        root.calculatorHistoryPendingGeneration = root.calculatorHistoryGeneration
+        root.calculatorHistoryLoadPending = true
+        root.calculatorHistoryPendingMutations = []
+        calculatorHistoryProcess.running = true
+    }
+
+    function startCalculatorHistoryWrite(payload) {
+        root.calculatorHistoryWriteActivePayload = String(payload ?? "")
+        root.calculatorHistoryWriteSequence += 1
+        calculatorHistoryWriteProcess.running = true
+    }
+
+    function finishCalculatorHistoryWrite(exitCode) {
+        if (exitCode !== 0)
+            console.warn("Launcher: failed to persist Calculator history (exit code", exitCode, ")")
+
+        if (!root.calculatorHistoryWriteHasQueuedPayload)
+            return
+
+        const latestPayload = root.calculatorHistoryWriteQueuedPayload
+        root.calculatorHistoryWriteQueuedPayload = ""
+        root.calculatorHistoryWriteHasQueuedPayload = false
+        root.startCalculatorHistoryWrite(latestPayload)
+    }
+
+    function persistCalculatorHistory() {
+        if (root.calculatorHistoryLoadPending) {
+            root.calculatorHistoryPersistAfterLoad = true
+            return
+        }
+
+        const data = CalculatorHistory.serialize(root.calculatorHistoryEntries)
+        if (calculatorHistoryWriteProcess.running) {
+            root.calculatorHistoryWriteQueuedPayload = data
+            root.calculatorHistoryWriteHasQueuedPayload = true
+            return
+        }
+
+        root.calculatorHistoryWriteQueuedPayload = ""
+        root.calculatorHistoryWriteHasQueuedPayload = false
+        root.startCalculatorHistoryWrite(data)
+    }
+
+    function rememberCalculatorCalculation(expression, result) {
+        const entry = {
+            expression: String(expression ?? "").trim(),
+            result: String(result ?? "").trim()
+        }
+        const nextEntries = CalculatorHistory.remember(root.calculatorHistoryEntries, entry)
+        root.recordCalculatorHistoryMutation("remember", entry)
+        root.calculatorHistoryEntries = nextEntries
+        root.persistCalculatorHistory()
+    }
+
+    function clearCalculatorHistory() {
+        root.recordCalculatorHistoryMutation("clear", null)
+        root.calculatorHistoryEntries = []
+        root.persistCalculatorHistory()
     }
 
     function parseRunHistory(output) {
@@ -952,6 +1242,7 @@ PanelWindow {
 
     readonly property var calculatorEvaluation: Calculator.evaluate(searchField.text)
     property var calculatorResults: root.buildCalculatorResults()
+    property var calculatorDisplayResults: root.buildCalculatorDisplayResults()
 
     function buildCalculatorResults() {
         const parsed = root.calculatorEvaluation
@@ -960,12 +1251,793 @@ PanelWindow {
         return [{ kind: "calculator", expression: parsed.expression, result: parsed.text, value: parsed.value }]
     }
 
-    property var appsUnifiedResults: root.buildAppsUnifiedResults()
+    function buildCalculatorDisplayResults() {
+        if (root.calculatorResults.length > 0)
+            return root.calculatorResults
+        if (root.normalizeRunText(searchField.text) !== "")
+            return []
 
-    function buildAppsUnifiedResults() {
-        const query = root.normalizeRunText(searchField.text)
+        const entries = Array.isArray(root.calculatorHistoryEntries)
+            ? root.calculatorHistoryEntries
+            : []
+        return entries.map(function(entry) {
+            return {
+                kind: "calculatorHistory",
+                expression: String(entry.expression || ""),
+                result: String(entry.result || "")
+            }
+        })
+    }
+
+    function activateCalculatorItem(item) {
+        if (!item)
+            return
+        if (item.kind === "calculatorHistory") {
+            searchField.text = String(item.expression || "")
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (item.kind === "calculator")
+            root.copyCalculatorResult(item.result, item.expression)
+    }
+
+    readonly property var activeWallpaperQuery: LauncherWallpaperPicker.parseQuery(
+        root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
+    )
+    readonly property var activeDynamicSchemeQuery: LauncherDynamicScheme.parseQuery(
+        root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
+    )
+    readonly property var activeSchemeVariantQuery: LauncherSchemeVariantPicker.parseQuery(
+        root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
+    )
+    readonly property bool wallpaperPickerActive: root.normalizeRunText(searchField.text).startsWith(">")
+        && root.activeWallpaperQuery.active
+    readonly property bool dynamicSchemePickerActive: root.normalizeRunText(searchField.text).startsWith(">")
+        && root.activeDynamicSchemeQuery.active
+    readonly property bool schemeVariantPickerActive: root.normalizeRunText(searchField.text).startsWith(">")
+        && root.activeSchemeVariantQuery.active
+
+    property var wallpaperCatalogEntries: []
+    property int wallpaperCatalogGeneration: 0
+    property int wallpaperCatalogPendingGeneration: -1
+    property bool wallpaperCatalogLoading: false
+    property bool wallpaperCatalogLoaded: false
+    property string wallpaperCatalogRequestedDirectory: ""
+    property string wallpaperCatalogError: ""
+    property string wallpaperSelectedScreenName: root.screen
+        ? LauncherWallpaperPicker.screenName(root.screen, 0) : ""
+    property string wallpaperApplyPendingPath: ""
+    property string wallpaperApplyPendingScreenName: ""
+    property int wallpaperApplyPendingScreenIndex: -1
+    property string wallpaperApplyError: ""
+
+    property string dynamicSchemePendingPath: ""
+    property string dynamicSchemePendingScreenName: ""
+    property string dynamicSchemePendingVariant: "scheme-tonal-spot"
+    property bool dynamicSchemeBusy: false
+    property bool dynamicSchemeApplied: false
+    property string dynamicSchemeError: ""
+    property string dynamicSchemeStdout: ""
+    property string dynamicSchemeStderr: ""
+    property bool dynamicSchemeStdoutReady: false
+    property bool dynamicSchemeStderrReady: false
+    property bool dynamicSchemeProcessExited: false
+    property int dynamicSchemeExitCode: -1
+    property int dynamicSchemeRevision: 0
+    property string dynamicSchemeNotificationBody: ""
+    property string dynamicSchemeNotificationCopyPayload: ""
+    property int dynamicSchemeProgressNotificationId: 0
+    property string dynamicSchemeProgressNotificationOutput: ""
+    property bool dynamicSchemeProgressNotificationStdoutReady: true
+    property bool dynamicSchemeProgressNotificationProcessExited: true
+    property bool dynamicSchemeProgressNotificationReady: true
+    property string dynamicSchemeNotificationPendingUpdate: ""
+
+    property var wallpaperPickerData: LauncherWallpaperPicker.emptyData()
+    property int wallpaperPickerGeneration: 0
+    property int wallpaperPickerPendingGeneration: -1
+    property bool wallpaperPickerLoadPending: false
+    property var wallpaperPickerPendingMutations: []
+    property bool wallpaperPickerPersistAfterLoad: false
+    property string wallpaperPickerWriteActivePayload: ""
+    property string wallpaperPickerWriteQueuedPayload: ""
+    property bool wallpaperPickerWriteHasQueuedPayload: false
+    property int wallpaperPickerWriteSequence: 0
+    property string wallpaperPickerFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-wallpaper-data.json"
+
+    function wallpaperScreenIndex(name) {
+        return LauncherWallpaperPicker.screenIndex(Quickshell.screens, name)
+    }
+
+    function wallpaperSelectScreen(screen, index) {
+        const name = LauncherWallpaperPicker.screenName(screen, index)
+        if (name)
+            root.wallpaperSelectedScreenName = name
+    }
+
+    function moveWallpaperSelection(direction) {
+        const next = LauncherWallpaperPicker.moveGridIndex(
+            appList.currentIndex, direction, appList.wallpaperColumnCount, appList.count
+        )
+        if (next < 0 || next === appList.currentIndex)
+            return
+        appList.currentIndex = next
+        appList.positionViewAtIndex(next, GridView.Contain)
+    }
+
+    function loadWallpaperCatalog(force) {
+        const directory = root.expandedWallpaperDirectory()
+        if (!force && root.wallpaperCatalogRequestedDirectory === directory
+                && (root.wallpaperCatalogLoaded || root.wallpaperCatalogLoading))
+            return
+        if (wallpaperCatalogProcess.running)
+            wallpaperCatalogProcess.running = false
+        root.wallpaperCatalogGeneration += 1
+        root.wallpaperCatalogPendingGeneration = root.wallpaperCatalogGeneration
+        root.wallpaperCatalogRequestedDirectory = directory
+        root.wallpaperCatalogLoading = true
+        root.wallpaperCatalogLoaded = false
+        root.wallpaperCatalogError = ""
+        wallpaperCatalogProcess.running = true
+    }
+
+    function acceptWallpaperCatalog(output) {
+        const text = String(output || "").trim()
+        if (!text) {
+            root.wallpaperCatalogEntries = []
+            root.wallpaperCatalogError = "invalid-response"
+            root.wallpaperCatalogLoaded = true
+            root.wallpaperCatalogLoading = false
+            return
+        }
+        let parsed = null
+        try {
+            parsed = JSON.parse(text)
+        } catch (error) {
+            console.warn("Launcher: wallpaper catalog returned invalid JSON:", String(error))
+            root.wallpaperCatalogEntries = []
+            root.wallpaperCatalogError = "invalid-response"
+            root.wallpaperCatalogLoaded = true
+            root.wallpaperCatalogLoading = false
+            return
+        }
+        if (!parsed || Number(parsed.generation) !== root.wallpaperCatalogPendingGeneration)
+            return
+        root.wallpaperCatalogEntries = LauncherWallpaperPicker.normalizeEntries(parsed.items)
+        root.wallpaperCatalogError = String(parsed.error || "")
+        root.wallpaperCatalogLoaded = true
+        root.wallpaperCatalogLoading = false
+    }
+
+    function applyWallpaper(path) {
+        const value = String(path || "").trim()
+        const screenIndex = root.wallpaperScreenIndex(root.wallpaperSelectedScreenName)
+        if (!value || wallpaperApplyProcess.running)
+            return
+        if (screenIndex < 0) {
+            root.wallpaperApplyError = "Не удалось определить выбранный монитор. Выберите экран в панели над плитками."
+            return
+        }
+        root.wallpaperApplyPendingPath = value
+        root.wallpaperApplyPendingScreenName = root.wallpaperSelectedScreenName
+        root.wallpaperApplyPendingScreenIndex = screenIndex
+        root.wallpaperApplyError = ""
+        wallpaperApplyProcess.running = true
+    }
+
+    function dynamicSchemeVariantLabel(value) {
+        const normalized = LauncherSchemeVariantPicker.normalizeVariant(value)
+        for (let i = 0; i < LauncherSchemeVariantPicker.variants.length; ++i) {
+            const item = LauncherSchemeVariantPicker.variants[i]
+            if (item.id === normalized)
+                return item.name
+        }
+        return String(value || "Matugen")
+    }
+
+    function generateDynamicScheme(path, screenName, variant) {
+        const value = String(path || "").trim()
+        const screen = String(screenName || root.wallpaperSelectedScreenName || "").trim()
+        const selectedVariant = variant === undefined || variant === null || String(variant).trim() === ""
+            ? LauncherSchemeVariantPicker.normalizeVariant(Config.launcherDynamicSchemeVariant)
+            : LauncherSchemeVariantPicker.normalizeVariant(variant)
+        if (!LauncherWallpaperPicker.isValidLocalImagePath(value) || !selectedVariant
+                || root.dynamicSchemeBusy || dynamicSchemeProcess.running
+                || dynamicSchemeProgressNotificationProcess.running)
+            return
+        root.dynamicSchemePendingPath = value
+        root.dynamicSchemePendingScreenName = screen
+        root.dynamicSchemePendingVariant = selectedVariant
+        root.dynamicSchemeBusy = true
+        root.dynamicSchemeApplied = false
+        root.dynamicSchemeError = ""
+        root.dynamicSchemeStdout = ""
+        root.dynamicSchemeStderr = ""
+        root.dynamicSchemeStdoutReady = false
+        root.dynamicSchemeStderrReady = false
+        root.dynamicSchemeProcessExited = false
+        root.dynamicSchemeExitCode = -1
+        root.dynamicSchemeProgressNotificationId = 0
+        root.dynamicSchemeProgressNotificationOutput = ""
+        root.dynamicSchemeProgressNotificationStdoutReady = false
+        root.dynamicSchemeProgressNotificationProcessExited = false
+        root.dynamicSchemeProgressNotificationReady = false
+        root.dynamicSchemeNotificationPendingUpdate = ""
+        root.dynamicSchemeRevision += 1
+        dynamicSchemeProgressNotificationProcess.running = true
+        dynamicSchemeProcess.running = true
+    }
+
+    function finishDynamicSchemeProgressNotificationWhenReady() {
+        if (!root.dynamicSchemeProgressNotificationProcessExited
+                || !root.dynamicSchemeProgressNotificationStdoutReady)
+            return
+        const output = String(root.dynamicSchemeProgressNotificationOutput || "").trim()
+        const parsedId = parseInt(output, 10)
+        root.dynamicSchemeProgressNotificationId = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : 0
+        root.dynamicSchemeProgressNotificationReady = true
+        root.finishPendingDynamicSchemeNotificationUpdate()
+    }
+
+    function finishPendingDynamicSchemeNotificationUpdate() {
+        if (!root.dynamicSchemeProgressNotificationReady || !root.dynamicSchemeNotificationPendingUpdate)
+            return
+        const update = root.dynamicSchemeNotificationPendingUpdate
+        root.dynamicSchemeNotificationPendingUpdate = ""
+        if (update === "success") {
+            if (!dynamicSchemeSuccessNotificationProcess.running)
+                dynamicSchemeSuccessNotificationProcess.running = true
+        } else if (update === "error") {
+            if (!dynamicSchemeNotificationProcess.running)
+                dynamicSchemeNotificationProcess.running = true
+        }
+    }
+
+    function queueDynamicSchemeNotificationUpdate(update) {
+        root.dynamicSchemeNotificationPendingUpdate = String(update || "")
+        // Errors raised before generation starts (for example, when no wallpaper
+        // exists for the selected monitor) do not have a progress notification
+        // to wait for, so they are sent immediately as ordinary notifications.
+        if (!root.dynamicSchemeBusy && !dynamicSchemeProgressNotificationProcess.running
+                && !root.dynamicSchemeProgressNotificationStdoutReady
+                && !root.dynamicSchemeProgressNotificationProcessExited)
+            root.dynamicSchemeProgressNotificationReady = true
+        root.finishPendingDynamicSchemeNotificationUpdate()
+    }
+
+    function reportDynamicSchemeError(message) {
+        const detail = String(message || "Неизвестная ошибка Matugen.")
+            .replace(/[\u0000-\u001f\u007f]+/g, " ")
+            .replace(/\s+/g, " ").trim().slice(0, 360)
+        root.dynamicSchemeError = detail || "Неизвестная ошибка Matugen."
+        root.dynamicSchemeNotificationBody = root.dynamicSchemePendingVariant + " · " + root.dynamicSchemeError
+        root.dynamicSchemeNotificationCopyPayload = root.dynamicSchemeNotificationBody
+        root.dynamicSchemeRevision += 1
+        root.queueDynamicSchemeNotificationUpdate("error")
+    }
+
+    function selectDynamicSchemeVariant(variant) {
+        const selectedVariant = LauncherSchemeVariantPicker.normalizeVariant(variant)
+        if (!selectedVariant) return
+        root.dynamicSchemePendingVariant = selectedVariant
+        // Even when the variant is already active, regenerate it from the
+        // selected monitor: each output has its own wallpaper history.
+        const source = LauncherDynamicScheme.latestWallpaperForScreen(root.wallpaperPickerData, root.wallpaperSelectedScreenName)
+        if (!source) {
+            root.reportDynamicSchemeError("Сначала установите обои через >wallpaper на выбранном мониторе. Вариант пока не изменён.")
+            return
+        }
+        root.generateDynamicScheme(source.path, source.screenName, selectedVariant)
+    }
+
+    function finishDynamicSchemeWhenReady() {
+        if (root.dynamicSchemeBusy && root.dynamicSchemeProcessExited
+                && root.dynamicSchemeStdoutReady && root.dynamicSchemeStderrReady)
+            root.finishDynamicScheme(root.dynamicSchemeExitCode)
+    }
+
+    function finishDynamicScheme(exitCode) {
+        if (!root.dynamicSchemeBusy)
+            return
+        root.dynamicSchemeBusy = false
+        if (Number(exitCode) !== 0) {
+            const detail = String(root.dynamicSchemeStderr || "").trim()
+            root.reportDynamicSchemeError(detail.indexOf("MATUGEN_NOT_FOUND") >= 0
+                ? "Не найден Matugen. Установите его отдельно, чтобы использовать динамические темы."
+                : (detail !== "" ? detail : "Matugen завершился с кодом " + String(exitCode) + "."))
+            return
+        }
+
+        const generated = LauncherDynamicScheme.buildPaletteFromMatugen(
+            root.dynamicSchemeStdout,
+            Settings.currentThemeColors(),
+            Settings.colorNames
+        )
+        if (!generated.ok) {
+            root.reportDynamicSchemeError(String(generated.error || "Matugen не вернул корректную палитру."))
+            return
+        }
+
+        const previousVariant = LauncherSchemeVariantPicker.normalizeVariant(Config.launcherDynamicSchemeVariant)
+        Config.launcherDynamicSchemeVariant = root.dynamicSchemePendingVariant
+        if (!Settings.applyGeneratedTheme(LauncherDynamicScheme.GENERATED_THEME_NAME, generated.palette)) {
+            Config.launcherDynamicSchemeVariant = previousVariant || LauncherSchemeVariantPicker.DEFAULT_VARIANT
+            root.reportDynamicSchemeError("Не удалось сохранить динамическую тему. Проверьте цветовую палитру.")
+            return
+        }
+        root.dynamicSchemeApplied = true
+        root.dynamicSchemeError = ""
+        root.dynamicSchemeNotificationBody = LauncherDynamicScheme.GENERATED_THEME_NAME
+            + " · " + root.dynamicSchemeVariantLabel(root.dynamicSchemePendingVariant)
+        root.dynamicSchemeRevision += 1
+        root.queueDynamicSchemeNotificationUpdate("success")
+        root.hideLauncher()
+    }
+
+    function setWallpaperScope(scope) {
+        const value = String(scope || "all")
+        searchField.text = value === "favorites" ? ">wallpaper favorites"
+            : (value === "recent" ? ">wallpaper recent" : ">wallpaper")
+        searchField.cursorPosition = searchField.text.length
+        searchField.forceActiveFocus()
+    }
+
+    function recordWallpaperPickerMutation(type, path, screenName, timestamp) {
+        root.wallpaperPickerGeneration += 1
+        if (!root.wallpaperPickerLoadPending)
+            return
+        const mutations = Array.isArray(root.wallpaperPickerPendingMutations)
+            ? root.wallpaperPickerPendingMutations.slice() : []
+        mutations.push({
+            type: String(type),
+            path: String(path === undefined || path === null ? "" : path),
+            screenName: String(screenName === undefined || screenName === null ? "" : screenName),
+            timestamp: Number(timestamp) || 0
+        })
+        root.wallpaperPickerPendingMutations = mutations
+    }
+
+    function acceptWallpaperPickerData(output) {
+        const text = String(output ?? "")
+        const marker = "\n__LAUNCHER_WALLPAPER_DATA_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0)
+            return
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration)
+                || requestGeneration !== root.wallpaperPickerPendingGeneration
+                || !root.wallpaperPickerLoadPending)
+            return
+        const diskData = LauncherWallpaperPicker.parseData(text.slice(0, markerIndex))
+        const mutations = Array.isArray(root.wallpaperPickerPendingMutations)
+            ? root.wallpaperPickerPendingMutations.slice() : []
+        const mergedData = LauncherWallpaperPicker.applyMutations(diskData, mutations)
+        const shouldPersist = mutations.length > 0 || root.wallpaperPickerPersistAfterLoad
+        root.wallpaperPickerData = mergedData
+        root.wallpaperPickerLoadPending = false
+        root.wallpaperPickerPendingMutations = []
+        root.wallpaperPickerPersistAfterLoad = false
+        if (shouldPersist)
+            root.persistWallpaperPickerData()
+    }
+
+    function loadWallpaperPickerDataFromDisk() {
+        if (wallpaperPickerReadProcess.running)
+            wallpaperPickerReadProcess.running = false
+        root.wallpaperPickerGeneration += 1
+        root.wallpaperPickerPendingGeneration = root.wallpaperPickerGeneration
+        root.wallpaperPickerLoadPending = true
+        root.wallpaperPickerPendingMutations = []
+        wallpaperPickerReadProcess.running = true
+    }
+
+    function startWallpaperPickerWrite(payload) {
+        root.wallpaperPickerWriteActivePayload = String(payload ?? "")
+        root.wallpaperPickerWriteSequence += 1
+        wallpaperPickerWriteProcess.running = true
+    }
+
+    function finishWallpaperPickerWrite(exitCode) {
+        if (exitCode !== 0)
+            console.warn("Launcher: failed to persist Wallpaper picker data (exit code", exitCode, ")")
+        if (!root.wallpaperPickerWriteHasQueuedPayload)
+            return
+        const latestPayload = root.wallpaperPickerWriteQueuedPayload
+        root.wallpaperPickerWriteQueuedPayload = ""
+        root.wallpaperPickerWriteHasQueuedPayload = false
+        root.startWallpaperPickerWrite(latestPayload)
+    }
+
+    function persistWallpaperPickerData() {
+        if (root.wallpaperPickerLoadPending) {
+            root.wallpaperPickerPersistAfterLoad = true
+            return
+        }
+        const data = LauncherWallpaperPicker.serializeData(root.wallpaperPickerData)
+        if (wallpaperPickerWriteProcess.running) {
+            root.wallpaperPickerWriteQueuedPayload = data
+            root.wallpaperPickerWriteHasQueuedPayload = true
+            return
+        }
+        root.wallpaperPickerWriteQueuedPayload = ""
+        root.wallpaperPickerWriteHasQueuedPayload = false
+        root.startWallpaperPickerWrite(data)
+    }
+
+    function toggleWallpaperFavorite(path) {
+        const value = String(path === undefined || path === null ? "" : path).trim()
+        if (!value)
+            return
+        root.recordWallpaperPickerMutation("toggleFavorite", value, "", 0)
+        root.wallpaperPickerData = LauncherWallpaperPicker.toggleFavorite(root.wallpaperPickerData, value)
+        root.persistWallpaperPickerData()
+    }
+
+    function rememberWallpaperUsage(path, screenName) {
+        const value = String(path === undefined || path === null ? "" : path).trim()
+        const screen = String(screenName === undefined || screenName === null ? "" : screenName).trim()
+        if (!value || !screen)
+            return
+        const timestamp = Date.now()
+        root.recordWallpaperPickerMutation("recordUsage", value, screen, timestamp)
+        root.wallpaperPickerData = LauncherWallpaperPicker.recordUsage(root.wallpaperPickerData, value, screen, timestamp)
+        root.persistWallpaperPickerData()
+    }
+
+    property var appsUnifiedResults: {
+        // Keep launcher results reactive to wallpaper preference/catalog changes
+        // as well as screen selection while the Wallpaper picker is open.
+        const wallpaperData = root.wallpaperPickerData
+        const wallpaperEntries = root.wallpaperCatalogEntries
+        const wallpaperScreen = root.wallpaperSelectedScreenName
+        const wallpaperScope = root.activeWallpaperQuery.scope
+        const dynamicSchemeState = root.dynamicSchemeRevision
+        const dynamicSchemeScreen = root.wallpaperSelectedScreenName
+        const dynamicSchemeVariant = Config.launcherDynamicSchemeVariant
+        return root.buildAppsUnifiedResults(
+            appModel.applications, root.fuzzyCustomActionsEnabled, appModel.availableCategories,
+            root.fuzzySchemeSearchEnabled, root.fuzzyWallpaperSearchEnabled
+        )
+    }
+
+    // The `>` prefix exposes a compact command palette without adding another
+    // launcher tab. Built-ins navigate to existing modes; custom entries run
+    // only their explicitly saved command, never the raw search text.
+    function launcherActionAliases(mode) {
+        switch (mode) {
+        case root.modeApps: return ["apps", "applications", "приложения"]
+        case root.modeRun: return ["run", "command", "commands", "команда", "команды", "запуск"]
+        case root.modeWindows: return ["windows", "window", "окна"]
+        case root.modeClipboard: return ["clipboard", "clip", "буфер", "буфер обмена"]
+        case root.modePower: return ["power", "session", "питание", "выключение"]
+        case root.modeNetwork: return ["network", "networks", "wifi", "сеть", "сети"]
+        case root.modeNix: return ["packages", "package", "nix", "пакеты"]
+        case root.modePass: return ["pass", "password", "passwords", "пароли"]
+        case root.modeProjects: return ["projects", "project", "проекты"]
+        case root.modeCalculator: return ["calculator", "calc", "калькулятор"]
+        default: return []
+        }
+    }
+
+    readonly property bool fuzzyCustomActionsEnabled: Config.launcherFuzzySearchActions !== false
+    readonly property bool fuzzySchemeSearchEnabled: Config.launcherFuzzySearchSchemes !== false
+    readonly property bool fuzzyWallpaperSearchEnabled: Config.launcherFuzzySearchWallpapers !== false
+
+    function buildCustomActionResults(query, orderOffset, includeEmptyQuery, fuzzyEnabled) {
+        return LauncherCustomActions.buildResults(
+            Config.launcherCustomActions,
+            query,
+            function(searchText, normalizedQuery) {
+                return LauncherSearchScoring.fuzzyScore(
+                    searchText, normalizedQuery, fuzzyEnabled !== false
+                )
+            },
+            orderOffset,
+            includeEmptyQuery
+        )
+    }
+
+    function buildLauncherActionResults(query, fuzzyActionsEnabled, fuzzySchemesEnabled, fuzzyWallpapersEnabled) {
+        const normalizedQuery = root.normalizeRunText(query)
+        const fuzzySchemes = fuzzySchemesEnabled !== false
+        const fuzzyWallpapers = fuzzyWallpapersEnabled !== false
+        const variantQuery = LauncherSchemeVariantPicker.parseQuery(normalizedQuery)
+        if (variantQuery.active) {
+            if (root.dynamicSchemeBusy)
+                return []
+            return LauncherSchemeVariantPicker.buildResults(
+                variantQuery.query,
+                Config.launcherDynamicSchemeVariant,
+                function(searchText, normalizedSearch) {
+                    return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzySchemes)
+                },
+                100
+            )
+        }
+
+        const dynamicSchemeQuery = LauncherDynamicScheme.parseQuery(normalizedQuery)
+        if (dynamicSchemeQuery.active) {
+            return LauncherDynamicScheme.buildResults(
+                root.wallpaperPickerData,
+                root.wallpaperSelectedScreenName,
+                root.dynamicSchemeBusy,
+                root.dynamicSchemeError,
+                dynamicSchemeQuery.query,
+                function(searchText, normalizedSearch) {
+                    return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzySchemes)
+                }
+            )
+        }
+
+        const schemeQuery = LauncherSchemePicker.parseQuery(normalizedQuery)
+        if (schemeQuery.active) {
+            const schemeResults = LauncherSchemePicker.buildResults(
+                schemeQuery.query,
+                Settings.themeNames,
+                Settings.activeTheme,
+                function(name) { return Settings.themePreview(name) },
+                function(name) { return Settings.themeDescription(name) },
+                function(searchText, normalizedSearch) {
+                    return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzySchemes)
+                },
+                200
+            )
+            const dynamicScore = schemeQuery.query === "" ? 0
+                : LauncherSearchScoring.fuzzyScore("dynamic wallpaper wallpaper-derived material palette обои динамическая динамика палитра из обоев", schemeQuery.query, fuzzySchemes)
+            if (dynamicScore >= 0) {
+                schemeResults.push({
+                    kind: "dynamicSchemeAction",
+                    name: "Wallpaper Dynamic",
+                    description: "Создать палитру из последних обоев выбранного монитора · >scheme dynamic",
+                    score: dynamicScore,
+                    order: 100000
+                })
+            }
+            return schemeResults
+        }
+        const wallpaperQuery = LauncherWallpaperPicker.parseQuery(normalizedQuery)
+        if (wallpaperQuery.active) {
+            return LauncherWallpaperPicker.buildResults(
+                wallpaperQuery.query,
+                root.wallpaperCatalogEntries,
+                function(searchText, normalizedSearch) {
+                    return LauncherSearchScoring.fuzzyScore(searchText, normalizedSearch, fuzzyWallpapers)
+                },
+                200,
+                root.wallpaperPickerData,
+                wallpaperQuery.scope,
+                root.wallpaperSelectedScreenName
+            )
+        }
+        const emojiQuery = LauncherEmojiPicker.parseQuery(normalizedQuery)
+        if (emojiQuery.active) {
+            return LauncherEmojiPicker.buildResults(
+                emojiQuery.query,
+                function(searchText, normalizedSearch) {
+                    return root.runFuzzyScore(searchText, normalizedSearch)
+                },
+                200,
+                root.emojiPickerData,
+                emojiQuery.scope
+            )
+        }
+
         const results = []
-        const applications = appModel.applications || []
+        const schemeActionScore = normalizedQuery === ""
+            ? 0
+            : root.runFuzzyScore("scheme schemes theme themes color-scheme colour-scheme palette colors цвета тема темы палитра оформление", normalizedQuery)
+        if (schemeActionScore >= 0) {
+            results.push({
+                kind: "schemePickerAction",
+                name: "Color schemes",
+                icon: "󰏘",
+                description: "Предпросмотр и выбор цветовой темы · >scheme",
+                score: schemeActionScore,
+                order: -3
+            })
+        }
+        const variantActionScore = normalizedQuery === ""
+            ? 0
+            : root.runFuzzyScore("variant variants scheme-variant scheme-variants material you type style варианты вариант стиль стили тип палитры", normalizedQuery)
+        if (variantActionScore >= 0) {
+            results.push({
+                kind: "schemeVariantPickerAction",
+                name: "Scheme variants",
+                icon: "󰏘",
+                description: "Выбор алгоритма Material You для Wallpaper Dynamic · >scheme variants",
+                score: variantActionScore,
+                order: -2
+            })
+        }
+        const wallpaperActionScore = normalizedQuery === ""
+            ? 0
+            : root.runFuzzyScore("wallpaper wallpapers обои фон", normalizedQuery)
+        if (wallpaperActionScore >= 0) {
+            results.push({
+                kind: "wallpaperPickerAction",
+                name: "Wallpaper picker",
+                icon: "󰸉",
+                description: "Просмотр и установка обоев · >wallpaper",
+                score: wallpaperActionScore,
+                order: -1
+            })
+        }
+        const emojiActionScore = normalizedQuery === ""
+            ? 0
+            : root.runFuzzyScore("emoji picker emoticons смайлы эмодзи", normalizedQuery)
+        if (emojiActionScore >= 0) {
+            results.push({
+                kind: "emojiPickerAction",
+                name: "Emoji picker",
+                icon: "😀",
+                description: "Поиск и копирование эмодзи · >emoji",
+                score: emojiActionScore,
+                order: 0
+            })
+        }
+
+        const tabs = root.displayedModeTabs
+        for (let i = 0; i < tabs.length; ++i) {
+            const tab = tabs[i]
+            const aliases = root.launcherActionAliases(tab.mode)
+            const searchTerms = [tab.label].concat(aliases)
+            let score = normalizedQuery === "" ? 0 : -1
+            for (let j = 0; j < searchTerms.length; ++j) {
+                score = Math.max(score, normalizedQuery === "" ? 0 : root.runFuzzyScore(searchTerms[j], normalizedQuery))
+            }
+            if (score < 0) continue
+            results.push({
+                kind: "action",
+                actionId: tab.id,
+                targetMode: tab.mode,
+                name: tab.label,
+                icon: tab.icon,
+                description: "Открыть раздел лаунчера",
+                score: score,
+                order: i
+            })
+        }
+
+        // Explicit saved records are searchable both here and in ordinary Apps search.
+        // The query selects a registered record; raw search text is never executed.
+        const customResults = root.buildCustomActionResults(
+            normalizedQuery, tabs.length, true, fuzzyActionsEnabled
+        )
+        for (let i = 0; i < customResults.length; ++i)
+            results.push(customResults[i])
+
+        results.sort(function(a, b) {
+            if (b.score !== a.score) return b.score - a.score
+            return a.order - b.order
+        })
+        return results
+    }
+
+    function russianApplicationCount(value) {
+        const count = Math.max(0, Math.floor(Number(value) || 0))
+        const tail = count % 100
+        const last = count % 10
+        let noun = "приложений"
+        if (tail < 11 || tail > 14) {
+            if (last === 1) noun = "приложение"
+            else if (last >= 2 && last <= 4) noun = "приложения"
+        }
+        return count + " " + noun
+    }
+
+    function appsResultName(itemData, entry) {
+        if (!itemData) return String(entry && entry.name || "")
+        switch (String(itemData.kind || "")) {
+        case "appCategory": return String(itemData.categoryLabel || itemData.category || "")
+        case "emoji": return String(itemData.name || "")
+        case "emojiPickerAction": return String(itemData.name || "Emoji picker")
+        case "schemePickerAction": return String(itemData.name || "Color schemes")
+        case "schemeVariantPickerAction": return String(itemData.name || "Scheme variants")
+        case "schemeVariant": return String(itemData.name || "")
+        case "scheme": return String(itemData.name || "")
+        case "dynamicSchemeAction": return String(itemData.name || "Wallpaper Dynamic")
+        case "dynamicSchemeGenerate": return String(itemData.name || "Create wallpaper theme")
+        case "dynamicSchemeUnavailable": return String(itemData.name || "Wallpaper unavailable")
+        case "dynamicSchemeError": return String(itemData.name || "Dynamic theme error")
+        case "dynamicSchemeWallpaperAction": return String(itemData.name || "Open wallpaper picker")
+        case "wallpaperPickerAction": return String(itemData.name || "Wallpaper picker")
+        case "wallpaper": return String(itemData.name || "")
+        case "action":
+        case "customAction": return String(itemData.name || "")
+        case "project": return String(itemData.project && itemData.project.name || "")
+        case "run": return String(itemData.command || "")
+        case "calculator": return String(itemData.expression || "") + " = " + String(itemData.result || "")
+        default: return String(entry && entry.name || "")
+        }
+    }
+
+    function appsResultSubtitle(itemData, entry) {
+        if (!itemData)
+            return String(entry && (entry.genericName || entry.comment) || "")
+        switch (String(itemData.kind || "")) {
+        case "appCategory":
+            return root.russianApplicationCount(itemData.count) + " · нажмите Enter, чтобы открыть категорию"
+        case "action":
+            return "ДЕЙСТВИЕ · " + String(itemData.description || "")
+        case "customAction":
+            return "КОМАНДА · " + (String(itemData.description || "").trim() !== ""
+                ? String(itemData.description) + " · " + String(itemData.command || "")
+                : String(itemData.command || ""))
+        case "project":
+            return "ПРОЕКТ · " + String(itemData.project && itemData.project.path || "")
+        case "run":
+            return "КОМАНДА · сохранённая"
+        case "calculator":
+            return "КАЛЬКУЛЯТОР · нажмите Enter, чтобы скопировать"
+        case "emoji":
+            if (itemData.isFavorite)
+                return "Избранное · " + String(itemData.category || "Эмодзи") + " · звезда справа — убрать"
+            if (Number(itemData.usageCount) > 0)
+                return "Использовано: " + String(itemData.usageCount) + " · " + String(itemData.category || "Эмодзи") + " · звезда справа — в избранное"
+            return String(itemData.category || "Эмодзи") + " · Enter или клик — скопировать · звезда справа — в избранное"
+        case "emojiPickerAction":
+            return "Встроенный каталог эмодзи · >emoji"
+        case "schemePickerAction":
+            return "Встроенные и пользовательские темы · >scheme"
+        case "schemeVariantPickerAction":
+            return "Алгоритмы Material You для динамической темы · >scheme variants"
+        case "schemeVariant":
+            return itemData.isActive ? "Текущий вариант · " + String(itemData.description || "") : "Применить к последним обоям выбранного монитора · " + String(itemData.description || "")
+        case "dynamicSchemeAction":
+            return "Палитра из последних обоев на выбранном мониторе · Matugen · >scheme dynamic"
+        case "dynamicSchemeGenerate":
+            return String(itemData.description || "Создать динамическую палитру из выбранных обоев")
+        case "dynamicSchemeUnavailable":
+        case "dynamicSchemeError":
+        case "dynamicSchemeWallpaperAction":
+            return String(itemData.description || "")
+        case "scheme":
+            return itemData.isActive
+                ? "Текущая тема · " + String(itemData.description || "")
+                : "Выбрать цветовую тему · " + String(itemData.description || "")
+        case "wallpaperPickerAction":
+            return "Карусель локальных изображений · >wallpaper"
+        case "wallpaper": {
+            const labels = []
+            if (itemData.isFavorite) labels.push("★ Избранное")
+            if (Number(itemData.usageCount) > 0)
+                labels.push("На " + String(itemData.recentScreenName || "этом экране") + ": " + String(itemData.usageCount) + " раз")
+            labels.push("Enter или клик — установить")
+            return labels.join(" · ")
+        }
+        default:
+            return String(entry && (entry.genericName || entry.comment) || "")
+        }
+    }
+
+    function buildAppsUnifiedResults(applicationEntries, fuzzyActionsEnabled, availableCategories, fuzzySchemesEnabled, fuzzyWallpapersEnabled) {
+        const rawQuery = root.normalizeRunText(searchField.text)
+        if (rawQuery.startsWith(">"))
+            return root.buildLauncherActionResults(
+                rawQuery.slice(1).trim(), fuzzyActionsEnabled, fuzzySchemesEnabled, fuzzyWallpapersEnabled
+            )
+
+        const query = rawQuery
+        const results = []
+        const applications = applicationEntries || []
+
+        // A bare `@c` opens a category browser. Selecting a category converts
+        // it into the existing metadata search (`@c Category`), so app search
+        // keeps using the same matching, favorite and hidden-app rules.
+        if (appModel.specialSearch && appModel.specialSearch.code === "c"
+                && appModel.specialSearch.query === "") {
+            const categories = Array.isArray(availableCategories) ? availableCategories : []
+            return categories.map(function(category, index) {
+                return {
+                    kind: "appCategory",
+                    category: String(category.name || ""),
+                    categoryLabel: String(category.label || category.name || ""),
+                    count: Math.max(0, Number(category.count) || 0),
+                    order: index
+                }
+            })
+        }
 
         // AppModel returns ranked wrappers ({ entry, score/rank }). Keep its
         // actual DesktopEntry object for activation and preserve its rank.
@@ -985,6 +2057,11 @@ PanelWindow {
                 order: i
             })
         }
+
+        // Special @ selectors are deliberately app-only. Do not mix in
+        // calculator, project, saved-command or user-action cross-search hits.
+        if (appModel.specialSearch)
+            return results
 
         if (query === "")
             return results
@@ -1052,11 +2129,19 @@ PanelWindow {
             for (let i = 0; i < matches.length; ++i) results.push(matches[i])
         }
 
+        // Named user actions also participate in ordinary Apps search, so users
+        // can find saved aliases without remembering the > command-palette prefix.
+        const customActionResults = root.buildCustomActionResults(
+            query, results.length, false, fuzzyActionsEnabled
+        )
+        for (let i = 0; i < customActionResults.length; ++i)
+            results.push(customActionResults[i])
+
         if (query !== "") {
             // Rank all result types together. AppModel's relative order is
             // preserved for equal-ranked app entries; a project/command can
             // only rise above an app when its own match is more relevant.
-            const kindRank = { calculator: 0, app: 1, project: 2, run: 3 }
+            const kindRank = { calculator: 0, app: 1, customAction: 2, project: 3, run: 4 }
             results.sort(function(a, b) {
                 if (b.score !== a.score) return b.score - a.score
                 if (a.kind === "app" && b.kind === "app") return a.order - b.order
@@ -1069,6 +2154,85 @@ PanelWindow {
 
     function activateAppsSearchResult(result) {
         if (!result) return
+        if (result.kind === "appCategory") {
+            const category = String(result.category || "").trim()
+            if (!category) return
+            searchField.text = "@c " + category
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "emojiPickerAction") {
+            searchField.text = ">emoji"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "schemePickerAction") {
+            searchField.text = ">scheme"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "schemeVariantPickerAction") {
+            root.dynamicSchemeError = ""
+            searchField.text = ">scheme variants"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "schemeVariant") {
+            root.selectDynamicSchemeVariant(result.variant)
+            return
+        }
+        if (result.kind === "dynamicSchemeAction") {
+            root.dynamicSchemeError = ""
+            searchField.text = ">scheme dynamic"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "dynamicSchemeGenerate") {
+            root.generateDynamicScheme(result.path, result.screenName)
+            return
+        }
+        if (result.kind === "dynamicSchemeWallpaperAction") {
+            searchField.text = ">wallpaper"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "scheme") {
+            const selectedName = String(result.name || "")
+            if (!selectedName || !Array.isArray(Settings.themeNames)
+                    || Settings.themeNames.indexOf(selectedName) < 0)
+                return
+            if (selectedName !== String(Settings.activeTheme || ""))
+                Settings.applyTheme(selectedName)
+            root.hideLauncher()
+            return
+        }
+        if (result.kind === "wallpaperPickerAction") {
+            root.wallpaperApplyError = ""
+            searchField.text = ">wallpaper"
+            searchField.cursorPosition = searchField.text.length
+            searchField.forceActiveFocus()
+            return
+        }
+        if (result.kind === "wallpaper") {
+            root.applyWallpaper(result.path)
+            return
+        }
+        if (result.kind === "action") {
+            searchField.text = ""
+            root.setMode(result.targetMode)
+            Qt.callLater(root.restoreLauncherKeyboardFocus)
+            return
+        }
+        if (result.kind === "customAction") {
+            root.runCommand(result.command)
+            return
+        }
         if (result.kind === "app") {
             root.launchEntry(result.entry)
             return
@@ -1081,16 +2245,404 @@ PanelWindow {
             root.runCommand(result.command)
             return
         }
-        if (result.kind === "calculator")
-            root.copyCalculatorResult(result.result)
+        if (result.kind === "calculator") {
+            root.copyCalculatorResult(result.result, result.expression)
+            return
+        }
+        if (result.kind === "emoji")
+            root.copyLauncherEmoji(result.emoji)
+    }
+
+    Process {
+        id: wallpaperCatalogProcess
+        command: [
+            Quickshell.shellDir + "/scripts/launcher_wallpapers",
+            root.wallpaperCatalogRequestedDirectory,
+            String(root.wallpaperCatalogPendingGeneration)
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: root.acceptWallpaperCatalog(this.text)
+        }
+        onExited: function(exitCode) {
+            if (exitCode !== 0 && root.wallpaperCatalogLoading) {
+                root.wallpaperCatalogError = "catalog-process-failed"
+                root.wallpaperCatalogLoading = false
+                root.wallpaperCatalogLoaded = true
+            }
+        }
+    }
+
+    Process {
+        id: wallpaperPickerReadProcess
+        command: [
+            "sh",
+            "-c",
+            "cat -- \"$1\" 2>/dev/null; printf '\\n__LAUNCHER_WALLPAPER_DATA_REQUEST__%s\\n' \"$2\"",
+            "launcher-wallpaper-data-read",
+            root.wallpaperPickerFile,
+            String(root.wallpaperPickerPendingGeneration)
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: root.acceptWallpaperPickerData(this.text)
+        }
+    }
+
+    Process {
+        id: wallpaperPickerWriteProcess
+        command: [
+            "sh",
+            "-c",
+            "mkdir -p \"$HOME/.cache\" && tmp=\"$1.tmp.$$.$3\" && printf '%s\\n' \"$2\" > \"$tmp\" && mv \"$tmp\" \"$1\"",
+            "launcher-wallpaper-data-write",
+            root.wallpaperPickerFile,
+            root.wallpaperPickerWriteActivePayload,
+            String(root.wallpaperPickerWriteSequence)
+        ]
+        onExited: function(exitCode) {
+            root.finishWallpaperPickerWrite(exitCode)
+        }
+    }
+
+    Process {
+        id: wallpaperApplyProcess
+        command: [
+            Quickshell.shellDir + "/scripts/set_wallpaper",
+            root.wallpaperApplyPendingPath,
+            root.wallpaperApplyPendingScreenName,
+            String(root.wallpaperApplyPendingScreenIndex)
+        ]
+        stderr: StdioCollector {
+            onStreamFinished: {
+                const message = String(this.text || "").trim()
+                if (message !== "") root.wallpaperApplyError = message
+            }
+        }
+        onExited: function(exitCode) {
+            if (exitCode === 0) {
+                root.wallpaperApplyError = ""
+                root.rememberWallpaperUsage(root.wallpaperApplyPendingPath, root.wallpaperApplyPendingScreenName)
+                root.hideLauncher()
+            } else if (root.wallpaperApplyError === "") {
+                root.wallpaperApplyError = "Не удалось установить обои. Проверьте backend и системные сообщения."
+            }
+        }
+    }
+
+    Process {
+        id: dynamicSchemeProcess
+        command: [
+            Quickshell.shellDir + "/scripts/launcher_dynamic_scheme",
+            root.dynamicSchemePendingPath,
+            root.dynamicSchemePendingVariant
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.dynamicSchemeStdout = String(this.text || "")
+                root.dynamicSchemeStdoutReady = true
+                root.finishDynamicSchemeWhenReady()
+            }
+        }
+        stderr: StdioCollector {
+            onStreamFinished: {
+                root.dynamicSchemeStderr = String(this.text || "")
+                root.dynamicSchemeStderrReady = true
+                root.finishDynamicSchemeWhenReady()
+            }
+        }
+        onExited: function(exitCode) {
+            root.dynamicSchemeExitCode = Number(exitCode)
+            root.dynamicSchemeProcessExited = true
+            root.finishDynamicSchemeWhenReady()
+        }
+    }
+
+    // Progress and final states use the same freedesktop notification ID. The
+    // existing Notifications module receives every update through its usual
+    // NotificationServer, so no Launcher result row is needed.
+    Process {
+        id: dynamicSchemeProgressNotificationProcess
+        command: [
+            "notify-send",
+            "--app-name=Quickshell Widgets",
+            "--urgency=low",
+            "--expire-time=60000",
+            "--print-id",
+            "Создаётся цветовая схема…",
+            "Matugen · " + root.dynamicSchemeVariantLabel(root.dynamicSchemePendingVariant)
+                + (root.dynamicSchemePendingScreenName ? " · " + root.dynamicSchemePendingScreenName : "")
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                root.dynamicSchemeProgressNotificationOutput = String(this.text || "").trim()
+                root.dynamicSchemeProgressNotificationStdoutReady = true
+                root.finishDynamicSchemeProgressNotificationWhenReady()
+            }
+        }
+        onExited: function(exitCode) {
+            root.dynamicSchemeProgressNotificationProcessExited = true
+            root.finishDynamicSchemeProgressNotificationWhenReady()
+        }
+    }
+
+    Process {
+        id: dynamicSchemeSuccessNotificationProcess
+        command: {
+            var args = [
+                "notify-send",
+                "--app-name=Quickshell Widgets",
+                "--urgency=normal",
+                "--expire-time=5000"
+            ]
+            if (root.dynamicSchemeProgressNotificationId > 0)
+                args.push("--replace-id=" + String(root.dynamicSchemeProgressNotificationId))
+            args.push("Цветовая схема создана", root.dynamicSchemeNotificationBody)
+            return args
+        }
+    }
+
+    // Failures replace the in-progress toast and retain the existing copy action.
+    Process {
+        id: dynamicSchemeNotificationProcess
+        command: {
+            var args = [
+                "notify-send",
+                "--app-name=Quickshell Widgets",
+                "--urgency=critical",
+                "--expire-time=12000",
+                "--action=copy-error=Копировать ошибку"
+            ]
+            if (root.dynamicSchemeProgressNotificationId > 0)
+                args.push("--replace-id=" + String(root.dynamicSchemeProgressNotificationId))
+            args.push("Не удалось применить вариант Matugen", root.dynamicSchemeNotificationBody)
+            return args
+        }
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (String(this.text || "").trim() === "copy-error"
+                        && !dynamicSchemeCopyErrorProcess.running)
+                    dynamicSchemeCopyErrorProcess.running = true
+            }
+        }
+    }
+
+    Process {
+        id: dynamicSchemeCopyErrorProcess
+        command: [
+            Quickshell.shellDir + "/scripts/copy_text",
+            root.dynamicSchemeNotificationCopyPayload
+        ]
+    }
+
+    Connections {
+        target: Config
+        function onLauncherWallpaperDirectoryChanged() {
+            if (root.wallpaperPickerActive)
+                root.loadWallpaperCatalog(true)
+            else
+                root.wallpaperCatalogLoaded = false
+        }
+    }
+
+    /*
+     * EMOJI PICKER PREFERENCES AND USAGE
+     */
+
+    property var emojiPickerData: LauncherEmojiPicker.emptyData()
+    property int emojiPickerGeneration: 0
+    property int emojiPickerPendingGeneration: -1
+    property bool emojiPickerLoadPending: false
+    property var emojiPickerPendingMutations: []
+    property bool emojiPickerPersistAfterLoad: false
+    property string emojiPickerWriteActivePayload: ""
+    property string emojiPickerWriteQueuedPayload: ""
+    property bool emojiPickerWriteHasQueuedPayload: false
+    property int emojiPickerWriteSequence: 0
+    property string emojiPickerFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-emoji-data.json"
+
+    Process {
+        id: emojiPickerReadProcess
+        command: [
+            "sh",
+            "-c",
+            "cat -- \"$1\" 2>/dev/null; printf '\\n__LAUNCHER_EMOJI_DATA_REQUEST__%s\\n' \"$2\"",
+            "launcher-emoji-data-read",
+            root.emojiPickerFile,
+            String(root.emojiPickerPendingGeneration)
+        ]
+        stdout: StdioCollector {
+            onStreamFinished: root.acceptEmojiPickerData(this.text)
+        }
+    }
+
+    Process {
+        id: emojiPickerWriteProcess
+        command: [
+            "sh",
+            "-c",
+            "mkdir -p \"$HOME/.cache\" && tmp=\"$1.tmp.$$.$3\" && printf '%s\\n' \"$2\" > \"$tmp\" && mv \"$tmp\" \"$1\"",
+            "launcher-emoji-data-write",
+            root.emojiPickerFile,
+            root.emojiPickerWriteActivePayload,
+            String(root.emojiPickerWriteSequence)
+        ]
+        onExited: function(exitCode) {
+            root.finishEmojiPickerWrite(exitCode)
+        }
+    }
+
+    function recordEmojiPickerMutation(type, emoji, timestamp) {
+        root.emojiPickerGeneration += 1
+        if (!root.emojiPickerLoadPending)
+            return
+
+        const mutations = Array.isArray(root.emojiPickerPendingMutations)
+            ? root.emojiPickerPendingMutations.slice()
+            : []
+        mutations.push({
+            type: String(type),
+            emoji: String(emoji === undefined || emoji === null ? "" : emoji),
+            timestamp: Number(timestamp) || 0
+        })
+        root.emojiPickerPendingMutations = mutations
+    }
+
+    function acceptEmojiPickerData(output) {
+        const text = String(output ?? "")
+        const marker = "\n__LAUNCHER_EMOJI_DATA_REQUEST__"
+        const markerIndex = text.lastIndexOf(marker)
+        if (markerIndex < 0)
+            return
+
+        const requestGeneration = Number(text.slice(markerIndex + marker.length).trim())
+        if (!Number.isFinite(requestGeneration)
+                || requestGeneration !== root.emojiPickerPendingGeneration
+                || !root.emojiPickerLoadPending) {
+            return
+        }
+
+        const diskData = LauncherEmojiPicker.parseData(text.slice(0, markerIndex))
+        const mutations = Array.isArray(root.emojiPickerPendingMutations)
+            ? root.emojiPickerPendingMutations.slice()
+            : []
+        const mergedData = LauncherEmojiPicker.applyMutations(diskData, mutations)
+        const shouldPersistMergedData = mutations.length > 0 || root.emojiPickerPersistAfterLoad
+
+        root.emojiPickerData = mergedData
+        root.emojiPickerLoadPending = false
+        root.emojiPickerPendingMutations = []
+        root.emojiPickerPersistAfterLoad = false
+        if (shouldPersistMergedData)
+            root.persistEmojiPickerData()
+    }
+
+    function loadEmojiPickerDataFromDisk() {
+        if (emojiPickerReadProcess.running)
+            emojiPickerReadProcess.running = false
+
+        root.emojiPickerGeneration += 1
+        root.emojiPickerPendingGeneration = root.emojiPickerGeneration
+        root.emojiPickerLoadPending = true
+        root.emojiPickerPendingMutations = []
+        emojiPickerReadProcess.running = true
+    }
+
+    function startEmojiPickerWrite(payload) {
+        root.emojiPickerWriteActivePayload = String(payload ?? "")
+        root.emojiPickerWriteSequence += 1
+        emojiPickerWriteProcess.running = true
+    }
+
+    function finishEmojiPickerWrite(exitCode) {
+        if (exitCode !== 0)
+            console.warn("Launcher: failed to persist Emoji picker data (exit code", exitCode, ")")
+
+        if (!root.emojiPickerWriteHasQueuedPayload)
+            return
+
+        const latestPayload = root.emojiPickerWriteQueuedPayload
+        root.emojiPickerWriteQueuedPayload = ""
+        root.emojiPickerWriteHasQueuedPayload = false
+        root.startEmojiPickerWrite(latestPayload)
+    }
+
+    function persistEmojiPickerData() {
+        if (root.emojiPickerLoadPending) {
+            root.emojiPickerPersistAfterLoad = true
+            return
+        }
+
+        const data = LauncherEmojiPicker.serializeData(root.emojiPickerData)
+        if (emojiPickerWriteProcess.running) {
+            root.emojiPickerWriteQueuedPayload = data
+            root.emojiPickerWriteHasQueuedPayload = true
+            return
+        }
+
+        root.emojiPickerWriteQueuedPayload = ""
+        root.emojiPickerWriteHasQueuedPayload = false
+        root.startEmojiPickerWrite(data)
+    }
+
+    function toggleLauncherEmojiFavorite(value) {
+        const emoji = String(value === undefined || value === null ? "" : value)
+        if (!emoji)
+            return
+        root.recordEmojiPickerMutation("toggleFavorite", emoji, 0)
+        root.emojiPickerData = LauncherEmojiPicker.toggleFavorite(root.emojiPickerData, emoji)
+        root.persistEmojiPickerData()
+    }
+
+    function rememberLauncherEmojiUsage(value) {
+        const emoji = String(value === undefined || value === null ? "" : value)
+        if (!emoji)
+            return
+        const timestamp = Date.now()
+        root.recordEmojiPickerMutation("recordUsage", emoji, timestamp)
+        root.emojiPickerData = LauncherEmojiPicker.recordUsage(root.emojiPickerData, emoji, timestamp)
+        root.persistEmojiPickerData()
+    }
+
+    function toggleCurrentLauncherEmojiFavorite() {
+        const results = Array.isArray(root.appsUnifiedResults) ? root.appsUnifiedResults : []
+        const index = appList.currentIndex
+        if (index < 0 || index >= results.length || !results[index] || results[index].kind !== "emoji")
+            return false
+        root.toggleLauncherEmojiFavorite(results[index].emoji)
+        return true
+    }
+
+    property string emojiCopyPending: ""
+
+    function copyLauncherEmoji(value) {
+        const emoji = String(value === undefined || value === null ? "" : value)
+        if (!emoji || emojiCopyProcess.running)
+            return
+        root.emojiCopyPending = emoji
+        emojiCopyProcess.running = true
+    }
+
+    Process {
+        id: emojiCopyProcess
+        command: ["sh", "-c", "printf '%s' \"$1\" | wl-copy", "launcher-emoji-copy", root.emojiCopyPending]
+        onExited: function(exitCode) {
+            if (exitCode === 0) {
+                root.rememberLauncherEmojiUsage(root.emojiCopyPending)
+                root.hideLauncher()
+            } else {
+                console.warn("Launcher: emoji copy failed with exit code", exitCode)
+            }
+        }
     }
 
     property string calculatorCopyPending: ""
 
-    function copyCalculatorResult(value) {
+    function copyCalculatorResult(value, expression) {
         const text = String(value === undefined || value === null ? "" : value).trim()
         if (!text || calculatorCopyProcess.running)
             return
+        const acceptedExpression = String(expression === undefined || expression === null ? "" : expression).trim()
+        if (acceptedExpression !== "")
+            root.rememberCalculatorCalculation(acceptedExpression, text)
         root.calculatorCopyPending = text
         calculatorCopyProcess.running = true
         root.hideLauncher()
@@ -1229,7 +2781,7 @@ PanelWindow {
         Quickshell.execDetached([
             "sh",
             "-c",
-            "printf '%s\n' \"$1\" | cliphist decode | wl-copy",
+            "printf '%s\\n' \"$1\" | cliphist decode | wl-copy",
             "launcher-clipboard",
             item.raw
         ])
@@ -1258,7 +2810,7 @@ PanelWindow {
         Quickshell.execDetached([
             "sh",
             "-c",
-            "printf '%s\n' \"$1\" | cliphist delete",
+            "printf '%s\\n' \"$1\" | cliphist delete",
             "launcher-clipboard-delete",
             item.raw
         ])
@@ -1349,6 +2901,7 @@ PanelWindow {
         border.width: (!Settings.loaded || Settings.moduleFrames.launcher !== false)
             ? Config.frameBorderWidth : 0
         focus: root.mode === root.modePower
+        onActiveFocusChanged: root.handleLauncherKeyboardFocusChanged()
 
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function(event) {
@@ -1541,54 +3094,74 @@ PanelWindow {
                 id: modeSelector
 
                 Layout.fillWidth: true
+                spacing: 0
 
-                spacing: 6
+                Item {
+                    id: modeTabsContainer
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 32
+                    Layout.minimumHeight: 32
+                    Layout.maximumHeight: 32
 
-                Repeater {
-                    model: root.displayedModeTabs
-
-                    delegate: Rectangle {
-                        id: modeButton
-                        required property var modelData
-
+                    // This one frame glides horizontally between mode tabs.
+                    Rectangle {
+                        id: modeSelectionFrame
+                        x: Math.max(0, root.selectedModeTabIndex) * 44
+                        y: 0
                         width: 38
                         height: 32
                         radius: 8
                         color: theme.transparent
-                        border.color: root.mode === modelData.mode
-                            ? theme.borderAccent
-                            : theme.transparent
-                        border.width: root.mode === modelData.mode ? 1 : 0
+                        border.color: theme.borderAccent
+                        border.width: root.selectedModeTabIndex >= 0 ? 1 : 0
+                        visible: root.selectedModeTabIndex >= 0
+                        z: 0
 
-                        Behavior on border.color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
-                        }
-
-                        ToolTip.text: modelData.label
-                        ToolTip.visible: modeMouse.containsMouse
-                        ToolTip.delay: 450
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: modelData.icon
-                            color: root.mode === modelData.mode
-                                ? theme.textWhite
-                                : theme.modeNormalText
-                            font.family: theme.iconFontFamily
-                            font.pixelSize: 17
-                        }
-
-                        MouseArea {
-                            id: modeMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: root.setMode(modelData.mode)
+                        Behavior on x {
+                            NumberAnimation {
+                                duration: root.interactionAnimationDuration
+                                easing.type: root.interactionAnimationEasing
+                                easing.bezierCurve: root.interactionAnimationBezierCurve
+                            }
                         }
                     }
-                }
 
-                Item {
-                    Layout.fillWidth: true
+                    Repeater {
+                        model: root.displayedModeTabs
+
+                        delegate: Item {
+                            id: modeButton
+                            required property var modelData
+                            required property int index
+
+                            x: index * 44
+                            y: 0
+                            width: 38
+                            height: 32
+                            z: 1
+
+                            ToolTip.text: modelData.label
+                            ToolTip.visible: modeMouse.containsMouse
+                            ToolTip.delay: 450
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.icon
+                                color: root.mode === modeButton.modelData.mode
+                                    ? theme.textWhite
+                                    : theme.modeNormalText
+                                font.family: theme.iconFontFamily
+                                font.pixelSize: 17
+                            }
+
+                            MouseArea {
+                                id: modeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: root.setMode(modeButton.modelData.mode)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1614,12 +3187,13 @@ PanelWindow {
                 border.width: 1
 
                 Behavior on border.color {
-                    ColorAnimation { duration: Config.animationDuration(140, "appearance"); easing.type: Easing.OutCubic }
+                    ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                 }
 
 
                 TextField {
                     id: searchField
+                    onActiveFocusChanged: root.handleLauncherKeyboardFocusChanged()
 
                     anchors.fill: parent
 
@@ -1638,7 +3212,7 @@ PanelWindow {
                             return Config.launcherSearchPlaceholder
                         switch (root.mode) {
                         case root.modeApps:
-                            return "Search applications..."
+                            return "Search apps, @ filters or > actions..."
 
                         case root.modeRun:
                             return "Run command..."
@@ -1676,6 +3250,28 @@ PanelWindow {
 
                     Keys.onPressed: function(event) {
 
+                        // Ctrl+Shift+F toggles the selected emoji's favourite flag.
+                        // A normal click on the star at the row's trailing edge does the same.
+                        if (
+                            root.mode === root.modeApps &&
+                            event.key === Qt.Key_F &&
+                            (event.modifiers & Qt.ControlModifier) &&
+                            (event.modifiers & Qt.ShiftModifier) &&
+                            root.toggleCurrentLauncherEmojiFavorite()
+                        ) {
+                            event.accepted = true
+                            return
+                        }
+
+                        // Wallpaper tiles use explicit four-way navigation rather than
+                        // moving the text cursor while the picker is active.
+                        if (root.mode === root.modeApps && root.wallpaperPickerActive
+                                && (event.key === Qt.Key_Left || event.key === Qt.Key_Right)) {
+                            root.moveWallpaperSelection(event.key === Qt.Key_Left ? "left" : "right")
+                            event.accepted = true
+                            return
+                        }
+
                         // Apps: Enter/Return launches the currently selected
                         // application, matching the mouse-click activation path.
                         if (
@@ -1691,8 +3287,8 @@ PanelWindow {
                             root.mode === root.modeCalculator &&
                             (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
                         ) {
-                            if (root.calculatorResults.length > 0)
-                                root.copyCalculatorResult(root.calculatorResults[0].result)
+                            if (calculatorList.currentIndex >= 0 && calculatorList.currentIndex < root.calculatorDisplayResults.length)
+                                root.activateCalculatorItem(root.calculatorDisplayResults[calculatorList.currentIndex])
                             event.accepted = true
                             return
                         }
@@ -1980,6 +3576,12 @@ PanelWindow {
 
                     onTextChanged: {
                         root.disarmPointerHover()
+                        // The action palette is global: typing > from any tab
+                        // switches to Apps while preserving the current query.
+                        if (root.mode !== root.modeApps && root.normalizeRunText(searchField.text).startsWith(">")) {
+                            root.setMode(root.modeApps)
+                            Qt.callLater(root.restoreLauncherKeyboardFocus)
+                        }
                         if (root.mode === root.modeRun) {
                             // Rebuild the history model first. runResults is
                             // derived from it, so doing this in the opposite
@@ -2013,6 +3615,12 @@ PanelWindow {
                         if (root.mode === root.modeProjects) {
                             root.rebuildProjectsModel()
                         }
+                        const wallpaperQuery = LauncherWallpaperPicker.parseQuery(
+                            root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")
+                        )
+                        if (wallpaperQuery.active) {
+                            root.loadWallpaperCatalog(false)
+                        }
                     }
                 }
             }
@@ -2031,16 +3639,121 @@ PanelWindow {
                  * APPS
                  */
 
-                ListView {
-                    id: appList
+                RowLayout {
+                    id: wallpaperToolbar
+                    anchors.top: contentArea.top
+                    anchors.left: contentArea.left
+                    anchors.right: contentArea.right
+                    height: root.mode === root.modeApps && (root.wallpaperPickerActive || root.dynamicSchemePickerActive || root.schemeVariantPickerActive) ? 42 : 0
+                    visible: height > 0
+                    spacing: 7
 
-                    anchors.fill: parent
+                    Text {
+                        text: (root.dynamicSchemePickerActive || root.schemeVariantPickerActive) ? "Источник:" : "Монитор:"
+                        color: theme.textDim
+                        font.pixelSize: 11
+                    }
+
+                    Repeater {
+                        model: Quickshell.screens
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+                            property string outputName: LauncherWallpaperPicker.screenName(modelData, index)
+                            implicitWidth: outputLabel.implicitWidth + 22
+                            implicitHeight: 29
+                            radius: 7
+                            color: root.wallpaperSelectedScreenName === outputName ? theme.accent : theme.surfaceAlt
+                            border.color: root.wallpaperSelectedScreenName === outputName ? theme.borderAccent : theme.borderSubtle
+                            border.width: 1
+
+                            Text {
+                                id: outputLabel
+                                anchors.centerIn: parent
+                                text: parent.outputName
+                                color: root.wallpaperSelectedScreenName === parent.outputName ? theme.selectedText : theme.text
+                                font.pixelSize: 11
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.wallpaperSelectScreen(parent.modelData, parent.index)
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        implicitWidth: scopeAllLabel.implicitWidth + 18
+                        implicitHeight: 27
+                        radius: 7
+                        color: root.activeWallpaperQuery.scope === "all" ? theme.accent : theme.surfaceAlt
+                        border.color: root.activeWallpaperQuery.scope === "all" ? theme.borderAccent : theme.borderSubtle
+                        Text { id: scopeAllLabel; anchors.centerIn: parent; text: "Все"; color: root.activeWallpaperQuery.scope === "all" ? theme.selectedText : theme.text; font.pixelSize: 10 }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("all") }
+                    }
+                    Rectangle {
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        implicitWidth: scopeFavoritesLabel.implicitWidth + 18
+                        implicitHeight: 27
+                        radius: 7
+                        color: root.activeWallpaperQuery.scope === "favorites" ? theme.accent : theme.surfaceAlt
+                        border.color: root.activeWallpaperQuery.scope === "favorites" ? theme.borderAccent : theme.borderSubtle
+                        Text { id: scopeFavoritesLabel; anchors.centerIn: parent; text: "★ Избранное"; color: root.activeWallpaperQuery.scope === "favorites" ? theme.selectedText : theme.accent; font.pixelSize: 12 }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("favorites") }
+                    }
+                    Rectangle {
+                        visible: !root.dynamicSchemePickerActive && !root.schemeVariantPickerActive
+                        implicitWidth: scopeRecentLabel.implicitWidth + 18
+                        implicitHeight: 27
+                        radius: 7
+                        color: root.activeWallpaperQuery.scope === "recent" ? theme.accent : theme.surfaceAlt
+                        border.color: root.activeWallpaperQuery.scope === "recent" ? theme.borderAccent : theme.borderSubtle
+                        Text { id: scopeRecentLabel; anchors.centerIn: parent; text: "Недавние"; color: root.activeWallpaperQuery.scope === "recent" ? theme.selectedText : theme.text; font.pixelSize: 10 }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("recent") }
+                    }
+
+                    Text {
+                        text: (root.dynamicSchemePickerActive ? "Палитра из " : (root.schemeVariantPickerActive ? "Обои для " : "Для ")) + root.wallpaperSelectedScreenName
+                        color: theme.textVeryDim
+                        font.pixelSize: 10
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Text {
+                        Layout.maximumWidth: contentArea.width * 0.42
+                        visible: root.wallpaperApplyError !== ""
+                        text: root.wallpaperApplyError
+                        color: "#ff9999"
+                        font.pixelSize: 10
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                    }
+                }
+
+                GridView {
+                    id: appList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.top: wallpaperToolbar.visible ? wallpaperToolbar.bottom : parent.top
 
                     visible: root.mode === root.modeApps
 
                     clip: true
+                    flow: GridView.FlowLeftToRight
+                    cellWidth: root.wallpaperPickerActive ? width / wallpaperColumnCount : width
+                    cellHeight: root.wallpaperPickerActive ? 230 : Config.launcherItemHeight + 6
+                    keyNavigationEnabled: false
+                    keyNavigationWraps: false
 
-                    spacing: 6
+                    property int wallpaperColumnCount: Math.max(1, Math.floor((width + 12) / 192))
+                    property real wallpaperTileWidth: Math.max(1, width / wallpaperColumnCount - 12)
 
                     model: root.appsUnifiedResults
 
@@ -2050,6 +3763,7 @@ PanelWindow {
 
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
                     onContentYChanged: root.disarmPointerHover()
+                    onContentXChanged: root.disarmPointerHover()
 
                     delegate: Rectangle {
                         id: appDelegate
@@ -2058,53 +3772,42 @@ PanelWindow {
                         required property int index
                         property bool hovered: root.pointerHoveredMode === root.modeApps && root.pointerHoveredIndex === index
 
-                        scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
+                        scale: GridView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
-                        width: appList.width
-                        height: Config.launcherItemHeight
+                        width: root.wallpaperPickerActive ? appList.wallpaperTileWidth : appList.width
+                        height: root.wallpaperPickerActive ? 218 : Config.launcherItemHeight
 
                         radius: Config.launcherItemRadius
 
-                        color: ListView.isCurrentItem
+                        color: GridView.isCurrentItem
                             ? theme.itemSelected
                             : (hovered ? theme.itemHover : theme.item)
 
-                        border.color: ListView.isCurrentItem
+                        border.color: GridView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         property var itemData: modelData
                         property var entry: itemData && itemData.kind === "app" ? itemData.entry : null
-                        property string displayName: itemData && itemData.kind === "project"
-                            ? String(itemData.project.name || "")
-                            : (itemData && itemData.kind === "run"
-                                ? String(itemData.command || "")
-                                : (itemData && itemData.kind === "calculator"
-                                    ? String(itemData.expression || "") + " = " + String(itemData.result || "")
-                                    : String(entry && entry.name || "")))
-                        property string displaySubtitle: itemData && itemData.kind === "project"
-                            ? ("ПРОЕКТ · " + String(itemData.project.path || ""))
-                            : (itemData && itemData.kind === "run"
-                                ? "КОМАНДА · сохранённая"
-                                : (itemData && itemData.kind === "calculator"
-                                    ? "КАЛЬКУЛЯТОР · нажмите Enter, чтобы скопировать"
-                                    : String(entry && (entry.genericName || entry.comment) || "")))
+                        property string displayName: root.appsResultName(itemData, entry)
+                        property string displaySubtitle: root.appsResultSubtitle(itemData, entry)
 
                         RowLayout {
                             anchors.fill: parent
+                            visible: !(appDelegate.itemData && appDelegate.itemData.kind === "wallpaper")
 
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
@@ -2118,14 +3821,14 @@ PanelWindow {
 
                                 radius: 10
 
-                                color: ListView.isCurrentItem
+                                color: GridView.isCurrentItem
                                     ? theme.accent
                                     : (appDelegate.hovered
                                         ? theme.surfaceAlt
                                         : theme.surface)
 
                                 Behavior on color {
-                                    ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                                    ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                                 }
 
                                 Image {
@@ -2165,7 +3868,7 @@ PanelWindow {
                                         && appDelegate.itemData.kind === "project"
                                         && String(appDelegate.itemData.project && appDelegate.itemData.project.icon || "") === ""
 
-                                    property color glyphColor: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+                                    property color glyphColor: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
 
                                     Rectangle {
                                         x: 2
@@ -2189,7 +3892,7 @@ PanelWindow {
                                         width: 17
                                         height: 9
                                         radius: 2
-                                        color: ListView.isCurrentItem ? theme.accent : theme.surface
+                                        color: GridView.isCurrentItem ? theme.accent : theme.surface
                                     }
                                 }
 
@@ -2203,7 +3906,7 @@ PanelWindow {
                                         && appDelegate.itemData.kind === "project"
                                         && String(appDelegate.itemData.project && appDelegate.itemData.project.icon || "") !== ""
                                     text: String(appDelegate.itemData && appDelegate.itemData.project && appDelegate.itemData.project.icon || "")
-                                    color: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 22
                                 }
@@ -2219,7 +3922,7 @@ PanelWindow {
                                         && appDelegate.itemData
                                         && appDelegate.itemData.kind === "run"
 
-                                    property color glyphColor: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+                                    property color glyphColor: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
 
                                     Rectangle {
                                         anchors.fill: parent
@@ -2242,9 +3945,58 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     visible: !appIconImage.visible
                                         && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "emojiPickerAction"
+                                    text: "😀"
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
+                                    font.pixelSize: 25
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && (appDelegate.itemData.kind === "schemePickerAction"
+                                            || appDelegate.itemData.kind === "schemeVariantPickerAction"
+                                            || appDelegate.itemData.kind === "schemeVariant"
+                                            || appDelegate.itemData.kind === "scheme"
+                                            || appDelegate.itemData.kind === "dynamicSchemeAction"
+                                            || appDelegate.itemData.kind === "dynamicSchemeGenerate"
+                                            || appDelegate.itemData.kind === "dynamicSchemeUnavailable"
+                                            || appDelegate.itemData.kind === "dynamicSchemeError"
+                                            || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
+                                    text: "󰏘"
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.accent
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 23
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "emoji"
+                                    text: String(appDelegate.itemData.emoji || "")
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
+                                    font.pixelSize: 25
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && appDelegate.itemData.kind === "appCategory"
+                                    text: "▦"
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.accent
+                                    font.pixelSize: 22
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
                                         && appDelegate.itemData.kind === "app"
                                     text: "󰀻"
-                                    color: ListView.isCurrentItem ? theme.selectedText : theme.textMuted
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 22
                                 }
@@ -2255,7 +4007,20 @@ PanelWindow {
                                         && appDelegate.itemData
                                         && appDelegate.itemData.kind === "calculator"
                                     text: "󰃬"
-                                    color: ListView.isCurrentItem ? theme.selectedText : theme.accent
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.accent
+                                    font.family: theme.iconFontFamily
+                                    font.pixelSize: 22
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !appIconImage.visible
+                                        && appDelegate.itemData
+                                        && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction"
+                                            || appDelegate.itemData.kind === "wallpaperPickerAction"
+                                            || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
+                                    text: String(appDelegate.itemData.icon || "󰌌")
+                                    color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
                                     font.pixelSize: 22
                                 }
@@ -2271,11 +4036,21 @@ PanelWindow {
 
                                     text: root.highlightFuzzy(
                                         appDelegate.displayName,
-                                        searchField.text
+                                        appDelegate.itemData && appDelegate.itemData.kind === "emoji"
+                                            ? LauncherEmojiPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                            : (appDelegate.itemData && appDelegate.itemData.kind === "scheme"
+                                                ? LauncherSchemePicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                                : (appDelegate.itemData && appDelegate.itemData.kind === "schemeVariant"
+                                                    ? LauncherSchemeVariantPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
+                                                : (appDelegate.itemData && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction" || appDelegate.itemData.kind === "emojiPickerAction" || appDelegate.itemData.kind === "schemePickerAction" || appDelegate.itemData.kind === "schemeVariantPickerAction" || appDelegate.itemData.kind === "schemeVariant" || appDelegate.itemData.kind === "dynamicSchemeAction" || appDelegate.itemData.kind === "dynamicSchemeGenerate" || appDelegate.itemData.kind === "dynamicSchemeUnavailable" || appDelegate.itemData.kind === "dynamicSchemeError" || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
+                                                    ? searchField.text.replace(/^\s*>\s*/, "")
+                                                    : (appDelegate.itemData && appDelegate.itemData.kind === "app" && appModel.specialSearch
+                                                        ? appModel.specialSearch.query
+                                                        : searchField.text))))
                                     )
 
                                     textFormat: Text.StyledText
-                                    color: ListView.isCurrentItem
+                                    color: GridView.isCurrentItem
                                         ? theme.selectedText
                                         : theme.textWhite
 
@@ -2289,7 +4064,7 @@ PanelWindow {
 
                                     text: appDelegate.displaySubtitle
 
-                                    color: ListView.isCurrentItem
+                                    color: GridView.isCurrentItem
                                         ? theme.selectedSubtext
                                         : theme.textDim
 
@@ -2298,6 +4073,118 @@ PanelWindow {
                                     elide: Text.ElideRight
                                 }
                             }
+
+                            Row {
+                                Layout.preferredWidth: appDelegate.itemData && appDelegate.itemData.kind === "scheme" ? 126 : 0
+                                Layout.preferredHeight: 24
+                                Layout.alignment: Qt.AlignVCenter
+                                spacing: 4
+                                visible: appDelegate.itemData && appDelegate.itemData.kind === "scheme"
+
+                                Repeater {
+                                    model: appDelegate.itemData && Array.isArray(appDelegate.itemData.colors)
+                                        ? appDelegate.itemData.colors : []
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        width: 17
+                                        height: 17
+                                        radius: 4
+                                        color: String(modelData || "transparent")
+                                        border.color: theme.borderSubtle
+                                        border.width: 1
+                                    }
+                                }
+                            }
+
+                            Item {
+                                Layout.preferredWidth: 28
+                                Layout.preferredHeight: 38
+                                Layout.alignment: Qt.AlignVCenter
+                                visible: appDelegate.itemData && appDelegate.itemData.kind === "emoji"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: appDelegate.itemData && appDelegate.itemData.isFavorite ? "★" : "☆"
+                                    color: GridView.isCurrentItem
+                                        ? theme.selectedText
+                                        : (appDelegate.itemData && appDelegate.itemData.isFavorite ? theme.accent : theme.textVeryDim)
+                                    font.pixelSize: 20
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 5
+                            visible: appDelegate.itemData && appDelegate.itemData.kind === "wallpaper"
+
+                            Image {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.minimumHeight: 130
+                                Layout.maximumHeight: 160
+                                property string previewUrl: appDelegate.itemData
+                                    ? root.wallpaperPreviewUrl(appDelegate.itemData.path)
+                                    : ""
+                                source: previewUrl
+                                visible: previewUrl !== ""
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                                asynchronous: true
+                                cache: true
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: appDelegate.displayName
+                                color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
+                                font.pixelSize: 13
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                visible: !!(appDelegate.itemData && (appDelegate.itemData.isFavorite || Number(appDelegate.itemData.usageCount) > 0))
+                                text: {
+                                    const parts = []
+                                    if (appDelegate.itemData && appDelegate.itemData.isFavorite) parts.push("★ Избранное")
+                                    if (appDelegate.itemData && Number(appDelegate.itemData.usageCount) > 0)
+                                        parts.push("На " + String(appDelegate.itemData.recentScreenName || root.wallpaperSelectedScreenName) + ": " + String(appDelegate.itemData.usageCount) + " раз")
+                                    return parts.join(" · ")
+                                }
+                                color: GridView.isCurrentItem ? theme.selectedText : theme.accent
+                                font.pixelSize: 9
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: String(appDelegate.itemData && appDelegate.itemData.path || "")
+                                color: GridView.isCurrentItem ? theme.selectedSubtext : theme.textDim
+                                font.pixelSize: 9
+                                elide: Text.ElideMiddle
+                            }
+                        }
+
+                        Rectangle {
+                            visible: appDelegate.itemData && appDelegate.itemData.kind === "wallpaper"
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 10
+                            width: 30
+                            height: 30
+                            radius: 8
+                            color: theme.surfaceAlt
+                            opacity: 0.94
+                            z: 2
+                            Text {
+                                anchors.centerIn: parent
+                                text: appDelegate.itemData && appDelegate.itemData.isFavorite ? "★" : "☆"
+                                color: appDelegate.itemData && appDelegate.itemData.isFavorite ? theme.accent : theme.text
+                                font.pixelSize: 20
+                            }
                         }
 
                         MouseArea {
@@ -2305,7 +4192,21 @@ PanelWindow {
 
                             hoverEnabled: true
 
-                            onClicked: root.activateAppsSearchResult(appDelegate.itemData)
+                            onClicked: function(mouse) {
+                                if (appDelegate.itemData
+                                        && appDelegate.itemData.kind === "emoji"
+                                        && mouse.x >= width - 48) {
+                                    root.toggleLauncherEmojiFavorite(appDelegate.itemData.emoji)
+                                    return
+                                }
+                                if (appDelegate.itemData
+                                        && appDelegate.itemData.kind === "wallpaper"
+                                        && mouse.x >= width - 46 && mouse.y <= 46) {
+                                    root.toggleWallpaperFavorite(appDelegate.itemData.path)
+                                    return
+                                }
+                                root.activateAppsSearchResult(appDelegate.itemData)
+                            }
                         }
                     }
 
@@ -2326,6 +4227,62 @@ PanelWindow {
                             color: theme.transparent
                         }
                     }
+
+                    ScrollBar.horizontal: ScrollBar {
+                        policy: ScrollBar.AlwaysOff
+                        height: 5
+                        contentItem: Rectangle {
+                            implicitHeight: 5
+                            radius: 3
+                            color: theme.borderStrong
+                            opacity: 0.65
+                        }
+                        background: Rectangle { color: theme.transparent }
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: contentArea
+                    width: Math.min(implicitWidth, Math.max(0, contentArea.width - 48))
+                    visible: root.mode === root.modeApps
+                        && appList.count === 0
+                        && root.normalizeRunText(searchField.text).startsWith("@")
+                    text: "@i ID\n@c category\n@d description\n@e command\n@w WM_CLASS\n@g generic name\n@k keywords\n@t apps inside terminal"
+                    color: theme.textVeryDim
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    anchors.centerIn: contentArea
+                    width: Math.min(implicitWidth + 24, Math.max(0, contentArea.width - 48))
+                    visible: root.mode === root.modeApps
+                        && appList.count === 0
+                        && !root.normalizeRunText(searchField.text).startsWith("@")
+                    text: root.wallpaperPickerActive
+                        ? LauncherWallpaperPicker.emptyStateMessage(
+                            root.wallpaperCatalogLoading,
+                            root.wallpaperCatalogError,
+                            root.wallpaperCatalogRequestedDirectory,
+                            root.wallpaperCatalogEntries.length,
+                            root.activeWallpaperQuery.query,
+                            root.activeWallpaperQuery.scope,
+                            root.wallpaperSelectedScreenName
+                        )
+                        : (LauncherEmojiPicker.parseQuery(root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")).active
+                            ? LauncherEmojiPicker.emptyStateMessage(LauncherEmojiPicker.parseQuery(root.normalizeRunText(searchField.text).replace(/^\s*>\s*/, "")).scope)
+                            : (appModel.desktopEntryCount === 0 && !root.normalizeRunText(searchField.text).startsWith(">")
+                            ? "Системный каталог приложений пуст."
+                            : (root.normalizeRunText(searchField.text) === ""
+                                ? "Нет доступных приложений. Проверьте избранное и скрытые приложения."
+                                : "Приложения не найдены.")))
+                    color: theme.textVeryDim
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap
                 }
 
                 /*
@@ -2334,12 +4291,42 @@ PanelWindow {
 
                 ListView {
                     id: calculatorList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
                     anchors.fill: parent
                     visible: root.mode === root.modeCalculator
                     clip: true
                     spacing: 6
-                    model: root.calculatorResults
+                    model: root.calculatorDisplayResults
                     currentIndex: count > 0 ? 0 : -1
+                    header: Item {
+                        width: calculatorList.width
+                        height: root.normalizeRunText(searchField.text) === "" && root.calculatorHistoryEntries.length > 0 ? 36 : 0
+                        visible: height > 0
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 4
+                            anchors.rightMargin: 8
+                            Text {
+                                Layout.fillWidth: true
+                                text: "Recent calculations"
+                                color: theme.textDim
+                                font.pixelSize: 12
+                            }
+                            Text {
+                                text: "Clear history"
+                                color: theme.textVeryDim
+                                font.pixelSize: 11
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -6
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.clearCalculatorHistory()
+                                }
+                            }
+                        }
+                    }
 
                     onCurrentIndexChanged: Qt.callLater(root.refreshHoverVisualsForMode)
                     onContentYChanged: root.disarmPointerHover()
@@ -2355,7 +4342,7 @@ PanelWindow {
                         radius: Config.launcherItemRadius
                         color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0.7
+                        border.width: ListView.isCurrentItem ? 0 : 0.7
 
                         RowLayout {
                             anchors.fill: parent
@@ -2389,7 +4376,9 @@ PanelWindow {
                                 }
                                 Text {
                                     Layout.fillWidth: true
-                                    text: "Calculator · Enter or click to copy result"
+                                    text: calculatorDelegate.modelData.kind === "calculatorHistory"
+                                        ? "Recent calculation · Enter or click to reuse"
+                                        : "Calculator · Enter or click to copy result"
                                     color: ListView.isCurrentItem ? theme.selectedSubtext : theme.textDim
                                     font.pixelSize: 12
                                     elide: Text.ElideRight
@@ -2400,14 +4389,16 @@ PanelWindow {
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true
-                            onClicked: root.copyCalculatorResult(calculatorDelegate.modelData.result)
+                            onClicked: root.activateCalculatorItem(calculatorDelegate.modelData)
                         }
                     }
 
                     Text {
                         anchors.centerIn: parent
                         visible: calculatorList.count === 0
-                        text: "Enter an arithmetic expression"
+                        text: root.normalizeRunText(searchField.text) === ""
+                            ? "Enter an arithmetic expression"
+                            : "No valid calculation"
                         color: theme.textVeryDim
                         font.pixelSize: 13
                     }
@@ -2419,6 +4410,8 @@ PanelWindow {
 
                 ListView {
                     id: runList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
                     visible: root.mode === root.modeRun
@@ -2444,7 +4437,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         width: runList.width
@@ -2458,14 +4451,14 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         RowLayout {
@@ -2569,6 +4562,8 @@ PanelWindow {
 
                 ListView {
                     id: windowList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
 
@@ -2597,7 +4592,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         width: windowList.width
@@ -2616,7 +4611,7 @@ PanelWindow {
                                 : theme.borderSubtle)
 
                         border.width:
-                            modelData.isFocused || ListView.isCurrentItem ? 1 : 0
+                            modelData.isFocused && !ListView.isCurrentItem ? 1 : 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -2799,6 +4794,8 @@ PanelWindow {
 
                 ListView {
                     id: clipboardList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
 
@@ -2828,7 +4825,7 @@ PanelWindow {
                         scale: ListView.isCurrentItem ? 1.0 : (hovered ? 0.998 : 1.0)
 
                         Behavior on scale {
-                            NumberAnimation { duration: Config.animationDuration(110, "size"); easing.type: Easing.OutCubic }
+                            NumberAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         width: clipboardList.width
@@ -2843,14 +4840,14 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         RowLayout {
@@ -3004,6 +5001,8 @@ PanelWindow {
 
                 ListView {
                     id: networkList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
                     visible: root.mode === root.modeNetwork
@@ -3035,7 +5034,7 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -3153,6 +5152,8 @@ PanelWindow {
 
                 ListView {
                     id: nixList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
                     visible: root.mode === root.modeNix
@@ -3184,7 +5185,7 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -3308,6 +5309,8 @@ PanelWindow {
 
                 ListView {
                     id: passList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
                     visible: root.mode === root.modePass
@@ -3339,7 +5342,7 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -3453,6 +5456,8 @@ PanelWindow {
 
                 ListView {
                     id: projectList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
                     anchors.fill: parent
                     visible: root.mode === root.modeProjects
                     clip: true
@@ -3475,10 +5480,10 @@ PanelWindow {
                         radius: Config.launcherItemRadius
                         color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
-                        Behavior on color { ColorAnimation { duration: Config.animationDuration(120, "appearance") } }
-                        Behavior on border.color { ColorAnimation { duration: Config.animationDuration(120, "appearance") } }
+                        Behavior on color { ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve } }
+                        Behavior on border.color { ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve } }
 
                         RowLayout {
                             anchors.fill: parent
@@ -3583,6 +5588,8 @@ PanelWindow {
 
                 ListView {
                     id: powerList
+                    highlightFollowsCurrentItem: false
+                    highlight: launcherSelectionHighlight
 
                     anchors.fill: parent
 
@@ -3643,14 +5650,14 @@ PanelWindow {
                         border.color: ListView.isCurrentItem
                             ? theme.borderAccent
                             : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 1 : 0
+                        border.width: 0
 
                         Behavior on color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         Behavior on border.color {
-                            ColorAnimation { duration: Config.animationDuration(120, "appearance") }
+                            ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
                         }
 
                         Rectangle {
@@ -4748,57 +6755,27 @@ PanelWindow {
             .trim()
     }
 
+    function expandedWallpaperDirectory() {
+        const configured = String(Config.launcherWallpaperDirectory || "").trim()
+        if (configured === "")
+            return Quickshell.env("HOME") + "/Pictures/Wallpapers"
+        const home = String(Quickshell.env("HOME") || "")
+        if (configured === "~") return home
+        if (configured.startsWith("~/")) return home + "/" + configured.slice(2)
+        if (configured === "$HOME") return home
+        if (configured.startsWith("$HOME/")) return home + "/" + configured.slice(6)
+        if (configured.startsWith("/")) return configured
+        return home !== "" ? home + "/" + configured : configured
+    }
+
+    function wallpaperPreviewUrl(path) {
+        // The shared helper rejects empty paths, directories, relative paths,
+        // and unsupported extensions before a QQuickImage sees the URL.
+        return LauncherWallpaperPicker.localFileUrl(path)
+    }
+
     function runFuzzyScore(text, query) {
-        text = normalizeRunText(text)
-        query = normalizeRunText(query)
-
-        if (query === "")
-            return 0
-
-        if (text === query)
-            return 10000
-
-        if (text.startsWith(query))
-            return 9000 - text.length
-
-        if (text.includes(query))
-            return 8000 - text.indexOf(query)
-
-        let score = 0
-        let position = 0
-        let previousMatch = -1
-
-        for (let i = 0; i < query.length; ++i) {
-            const found = text.indexOf(query[i], position)
-
-            if (found === -1)
-                return -1
-
-            if (previousMatch >= 0) {
-                const gap = found - previousMatch - 1
-                score += gap === 0
-                    ? 500
-                    : Math.max(0, 200 - gap * 30)
-            }
-
-            if (
-                found === 0 ||
-                text[found - 1] === " " ||
-                text[found - 1] === "/" ||
-                text[found - 1] === "-" ||
-                text[found - 1] === "_" ||
-                text[found - 1] === "."
-            ) {
-                score += 300
-            }
-
-            score += Math.max(0, 200 - found * 10)
-
-            previousMatch = found
-            position = found + 1
-        }
-
-        return score
+        return LauncherSearchScoring.fuzzyScore(text, query, true)
     }
 
     function loadRunCommands(output) {
@@ -5106,7 +7083,7 @@ PanelWindow {
             "sh",
             "-c",
             "mkdir -p \"$HOME/.cache\" && " +
-            "printf '%s\n' \"$1\" >> \"$HOME/.cache/quickshell-app-history\"",
+            "printf '%s\\n' \"$1\" >> \"$HOME/.cache/quickshell-app-history\"",
             "launcher-app-history",
             entry.name
         ])
@@ -5256,6 +7233,11 @@ PanelWindow {
 
     function moveSelectionDown() {
 
+        if (root.mode === root.modeApps && root.wallpaperPickerActive) {
+            root.moveWallpaperSelection("down")
+            return
+        }
+
         switch (root.mode) {
 
         case root.modeApps:
@@ -5269,7 +7251,7 @@ PanelWindow {
 
                 appList.positionViewAtIndex(
                     appList.currentIndex,
-                    ListView.Contain
+                    GridView.Contain
                 )
             }
 
@@ -5383,6 +7365,11 @@ PanelWindow {
 
     function moveSelectionUp() {
 
+        if (root.mode === root.modeApps && root.wallpaperPickerActive) {
+            root.moveWallpaperSelection("up")
+            return
+        }
+
         switch (root.mode) {
 
         case root.modeApps:
@@ -5396,7 +7383,7 @@ PanelWindow {
 
                 appList.positionViewAtIndex(
                     appList.currentIndex,
-                    ListView.Contain
+                    GridView.Contain
                 )
             }
 
@@ -5676,8 +7663,8 @@ PanelWindow {
 
         case root.modeCalculator:
 
-            if (calculatorList.currentIndex >= 0 && calculatorList.currentIndex < root.calculatorResults.length)
-                root.copyCalculatorResult(root.calculatorResults[calculatorList.currentIndex].result)
+            if (calculatorList.currentIndex >= 0 && calculatorList.currentIndex < root.calculatorDisplayResults.length)
+                root.activateCalculatorItem(root.calculatorDisplayResults[calculatorList.currentIndex])
 
             break
 
@@ -5697,6 +7684,9 @@ PanelWindow {
 
     Component.onCompleted: {
         loadRunHistoryFromDisk()
+        loadCalculatorHistoryFromDisk()
+        loadEmojiPickerDataFromDisk()
+        loadWallpaperPickerDataFromDisk()
         appModel.refreshUsageHistory()
         resetSelection()
     }

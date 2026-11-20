@@ -167,8 +167,10 @@ Primitives.ModuleFrame {
             Math.max(0, parent.width - Config.playerMetadataXPadding * 2),
             root.playerMetadataMaxHeight + root.playerMetadataClipSafety)
         progress: root.playerMetadataMaxHeight > 0 ? root.playerMetadataTargetHeight / root.playerMetadataMaxHeight : 0
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.playerMetadataExpanding ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")
+        animationProfile: Config.animationPlayerMorphProfile
+        animationPhase: root.playerMetadataExpanding ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationPlayerMorphProfile, root.playerMetadataExpanding ? "enter" : "exit")
 
         Column {
             anchors.fill: parent
@@ -275,8 +277,10 @@ Primitives.ModuleFrame {
             Config.playerNextIconSize + 2)
         progress: root.playerNextMorphProgress
         visible: root.playerNextSupported || normalizedProgress > 0.001
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.playerNextSupported ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")
+        animationProfile: Config.animationPlayerMorphProfile
+        animationPhase: root.playerNextSupported ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationPlayerMorphProfile, root.playerNextSupported ? "enter" : "exit")
 
         Primitives.HoverIconButton {
             anchors.fill: parent
@@ -364,8 +368,10 @@ Primitives.ModuleFrame {
         progress: Config.playerShowProgress ? 1 : 0
         visible: Config.playerShowProgress || normalizedProgress > 0.001
         enabled: Config.playerShowProgress
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", Config.playerShowProgress ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")
+        animationProfile: Config.animationPlayerMorphProfile
+        animationPhase: Config.playerShowProgress ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationPlayerMorphProfile, Config.playerShowProgress ? "enter" : "exit")
 
         Item {
             anchors.fill: parent

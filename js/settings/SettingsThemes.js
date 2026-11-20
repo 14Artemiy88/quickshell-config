@@ -102,6 +102,8 @@ function palette(name, customThemes) {
 }
 
 function description(name) {
+    if (String(name) === "Wallpaper Dynamic")
+        return "Динамическая палитра, созданная из обоев через Matugen"
     return descriptions[name] || "Готовая цветовая тема"
 }
 

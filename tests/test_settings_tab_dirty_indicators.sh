@@ -22,7 +22,7 @@ expected_scopes = {
 assert 'function settingsTabHasChanges(id)' in navigation
 assert 'return scope !== "" && settings.hasResetChanges(scope)' in navigation
 assert 'function settingsTabHasChanges(id) { return settingsNavigationController.settingsTabHasChanges(id) }' in widget
-assert 'modified: root.settingsTabHasChanges(modelData.id)' in widget
+assert 'modified: root.settingsTabHasChanges(parent.modelData.id)' in widget
 for tab_id, scope in expected_scopes.items():
     assert f'{tab_id}: "{scope}"' in navigation, f'missing dirty scope for sidebar tab {tab_id}'
 

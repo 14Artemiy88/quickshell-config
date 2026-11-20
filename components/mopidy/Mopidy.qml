@@ -1690,8 +1690,9 @@ Primitives.ModuleFrame {
         toGeometry: fromGeometry
         progress: root.addNoticeVisible ? 1 : 0
         visible: root.addNoticeVisible || normalizedProgress > 0.001
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.addNoticeVisible ? "enter" : "exit")
+        animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
+        animationProfile: Config.animationMopidyMorphProfile
+        animationPhase: root.addNoticeVisible ? "enter" : "exit"
 
         Item {
             anchors.fill: parent

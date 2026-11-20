@@ -264,38 +264,6 @@ Column {
             }
     }
 
-    SettingsGroup {
-        visible: host && host.currentPageId === "mopidy"
-        width: parent.width
-        showFrame: true
-        changeKeys: ({ keys: ["animationMopidyVisibilityStyle"] })
-        heading: "Анимация"
-        padding: 8
-        contentSpacing: 6
 
-
-
-        Row {
-            width: parent.width
-            height: 30
-            spacing: 8
-            Text { width: 210; height: 30; text: "Стиль"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            SettingsComboBox {
-                id: animationMopidyVisibilityBox
-                width: 180
-                height: 30
-                property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
-                model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
-                currentIndex: Math.max(0, values.indexOf(Config.animationMopidyVisibilityStyle))
-                onItemChosen: function(index) { Config.animationMopidyVisibilityStyle = values[index]; settings.save() }
-                Connections {
-                    target: Config
-                    function onAnimationMopidyVisibilityStyleChanged() { animationMopidyVisibilityBox.currentIndex = Math.max(0, animationMopidyVisibilityBox.values.indexOf(Config.animationMopidyVisibilityStyle)) }
-                }
-                background: Rectangle { color: Config.settingsBackground; border.color: (animationMopidyVisibilityBox.activeFocus || animationMopidyVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: animationMopidyVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
-            }
-        }
-    }
 
 }

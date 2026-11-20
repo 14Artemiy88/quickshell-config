@@ -169,6 +169,15 @@ function normalizeProfile(profile, isSparse) {
     }
     delete p.mopidyShowMoveButtons
 
+    // Volume's previous "none" style becomes the shared "none" animation profile.
+    // Keep the visual direction as fade so the style selector only represents fade/slide.
+    var legacyVolumeAnimationStyle = p.animationVolumeStreamsVisibilityStyle !== undefined
+        ? String(p.animationVolumeStreamsVisibilityStyle) : ""
+    if (p.animationVolumeMorphProfile === undefined && legacyVolumeAnimationStyle === "none")
+        p.animationVolumeMorphProfile = "none"
+    if (legacyVolumeAnimationStyle === "none")
+        p.animationVolumeStreamsVisibilityStyle = "fade"
+
     // Notification placement is now stored in geometry.notifications as absolute X/Y.
     // Old corner/offset values are obsolete and intentionally do not survive profile normalization.
     delete p.notificationsPosition
@@ -215,3 +224,19 @@ function normalizeProfiles(profiles, isSparse) {
     }
     return clean
 }
+
+// Keep only the collapsible settings sidebar groups. Missing values preserve
+// the current UI preference, while malformed values fall back to expanded.
+function normalizeSettingsNavigationCollapsedGroups(source, current) {
+    var ids = ["appearance", "modules"]
+    var result = ({})
+    var sourceIsObject = source && typeof source === "object" && !Array.isArray(source)
+    var currentIsObject = current && typeof current === "object" && !Array.isArray(current)
+    for (var i = 0; i < ids.length; ++i) {
+        var id = ids[i]
+        var fallback = currentIsObject && typeof current[id] === "boolean" ? current[id] : false
+        result[id] = sourceIsObject && typeof source[id] === "boolean" ? source[id] : fallback
+    }
+    return result
+}
+

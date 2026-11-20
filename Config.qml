@@ -1,6 +1,8 @@
 pragma Singleton
 import QtQuick
 import "js/settings/SettingsLauncherProjects.js" as LauncherProjects
+import "js/settings/SettingsLauncherActions.js" as LauncherActions
+import "js/AnimationCurves.js" as AnimationCurves
 
 QtObject {
     // Core palette
@@ -72,6 +74,10 @@ QtObject {
     property bool notificationsShowAppIcon: true
     property bool notificationsShowBodyImages: true
     property bool notificationsShowProgress: true
+    // Notification cards animate independently when the queue changes.
+    property int animationNotificationsMorphDuration: 180
+    property string animationNotificationsMorphProfile: "expressive"
+    property string animationNotificationsVisibilityStyle: "fade"
 
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
     property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "notifications", "settingsWindow"]
@@ -81,6 +87,8 @@ QtObject {
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
         launcher: "Лаунчер", notifications: "Уведомления", settingsWindow: "Окно настроек"
     })
+    // Remember expanded/collapsed state for the multi-page sidebar groups.
+    property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false })
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
 
@@ -107,6 +115,17 @@ QtObject {
     property int launcherSearchRadius: 14
     property color launcherSearchBackground: "transparent"
     property int launcherDefaultMode: 0
+    // Keep subsequence matching for app names/metadata optional; default preserves the existing fuzzy search.
+    property bool launcherFuzzySearchApps: true
+    // Keep fuzzy matching for saved user actions independently configurable.
+    property bool launcherFuzzySearchActions: true
+    // Keep theme and wallpaper catalogue matching independently configurable.
+    property bool launcherFuzzySearchSchemes: true
+    property bool launcherFuzzySearchWallpapers: true
+    // Material You variant used when generating Wallpaper Dynamic from a selected monitor wallpaper.
+    property string launcherDynamicSchemeVariant: "scheme-tonal-spot"
+    // Empty uses ~/Pictures/Wallpapers; accepts ~ and $HOME prefixes.
+    property string launcherWallpaperDirectory: ""
     property bool launcherShowResultCount: true
     property bool launcherCrossSearchProjects: true
     property bool launcherCrossSearchRunHistory: true
@@ -116,6 +135,10 @@ QtObject {
     property var launcherTabLabels: ["Apps", "Run", "Windows", "Clipboard", "Power", "Network", "Packages", "Pass", "Projects", "Calculator"]
     property var launcherTabIcons: ["󰀻", "", "󰖯", "󰅇", "", "󰖩", "󱄅", "󰌋", "", "󰃬"]
     property var launcherProjects: LauncherProjects.defaults()
+    property var launcherCustomActions: LauncherActions.normalize([])
+    // Application IDs for Launcher favorites and hidden entries.
+    property var launcherFavoriteApps: []
+    property var launcherHiddenApps: []
 
     // Adaptive module minimum heights
     property int timerMinHeight: 72
@@ -129,14 +152,39 @@ QtObject {
     property bool cavaHideWhenSilent: false
     property bool cavaHideZeroBars: false
 
-    // Module-specific appearance/disappearance settings. Shared global animation toggles were removed.
-    // Per-module appearance/disappearance styles.
+    // Per-module appearance/disappearance styles. Legacy MorphEnabled flags
+    // remain only as compatibility inputs for profiles created before the
+    // "none" curve profile replaced the separate checkbox.
     property string animationCalendarVisibilityStyle: "fade"
     property string animationMopidyVisibilityStyle: "fade"
+    property bool animationMopidyMorphEnabled: true
+    property int animationMopidyMorphDuration: 180
+    property string animationMopidyMorphProfile: "expressive"
+    property bool animationPlayerMorphEnabled: true
+    property int animationPlayerMorphDuration: 180
+    property string animationPlayerMorphProfile: "expressive"
+    property bool animationWeatherMorphEnabled: true
+    property int animationWeatherMorphDuration: 180
+    property int animationWeatherHourlyDuration: 220
+    property string animationWeatherMorphProfile: "expressive"
+    property bool animationTimerMorphEnabled: true
+    property int animationTimerMorphDuration: 220
+    property string animationTimerMorphProfile: "expressive"
+    property int animationNetworkMorphDuration: 220
+    property string animationNetworkMorphProfile: "expressive"
+    property int animationCavaMorphDuration: 180
+    property string animationCavaMorphProfile: "expressive"
+    property int animationCalendarMorphDuration: 180
+    property string animationCalendarMorphProfile: "expressive"
+    property int animationCpuMorphDuration: 260
+    property string animationCpuMorphProfile: "expressive"
+    property int animationLauncherMorphDuration: 120
+    property string animationLauncherMorphProfile: "expressive"
     property string animationTimerVisibilityStyle: "fade"
     property string animationTimerOptionsVisibilityStyle: "fade"
     property string animationSettingsVisibilityStyle: "fade"
     property string animationVolumeStreamsVisibilityStyle: "fade"
+    property string animationVolumeMorphProfile: "expressive"
     property int animationTimerOptionsDuration: 280
     property int volumeStreamsAnimationDuration: 250
     property int animationCalendarSlideDuration: 350
@@ -613,6 +661,16 @@ QtObject {
         return Math.max(0, Math.round(ms))
     }
 
+    // A module's "none" profile disables its internal transitions without
+    // changing the independent appearance/disappearance animation of the module itself.
+    function animationProfileIsEnabled(enabled, profile) {
+        return enabled === true && String(profile || "standard").toLowerCase() !== "none"
+    }
+
+    function animationDurationForProfile(enabled, profile, baseMs, category) {
+        return animationProfileIsEnabled(enabled, profile) ? animationDuration(baseMs, category) : 0
+    }
+
     // Shared motion profiles inspired by Caelestia's token-based animation
     // system. Existing call sites keep the historical OutCubic curve through
     // easingType(); new components can opt into a profile explicitly.
@@ -621,11 +679,26 @@ QtObject {
     function animationEasingType(profile, phase) {
         var name = String(profile || "standard").toLowerCase()
         var direction = String(phase || "enter").toLowerCase()
+        if (name === "none") return Easing.Linear
+        if (name === "expressive" || name === "expressivespatial" || name === "expressiveeffects")
+            return Easing.BezierSpline
         if (name === "spatial")
             return direction === "exit" ? Easing.InCubic : Easing.OutCubic
         if (name === "effects")
             return direction === "exit" ? Easing.InQuad : Easing.OutQuad
         return Easing.OutCubic
+    }
+
+    function animationBezierCurve(profile, phase) {
+        return AnimationCurves.forProfile(profile, phase)
+    }
+
+    function animationCurveByName(name) {
+        return AnimationCurves.get(name)
+    }
+
+    function animationCurveNames() {
+        return AnimationCurves.names()
     }
 
     function easingType() { return animationEasingType("standard", "enter") }

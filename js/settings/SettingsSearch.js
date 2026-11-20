@@ -72,6 +72,10 @@ function search(entries, query, limit) {
         var fullText = normalize(entry.searchText || "")
         var label = normalize(entry.label || "")
         var key = normalize(entry.keyTerms || "")
+        // Page context is a deliberate ranking signal, not just searchable
+        // metadata. Without it, module-layout controls such as "Погода · X"
+        // can crowd out the actual Weather page settings for a short query.
+        var pageContext = normalize([entry.pageLabel || "", entry.pageId || ""].join(" "))
         var valid = true
         var score = 0
 
@@ -94,6 +98,12 @@ function search(entries, query, limit) {
                 score += 5
             else
                 score += 2
+
+            // Prefer settings on the page named by the query. This makes
+            // "погода" surface Weather controls before geometry/background
+            // controls for the Weather module on the Modules page.
+            if (pageContext.indexOf(token) >= 0)
+                score += 96
         }
 
         if (!valid)
