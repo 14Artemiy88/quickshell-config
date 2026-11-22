@@ -121,6 +121,24 @@
     }
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
-  "profileOverrides": {},
+  "profileOverrides": {
+    "settingsNavigationCollapsedGroups": {
+      "modules": false
+    },
+    "dashboardVisibleCards": [
+      "system",
+      "network",
+      "weather",
+      "media",
+      "today"
+    ],
+    "dashboardCardOrder": [
+      "today",
+      "media",
+      "weather",
+      "system",
+      "network"
+    ]
+  },
   "settingsSchemaVersion": 1
 }

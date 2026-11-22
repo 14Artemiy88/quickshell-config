@@ -19,7 +19,7 @@ ShellRoot {
         command: [Quickshell.shellDir + "/scripts/cleanup_storage"]
     }
     Component.onCompleted: storageCleanupProcess.running = true
-    Clock { id: clock; active: Settings.loaded && (Settings.time || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
+    Clock { id: clock; active: Settings.loaded && (Settings.time || shell.dashboardVisible || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
     SystemMonitor { id: monitor }
     // Instantiate the D-Bus notification server only after settings have loaded
     // and only while the Notifications module is enabled. Deactivating the Loader
@@ -46,6 +46,7 @@ ShellRoot {
         sourceComponent: Component { Weather {} }
     }
     property bool calendarVisible: false
+    property bool dashboardVisible: false
     property bool mopidyVisible: false
     property bool settingsVisible: false
     property bool layoutEditMode: false
@@ -73,6 +74,23 @@ ShellRoot {
             return
         }
         showLauncherMode("default")
+    }
+
+    // Dashboard cards and the empty-state action link to existing Settings pages.
+    // Keep the mapping explicit so malformed IDs cannot navigate arbitrary pages.
+    function openDashboardModuleSettings(pageId) {
+        var targetPage = String(pageId || "")
+        var allowedPages = ["cpuRam", "network", "weather", "player", "calendar", "dashboard"]
+        if (allowedPages.indexOf(targetPage) < 0)
+            return
+
+        shell.dashboardVisible = false
+        shell.settingsVisible = true
+        Qt.callLater(function() {
+            if (!settingsWidget) return
+            settingsWidget.selectSettingsTab(targetPage)
+            settingsWidget.currentPageSubTabIndex = 0
+        })
     }
 
     Connections {
@@ -190,6 +208,11 @@ ShellRoot {
         }
     }
 
+    Connections {
+        target: launcherLoader.status === Loader.Ready ? launcherLoader.item : null
+        function onDashboardRequested() { shell.dashboardVisible = true }
+    }
+
     IpcHandler {
         target: "networks"
 
@@ -202,6 +225,29 @@ ShellRoot {
                 shell.networksVisible = true
         }
         function hide(): void { shell.networksVisible = false }
+    }
+
+    IpcHandler {
+        target: "dashboard"
+
+        function toggle(): void { shell.dashboardVisible = !shell.dashboardVisible }
+        function show(): void { shell.dashboardVisible = true }
+        function hide(): void { shell.dashboardVisible = false }
+    }
+
+    Dashboard {
+        id: dashboardPanel
+        open: shell.dashboardVisible
+        clock: clock
+        cpuSource: cpuWidget
+        playerSource: playerWidget
+        weatherSource: weatherLoader.item
+        monitorSource: monitor
+        onCloseRequested: shell.dashboardVisible = false
+        onLauncherRequested: shell.toggleLauncher()
+        onCalendarRequested: if (Settings.calendar) shell.calendarVisible = !shell.calendarVisible
+        onSettingsRequested: shell.settingsVisible = true
+        onModuleSettingsRequested: pageId => shell.openDashboardModuleSettings(pageId)
     }
 
     IpcHandler {
@@ -251,7 +297,7 @@ ShellRoot {
         offsetY: Settings.geometryForLayout("cpu")[1]
         contentWidth: Settings.geometry.cpu[2]
         contentHeight: Settings.geometry.cpu[3]
-        CpuWidget { anchors.fill: parent }
+        CpuWidget { id: cpuWidget; anchors.fill: parent }
 }
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow

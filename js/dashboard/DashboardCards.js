@@ -1,0 +1,435 @@
+.pragma library
+
+var DEFAULT_IDS = ["today", "system", "network", "weather", "media"]
+var COLUMN_MODES = ["auto", "one", "two"]
+var CARD_SIZE_MODES = ["compact", "expanded"]
+// Two-column layouts keep each card at least 230 px wide. Preserve the
+// established 470 px activation threshold while tightening the visible gutter.
+var COLUMN_GAP = 6
+var MIN_CARD_COLUMN_WIDTH = 230
+var MIN_TWO_COLUMN_WIDTH = MIN_CARD_COLUMN_WIDTH * 2 + 10
+var AUTO_TWO_COLUMN_WIDTH = 500
+// The Dashboard drawer keeps its established compact maximum width in every
+// card configuration. The horizontal three-card Bento adapts to the available
+// card area instead of widening the panel to reach an artificial breakpoint.
+var DRAWER_SCREEN_INSET = 32
+var DEFAULT_DRAWER_MAX_WIDTH = 560
+// Horizontal Bento starts once a two-column card area is available; the
+// existing auto/two-column thresholds guarantee readable peer-card widths.
+var THREE_CARD_HORIZONTAL_WIDTH = AUTO_TWO_COLUMN_WIDTH
+// Two-column cards remain readable at the minimum width by using a slightly
+// denser type scale below this threshold; full-width cards retain the base scale.
+var NARROW_CARD_WIDTH = 270
+
+// Shared card geometry keeps Dashboard cards visually related while
+// allowing their content blocks to retain card-specific typography.
+var CARD_PADDING = 12
+// Wide leads use more of their horizontal canvas: tighter edge insets and
+// group spacing keep useful content from looking stranded in the centre.
+var WIDE_LEAD_CARD_PADDING = 8
+var CARD_SECTION_GAP = 4
+// One shared, compact gutter separates logical content groups in every wide lead.
+var WIDE_LEAD_GROUP_GAP = 14
+var CARD_HEADER_GAP = 9
+var CARD_BODY_GAP = 5
+var CARD_BADGE_SIZE = 24
+var CARD_FOOTER_HEIGHT = 19
+// Shared semantic type sizes keep supporting labels and secondary values
+// consistent across the module-specific expanded card layouts.
+var CARD_MICRO_LABEL_SIZE = 8
+var CARD_MICRO_LABEL_NARROW_SIZE = 7
+var CARD_METRIC_VALUE_SIZE = 16
+var CARD_METRIC_VALUE_NARROW_SIZE = 14
+var CARD_DETAIL_TEXT_SIZE = 10
+var CARD_DETAIL_TEXT_NARROW_SIZE = 9
+var CARD_FOOTER_TEXT_SIZE = 9
+var CARD_FOOTER_TEXT_NARROW_SIZE = 8
+var CARD_HOVER_DURATION = 140
+// Keep pointer hover discoverable but visually secondary to keyboard focus.
+// Focus remains the strongest state so two simultaneous interaction modes
+// are never mistaken for two selected cards.
+var CARD_HOVER_SURFACE_ALPHA = 0.075
+var CARD_FOCUS_SURFACE_ALPHA = 0.15
+var CARD_HOVER_BORDER_ALPHA = 0.48
+var CARD_FOCUS_BORDER_WIDTH = 2
+var DEFAULT_CARD_SIZES = {
+    today: "compact",
+    system: "compact",
+    network: "compact",
+    weather: "compact",
+    media: "compact"
+}
+
+// Cards that use the same size mode share one silhouette regardless of module.
+// This keeps compact cards visually aligned with each other, and expanded cards
+// equally prominent; the internal content remains module-specific.
+var COMPACT_CARD_HEIGHTS = { today: 164, system: 164, network: 164, weather: 164, media: 164 }
+// Expanded cards reserve more vertical room for the growing detail blocks while keeping one shared silhouette.
+var EXPANDED_CARD_HEIGHTS = { today: 208, system: 208, network: 208, weather: 208, media: 208 }
+
+function normalizeCardSizeMode(value) {
+    var mode = String(value === undefined || value === null ? "" : value)
+    return CARD_SIZE_MODES.indexOf(mode) >= 0 ? mode : "compact"
+}
+
+function normalizeCardSizes(values) {
+    var source = values && typeof values === "object" && !Array.isArray(values) ? values : ({})
+    var result = {}
+    for (var i = 0; i < DEFAULT_IDS.length; ++i) {
+        var id = DEFAULT_IDS[i]
+        result[id] = normalizeCardSizeMode(source[id])
+    }
+    return result
+}
+
+function setCardSize(values, id, mode) {
+    var key = String(id || "")
+    var result = normalizeCardSizes(values)
+    if (DEFAULT_IDS.indexOf(key) < 0) return result
+    result[key] = normalizeCardSizeMode(mode)
+    return result
+}
+
+function cardSizeMode(values, id) {
+    var key = String(id || "")
+    if (DEFAULT_IDS.indexOf(key) < 0) return "compact"
+    return normalizeCardSizes(values)[key]
+}
+
+function cardSizeModeIndex(values, id) {
+    return CARD_SIZE_MODES.indexOf(cardSizeMode(values, id))
+}
+
+function cardHeight(id, sizes) {
+    var key = String(id || "")
+    if (DEFAULT_IDS.indexOf(key) < 0) return 126
+    var heights = cardSizeMode(sizes, key) === "expanded"
+        ? EXPANDED_CARD_HEIGHTS : COMPACT_CARD_HEIGHTS
+    return heights[key]
+}
+
+
+// Split cards into two vertical stacks. Keeping each stack independent avoids
+// GridLayout's row-height coupling: a tall card in one column no longer leaves
+// a blank strip below a shorter neighbour. The best partition minimizes the
+// total-height difference; ties prefer the natural alternating order.
+function balancedColumns(cards, sizes, spacing) {
+    var source = Array.isArray(cards) ? cards.slice() : []
+    if (source.length <= 1) return { left: source, right: [] }
+
+    var gap = Number(spacing)
+    if (!isFinite(gap) || gap < 0) gap = 0
+
+    var best = null
+    var bestDifference = Infinity
+    var bestAlternationPenalty = Infinity
+    var bestCountDifference = Infinity
+    var limit = 1 << source.length
+
+    // Pin the first card to the left to avoid evaluating mirrored partitions.
+    for (var mask = 1; mask < limit - 1; ++mask) {
+        if ((mask & 1) === 0) continue
+
+        var left = []
+        var right = []
+        var leftHeight = 0
+        var rightHeight = 0
+        var alternationPenalty = 0
+
+        for (var i = 0; i < source.length; ++i) {
+            var goesLeft = (mask & (1 << i)) !== 0
+            var item = source[i]
+            var height = cardHeight(item && item.id, sizes)
+
+            if (goesLeft) {
+                left.push(item)
+                leftHeight += height
+                if (i % 2 !== 0) alternationPenalty++
+            } else {
+                right.push(item)
+                rightHeight += height
+                if (i % 2 === 0) alternationPenalty++
+            }
+        }
+
+        leftHeight += Math.max(0, left.length - 1) * gap
+        rightHeight += Math.max(0, right.length - 1) * gap
+
+        var difference = Math.abs(leftHeight - rightHeight)
+        var countDifference = Math.abs(left.length - right.length)
+
+        if (difference < bestDifference
+                || (difference === bestDifference && alternationPenalty < bestAlternationPenalty)
+                || (difference === bestDifference && alternationPenalty === bestAlternationPenalty
+                    && countDifference < bestCountDifference)) {
+            best = { left: left, right: right }
+            bestDifference = difference
+            bestAlternationPenalty = alternationPenalty
+            bestCountDifference = countDifference
+        }
+    }
+
+    return best || { left: source.slice(0, 1), right: source.slice(1) }
+}
+
+// Wide two-column windows use a horizontal Bento composition: the first
+// configured card occupies the top row, with the remaining cards balanced below.
+function threeCardOrientation(width) {
+    var availableWidth = Number(width)
+    if (!isFinite(availableWidth) || availableWidth < THREE_CARD_HORIZONTAL_WIDTH)
+        return "vertical"
+    return "horizontal"
+}
+
+function threeCardHorizontalRowHeight(cards, sizes) {
+    var source = Array.isArray(cards) ? cards : []
+    if (source.length === 0) return 0
+    // The lead owns the first row; a taller card in the lower peers must not
+    // inflate the lead row and create an artificial gap before the peers.
+    return cardHeight(source[0] && source[0].id, sizes)
+}
+
+function threeCardHorizontalHeight(cards, sizes, spacing) {
+    var source = Array.isArray(cards) ? cards : []
+    if (source.length !== 3) return stackHeight(source, sizes, spacing)
+
+    var gap = Number(spacing)
+    if (!isFinite(gap) || gap < 0) gap = 0
+
+    // The lead and lower peer row use their own natural heights. The shorter
+    // peer column is top-aligned in QML rather than vertically centred.
+    var peerColumns = wideLeadPeerColumns(source.slice(1), sizes, gap)
+    var peerHeight = Math.max(
+        stackHeight(peerColumns.left, sizes, gap),
+        stackHeight(peerColumns.right, sizes, gap)
+    )
+    return threeCardHorizontalRowHeight(source, sizes) + gap + peerHeight
+}
+
+// The first configured card remains the full-width lead whenever a two-column
+// area can support the horizontal Bento. All remaining cards are split into
+// two balanced vertical stacks, so adding the fourth or fifth card does not
+// silently remove the lead treatment. With exactly three cards this resolves
+// to the original side-by-side pair beneath the lead.
+function wideLeadPeerColumns(peers, sizes, spacing) {
+    return balancedColumns(peers, sizes, spacing)
+}
+
+function wideLeadHorizontalHeight(cards, sizes, spacing) {
+    var source = Array.isArray(cards) ? cards : []
+    if (source.length < 3) return stackHeight(source, sizes, spacing)
+
+    var gap = Number(spacing)
+    if (!isFinite(gap) || gap < 0) gap = 0
+
+    // The first row follows only the lead card's selected size. Lower columns
+    // are measured independently; shorter columns are top-aligned in QML.
+    var leadTrackHeight = cardHeight(source[0] && source[0].id, sizes)
+    var peerColumns = wideLeadPeerColumns(source.slice(1), sizes, gap)
+    var peerTrackHeight = Math.max(
+        stackHeight(peerColumns.left, sizes, gap),
+        stackHeight(peerColumns.right, sizes, gap)
+    )
+    return leadTrackHeight + gap + peerTrackHeight
+}
+
+function stackHeight(cards, sizes, spacing) {
+    var source = Array.isArray(cards) ? cards : []
+    if (source.length === 0) return 0
+
+    var gap = Number(spacing)
+    if (!isFinite(gap) || gap < 0) gap = 0
+
+    var total = Math.max(0, source.length - 1) * gap
+    for (var i = 0; i < source.length; ++i)
+        total += cardHeight(source[i] && source[i].id, sizes)
+    return total
+}
+
+// Keep Flickable's offset within the newly resolved content bounds after
+// a responsive layout, visibility or viewport-height change. Invalid startup
+// measurements safely collapse to the top instead of leaking NaN into QML.
+function clampScrollPosition(position, contentHeight, viewportHeight) {
+    var current = Number(position)
+    var content = Number(contentHeight)
+    var viewport = Number(viewportHeight)
+
+    if (!isFinite(current)) current = 0
+    if (!isFinite(content) || content < 0) content = 0
+    if (!isFinite(viewport) || viewport < 0) viewport = 0
+
+    var maximum = Math.max(0, content - viewport)
+    return Math.max(0, Math.min(maximum, current))
+}
+
+function normalizeColumnsMode(value) {
+    var mode = String(value === undefined || value === null ? "" : value)
+    return COLUMN_MODES.indexOf(mode) >= 0 ? mode : "auto"
+}
+
+function columnsForWidth(mode, width) {
+    var key = normalizeColumnsMode(mode)
+    var availableWidth = Number(width)
+    if (!isFinite(availableWidth) || availableWidth <= 0) return 1
+    if (key === "one") return 1
+
+    // Explicit two-column mode may use the full readable minimum. Auto mode
+    // is deliberately more conservative and needs a little extra breathing room.
+    var threshold = key === "two" ? MIN_TWO_COLUMN_WIDTH : AUTO_TWO_COLUMN_WIDTH
+    return availableWidth >= threshold ? 2 : 1
+}
+
+// Keep the drawer at its established maximum width and preserve outer screen
+// insets. Card count and column mode affect only the inner composition, never
+// the panel's width.
+function drawerWidthForScreenWidth(screenWidth) {
+    var availableScreenWidth = Number(screenWidth)
+    if (!isFinite(availableScreenWidth) || availableScreenWidth <= 0)
+        return 1
+
+    var availableDrawerWidth = Math.max(1, availableScreenWidth - DRAWER_SCREEN_INSET)
+    return Math.max(1, Math.min(DEFAULT_DRAWER_MAX_WIDTH, availableDrawerWidth))
+}
+
+// Resolve the entire composition from the current ordered visible set and
+// width. Recomputing one state object keeps breakpoint, order and visibility
+// transitions atomic: every visible card belongs to exactly one active model,
+// while all inactive layout models receive empty arrays.
+function resolveDashboardLayout(cards, mode, width, sizes, spacing) {
+    var source = Array.isArray(cards) ? cards.slice() : []
+    var columns = columnsForWidth(mode, width)
+    var state = {
+        columns: columns,
+        kind: source.length === 0 ? "empty" : "single",
+        left: [],
+        right: [],
+        lead: [],
+        peers: []
+    }
+
+    if (source.length === 0)
+        return state
+
+    if (columns !== 2) {
+        state.left = source
+        return state
+    }
+
+    if (source.length >= 3 && threeCardOrientation(width) === "horizontal") {
+        state.kind = "wide-lead-horizontal"
+        state.lead = [source[0]]
+        state.peers = source.slice(1)
+        return state
+    }
+
+    if (source.length === 3) {
+        state.kind = "three-vertical"
+        state.left = [source[0]]
+        state.right = source.slice(1)
+        return state
+    }
+
+    var split = balancedColumns(source, sizes, spacing)
+    state.kind = source.length === 1 ? "single" : "balanced"
+    state.left = split.left
+    state.right = split.right
+    return state
+}
+
+// Resolve the complete card composition from the current ordered visible set
+// and width. Keeping this decision pure makes live visibility, order and
+// breakpoint changes deterministic: each card is assigned to exactly one
+// visible model and the inactive composition receives empty arrays.
+
+var DEFINITIONS = [
+    { id: "today", label: "Сегодня", settingsLabel: "Сегодня — время, дата и заметки", description: "Текущее время, дата и заметки календаря", symbol: "󰃭", settingsPageId: "calendar", keywords: "today time date calendar notes current clock время дата календарь заметки сегодня" },
+    { id: "system", label: "Система", settingsLabel: "Система — CPU и RAM", description: "Использование CPU и RAM", symbol: "", settingsPageId: "cpuRam", keywords: "system cpu ram performance memory processor система производительность память процессор" },
+    { id: "network", label: "Сеть", settingsLabel: "Сеть — скорость загрузки и отдачи", description: "Скорость загрузки и отдачи", symbol: "󰖩", settingsPageId: "network", keywords: "network speed upload download internet сеть скорость интернет передача" },
+    { id: "weather", label: "Погода", settingsLabel: "Погода — текущие условия", description: "Текущая температура и условия", symbol: "󰖐", settingsPageId: "weather", keywords: "weather temperature forecast погода температура прогноз" },
+    { id: "media", label: "Медиа", settingsLabel: "Медиа — текущий плеер", description: "Текущий плеер и композиция", symbol: "󰎆", settingsPageId: "player", keywords: "media player music track artist медиа плеер музыка композиция исполнитель" }
+]
+
+function defaults() {
+    return DEFAULT_IDS.slice()
+}
+
+function normalize(values) {
+    if (!Array.isArray(values)) return defaults()
+
+    // Runtime visibility is literal: a four-card selection without Today is
+    // a valid user choice, not a legacy default. Legacy migration is performed
+    // only while loading a profile, where the old card-order field can confirm
+    // that the profile predates the Today card.
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (DEFAULT_IDS.indexOf(id) >= 0 && result.indexOf(id) < 0)
+            result.push(id)
+    }
+    return result
+}
+
+function contains(values, id) {
+    return normalize(values).indexOf(String(id || "")) >= 0
+}
+
+function setEnabled(values, id, enabled) {
+    var key = String(id || "")
+    if (DEFAULT_IDS.indexOf(key) < 0) return normalize(values)
+    var result = normalize(values)
+    var index = result.indexOf(key)
+    if (enabled && index < 0) result.push(key)
+    else if (!enabled && index >= 0) result.splice(index, 1)
+    return result
+}
+
+
+// Card order is independent from visibility: every known card always appears
+// exactly once in this list, even when its checkbox is disabled.
+function normalizeOrder(values) {
+    if (!Array.isArray(values)) return defaults()
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (DEFAULT_IDS.indexOf(id) >= 0 && result.indexOf(id) < 0)
+            result.push(id)
+    }
+    for (var j = 0; j < DEFAULT_IDS.length; ++j) {
+        var fallbackId = DEFAULT_IDS[j]
+        if (result.indexOf(fallbackId) < 0) result.push(fallbackId)
+    }
+    return result
+}
+
+function indexOf(values, id) {
+    return normalizeOrder(values).indexOf(String(id || ""))
+}
+
+function move(values, id, direction) {
+    var result = normalizeOrder(values)
+    var from = result.indexOf(String(id || ""))
+    var delta = Number(direction)
+    if (from < 0 || !isFinite(delta) || delta === 0) return result
+    var to = Math.max(0, Math.min(result.length - 1, from + (delta < 0 ? -1 : 1)))
+    if (to === from) return result
+    var item = result[from]
+    result.splice(from, 1)
+    result.splice(to, 0, item)
+    return result
+}
+
+function orderedVisible(order, visibleIds) {
+    var orderIds = normalizeOrder(order)
+    var visible = Array.isArray(visibleIds) ? normalize(visibleIds) : DEFAULT_IDS.slice()
+    var result = []
+    for (var i = 0; i < orderIds.length; ++i) {
+        if (visible.indexOf(orderIds[i]) < 0) continue
+        for (var j = 0; j < DEFINITIONS.length; ++j) {
+            if (DEFINITIONS[j].id === orderIds[i]) {
+                result.push(DEFINITIONS[j])
+                break
+            }
+        }
+    }
+    return result
+}

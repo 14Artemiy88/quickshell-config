@@ -34,6 +34,7 @@ Research\: VLAN:802-11-wireless:wlp3s0
 Quoted \\ Profile:802-3-ethernet:enp2s0
 Tabbed	Name:wifi:wlp4s0
 VPN:wireguard:
+Saved WiFi:wifi:--
 Tunnel:tun:tun0
 Bridge:bridge:br0
 Loopback:loopback:lo
@@ -43,12 +44,13 @@ export NMCLI_FIXTURE="$TMP/nmcli-fixture.txt"
 result="$(get_network_connections "$TMP/cache.json" "$TMP/cache-time")"
 [[ "$(wc -l < "$JQ_CALL_LOG")" -eq 1 ]] || fail "non-empty list should invoke jq once, got $(wc -l < "$JQ_CALL_LOG") calls"
 printf '%s\n' "$result" | jq -e '
-  length == 5 and
-  .[0].name == "Home \"Lab\"" and .[0].type == "󰖩" and .[0].status == "on" and
-  .[1].name == "Research: VLAN" and .[1].type == "" and .[1].status == "on" and
-  .[2].name == "Quoted \\ Profile" and .[2].type == "󰈀" and .[2].status == "on" and
-  .[3].name == "Tabbed\tName" and .[3].type == "󰖩" and .[3].status == "on" and
-  .[4].name == "VPN" and .[4].type == "󰠥" and .[4].status == "off"
+  length == 6 and
+  .[0].name == "Home \"Lab\"" and .[0].type == "󰖩" and .[0].kind == "wifi" and .[0].status == "on" and .[0].device == "wlp2s0" and
+  .[1].name == "Research: VLAN" and .[1].type == "" and .[1].kind == "802-11-wireless" and .[1].status == "on" and .[1].device == "wlp3s0" and
+  .[2].name == "Quoted \\ Profile" and .[2].type == "󰈀" and .[2].kind == "802-3-ethernet" and .[2].status == "on" and .[2].device == "enp2s0" and
+  .[3].name == "Tabbed\tName" and .[3].type == "󰖩" and .[3].kind == "wifi" and .[3].status == "on" and .[3].device == "wlp4s0" and
+  .[4].name == "VPN" and .[4].type == "󰠥" and .[4].kind == "wireguard" and .[4].status == "off" and .[4].device == "" and
+  .[5].name == "Saved WiFi" and .[5].type == "󰖩" and .[5].kind == "wifi" and .[5].status == "off" and .[5].device == ""
 ' >/dev/null || fail "names, device status, or JSON escaping incorrect: $result"
 
 : > "$TMP/nmcli-empty.txt"

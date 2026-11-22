@@ -23,8 +23,8 @@ assert.deepStrictEqual(Array.from(context.spec('launcherActions', 0).arrayContai
   ['tab.apps', 'tab.run', 'tab.windows', 'tab.clipboard', 'tab.power', 'tab.network', 'tab.packages', 'tab.pass', 'tab.projects', 'tab.calculator'],
   'transitions dirty marker tracks only the ten tab shortcuts');
 assert.deepStrictEqual(Array.from(context.spec('launcherActions', 1).arrayContains.launcherDisabledBuiltinActions),
-  ['tool.colorSchemes', 'tool.schemeVariants', 'tool.wallpapers', 'tool.emoji', 'tool.wallpaperDynamic'],
-  'tools dirty marker tracks only the five built-in tools');
+  ['tool.colorSchemes', 'tool.schemeVariants', 'tool.wallpapers', 'tool.emoji', 'tool.wallpaperDynamic', 'tool.dashboard'],
+  'tools dirty marker tracks only the six built-in tools');
 assert.deepStrictEqual(Array.from(context.spec('launcherActions', 2).keys), ['launcherCustomActions']);
 
 const section = fs.readFileSync(sectionPath, 'utf8');

@@ -37,7 +37,7 @@ assert.deepStrictEqual(keys('launcherSearch', 1), ['launcherFuzzySearchActions']
 assert.deepStrictEqual(keys('launcherSearch', 2), ['launcherFuzzySearchSchemes', 'launcherDynamicSchemeVariant']);
 assert.deepStrictEqual(keys('launcherSearch', 3), ['launcherFuzzySearchWallpapers', 'launcherWallpaperDirectory']);
 assert.deepStrictEqual(Array.from(context.spec('launcherActions', 0).arrayContains.launcherDisabledBuiltinActions), ['tab.apps', 'tab.run', 'tab.windows', 'tab.clipboard', 'tab.power', 'tab.network', 'tab.packages', 'tab.pass', 'tab.projects', 'tab.calculator']);
-assert.deepStrictEqual(Array.from(context.spec('launcherActions', 1).arrayContains.launcherDisabledBuiltinActions), ['tool.colorSchemes', 'tool.schemeVariants', 'tool.wallpapers', 'tool.emoji', 'tool.wallpaperDynamic']);
+assert.deepStrictEqual(Array.from(context.spec('launcherActions', 1).arrayContains.launcherDisabledBuiltinActions), ['tool.colorSchemes', 'tool.schemeVariants', 'tool.wallpapers', 'tool.emoji', 'tool.wallpaperDynamic', 'tool.dashboard']);
 assert.deepStrictEqual(keys('launcherActions', 2), ['launcherCustomActions']);
 
 const ui = fs.readFileSync(uiPath, 'utf8');

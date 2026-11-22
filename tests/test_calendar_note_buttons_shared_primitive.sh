@@ -2,10 +2,11 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CALENDAR="$ROOT/components/CalendarWidget.qml"
+NOTES="$ROOT/services/CalendarNotes.qml"
 BUTTON="$ROOT/components/primitives/StyledTextButton.qml"
 CHECK="$ROOT/CHECK.sh"
 
-for file in "$CALENDAR" "$BUTTON"; do test -f "$file"; done
+for file in "$CALENDAR" "$NOTES" "$BUTTON"; do test -f "$file"; done
 
 grep -Fq 'import "primitives" as Primitives' "$CALENDAR"
 grep -Fq 'Button {' "$BUTTON"
@@ -14,7 +15,7 @@ grep -Fq 'root.down ? root.pressedBackground : (root.hovered && root.hoverMode =
 grep -Fq 'root.hovered && root.hoverMode === "frame" ? root.hoverColor : root.outlineColor' "$BUTTON"
 grep -Fq 'text: root.text' "$BUTTON"
 
-python3 - "$CALENDAR" "$BUTTON" "$CHECK" <<'PYCODE'
+python3 - "$CALENDAR" "$NOTES" "$BUTTON" "$CHECK" <<'PYCODE'
 from pathlib import Path
 import sys
 pairs={')':'(',']':'[','}':'{'}
@@ -45,10 +46,11 @@ def check_balance(name):
         i+=1
     if stack: raise SystemExit(f'{name}: unclosed {stack[-1][0]} at offset {stack[-1][1]}')
 
-for name in sys.argv[1:3]: check_balance(name)
+for name in sys.argv[1:4]: check_balance(name)
 calendar=Path(sys.argv[1]).read_text(encoding='utf-8')
-button=Path(sys.argv[2]).read_text(encoding='utf-8')
-check=Path(sys.argv[3]).read_text(encoding='utf-8')
+notes=Path(sys.argv[2]).read_text(encoding='utf-8')
+button=Path(sys.argv[3]).read_text(encoding='utf-8')
+check=Path(sys.argv[4]).read_text(encoding='utf-8')
 
 ids=['noteSaveButton','noteDeleteButton','noteCancelButton','noteEditButton','noteCloseButton','calendarMarkButton']
 if calendar.count('Primitives.StyledTextButton {') != len(ids):
@@ -77,8 +79,10 @@ if 'mouse.button === Qt.RightButton' not in calendar or 'root.openNoteEditor(par
     raise SystemExit('Right-click creation/edit entry point changed')
 if 'mouse.button === Qt.LeftButton' not in calendar or 'root.openNoteViewer(parent.dateKey)' not in calendar:
     raise SystemExit('Left-click view entry point changed')
-if 'Quickshell.shellDir + "/scripts/calendar_notes"' not in calendar or '"set"' not in calendar:
-    raise SystemExit('Calendar note persistence command changed')
+if 'Quickshell.shellDir + "/scripts/calendar_notes"' not in notes or '"set"' not in notes:
+    raise SystemExit('Calendar note persistence command changed or is no longer owned by the shared service')
+if 'CalendarNotes.setNote(key, text)' not in calendar:
+    raise SystemExit('Calendar note save route no longer calls the shared notes service')
 if 'contentItem: Text {' in calendar:
     raise SystemExit('Calendar note button text styling is still duplicated inline')
 if 'test_calendar_note_buttons_shared_primitive.sh' not in check:

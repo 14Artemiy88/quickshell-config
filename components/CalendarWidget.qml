@@ -16,8 +16,8 @@ Primitives.ModuleFrame {
     property int month: date.getMonth()
     property bool open: true
     property var names: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"]
-    property var calendarNotes: ({})
-    property bool notesLoaded: false
+    readonly property var calendarNotes: CalendarNotes.entries
+    readonly property bool notesLoaded: CalendarNotes.loaded
     property var calendarMarkedDates: ({})
     property bool markedDatesLoaded: false
     property string noteOverlayMode: "" // "edit", "view", or empty
@@ -124,16 +124,6 @@ Primitives.ModuleFrame {
         return fallbackColor
     }
 
-    function setCalendarNotesFromJson(raw) {
-        try {
-            const parsed = JSON.parse(String(raw || "{}").trim() || "{}")
-            root.calendarNotes = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : ({})
-        } catch (e) {
-            root.calendarNotes = ({})
-        }
-        root.notesLoaded = true
-    }
-
     function openNoteEditor(key) {
         if (!key) return
         root.noteDialogDate = key
@@ -180,32 +170,8 @@ Primitives.ModuleFrame {
         const key = root.noteDialogDate
         if (!key) return
         const text = String(root.noteDraft || "")
-        const next = Object.assign({}, root.calendarNotes || ({}))
-        if (text.trim().length > 0)
-            next[key] = text
-        else
-            delete next[key]
-        root.calendarNotes = next
-        Quickshell.execDetached([
-            Quickshell.shellDir + "/scripts/calendar_notes",
-            "set",
-            key,
-            text.trim().length > 0 ? text : ""
-        ])
+        CalendarNotes.setNote(key, text)
         root.closeNoteOverlay()
-    }
-
-    Process {
-        id: calendarNotesRead
-        command: [Quickshell.shellDir + "/scripts/calendar_notes", "get"]
-        running: true
-        stdout: StdioCollector {
-            onStreamFinished: root.setCalendarNotesFromJson(this.text)
-        }
-        onExited: function(exitCode) {
-            if (exitCode !== 0 && !root.notesLoaded)
-                root.setCalendarNotesFromJson("{}")
-        }
     }
 
     Process {

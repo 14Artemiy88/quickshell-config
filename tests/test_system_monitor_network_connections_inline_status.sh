@@ -6,6 +6,7 @@ fail() { printf 'System monitor network connection inline status: FAIL: %s\n' "$
 
 # Each row on a cache refresh used to capture a tiny `printf` conditional in a
 # command substitution. Keep the per-row status assignment in the current shell.
+grep -Fq '[[ "${device:-}" == "--" ]] && device=' "$source_file" || fail 'nmcli inactive-device sentinel normalization missing'
 grep -Fq 'if [[ -n "${device:-}" ]]; then' "$source_file" || fail 'inline device status branch missing'
 grep -Fq 'status=on' "$source_file" || fail 'connected state assignment missing'
 grep -Fq 'status=off' "$source_file" || fail 'disconnected state assignment missing'

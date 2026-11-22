@@ -88,8 +88,13 @@ const context = {};
 vm.createContext(context);
 vm.runInContext(navigation.slice(specStart, specEnd).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
 for (const page of otherPages) {
-  if (page.subTabs.length > 0) assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
-  else assert.strictEqual(registry.saveScopeForPageId(page.id, 0), 'launcher', `${page.id} still uses the shared Launcher save scope`);
+  if (page.subTabs.length > 0) {
+    assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
+  } else if (page.id.startsWith('launcher')) {
+    assert.strictEqual(registry.saveScopeForPageId(page.id, 0), 'launcher', `${page.id} still uses the shared Launcher save scope`);
+  } else {
+    assert.strictEqual(registry.saveScopeForPageId(page.id, 0), page.saveScope, `${page.id} keeps its own declared save scope`);
+  }
 }
 
 console.log(`Settings stable page-ID routing: ${ids.length} pages and ${Object.keys(resetMethods).length} reset routes: OK`);

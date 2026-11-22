@@ -7,12 +7,14 @@
 var NAVIGATION_GROUPS = [
     { id: "appearance", label: "Внешний вид", symbol: "◈" },
     { id: "modules", label: "Модули", symbol: "▦" },
+    { id: "dashboard", label: "Dashboard", symbol: "▣" },
     { id: "launcher", label: "Лаунчер", symbol: "⌕" },
     { id: "general", label: "Общие", symbol: "⚙" }
 ]
 
 var TAB_DEFINITIONS = [
     { id: "modules", defaultLabel: "Включение модулей", groupId: "modules" },
+    { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard" },
     { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance" },
     { id: "general", defaultLabel: "Общие", groupId: "general" },
     { id: "timers", defaultLabel: "Таймеры", groupId: "modules" },
@@ -37,6 +39,7 @@ var TAB_DEFINITIONS = [
 
 // Page IDs are the canonical route identity. Array order is only presentation metadata.
 var OTHER_PAGE_DEFINITIONS = [
+    { id: "dashboard", saveScope: "dashboard", subTabs: [] },
     { id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] },
     { id: "timers", saveScope: "timer", subTabs: ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"] },
     { id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон", "Анимация"] },

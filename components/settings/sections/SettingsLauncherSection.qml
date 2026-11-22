@@ -529,7 +529,7 @@ Column {
         width: parent.width
         showFrame: true
         changeKeys: ({ arrayContains: { launcherDisabledBuiltinActions: [
-            "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic"
+            "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic", "tool.dashboard"
         ] } })
         heading: "Инструменты"
         padding: 8

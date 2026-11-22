@@ -466,6 +466,8 @@ QtObject {
             var excludedKeys = moduleName === "cpu" ? ["cpuGraphMode"] : []
             return hasPrefixed(prefixes, excludedKeys)
         }
+        if (scope === "dashboard")
+            return hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"])
         if (scope === "launcher")
             return hasResetChanges("module", "launcher") || hasPrefixed(["launcher"])
         if (scope === "themes") {
@@ -476,7 +478,7 @@ QtObject {
         if (scope === "all") {
             // A theme can change its identity while producing the same effective
             // palette, so activeTheme must be considered in addition to colors.
-            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "notifications", "modules"].some(function(item) {
+            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "dashboard", "notifications", "modules"].some(function(item) {
                 return hasResetChanges(item)
             }) || hasResetChanges("colors", colorNames)
         }
@@ -487,6 +489,7 @@ QtObject {
             timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather", "animationWeather"], cava: ["cava"],
             cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
+            dashboard: ["dashboard"],
             settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings", "settingsBackground", "settingsBorder"],
             notifications: ["notifications", "animationNotifications"]
         }
@@ -539,6 +542,7 @@ QtObject {
 
     function resetSettingsWindow() { SettingsResets.resetSettingsWindow(root, Config) }
 
+    function resetDashboardSettings() { SettingsResets.resetDashboardSettings(root, Config) }
     function resetLauncherSettings() { SettingsResets.resetLauncherSettings(root, Config) }
     function resetNotificationsSettings() { SettingsResets.resetNotificationsSettings(root, Config) }
 

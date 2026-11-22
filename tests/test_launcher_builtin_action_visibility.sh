@@ -20,8 +20,8 @@ const source = fs.readFileSync(modulePath, 'utf8').replace(/^\.pragma library\s*
 const api = vm.runInThisContext(source + '\n({ tabActions, toolActions, knownIds, normalizeDisabledIds, isEnabled, setEnabled })');
 
 assert.strictEqual(api.tabActions.length, 10, 'all ten launcher tab shortcuts should have independent toggles');
-assert.strictEqual(api.toolActions.length, 5, 'all five built-in tools should have independent toggles');
-assert.strictEqual(api.knownIds().length, 15, 'the palette should expose fifteen configurable built-in entries');
+assert.strictEqual(api.toolActions.length, 6, 'all six built-in tools should have independent toggles');
+assert.strictEqual(api.knownIds().length, 16, 'the palette should expose sixteen configurable built-in entries');
 assert.strictEqual(api.isEnabled([], 'tab.apps'), true, 'all built-in entries are enabled by default');
 assert.strictEqual(api.isEnabled(undefined, 'tool.emoji'), true, 'missing legacy settings enable all entries');
 
@@ -65,7 +65,7 @@ assert 'LauncherBuiltinActions.normalizeDisabledIds(o.launcherDisabledBuiltinAct
 assert 'function builtinActionEnabled(actionId)' in launcher
 assert 'function builtinActionIdForMode(mode)' in launcher
 palette = launcher[launcher.index('function buildLauncherActionResults'):launcher.index('function russianApplicationCount')]
-for action_id in ('tool.schemeVariants', 'tool.wallpaperDynamic', 'tool.colorSchemes', 'tool.wallpapers', 'tool.emoji'):
+for action_id in ('tool.schemeVariants', 'tool.wallpaperDynamic', 'tool.colorSchemes', 'tool.wallpapers', 'tool.emoji', 'tool.dashboard'):
     assert f'builtinActionEnabled("{action_id}")' in palette, f'{action_id} must be filtered from the > palette'
 for tab_id in ('tab.apps', 'tab.run', 'tab.windows', 'tab.clipboard', 'tab.power', 'tab.network', 'tab.packages', 'tab.pass', 'tab.projects', 'tab.calculator'):
     assert f'return "{tab_id}"' in launcher, f'{tab_id} must use a stable tab ID, independent of its editable label'
@@ -73,7 +73,7 @@ assert 'if (!root.builtinActionEnabled(root.builtinActionIdForMode(tab.mode))) c
 assert 'function setBuiltinActionEnabled(actionId, enabled)' in settings
 assert settings.count('changeKeys: ({ arrayContains: { launcherDisabledBuiltinActions: [') == 2
 assert '"tab.apps"' in settings and '"tab.calculator"' in settings
-assert '"tool.colorSchemes"' in settings and '"tool.wallpaperDynamic"' in settings
+assert '"tool.colorSchemes"' in settings and '"tool.wallpaperDynamic"' in settings and '"tool.dashboard"' in settings
 assert 'model: LauncherBuiltinActions.tabActions' in settings and 'model: LauncherBuiltinActions.toolActions' in settings
 assert 'Переходы между вкладками' in settings and 'Инструменты' in settings
 assert 'Каталог пользовательских действий : не затрагивается.' in settings

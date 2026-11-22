@@ -184,24 +184,58 @@ cpu_usage_percent() {
 # semantics of `free`, which can report a different value on older procps.
 mem_usage_percent_into() {
     local output_var="${1:-}" meminfo_path="${2:-/proc/meminfo}"
-    local key value total=0 available=0 used pct computed
+    local key value total=0 available=0 used pct computed available_found=0
+    local swap_total=0 swap_free=0 swap_total_found=0 swap_free_found=0 swap_used=0
     [[ "$output_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 2
     printf -v "$output_var" '%s' '0'
 
-    # /proc/meminfo is tiny and these two fields are all the percentage needs.
-    # Parse with Bash built-ins to avoid starting AWK on every memory poll.
+    # These snapshot details are additive outputs for consumers that need an
+    # absolute used/total view. Keep them in the current shell so the caller
+    # can reuse this same /proc/meminfo read without another process or poll.
+    MEM_USAGE_USED_KIB=0
+    MEM_USAGE_TOTAL_KIB=0
+    SWAP_USAGE_USED_KIB=0
+    SWAP_USAGE_TOTAL_KIB=0
+
+    # /proc/meminfo is tiny and these fields are all the percentage/capacity
+    # view needs. Parse with Bash built-ins to avoid starting AWK per poll.
     while read -r key value _; do
         case "$key" in
             MemTotal:) [[ "${value:-}" =~ ^[0-9]+$ ]] && total="$value" ;;
-            MemAvailable:) [[ "${value:-}" =~ ^[0-9]+$ ]] && available="$value" ;;
+            MemAvailable:)
+                if [[ "${value:-}" =~ ^[0-9]+$ ]]; then
+                    available="$value"
+                    available_found=1
+                fi
+                ;;
+            SwapTotal:)
+                if [[ "${value:-}" =~ ^[0-9]+$ ]]; then
+                    swap_total="$value"
+                    swap_total_found=1
+                fi
+                ;;
+            SwapFree:)
+                if [[ "${value:-}" =~ ^[0-9]+$ ]]; then
+                    swap_free="$value"
+                    swap_free_found=1
+                fi
+                ;;
         esac
-        [[ "$total" != 0 && "$key" == MemAvailable: ]] && break
+        # Read the swap fields in the same /proc/meminfo pass. They normally
+        # follow the physical-memory fields, so stopping after MemAvailable
+        # would leave Dashboard unable to describe swap usage.
+        (( total > 0 && available_found && swap_total_found && swap_free_found )) && break
     done < "$meminfo_path"
 
     if (( total > 0 )); then
         (( available < 0 )) && available=0
         (( available > total )) && available="$total"
         used=$((total - available))
+        # Publish capacity only when both source fields were actually present.
+        if (( available_found )); then
+            MEM_USAGE_USED_KIB="$used"
+            MEM_USAGE_TOTAL_KIB="$total"
+        fi
         # Round to the nearest whole percent, matching the prior printf format.
         pct=$(( (used * 100 + total / 2) / total ))
         (( pct < 0 )) && pct=0
@@ -209,6 +243,15 @@ mem_usage_percent_into() {
         computed=$pct
     else
         computed=0
+    fi
+
+    # A missing/invalid swap pair stays unavailable (0/0); a machine with no
+    # configured swap also reports 0/0 and the Dashboard hides the row. Never
+    # turn an inconsistent free value into a plausible-looking measurement.
+    if (( swap_total_found && swap_free_found && swap_total > 0 && swap_free <= swap_total )); then
+        swap_used=$((swap_total - swap_free))
+        SWAP_USAGE_USED_KIB="$swap_used"
+        SWAP_USAGE_TOTAL_KIB="$swap_total"
     fi
     printf -v "$output_var" '%s' "$computed"
 }

@@ -40,6 +40,13 @@ Item {
             width: parent.width
             height: parent.height
 
+            SettingsDashboardSection {
+                id: dashboardSectionSettingsSection
+                objectName: "settings-search-page:dashboard"
+                host: root.host
+                settings: root.settings
+            }
+
             SettingsCalendarSection {
                 id: calendarSectionSettingsSection
                 objectName: "settings-search-page:calendar"

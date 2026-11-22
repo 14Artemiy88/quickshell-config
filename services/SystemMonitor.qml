@@ -9,7 +9,7 @@ Item {
 
     property var data: ({
         top_apps: { cpu: [], mem: [] },
-        net_stat: { down: "0 B", up: "0 B", speed_down: "0 B/s", speed_up: "0 B/s" },
+        net_stat: { down: "0 B", up: "0 B", speed_down: "0 B/s", speed_up: "0 B/s", sample_ready: false, speed_ready: false },
         volumes: [],
         network: []
     })

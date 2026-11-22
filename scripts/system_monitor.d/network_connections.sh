@@ -40,6 +40,10 @@ _get_network_connections_unlocked() {
             wireguard) icon="󰠥" ;;
             *) icon="" ;;
         esac
+        # nmcli prints `--` for a profile that is not bound to an active
+        # device. Normalize that sentinel before deriving status or exposing
+        # the device name to consumers such as Dashboard.
+        [[ "${device:-}" == "--" ]] && device=''
         # This runs once per connection whenever the cache refreshes. A small
         # command substitution here would create a subshell for every row; use
         # a direct assignment instead while preserving the on/off semantics.
@@ -48,7 +52,7 @@ _get_network_connections_unlocked() {
         else
             status=off
         fi
-        entries+=("$name" "$icon" "$status")
+        entries+=("$name" "$icon" "$conn_type" "$status" "${device:-}")
     done < <(nmcli -t -e yes -g NAME,TYPE,DEVICE c 2>/dev/null | awk '
         function split_record(line, field,    i, c, nextc, n) {
             field[1] = field[2] = field[3] = ""
@@ -81,8 +85,8 @@ _get_network_connections_unlocked() {
     if ((${#entries[@]})); then
         result=$(jq -cn --args '
             $ARGS.positional as $fields |
-            [range(0; (($fields | length) / 3 | floor)) as $i |
-                {name:$fields[$i * 3], type:$fields[$i * 3 + 1], status:$fields[$i * 3 + 2]}]
+            [range(0; (($fields | length) / 5 | floor)) as $i |
+                {name:$fields[$i * 5], type:$fields[$i * 5 + 1], kind:$fields[$i * 5 + 2], status:$fields[$i * 5 + 3], device:$fields[$i * 5 + 4]}]
         ' -- "${entries[@]}") || result='[]'
     else
         result='[]'

@@ -89,8 +89,11 @@ system_monitor_assemble_payload() {
             if (($v | type) == "object" and
                 ($v.down | type) == "string" and ($v.up | type) == "string" and
                 ($v.speed_down | type) == "string" and ($v.speed_up | type) == "string")
-            then $v
-            else {down: "0 B", up: "0 B", speed_down: "0 B/s", speed_up: "0 B/s"} end;
+            then ($v + {
+                sample_ready: (if ($v.sample_ready | type) == "boolean" then $v.sample_ready else false end),
+                speed_ready: (if ($v.speed_ready | type) == "boolean" then $v.speed_ready else false end)
+            })
+            else {down: "0 B", up: "0 B", speed_down: "0 B/s", speed_up: "0 B/s", sample_ready: false, speed_ready: false} end;
         def safe_volumes($raw):
             decode($raw) as $v |
             if (($v | type) == "array" and all($v[]; type == "object" and
@@ -100,7 +103,11 @@ system_monitor_assemble_payload() {
             decode($raw) as $v |
             if (($v | type) == "array" and all($v[]; type == "object" and
                 (.name | type) == "string" and (.type | type) == "string" and (.status | type) == "string"))
-            then $v else [] end;
+            then [$v[] | . + {
+                device: (if (.device | type) == "string" then .device else "" end),
+                kind: (if (.kind | type) == "string" then .kind else "" end)
+            }]
+            else [] end;
         {
             top_apps: safe_top($top),
             net_stat: safe_net($net),

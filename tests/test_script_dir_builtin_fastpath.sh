@@ -40,7 +40,16 @@ chmod +x "$work/bin/dirname"
 export PATH="$work/bin:$PATH"
 
 cpu_output="$(CPU_STATS_SAMPLE_INTERVAL=0 bash "$space_root/scripts/cpu_stats_once")"
-[[ "$cpu_output" == '{"cpu":[51],"ram":43}' ]] || fail "absolute path with spaces did not source the sibling library: $cpu_output"
+if ! python3 - "$cpu_output" <<'PYJSON'
+import json
+import sys
+sample = json.loads(sys.argv[1])
+assert sample.get("cpu") == [51], sample
+assert sample.get("ram") == 43, sample
+PYJSON
+then
+    fail "absolute path with spaces did not source the sibling library or preserve CPU/RAM values: $cpu_output"
+fi
 mem_output="$(bash "$space_root/scripts/mem_stats_once")"
 [[ "$mem_output" == 43 ]] || fail "memory collector did not source the sibling library: $mem_output"
 

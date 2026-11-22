@@ -6,7 +6,7 @@ _get_network_stat_unlocked() {
     local proc_uptime="${3:-/proc/uptime}"
     local sys_class_net="${4:-/sys/class/net}"
     local prev_up=0 prev_down=0 prev_time_cs='' prev_signature='' have_previous=0 have_previous_time=0
-    local result cd cu sd su state_tmp now_cs uptime uptime_seconds uptime_fraction
+    local result cd cu sd su state_tmp now_cs uptime uptime_seconds uptime_fraction sample_ready=0 speed_ready=0 valid_interface_count=0
     local iface_path iface ifindex iflink line counters rx tx selected_filter=0
     local interface_signature current_signature signature_prefix iface_name insert_at
     local -a dev_fields=() active_interface_names=() sorted_interface_names=()
@@ -31,7 +31,7 @@ _get_network_stat_unlocked() {
     fi
 
     if [[ ! -r "$proc_net_dev" ]]; then
-        printf '{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s"}'
+        printf '{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s","sample_ready":false,"speed_ready":false}'
         return 0
     fi
 
@@ -78,6 +78,7 @@ _get_network_stat_unlocked() {
         if [[ -z "${active_interfaces[$iface]+present}" ]]; then
             active_interfaces["$iface"]=1
             active_interface_names+=("$iface")
+            valid_interface_count=$((valid_interface_count + 1))
         fi
         cd=$((cd + 10#$rx))
         cu=$((cu + 10#$tx))
@@ -109,6 +110,7 @@ _get_network_stat_unlocked() {
         interface_signature=''
     fi
     current_signature="${signature_prefix}${interface_signature}"
+    (( valid_interface_count > 0 )) && sample_ready=1
 
     # `speed_*` must be a rate, not a raw byte delta: the monitor interval is
     # user-configurable (200 ms to 10 s). Use /proc/uptime centiseconds, which
@@ -140,6 +142,7 @@ _get_network_stat_unlocked() {
         if (( elapsed_cs > 0 && delta_down >= 0 && delta_up >= 0 )); then
             sd=$((delta_down * 100 / elapsed_cs))
             su=$((delta_up * 100 / elapsed_cs))
+            speed_ready=1
         fi
     fi
 
@@ -149,11 +152,13 @@ _get_network_stat_unlocked() {
     # All four inputs are integers produced from validated proc counters. If
     # the formatter unexpectedly returns fewer lines, keep the JSON safe.
     while ((${#formatted_bytes[@]} < 4)); do formatted_bytes+=("0 B"); done
-    printf '{"down":"%s","up":"%s","speed_down":"%s/s","speed_up":"%s/s"}' \
+    printf '{"down":"%s","up":"%s","speed_down":"%s/s","speed_up":"%s/s","sample_ready":%s,"speed_ready":%s}' \
         "${formatted_bytes[0]}" \
         "${formatted_bytes[1]}" \
         "${formatted_bytes[2]}" \
-        "${formatted_bytes[3]}"
+        "${formatted_bytes[3]}" \
+        "$([[ $sample_ready == 1 ]] && printf true || printf false)" \
+        "$([[ $speed_ready == 1 ]] && printf true || printf false)"
 
     # Publish the baseline atomically; the caller serializes readers/writers with flock.
     state_tmp="$(mktemp "${state_file}.tmp.XXXXXX" 2>/dev/null)" || state_tmp=""

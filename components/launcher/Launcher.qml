@@ -146,6 +146,7 @@ PanelWindow {
 
     property int mode: modeApps
     property bool layoutEditMode: false
+    signal dashboardRequested()
     // Invalidates delayed asynchronous actions when the user closes, reopens,
     // or switches the launcher to another tab while a request is in flight.
     property int launcherInteractionGeneration: 0
@@ -1955,6 +1956,20 @@ PanelWindow {
         }
 
         const results = []
+        const dashboardActionScore = root.builtinActionEnabled("tool.dashboard")
+            ? (normalizedQuery === "" ? 0
+                : root.runFuzzyScore("dashboard overview overview-panel system dashboard panel summary обзор обзорная панель сводка панель системы", normalizedQuery))
+            : -1
+        if (dashboardActionScore >= 0) {
+            results.push({
+                kind: "dashboardAction",
+                name: "Dashboard",
+                icon: "󰕮",
+                description: "Открыть обзор системы · >dashboard",
+                score: dashboardActionScore,
+                order: -4
+            })
+        }
         const schemeActionScore = root.builtinActionEnabled("tool.colorSchemes")
             ? (normalizedQuery === "" ? 0
                 : root.runFuzzyScore("scheme schemes theme themes color-scheme colour-scheme palette colors цвета тема темы палитра оформление", normalizedQuery))
@@ -2062,6 +2077,7 @@ PanelWindow {
         switch (String(itemData.kind || "")) {
         case "appCategory": return String(itemData.categoryLabel || itemData.category || "")
         case "emoji": return String(itemData.name || "")
+        case "dashboardAction": return String(itemData.name || "Dashboard")
         case "emojiPickerAction": return String(itemData.name || "Emoji picker")
         case "schemePickerAction": return String(itemData.name || "Color schemes")
         case "schemeVariantPickerAction": return String(itemData.name || "Scheme variants")
@@ -2090,6 +2106,8 @@ PanelWindow {
         switch (String(itemData.kind || "")) {
         case "appCategory":
             return root.russianApplicationCount(itemData.count) + " · нажмите Enter, чтобы открыть категорию"
+        case "dashboardAction":
+            return "ОБЗОР · Быстрая сводка системы · >dashboard"
         case "action":
             return "ДЕЙСТВИЕ · " + String(itemData.description || "")
         case "customAction":
@@ -2293,6 +2311,11 @@ PanelWindow {
 
     function activateAppsSearchResult(result) {
         if (!result) return
+        if (result.kind === "dashboardAction") {
+            root.hideLauncher()
+            root.dashboardRequested()
+            return
+        }
         if (result.kind === "appCategory") {
             const category = String(result.category || "").trim()
             if (!category) return
@@ -4197,7 +4220,8 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     visible: !appIconImage.visible
                                         && appDelegate.itemData
-                                        && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction"
+                                        && (appDelegate.itemData.kind === "dashboardAction"
+                                            || appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction"
                                             || appDelegate.itemData.kind === "wallpaperPickerAction"
                                             || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
                                     text: String(appDelegate.itemData.icon || "󰌌")
@@ -4227,7 +4251,7 @@ PanelWindow {
                                                     ? LauncherSchemePicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
                                                     : (appDelegate.itemData && appDelegate.itemData.kind === "schemeVariant"
                                                         ? LauncherSchemeVariantPicker.parseQuery(searchField.text.replace(/^\s*>\s*/, "")).query
-                                                    : (appDelegate.itemData && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction" || appDelegate.itemData.kind === "emojiPickerAction" || appDelegate.itemData.kind === "schemePickerAction" || appDelegate.itemData.kind === "schemeVariantPickerAction" || appDelegate.itemData.kind === "schemeVariant" || appDelegate.itemData.kind === "dynamicSchemeAction" || appDelegate.itemData.kind === "dynamicSchemeGenerate" || appDelegate.itemData.kind === "dynamicSchemeUnavailable" || appDelegate.itemData.kind === "dynamicSchemeError" || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction")
+                                                    : (appDelegate.itemData && (appDelegate.itemData.kind === "action" || appDelegate.itemData.kind === "customAction" || appDelegate.itemData.kind === "emojiPickerAction" || appDelegate.itemData.kind === "schemePickerAction" || appDelegate.itemData.kind === "schemeVariantPickerAction" || appDelegate.itemData.kind === "schemeVariant" || appDelegate.itemData.kind === "dynamicSchemeAction" || appDelegate.itemData.kind === "dynamicSchemeGenerate" || appDelegate.itemData.kind === "dynamicSchemeUnavailable" || appDelegate.itemData.kind === "dynamicSchemeError" || appDelegate.itemData.kind === "dynamicSchemeWallpaperAction" || appDelegate.itemData.kind === "dashboardAction")
                                                         ? searchField.text.replace(/^\s*>\s*/, "")
                                                         : (appDelegate.itemData && appDelegate.itemData.kind === "app" && appModel.specialSearch
                                                             ? appModel.specialSearch.query

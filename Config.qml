@@ -84,9 +84,9 @@ QtObject {
     property string animationNotificationsVisibilityStyle: "fade"
 
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
-    property var settingsTabOrder: ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
+    property var settingsTabOrder: ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
     property var settingsTabLabels: ({
-        modules: "Модули", themes: "Темы", general: "Общие", timers: "Таймеры",
+        modules: "Модули", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
         launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", settingsWindow: "Окно настроек"
@@ -97,6 +97,11 @@ QtObject {
     property int backgroundBlurRadius: 10
 
     // Launcher layout and dedicated window background; text, accent, and borders use the shared theme.
+    property var dashboardVisibleCards: ["today", "system", "network", "weather", "media"]
+    property var dashboardCardOrder: ["today", "system", "network", "weather", "media"]
+    property string dashboardColumnsMode: "auto"
+    property var dashboardCardSizes: ({ today: "compact", system: "compact", network: "compact", weather: "compact", media: "compact" })
+
     property bool launcherEnabled: true
     property int launcherWidth: 720
     property int launcherHeight: 640

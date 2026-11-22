@@ -166,7 +166,7 @@ Item {
                     "tab.network", "tab.packages", "tab.pass", "tab.projects", "tab.calculator"
                 ] } },
                 { arrayContains: { launcherDisabledBuiltinActions: [
-                    "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic"
+                    "tool.colorSchemes", "tool.schemeVariants", "tool.wallpapers", "tool.emoji", "tool.wallpaperDynamic", "tool.dashboard"
                 ] } },
                 { keys: ["launcherCustomActions"] }
             ],
@@ -223,7 +223,7 @@ Item {
             return root.launcherPageHasChanges(pageId)
 
         var scopes = {
-            modules: "modules", themes: "themes", general: "general",
+            modules: "modules", dashboard: "dashboard", themes: "themes", general: "general",
             timers: "timer", player: "player", mopidy: "mopidy",
             weather: "weather", cava: "cava", cpuRam: "cpu",
             network: "network", volume: "volume", calendar: "calendar",
@@ -243,6 +243,7 @@ Item {
 
     function resetCurrentSettingsPage() {
         switch (root.currentPageId) {
+        case "dashboard": settings.resetDashboardSettings(); break
         case "general": settings.resetGeneralSettings(); break
         case "timers": settings.resetTimerSettings(); break
         case "player": settings.resetPlayerSettings(); break

@@ -1,5 +1,66 @@
 // Settings reset logic extracted from Settings.qml.
 
+
+function normalizeDashboardColumnsMode(value) {
+    var mode = String(value === undefined || value === null ? "" : value)
+    return mode === "auto" || mode === "one" || mode === "two" ? mode : "auto"
+}
+
+function normalizeDashboardCardOrder(values) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    if (!Array.isArray(values)) return validIds.slice()
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (validIds.indexOf(id) >= 0 && result.indexOf(id) < 0) result.push(id)
+    }
+    for (var j = 0; j < validIds.length; ++j)
+        if (result.indexOf(validIds[j]) < 0) result.push(validIds[j])
+    return result
+}
+
+function normalizeDashboardCards(values, orderValues) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    if (!Array.isArray(values)) return validIds.slice()
+
+    // Migrate the exact previous default only when the stored order also
+    // proves this is a pre-Today profile. A current profile can intentionally
+    // disable Today while retaining all four module cards; in that case the
+    // five-card order still contains "today" and must remain untouched.
+    var legacyIds = ["system", "network", "weather", "media"]
+    var hasLegacySelection = values.length === legacyIds.length
+    if (hasLegacySelection) {
+        for (var legacyIndex = 0; legacyIndex < legacyIds.length; ++legacyIndex) {
+            var legacyId = String(values[legacyIndex] || "")
+            if (legacyIds.indexOf(legacyId) < 0 || values.indexOf(legacyId) !== legacyIndex) {
+                hasLegacySelection = false
+                break
+            }
+        }
+    }
+    var orderContainsToday = Array.isArray(orderValues) && orderValues.indexOf("today") >= 0
+    if (hasLegacySelection && !orderContainsToday) return validIds.slice()
+
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (validIds.indexOf(id) >= 0 && result.indexOf(id) < 0) result.push(id)
+    }
+    return result
+}
+
+function normalizeDashboardCardSizes(values) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    var source = values && typeof values === "object" && !Array.isArray(values) ? values : ({})
+    var result = {}
+    for (var i = 0; i < validIds.length; ++i) {
+        var id = validIds[i]
+        var mode = String(source[id] === undefined || source[id] === null ? "" : source[id])
+        result[id] = mode === "compact" || mode === "expanded" ? mode : "compact"
+    }
+    return result
+}
+
 function normalizeLauncherDynamicSchemeVariant(value) {
     var candidate = String(value === undefined || value === null ? "" : value).trim()
     var supported = ["scheme-content", "scheme-expressive", "scheme-fidelity", "scheme-fruit-salad", "scheme-monochrome", "scheme-neutral", "scheme-rainbow", "scheme-tonal-spot"]
@@ -434,6 +495,29 @@ function resetNotificationsSettings(owner, config) {
         "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages",
         "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
     ])
+    owner.save()
+}
+
+function resetDashboardSettings(owner, config) {
+    var profile = activeProfileData(owner)
+    if (!profile) return
+    // Keep the raw profile order for legacy detection: an absent order means
+    // the profile predates Today, even though the normalized reset value will
+    // use the current five-card default below.
+    var profileCardOrder = profile.dashboardCardOrder
+    config.dashboardVisibleCards = normalizeDashboardCards(
+        profile.dashboardVisibleCards === undefined ? owner.defaultConfig.dashboardVisibleCards : profile.dashboardVisibleCards,
+        profileCardOrder
+    )
+    config.dashboardCardOrder = normalizeDashboardCardOrder(
+        profile.dashboardCardOrder === undefined ? owner.defaultConfig.dashboardCardOrder : profile.dashboardCardOrder
+    )
+    config.dashboardColumnsMode = normalizeDashboardColumnsMode(
+        profile.dashboardColumnsMode === undefined ? owner.defaultConfig.dashboardColumnsMode : profile.dashboardColumnsMode
+    )
+    config.dashboardCardSizes = normalizeDashboardCardSizes(
+        profile.dashboardCardSizes === undefined ? owner.defaultConfig.dashboardCardSizes : profile.dashboardCardSizes
+    )
     owner.save()
 }
 

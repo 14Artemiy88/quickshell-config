@@ -51,7 +51,18 @@ for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificatio
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
 assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules" }'), 'sidebar declares the Notifications page in the Modules group');
-assert(config.includes('"launcher", "notifications", "settingsWindow"') && defaults.includes('"launcher", "notifications", "settingsWindow"'), 'default sidebar order places Notifications before Settings Window');
+function sidebarOrder(source, pattern, label) {
+  const match = source.match(pattern);
+  assert(match, `${label} declares a settings sidebar order`);
+  return match[1].split(',').map(value => value.trim().replace(/^['"]|['"]$/g, ''));
+}
+const configOrder = sidebarOrder(config, /property var settingsTabOrder:\s*\[([^\]]+)\]/, 'Config');
+const defaultsOrder = sidebarOrder(defaults, /settingsTabOrder:\s*\[([^\]]+)\]/, 'SettingsDefaults');
+for (const [label, order] of [['Config', configOrder], ['SettingsDefaults', defaultsOrder]]) {
+  assert(order.includes('notifications') && order.includes('settingsWindow') &&
+    order.indexOf('notifications') < order.indexOf('settingsWindow'),
+    `${label} sidebar order places Notifications before Settings Window`);
+}
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
 assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
 assert(navigation.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');

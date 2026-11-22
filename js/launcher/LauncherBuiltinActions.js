@@ -21,7 +21,8 @@ var toolActions = [
     { id: "tool.schemeVariants", label: "Scheme variants — Варианты Material You" },
     { id: "tool.wallpapers", label: "Wallpaper picker — Обои и случайный выбор" },
     { id: "tool.emoji", label: "Emoji picker — Эмодзи" },
-    { id: "tool.wallpaperDynamic", label: "Wallpaper Dynamic — Динамическая тема" }
+    { id: "tool.wallpaperDynamic", label: "Wallpaper Dynamic — Динамическая тема" },
+    { id: "tool.dashboard", label: "Dashboard — Обзор системы" }
 ]
 
 function knownIds() {

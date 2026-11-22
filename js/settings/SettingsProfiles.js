@@ -357,6 +357,7 @@ function profileSavePathMatches(owner, scope, argument, path) {
         return false
     }
     if (scope === "module") return modulePathMatches(path, argument)
+    if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
     if (scope === "launcher") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
             return path.length < 2 || child === "launcher"

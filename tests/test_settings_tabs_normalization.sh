@@ -17,7 +17,7 @@ function loadLibrary(relativePath, appended = '') {
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
   'this.api = { normalizeSettingsTabOrder, normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
-const ids = ['modules','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','settingsWindow'];
+const ids = ['modules','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
 // Keep all duplicated registries aligned so a future tab cannot accidentally
@@ -40,13 +40,15 @@ assert(navigationSource.includes('property string currentPageId: "modules"'), 'n
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widgetSource), 'numeric primary page state is fully removed');
 assert(!/currentOtherTab/.test(fs.readFileSync(path.join(root, 'components/settings/sections/SettingsCalendarSection.qml'), 'utf8')), 'content components no longer route by numeric page index');
 assert(registrySource.api.hasOtherPageId('notifications'), 'known page IDs resolve');
+assert(registrySource.api.hasOtherPageId('dashboard'), 'Dashboard settings page resolves');
+assert.strictEqual(registrySource.api.saveScopeForPageId('dashboard', 0), 'dashboard', 'Dashboard cards have an independent profile scope');
 assert(!registrySource.api.hasOtherPageId('not-a-page'), 'unknown page IDs are rejected');
 const widgetIds = definitions.map(item => item.id);
 assert.deepStrictEqual(widgetIds, ids, 'sidebar definitions match normalized tab IDs');
 const otherIds = otherPages.map(page => page.id);
 assert.deepStrictEqual(otherIds.slice().sort(), ids.filter(id => id !== 'modules' && id !== 'themes').slice().sort(), 'every non-core tab has exactly one content route');
 assert.deepStrictEqual(otherPages.map(page => page.id), otherIds, 'page metadata order matches route order');
-assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications'], 'page save scopes remain aligned with their stable IDs');
+assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['dashboard','general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications'], 'page save scopes remain aligned with their stable IDs');
 for (let i = 0; i < otherPages.length; i++)
   assert.strictEqual(registrySource.api.saveScopeForPageId(otherPages[i].id, 0), otherPages[i].saveScope, `page ${otherPages[i].id} resolves its own save scope`);
 assert(otherPages.every(page => Array.isArray(page.subTabs)), 'each registered page declares its subtab list');

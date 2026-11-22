@@ -6,6 +6,8 @@ SCRIPT_DIR="${SCRIPT_PATH%/*}"
 [[ "$SCRIPT_DIR" != "$SCRIPT_PATH" ]] || SCRIPT_DIR=.
 source "$SCRIPT_DIR/cpu_stats.d/common.sh"
 PROC_STAT="${CPU_STATS_PROC_STAT:-/proc/stat}"
+PROC_LOADAVG="${CPU_STATS_PROC_LOADAVG:-/proc/loadavg}"
+PROC_UPTIME="${CPU_STATS_PROC_UPTIME:-/proc/uptime}"
 # CpuWidget passes a sample window derived from its configured poll cadence.
 # Keep direct/scripted invocations compatible with CPU_STATS_SAMPLE_INTERVAL.
 SAMPLE_INTERVAL="${CPU_STATS_SAMPLE_INTERVAL:-0.25}"
@@ -16,18 +18,55 @@ elif [[ ! "$SAMPLE_INTERVAL" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
 fi
 
 before="" after="" pct_snapshot="" ram=""
+load1="" load5="" load15="" load_avg="[]"
+uptime_value="" uptime_seconds=-1
 cpu_read_counters_with_ids_into before "$PROC_STAT" 2>/dev/null || true
 sleep "$SAMPLE_INTERVAL"
 cpu_read_counters_with_ids_into after "$PROC_STAT" 2>/dev/null || true
 cpu_usage_snapshot_percentages_into pct_snapshot "$before" "$after"
 
 out="["
+cpu_ids="["
 first=1
 while read -r cpu pct; do
   [[ "${cpu:-}" =~ ^cpu[0-9]+$ && "${pct:-}" =~ ^[0-9]+$ ]] || continue
-  (( first )) || out+=","; first=0
+  if (( first )); then
+    first=0
+  else
+    out+=","; cpu_ids+=","
+  fi
   out+="$pct"
+  cpu_ids+="\"$cpu\""
 done <<< "$pct_snapshot"
 out+="]"
+cpu_ids+="]"
+# Read the three kernel load averages with Bash's builtin read. This adds no
+# process or polling loop; it is part of the existing CPU/RAM sample window.
+if IFS=' ' read -r load1 load5 load15 _ < "$PROC_LOADAVG" 2>/dev/null \
+        && [[ "$load1" =~ ^[0-9]+([.][0-9]+)?$ \
+            && "$load5" =~ ^[0-9]+([.][0-9]+)?$ \
+            && "$load15" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  load_avg="[$load1,$load5,$load15]"
+fi
+# The Dashboard System card footer also shows system uptime. Read it in this existing
+# CPU/RAM sample rather than starting another process or polling loop. Keep -1
+# when /proc/uptime is unavailable or malformed so consumers can hide it.
+if IFS=' ' read -r uptime_value _ < "$PROC_UPTIME" 2>/dev/null \
+        && [[ "$uptime_value" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+  uptime_seconds="${uptime_value%%.*}"
+  while [[ ${#uptime_seconds} -gt 1 && "$uptime_seconds" == 0* ]]; do
+    uptime_seconds="${uptime_seconds#0}"
+  done
+  [[ "$uptime_seconds" =~ ^[0-9]+$ ]] || uptime_seconds=-1
+fi
 mem_usage_percent_into ram /proc/meminfo
-printf '{"cpu":%s,"ram":%s}\n' "$out" "${ram:-0}"
+# cpu_ids is additive metadata parallel to cpu; existing consumers of cpu/ram
+# can continue to ignore it, while Dashboard can identify a peak logical CPU.
+# RAM and swap capacity reuse the same meminfo read as the percentage calculation.
+# Zero RAM capacity fields mean that a complete MemTotal/MemAvailable pair was
+# unavailable; zero swap fields mean swap is absent or its complete pair was
+# unavailable. Consumers must not present either as measured 0 GiB usage.
+printf '{"cpu":%s,"cpu_ids":%s,"load_avg":%s,"uptime_seconds":%s,"ram":%s,"ram_used_kib":%s,"ram_total_kib":%s,"swap_used_kib":%s,"swap_total_kib":%s}\n' \
+  "$out" "$cpu_ids" "$load_avg" "$uptime_seconds" "${ram:-0}" \
+  "${MEM_USAGE_USED_KIB:-0}" "${MEM_USAGE_TOTAL_KIB:-0}" \
+  "${SWAP_USAGE_USED_KIB:-0}" "${SWAP_USAGE_TOTAL_KIB:-0}"

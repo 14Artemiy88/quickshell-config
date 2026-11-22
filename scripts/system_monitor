@@ -19,7 +19,7 @@ if [[ -z "$TMPD" || ! -d "$TMPD" ]]; then
     # This is an emergency fallback; a private temp directory is preferred.
     TMPD="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/quickshell-system-monitor-$$"
     (umask 077 && mkdir "$TMPD") 2>/dev/null || {
-        printf '{"top_apps":{"cpu":[],"mem":[]},"net_stat":{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s"},"volumes":[],"network":[]}\n'
+        printf '{"top_apps":{"cpu":[],"mem":[]},"net_stat":{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s","sample_ready":false,"speed_ready":false},"volumes":[],"network":[]}\n'
         exit 0
     }
 fi
@@ -39,7 +39,7 @@ TOP_APPS_SYSTEM_REMAINDER_LABEL="${8:-Система/прочее}"
 if [[ "$WANT_NET_STAT" == "1" ]]; then
     get_network_stat "$STATE_NET" > "$TMPD/net" &
 else
-    printf '{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s"}' > "$TMPD/net"
+    printf '{"down":"0 B","up":"0 B","speed_down":"0 B/s","speed_up":"0 B/s","sample_ready":false,"speed_ready":false}' > "$TMPD/net"
 fi
 
 if [[ "$WANT_TOP_APPS" == "1" ]]; then

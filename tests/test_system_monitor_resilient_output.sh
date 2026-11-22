@@ -12,6 +12,10 @@ printf '{broken\n' > "$TMP/bad-top.json"
 printf '{"down":"99 B","up":"8 B","speed_down":"2 B/s","speed_up":"1 B/s"}\n' > "$TMP/good-net.json"
 printf '[{"num":"12","value":"44.0","name":"Audio"}]\n' > "$TMP/good-vol.json"
 printf '{"name":false}\n' > "$TMP/bad-network.json"
+printf '[{"name":"Legacy","type":"wifi","status":"on"}]\n' > "$TMP/legacy-network.json"
+legacy="$(system_monitor_assemble_payload "$TMP/bad-top.json" "$TMP/good-net.json" "$TMP/good-vol.json" "$TMP/legacy-network.json")"
+jq -e '.network == [{name:"Legacy",type:"wifi",status:"on",device:"",kind:""}]' <<< "$legacy" >/dev/null \
+    || fail "legacy connection entries must receive empty optional device and kind fields: $legacy"
 actual="$(system_monitor_assemble_payload "$TMP/bad-top.json" "$TMP/good-net.json" "$TMP/good-vol.json" "$TMP/bad-network.json")"
 jq -e '
     .top_apps == {cpu:[],mem:[]} and

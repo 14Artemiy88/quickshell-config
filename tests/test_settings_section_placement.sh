@@ -21,7 +21,7 @@ grep -Fq 'function isSettingsTabSelected(id)' "$WIDGET"
 grep -Fq 'root.currentPageId === String(id)' "$NAVIGATION"
 grep -Fq 'onClicked: root.host.selectSettingsTab(parent.modelData.id)' "$NAV_UI"
 grep -Fq '{ id: "mopidy", defaultLabel: "Mopidy", groupId: "modules" }' "$REGISTRY"
-grep -Fq '{ id: "launcher", defaultLabel: "Лаунчер", groupId: "launcher" }' "$REGISTRY"
+grep -Fq '{ id: "launcher", defaultLabel: "Общее", groupId: "launcher" }' "$REGISTRY"
 
 # Calendar controls are split into separate, visibility-scoped subtabs.
 grep -Fq '{ id: "calendar", saveScope: "calendar", subTabs: ["Разметка", "Цвета", "Метки заметок", "Анимации"] }' "$REGISTRY"

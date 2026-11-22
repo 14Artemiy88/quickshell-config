@@ -2,6 +2,66 @@ var STORAGE_FORMAT = "profile-overrides-v1"
 var PROFILE_STORAGE_FORMAT = "sparse-v1"
 var SETTINGS_SCHEMA_VERSION = 1
 
+function normalizeDashboardColumnsMode(value) {
+    var mode = String(value === undefined || value === null ? "" : value)
+    return mode === "auto" || mode === "one" || mode === "two" ? mode : "auto"
+}
+
+function normalizeDashboardCardOrder(values) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    if (!Array.isArray(values)) return validIds.slice()
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (validIds.indexOf(id) >= 0 && result.indexOf(id) < 0) result.push(id)
+    }
+    for (var j = 0; j < validIds.length; ++j)
+        if (result.indexOf(validIds[j]) < 0) result.push(validIds[j])
+    return result
+}
+
+function normalizeDashboardCards(values, orderValues) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    if (!Array.isArray(values)) return validIds.slice()
+
+    // Migrate the exact previous default only when the stored order also
+    // proves this is a pre-Today profile. A current profile can intentionally
+    // disable Today while retaining all four module cards; in that case the
+    // five-card order still contains "today" and must remain untouched.
+    var legacyIds = ["system", "network", "weather", "media"]
+    var hasLegacySelection = values.length === legacyIds.length
+    if (hasLegacySelection) {
+        for (var legacyIndex = 0; legacyIndex < legacyIds.length; ++legacyIndex) {
+            var legacyId = String(values[legacyIndex] || "")
+            if (legacyIds.indexOf(legacyId) < 0 || values.indexOf(legacyId) !== legacyIndex) {
+                hasLegacySelection = false
+                break
+            }
+        }
+    }
+    var orderContainsToday = Array.isArray(orderValues) && orderValues.indexOf("today") >= 0
+    if (hasLegacySelection && !orderContainsToday) return validIds.slice()
+
+    var result = []
+    for (var i = 0; i < values.length; ++i) {
+        var id = String(values[i] || "")
+        if (validIds.indexOf(id) >= 0 && result.indexOf(id) < 0) result.push(id)
+    }
+    return result
+}
+
+function normalizeDashboardCardSizes(values) {
+    var validIds = ["today", "system", "network", "weather", "media"]
+    var source = values && typeof values === "object" && !Array.isArray(values) ? values : ({})
+    var result = {}
+    for (var i = 0; i < validIds.length; ++i) {
+        var id = validIds[i]
+        var mode = String(source[id] === undefined || source[id] === null ? "" : source[id])
+        result[id] = mode === "compact" || mode === "expanded" ? mode : "compact"
+    }
+    return result
+}
+
 function cloneValue(value) {
     if (value === undefined) return undefined
     return JSON.parse(JSON.stringify(value))
@@ -105,9 +165,13 @@ function snapshotObject(owner, config) {
             settingsSearchHighlightBorderWidth: config.settingsSearchHighlightBorderWidth,
             settingsSearchMatchCountFontSize: config.settingsSearchMatchCountFontSize,
             settingsSearchVisible: config.settingsSearchVisible,
-            settingsTabOrder: cloneValue(config.settingsTabOrder || ["modules", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]),
+            settingsTabOrder: cloneValue(config.settingsTabOrder || ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]),
             settingsTabLabels: cloneValue(config.settingsTabLabels || {}),
             settingsNavigationCollapsedGroups: cloneValue(config.settingsNavigationCollapsedGroups || { appearance: false, modules: false, launcher: false }),
+            dashboardVisibleCards: normalizeDashboardCards(config.dashboardVisibleCards, config.dashboardCardOrder),
+            dashboardCardOrder: normalizeDashboardCardOrder(config.dashboardCardOrder),
+            dashboardColumnsMode: normalizeDashboardColumnsMode(config.dashboardColumnsMode),
+            dashboardCardSizes: normalizeDashboardCardSizes(config.dashboardCardSizes),
             notificationsDefaultTimeout: config.notificationsDefaultTimeout,
             notificationsCriticalTimeout: config.notificationsCriticalTimeout,
             notificationsVerticalAnchor: config.notificationsVerticalAnchor,
