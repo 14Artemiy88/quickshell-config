@@ -262,6 +262,27 @@ function clampScrollPosition(position, contentHeight, viewportHeight) {
     return Math.max(0, Math.min(maximum, current))
 }
 
+// Convert mouse-wheel notches and high-resolution touchpad pixel deltas into
+// one bounded Flickable position. A null result means the event had no vertical
+// movement and should be left unhandled; non-zero events stay consumed even at
+// the scroll boundaries so the outer shell does not move underneath Dashboard.
+function wheelScrollPosition(position, contentHeight, viewportHeight, pixelDeltaY, angleDeltaY) {
+    var pixelDelta = Number(pixelDeltaY)
+    var angleDelta = Number(angleDeltaY)
+    if (!isFinite(pixelDelta)) pixelDelta = 0
+    if (!isFinite(angleDelta)) angleDelta = 0
+
+    var delta = pixelDelta !== 0 ? pixelDelta : angleDelta / 120 * 64
+    if (delta === 0) return null
+
+    var current = clampScrollPosition(position, contentHeight, viewportHeight)
+    return clampScrollPosition(
+        current - delta,
+        contentHeight,
+        viewportHeight
+    )
+}
+
 function normalizeColumnsMode(value) {
     var mode = String(value === undefined || value === null ? "" : value)
     return COLUMN_MODES.indexOf(mode) >= 0 ? mode : "auto"

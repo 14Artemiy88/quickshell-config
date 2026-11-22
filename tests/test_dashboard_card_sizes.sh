@@ -16,7 +16,7 @@ function load(relative, append = '', globals = {}) {
 }
 
 const cards = load('js/dashboard/DashboardCards.js',
-  'this.api = { CARD_SIZE_MODES, DEFINITIONS, DEFAULT_IDS, normalizeCardSizeMode, normalizeCardSizes, setCardSize, cardSizeMode, cardSizeModeIndex, cardHeight, balancedColumns, threeCardOrientation, threeCardHorizontalRowHeight, threeCardHorizontalHeight, wideLeadPeerColumns, wideLeadHorizontalHeight, stackHeight, normalizeOrder, move, setEnabled, orderedVisible, columnsForWidth, drawerWidthForScreenWidth, resolveDashboardLayout, clampScrollPosition, THREE_CARD_HORIZONTAL_WIDTH, WIDE_LEAD_GROUP_GAP, WIDE_LEAD_CARD_PADDING, DRAWER_SCREEN_INSET, DEFAULT_DRAWER_MAX_WIDTH };').api;
+  'this.api = { CARD_SIZE_MODES, DEFINITIONS, DEFAULT_IDS, normalizeCardSizeMode, normalizeCardSizes, setCardSize, cardSizeMode, cardSizeModeIndex, cardHeight, balancedColumns, threeCardOrientation, threeCardHorizontalRowHeight, threeCardHorizontalHeight, wideLeadPeerColumns, wideLeadHorizontalHeight, stackHeight, normalizeOrder, move, setEnabled, orderedVisible, columnsForWidth, drawerWidthForScreenWidth, resolveDashboardLayout, clampScrollPosition, COLUMN_GAP, THREE_CARD_HORIZONTAL_WIDTH, WIDE_LEAD_GROUP_GAP, WIDE_LEAD_CARD_PADDING, DRAWER_SCREEN_INSET, DEFAULT_DRAWER_MAX_WIDTH };').api;
 assert.deepStrictEqual(Array.from(cards.CARD_SIZE_MODES), ['compact', 'expanded']);
 assert.strictEqual(cards.WIDE_LEAD_GROUP_GAP, 14, 'wide Bento leads use a compact shared content-group gutter');
 assert.strictEqual(cards.WIDE_LEAD_CARD_PADDING, 8, 'wide lead content sits closer to the card edge without changing normal card padding');
@@ -301,6 +301,116 @@ for (let mask = 0; mask < (1 << definitions.length); ++mask) {
     }
   }
 }
+
+// Exhaustively audit every visible 3-, 4- and 5-card set, configured order,
+// and compact/expanded size combination. This specifically covers the
+// mixed-height lower Bento columns that are easiest to regress visually.
+const geometryGap = cards.COLUMN_GAP
+assert.strictEqual(geometryGap, 6, 'the shared Bento geometry uses the established six-pixel card gutter')
+function minimumStackDifference(source, sizes, gap) {
+  if (source.length === 0) return 0
+  if (source.length === 1) return cards.cardHeight(source[0].id, sizes)
+  let best = Infinity
+  const limit = 1 << source.length
+  for (let mask = 1; mask < limit - 1; ++mask) {
+    if ((mask & 1) === 0) continue
+    const left = []
+    const right = []
+    source.forEach((card, index) => ((mask & (1 << index)) ? left : right).push(card))
+    best = Math.min(best, Math.abs(
+      cards.stackHeight(left, sizes, gap) - cards.stackHeight(right, sizes, gap)
+    ))
+  }
+  return best
+}
+function assertOrderedSubset(column, source, description) {
+  const sourcePositions = column.map(card => source.findIndex(item => item.id === card.id))
+  assert.ok(sourcePositions.every((position, index) => position >= 0
+    && (index === 0 || position > sourcePositions[index - 1])), description)
+}
+let exhaustiveCombinationCount = 0
+for (let visibleMask = 0; visibleMask < (1 << allDefinitions.length); ++visibleMask) {
+  const visible = allDefinitions.filter((card, index) => (visibleMask & (1 << index)) !== 0)
+  if (visible.length === 0) continue
+  for (const ordered of permutations(visible)) {
+    for (let sizeMask = 0; sizeMask < (1 << ordered.length); ++sizeMask) {
+      const sizes = {}
+      ordered.forEach((card, index) => {
+        sizes[card.id] = (sizeMask & (1 << index)) ? 'expanded' : 'compact'
+      })
+      const wide = cards.resolveDashboardLayout(ordered, 'two', 900, sizes, geometryGap)
+      assertLayoutState(wide, ordered, 'two', 900)
+      if (ordered.length >= 3) {
+        const peers = wide.peers
+        const peerColumns = cards.wideLeadPeerColumns(peers, sizes, geometryGap)
+        assert.ok(peerColumns.left.length > 0 && peerColumns.right.length > 0,
+          'wide Bento keeps both peer columns populated for every size combination')
+        assertOrderedSubset(peerColumns.left, peers, 'left peer column preserves configured order')
+        assertOrderedSubset(peerColumns.right, peers, 'right peer column preserves configured order')
+        const peerIds = peerColumns.left.concat(peerColumns.right).map(card => card.id)
+        assert.strictEqual(new Set(peerIds).size, peers.length,
+          'wide Bento has no duplicated peer card across its lower columns')
+        assert.deepStrictEqual(Array.from(peerIds).sort(), Array.from(peers, card => card.id).sort(),
+          'wide Bento retains every peer card across its lower columns')
+        const leftHeight = cards.stackHeight(peerColumns.left, sizes, geometryGap)
+        const rightHeight = cards.stackHeight(peerColumns.right, sizes, geometryGap)
+        assert.strictEqual(Math.abs(leftHeight - rightHeight), minimumStackDifference(peers, sizes, geometryGap),
+          'wide Bento chooses the most balanced peer-column partition for every size combination')
+        assert.strictEqual(cards.wideLeadHorizontalHeight(ordered, sizes, geometryGap),
+          cards.cardHeight(ordered[0].id, sizes) + geometryGap + Math.max(leftHeight, rightHeight),
+          'wide Bento scroll height follows the lead and naturally sized peer columns without stretching')
+      } else if (ordered.length === 2) {
+        assertOrderedSubset(wide.left, ordered, 'two-card wide layout preserves left-column order')
+        assertOrderedSubset(wide.right, ordered, 'two-card wide layout preserves right-column order')
+        assert.ok(wide.left.length > 0 && wide.right.length > 0,
+          'two visible cards occupy separate columns without stretching')
+        assert.strictEqual(Math.abs(
+          cards.stackHeight(wide.left, sizes, geometryGap)
+          - cards.stackHeight(wide.right, sizes, geometryGap)
+        ), minimumStackDifference(ordered, sizes, geometryGap),
+        'two-card wide layout preserves each selected card height')
+      } else {
+        assert.strictEqual(wide.kind, 'single', 'one visible card remains a single natural-height card')
+        assert.deepStrictEqual(Array.from(wide.left, card => card.id), [ordered[0].id])
+        assert.strictEqual(wide.right.length, 0)
+      }
+      ordered.forEach(card => {
+        assert.strictEqual(cards.cardHeight(card.id, sizes), sizes[card.id] === 'expanded' ? 208 : 164,
+          'each card keeps its own compact or expanded silhouette')
+      })
+
+      const narrowTwoColumn = cards.resolveDashboardLayout(ordered, 'two', 499, sizes, geometryGap)
+      assertLayoutState(narrowTwoColumn, ordered, 'two', 499)
+      if (ordered.length === 3) {
+        assert.strictEqual(cards.stackHeight(narrowTwoColumn.right, sizes, geometryGap),
+          cards.cardHeight(narrowTwoColumn.right[0].id, sizes)
+            + geometryGap + cards.cardHeight(narrowTwoColumn.right[1].id, sizes),
+          'three-card narrow Bento spanning card tracks exactly the two naturally sized right cards')
+      } else if (ordered.length > 1) {
+        assertOrderedSubset(narrowTwoColumn.left, ordered, 'narrow left column preserves configured order')
+        assertOrderedSubset(narrowTwoColumn.right, ordered, 'narrow right column preserves configured order')
+        if (ordered.length > 2)
+          assert.ok(narrowTwoColumn.left.length > 0 && narrowTwoColumn.right.length > 0,
+            'narrow balanced layout keeps both columns populated')
+        const narrowDifference = Math.abs(
+          cards.stackHeight(narrowTwoColumn.left, sizes, geometryGap)
+          - cards.stackHeight(narrowTwoColumn.right, sizes, geometryGap)
+        )
+        assert.strictEqual(narrowDifference, minimumStackDifference(ordered, sizes, geometryGap),
+          'narrow balanced columns choose the optimal partition for every size combination')
+      } else {
+        assert.strictEqual(narrowTwoColumn.kind, 'single',
+          'one visible card remains a single card in explicit two-column mode')
+      }
+      const autoNarrow = cards.resolveDashboardLayout(ordered, 'auto', 499, sizes, geometryGap)
+      assert.strictEqual(autoNarrow.kind, 'single',
+        'auto mode consistently keeps a one-column layout below the responsive breakpoint')
+      exhaustiveCombinationCount++
+    }
+  }
+}
+assert.strictEqual(exhaustiveCombinationCount, 6330,
+  'the audit covers all configured orders and size combinations for every visible set of 1–5 cards')
 
 // Simulate the settings changing while Dashboard remains open: four cards ->
 // three -> two -> three with a new lead -> reordered three -> four again.

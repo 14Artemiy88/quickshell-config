@@ -117,13 +117,20 @@ assert dash.count('networkConnectionText: modelData.id === "network" ? root.netw
 assert dash.count('systemUptimeAccessibleText: modelData.id === "system" ? root.systemUptime.accessible : ""') == 3 and 'systemUptimeAccessibleText: horizontalLeadSlot.modelData.id === "system" ? root.systemUptime.accessible : ""' in dash and 'model: cards.horizontalLeadCards' in dash, 'all vertical and horizontal card renderers must receive the system uptime description'
 assert dash.count('topResourceAppText: modelData.id === "system" ? root.dashboardTopResourceApp.text : ""') == 3 and 'topResourceAppText: horizontalLeadSlot.modelData.id === "system" ? root.dashboardTopResourceApp.text : ""' in dash and 'model: cards.horizontalLeadCards' in dash, 'all vertical and horizontal card renderers must receive the shared top resource application summary'
 assert dash.count('String(root.dashboardTopResourceApp.processCount || "")') == 4, 'all card delegates must always assign a string to the process-count InfoCard property'
-system_expanded_start = dash.index('GridLayout {\n                visible: infoCard.expanded && infoCard.cardId === "system"')
-system_expanded_end = dash.index('            // Network expansion shows both live rate', system_expanded_start)
-system_expanded_block = dash[system_expanded_start:system_expanded_end]
-assert system_expanded_block.index('UsageMeter {') < system_expanded_block.index('visible: infoCard.cpuCoreCount > 0'), 'wide System lead must keep usage meters in the first content group'
-assert system_expanded_block.count('ColumnLayout {') == 2 and 'columns: infoCard.wideLead ? 2 : 1' in system_expanded_block, 'expanded System details must switch to two intentional columns only for the wide Bento lead'
-assert 'columnSpacing: infoCard.wideLead ? DashboardCards.WIDE_LEAD_GROUP_GAP : 0' in system_expanded_block, 'wide System must use the shared content-group gutter'
-assert 'Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop' in system_expanded_block, 'wide lead content groups must stay vertically balanced while normal cards retain top alignment'
+wide_system_start = dash.index('GridLayout {\n                visible: infoCard.expanded && infoCard.cardId === "system" && infoCard.wideLead')
+wide_system_end = dash.index('            // Standard expanded System cards retain', wide_system_start)
+wide_system_block = dash[wide_system_start:wide_system_end]
+assert wide_system_block.count('UsageMeter {') == 2 and 'label: "CPU"' in wide_system_block and 'label: "RAM"' in wide_system_block, 'wide System lead must place CPU and RAM usage meters in separate primary columns'
+assert 'columns: 2' in wide_system_block and 'columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP' in wide_system_block, 'wide System primary resources must use two equally sized columns with the shared gutter'
+assert 'text: "Память · " + infoCard.ramCapacityText' in wide_system_block and 'text: "Подкачка · " + infoCard.swapCapacityText' in wide_system_block, 'RAM capacity and swap must be grouped with the RAM usage meter'
+assert 'text: "Лог. CPU: " + infoCard.cpuCoreCount' in wide_system_block and 'text: infoCard.cpuLoadAverageText' in wide_system_block and 'text: "Пик CPU" +' in wide_system_block, 'logical CPU count, hottest-core peak and load average must be grouped with CPU usage'
+assert 'Layout.columnSpan: 2' in wide_system_block and 'text: infoCard.topResourceAppName' in wide_system_block, 'the selected top application row must span both primary resource columns'
+assert wide_system_block.count('Layout.alignment: Qt.AlignTop') == 2, 'wide System CPU and RAM groups must align from the same top edge'
+normal_system_start = dash.index('GridLayout {\n                visible: infoCard.expanded && infoCard.cardId === "system" && !infoCard.wideLead')
+normal_system_end = dash.index('            // Network expansion shows both live rate', normal_system_start)
+normal_system_block = dash[normal_system_start:normal_system_end]
+assert 'columns: 1' in normal_system_block and 'UsageMeter {' in normal_system_block, 'ordinary expanded System cards must retain the stacked resource layout'
+assert normal_system_block.count('infoCard.wideLead') == 1 and '&& !infoCard.wideLead' in normal_system_block, 'ordinary System card layout must be isolated from the wide-lead renderer'
 weather_start = dash.index('GridLayout {\n                visible: infoCard.expanded && infoCard.cardId === "weather"')
 weather_end = dash.index('            // Wide Media lead separates track identity', weather_start)
 weather_block = dash[weather_start:weather_end]
@@ -139,11 +146,13 @@ assert weather_block.count('ColumnLayout {') == 2, 'Weather must separate primar
 assert weather_block.index('text: infoCard.primaryText') < weather_block.index('text: "Ощущается " + infoCard.comfortText'), 'wide Weather lead must keep temperature and conditions in the primary group'
 assert 'text: "Давление " + infoCard.pressureText + " мм рт. ст."' in weather_block, 'wide Weather supporting group must retain pressure'
 assert weather_block.count('Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop') == 2, 'wide Weather groups must be vertically balanced while normal cards retain top alignment'
-assert 'columns: infoCard.wideLead ? 1 : 2' in weather_block, 'wide Weather supporting metrics must stack at full width while normal cards retain their side-by-side row'
+assert 'columns: 2' in weather_block, 'Weather supporting metrics must use two balanced detail columns in wide and ordinary expanded layouts'
+assert 'Layout.horizontalStretchFactor: infoCard.wideLead ? 42 : 1' in weather_block and 'Layout.horizontalStretchFactor: infoCard.wideLead ? 58 : 1' in weather_block, 'wide Weather must give primary conditions 42% and supporting metrics 58% of the lead width'
 media_start = dash.index('GridLayout {\n                visible: infoCard.expanded && infoCard.cardId === "media"')
 media_end = dash.index('            Rectangle {\n                Layout.fillWidth: true\n                height: 1', media_start)
 media_block = dash[media_start:media_end]
 assert 'columns: infoCard.wideLead ? 2 : 1' in media_block, 'expanded Media must use two content columns only in the wide Bento lead'
+assert 'Layout.horizontalStretchFactor: infoCard.wideLead ? 56 : 1' in media_block and 'Layout.horizontalStretchFactor: infoCard.wideLead ? 44 : 1' in media_block, 'wide Media must give track identity 56% and album/progress 44% of the lead width'
 assert 'columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP' in media_block, 'wide Media must use the shared content-group gutter'
 assert media_block.count('ColumnLayout {') == 2 and media_block.count('Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop') == 2, 'wide Media groups must be vertically balanced while normal cards retain top alignment'
 assert media_block.index('text: infoCard.primaryText') < media_block.index('text: infoCard.secondaryText'), 'Media track title must precede artist in the left group'
@@ -155,10 +164,7 @@ uptime_start = dash.index('readonly property var systemUptime:')
 uptime_end = dash.index('readonly property var networkData:', uptime_start)
 uptime_logic = dash[uptime_start:uptime_end]
 assert uptime_logic.count('spoken.push(root.russianCountUnit(minutes, "минута", "минуты", "минут"))') == 2, 'screen-reader uptime must retain remaining minutes both below and above one day'
-core_summary_marker = dash.index('visible: infoCard.cpuCoreCount > 0')
-core_summary_start = dash.rfind('RowLayout {', 0, core_summary_marker)
-core_summary_end = dash.index('visible: infoCard.swapCapacityText', core_summary_marker)
-core_summary_block = dash[core_summary_start:core_summary_end]
+core_summary_block = wide_system_block
 assert 'text: "Лог. CPU: " + infoCard.cpuCoreCount' in core_summary_block, 'logical CPU count must remain visible'
 cpu_count_text_start = core_summary_block.index('text: "Лог. CPU: " + infoCard.cpuCoreCount')
 cpu_count_block_start = core_summary_block.rfind('                    Text {', 0, cpu_count_text_start)
@@ -172,7 +178,7 @@ assert '"Максимальная загрузка логического про
 assert '"Максимальная загрузка наиболее загруженного логического процессора: "' in dash, 'screen-reader peak wording must identify a logical processor when its id is unavailable'
 assert 'text: "Пик CPU" +' in core_summary_block and 'horizontalAlignment: Text.AlignRight' in core_summary_block, 'hottest-core peak must share the compact summary row with an explicit CPU label'
 assert 'visible: infoCard.topResourceAppText !== \"\"' in dash and 'text: infoCard.topResourceAppName' in dash and 'text: infoCard.topResourceAppProcessCount' in dash and 'visible: infoCard.topResourceAppProcessCount !== \"\"' in dash and 'text: infoCard.topResourceAppValue' in dash and 'elide: Text.ElideRight' in dash, 'top resource row must keep the group count and metric in independent slots while eliding only the app name'
-connection_text_start = dash.index('visible: infoCard.expanded && infoCard.cardId === "network"\n                         && infoCard.networkConnectionText !== ""')
+connection_text_start = dash.index('visible: infoCard.expanded && infoCard.cardId === "network"\n                         && !infoCard.wideLead && infoCard.networkConnectionText !== ""')
 connection_text_end = dash.index('            // Weather keeps the current sample intact', connection_text_start)
 connection_text_block = dash[connection_text_start:connection_text_end]
 assert 'wrapMode: Text.WrapAtWordBoundaryOrAnywhere' in connection_text_block and 'maximumLineCount: 2' in connection_text_block, 'active connection names must wrap at word boundaries or within long unbroken names before eliding'

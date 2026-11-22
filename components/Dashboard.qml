@@ -1516,22 +1516,17 @@ PanelWindow {
                     enabled: cardsFlickable.contentHeight > cardsFlickable.height + 1
                     acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                     onWheel: function(event) {
-                        const maximumContentY = Math.max(
-                            0,
-                            cardsFlickable.contentHeight - cardsFlickable.height
+                        const nextContentY = DashboardCards.wheelScrollPosition(
+                            cardsFlickable.contentY,
+                            cardsFlickable.contentHeight,
+                            cardsFlickable.height,
+                            event.pixelDelta.y,
+                            event.angleDelta.y
                         )
-                        const pixelDelta = Number(event.pixelDelta.y) || 0
-                        const angleDelta = Number(event.angleDelta.y) || 0
-                        const delta = pixelDelta !== 0
-                            ? pixelDelta
-                            : angleDelta / 120 * 64
-                        if (delta === 0)
+                        if (nextContentY === null)
                             return
 
-                        cardsFlickable.contentY = Math.max(
-                            0,
-                            Math.min(maximumContentY, cardsFlickable.contentY - delta)
-                        )
+                        cardsFlickable.contentY = nextContentY
                         event.accepted = true
                     }
                 }
@@ -1676,7 +1671,7 @@ PanelWindow {
                                             required property var modelData
                                             Layout.fillWidth: true
                                             Layout.fillHeight: false
-                                            Layout.alignment: Qt.AlignVCenter
+                                            Layout.alignment: Qt.AlignTop
                                             Layout.preferredHeight: DashboardCards.cardHeight(modelData.id, Config.dashboardCardSizes)
                                             cardId: modelData.id
                                             expanded: DashboardCards.cardSizeMode(Config.dashboardCardSizes, modelData.id) === "expanded"
@@ -1744,6 +1739,8 @@ PanelWindow {
                                 delegate: InfoCard {
                                     required property var modelData
                                     Layout.fillWidth: true
+                                    Layout.fillHeight: false
+                                    Layout.alignment: Qt.AlignTop
                                     Layout.preferredHeight: modelData.id === cards.spanningCardId
                                         ? cards.spanningCardHeight
                                         : DashboardCards.cardHeight(modelData.id, Config.dashboardCardSizes)
@@ -1805,6 +1802,8 @@ PanelWindow {
                                 delegate: InfoCard {
                                     required property var modelData
                                     Layout.fillWidth: true
+                                    Layout.fillHeight: false
+                                    Layout.alignment: Qt.AlignTop
                                     Layout.preferredHeight: modelData.id === cards.spanningCardId
                                         ? cards.spanningCardHeight
                                         : DashboardCards.cardHeight(modelData.id, Config.dashboardCardSizes)
@@ -2099,6 +2098,14 @@ PanelWindow {
         property string detailPrimaryText: ""
         property string detailSecondaryText: ""
         property string networkConnectionText: ""
+        readonly property string networkConnectionHeading: {
+            var separator = networkConnectionText.indexOf(" · ")
+            return separator >= 0 ? networkConnectionText.slice(0, separator) : networkConnectionText
+        }
+        readonly property string networkConnectionDetails: {
+            var separator = networkConnectionText.indexOf(" · ")
+            return separator >= 0 ? networkConnectionText.slice(separator + 3) : ""
+        }
         property string networkConnectionAccessibleText: ""
         property string tertiaryText: ""
         property string tertiaryLabel: ""
@@ -2617,20 +2624,172 @@ PanelWindow {
                 }
             }
 
-            // The expanded System card uses two logical groups. In the wide
-            // horizontal Bento lead they sit side by side: usage meters on the
-            // left, supporting CPU/RAM details on the right. In all other cards
-            // the same groups stack vertically, preserving the existing layout.
+            // Wide System lead: balance the two primary resources first, then
+            // attach CPU-specific and RAM-specific details to their own column.
+            // The top application row spans both columns because its source may
+            // be either the CPU or RAM ranking, depending on available data.
             GridLayout {
-                visible: infoCard.expanded && infoCard.cardId === "system"
+                visible: infoCard.expanded && infoCard.cardId === "system" && infoCard.wideLead
                 Layout.fillWidth: true
-                columns: infoCard.wideLead ? 2 : 1
-                columnSpacing: infoCard.wideLead ? DashboardCards.WIDE_LEAD_GROUP_GAP : 0
+                columns: 2
+                columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP
+                rowSpacing: 6
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 6
+
+                    UsageMeter {
+                        Layout.fillWidth: true
+                        label: "CPU"
+                        value: infoCard.primaryValue
+                    }
+
+                    RowLayout {
+                        visible: infoCard.cpuCoreCount > 0
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            Layout.fillWidth: false
+                            Layout.preferredWidth: implicitWidth
+                            text: "Лог. CPU: " + infoCard.cpuCoreCount
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            maximumLineCount: 1
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            visible: infoCard.cpuCorePeak >= 0
+                            Layout.fillWidth: true
+                            horizontalAlignment: Text.AlignRight
+                            text: "Пик CPU" + (infoCard.cpuCorePeakId !== "" ? " " + infoCard.cpuCorePeakId : "")
+                                  + ": " + infoCard.cpuCorePeak + "%"
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            maximumLineCount: 1
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Text {
+                        visible: infoCard.cpuLoadAverageText !== ""
+                        Layout.fillWidth: true
+                        text: infoCard.cpuLoadAverageText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 2
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 6
+
+                    UsageMeter {
+                        Layout.fillWidth: true
+                        label: "RAM"
+                        value: infoCard.secondaryValue
+                    }
+
+                    Text {
+                        visible: infoCard.ramCapacityText !== ""
+                        Layout.fillWidth: true
+                        text: "Память · " + infoCard.ramCapacityText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        visible: infoCard.swapCapacityText !== ""
+                        Layout.fillWidth: true
+                        text: "Подкачка · " + infoCard.swapCapacityText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 2
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                    }
+                }
+
+                RowLayout {
+                    visible: infoCard.topResourceAppText !== ""
+                    Layout.fillWidth: true
+                    Layout.columnSpan: 2
+                    spacing: 4
+
+                    Text {
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppLabel + " ·"
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        text: infoCard.topResourceAppName
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        visible: infoCard.topResourceAppProcessCount !== ""
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppProcessCount
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppValue
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                }
+            }
+
+            // Standard expanded System cards retain the established stacked
+            // presentation. The wide Bento lead has a dedicated CPU/RAM layout
+            // below so supporting metrics sit with the resource they describe.
+            GridLayout {
+                visible: infoCard.expanded && infoCard.cardId === "system" && !infoCard.wideLead
+                Layout.fillWidth: true
+                columns: 1
+                columnSpacing: 0
                 rowSpacing: 7
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
+                    Layout.alignment: Qt.AlignTop
                     spacing: 7
 
                     UsageMeter {
@@ -2650,7 +2809,7 @@ PanelWindow {
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
+                    Layout.alignment: Qt.AlignTop
                     spacing: 7
 
                     // Keep a short visual CPU-count label beside the hottest-core
@@ -2787,7 +2946,7 @@ PanelWindow {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: infoCard.detailPrimaryText
+                        text: infoCard.wideLead ? "Всего · " + infoCard.detailPrimaryText : infoCard.detailPrimaryText
                         color: Config.textMuted
                         font.family: Config.settingsFont
                         font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
@@ -2823,7 +2982,7 @@ PanelWindow {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: infoCard.detailSecondaryText
+                        text: infoCard.wideLead ? "Всего · " + infoCard.detailSecondaryText : infoCard.detailSecondaryText
                         color: Config.textMuted
                         font.family: Config.settingsFont
                         font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
@@ -2832,9 +2991,53 @@ PanelWindow {
                 }
             }
 
+            // The wide lead gives active connection details their own full-width
+            // section below the paired transfer directions. This keeps long
+            // profile/device names from visually merging with the rate values.
+            ColumnLayout {
+                visible: infoCard.expanded && infoCard.cardId === "network"
+                         && infoCard.wideLead && infoCard.networkConnectionText !== ""
+                Layout.fillWidth: true
+                spacing: 4
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    Layout.minimumHeight: 1
+                    Layout.maximumHeight: 1
+                    color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.38)
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: infoCard.networkConnectionHeading.toUpperCase()
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                    font.bold: true
+                    font.letterSpacing: 0.7
+                    maximumLineCount: 1
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: infoCard.networkConnectionDetails
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                    // Break long profile/device names before the two-line limit
+                    // is elided, matching the regular Network card behaviour.
+                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                    textFormat: Text.PlainText
+                }
+            }
+
             Text {
                 visible: infoCard.expanded && infoCard.cardId === "network"
-                         && infoCard.networkConnectionText !== ""
+                         && !infoCard.wideLead && infoCard.networkConnectionText !== ""
                 Layout.fillWidth: true
                 text: infoCard.networkConnectionText
                 color: Config.textMuted
@@ -2860,6 +3063,7 @@ PanelWindow {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.horizontalStretchFactor: infoCard.wideLead ? 42 : 1
                     Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
                     spacing: 5
 
@@ -2900,12 +3104,13 @@ PanelWindow {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.horizontalStretchFactor: infoCard.wideLead ? 58 : 1
                     Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
                     spacing: 5
 
                     GridLayout {
                         Layout.fillWidth: true
-                        columns: infoCard.wideLead ? 1 : 2
+                        columns: 2
                         columnSpacing: infoCard.narrow ? 8 : 12
                         rowSpacing: 5
                         Text {
@@ -2957,6 +3162,7 @@ PanelWindow {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.horizontalStretchFactor: infoCard.wideLead ? 56 : 1
                     Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
                     spacing: 5
 
@@ -2986,6 +3192,7 @@ PanelWindow {
 
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.horizontalStretchFactor: infoCard.wideLead ? 44 : 1
                     Layout.alignment: infoCard.wideLead ? Qt.AlignVCenter : Qt.AlignTop
                     spacing: 5
 
