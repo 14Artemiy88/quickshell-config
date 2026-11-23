@@ -90,6 +90,8 @@ QtObject {
     readonly property var moduleNames: SettingsMetadata.moduleNames
     readonly property var moduleLabels: SettingsMetadata.moduleLabels
     readonly property var colorNames: SettingsMetadata.colorNames
+    readonly property var themeManagedColorNames: SettingsMetadata.themeManagedColorNames
+    readonly property var independentThemeColorNames: SettingsMetadata.independentThemeColorNames
     // Built-in defaults used by the reset controls in the settings UI.
     // These values are intentionally taken from the current settings.json baseline.
     readonly property var defaultConfig: SettingsDefaults.defaultConfig
@@ -485,12 +487,21 @@ QtObject {
         if (scope === "general")
             return hasAny(["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"])
 
+        // Top Apps bar colors are stored in the nested `colors` palette map,
+        // not as top-level `topApps*` settings. Include those four palette
+        // overrides in the CPU/RAM page scope so its page-level Save/Reset
+        // actions appear and cover the same values as the Top Apps color group.
+        if (scope === "cpu" && [
+                "topAppsCpuBarColor", "topAppsCpuBarTrackColor",
+                "topAppsRamBarColor", "topAppsRamBarTrackColor"
+            ].some(function(key) { return hasNested("colors", key) })) return true
+
         var prefixesByScope = {
             timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather", "animationWeather"], cava: ["cava"],
             cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
             dashboard: ["dashboard"],
-            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings", "settingsBackground", "settingsBorder"],
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
             notifications: ["notifications", "animationNotifications"]
         }
         if (scope === "settingsWindow") {

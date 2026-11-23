@@ -19,7 +19,7 @@ apply_visual = read("js/settings/SettingsApplySystemVisual.js")
 resets = read("js/settings/SettingsResets.js")
 
 # The sidebar must expose Launcher as a collapsible folder, parallel to Modules.
-assert '{ id: "launcher", label: "Лаунчер", symbol: "⌕" }' in registry
+assert '{ id: "launcher", label: "Лаунчер", symbol: "⌕", description:' in registry
 launcher_pages = ("launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications")
 for page_id in launcher_pages:
     assert f'id: "{page_id}"' in registry and f'groupId: "launcher"' in registry

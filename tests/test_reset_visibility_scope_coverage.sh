@@ -43,6 +43,14 @@ withOverrides({ colors: { settingsBorder: '#222222' } });
 assert.strictEqual(has('settingsWindow'), true, 'Settings-window reset must detect its nested border color');
 withOverrides({ colors: { accent: '#123456' } });
 assert.strictEqual(has('settingsWindow'), false, 'unrelated color override must not enable Settings-window reset');
+withOverrides({ colors: { topAppsCpuBarColor: '#123456' } });
+assert.strictEqual(has('cpu'), true, 'CPU/RAM page reset must detect the nested Top Apps CPU bar color override');
+assert.strictEqual(has('module', 'cpu'), false, 'Top Apps palette overrides must not appear as CPU widget-row settings');
+assert.strictEqual(has('all'), true, 'reset-all must include nested Top Apps palette overrides');
+withOverrides({ colors: { topAppsRamBarTrackColor: '#654321' } });
+assert.strictEqual(has('cpu'), true, 'CPU/RAM page reset must detect inactive RAM bar color overrides');
+withOverrides({ colors: { accent: '#abcdef' } });
+assert.strictEqual(has('cpu'), false, 'unrelated theme colors must not enable CPU/RAM reset');
 
 withOverrides({ activeTheme: 'Alternate Theme' });
 assert.strictEqual(has('themes'), true, 'theme save/reset scope must detect activeTheme changes even if the resulting palette is unchanged');

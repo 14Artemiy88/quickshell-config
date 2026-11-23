@@ -25,9 +25,9 @@ checks = {
         and "root.width - root.padding * 2 - 16" in s
         and "root.parent ? root.parent.width" not in s
     ),
-    "legend overlays frame border": "y: -Math.ceil(Config.settingsUiSize(11) / 2)" in s and "headingBackground" in s,
-    "legend backdrop follows visible label geometry": "x: headingLabel.x - 4" in s and "width: headingLabel.width + 8" in s,
-    "legend uses frame background": "color: root.backgroundColor" in s,
+    "legend sits inside frame without a masking backdrop": "y: 2" in s and "headingBackground" not in s,
+    "settings groups default to transparent surfaces": "property color backgroundColor: Config.transparent" in s and "color: root.backgroundColor" in s,
+    "frame outline remains visible": "border.color: root.borderColor" in s and "border.width: root.borderWidth" in s,
     "content is offset only below a visible non-empty legend": "root.padding + (root.hasHeading ? 8 : 0)" in s,
     "existing no-frame groups remain unaffected": "if (!root.showFrame || root.headingSource || root.adoptingHeading)" in s,
 }

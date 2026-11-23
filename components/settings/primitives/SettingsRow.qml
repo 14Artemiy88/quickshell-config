@@ -31,7 +31,7 @@ Row {
             height: root.labelHeight
             text: root.label
             settingsFontSize: root.labelFontSize
-            color: root.labelColor
+            color: root.enabled ? root.labelColor : Config.textMuted
             elide: root.labelElide
         }
     }

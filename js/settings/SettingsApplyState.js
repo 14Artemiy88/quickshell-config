@@ -25,6 +25,26 @@ function splitLegacyTopAppsGeometry(geometry) {
 }
 
 function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled) {
+        // Old full-snapshot files can still carry this UI-only preference inside
+        // their named profiles. Recover the active value before stripping it so
+        // profile migration does not change the user's expanded navigation state.
+        var requestedNavigationProfile = String(o.activeProfile || "").trim()
+        var rawNavigationProfiles = o.profiles && typeof o.profiles === "object" ? o.profiles : {}
+        var legacyNavigationState = o.profileOverrides && o.profileOverrides.settingsNavigationCollapsedGroups
+        if (o.settingsNavigationCollapsedGroups === undefined && legacyNavigationState === undefined
+                && requestedNavigationProfile && rawNavigationProfiles[requestedNavigationProfile])
+            legacyNavigationState = rawNavigationProfiles[requestedNavigationProfile].settingsNavigationCollapsedGroups
+        if (o.settingsNavigationCollapsedGroups === undefined && legacyNavigationState !== undefined) {
+            Config.settingsNavigationCollapsedGroups = Schema.normalizeSettingsNavigationCollapsedGroups(
+                legacyNavigationState, Config.settingsNavigationCollapsedGroups)
+            owner.profileMigrationPending = true
+        }
+        if (o.profileOverrides && Object.prototype.hasOwnProperty.call(o.profileOverrides, "settingsNavigationCollapsedGroups")) {
+            var cleanedProfileOverrides = Object.assign({}, o.profileOverrides)
+            delete cleanedProfileOverrides.settingsNavigationCollapsedGroups
+            owner.resetOverrides = cleanedProfileOverrides
+            owner.profileMigrationPending = true
+        }
         var presetSource = o.timerPresetDefaults instanceof Array ? o.timerPresetDefaults : o.timerPresets
         if (presetSource instanceof Array) {
             var presets = []
@@ -141,9 +161,15 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                 // changes cannot keep shifting the same profile on each launch.
                 var pinnedProfiles = {}
                 var needsColorPinning = false
+                var needsLegacyNavigationCleanup = false
                 for (var sparseProfileName in normalizedProfiles) {
                     if (!Object.prototype.hasOwnProperty.call(normalizedProfiles, sparseProfileName)) continue
                     var storedProfile = normalizedProfiles[sparseProfileName]
+                    if (storedProfile && Object.prototype.hasOwnProperty.call(storedProfile, "settingsNavigationCollapsedGroups")) {
+                        storedProfile = Object.assign({}, storedProfile)
+                        delete storedProfile.settingsNavigationCollapsedGroups
+                        needsLegacyNavigationCleanup = true
+                    }
                     var storedProfileColors = storedProfile && storedProfile.colors
                     var missingProfileColor = false
                     for (var colorIndex = 0; colorIndex < colorNames.length; ++colorIndex) {
@@ -156,7 +182,7 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                     var expandedProfile = Profiles.expandProfile(owner, storedProfile)
                     pinnedProfiles[sparseProfileName] = Profiles.sparseProfile(owner, expandedProfile)
                 }
-                if (needsColorPinning) {
+                if (needsColorPinning || needsLegacyNavigationCleanup) {
                     owner.profiles = pinnedProfiles
                     owner.profileMigrationPending = true
                 }
@@ -169,8 +195,10 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                 var completedLegacyProfiles = {}
                 for (var legacyProfileName in normalizedProfiles) {
                     if (!Object.prototype.hasOwnProperty.call(normalizedProfiles, legacyProfileName)) continue
+                    var legacyProfileSource = Object.assign({}, normalizedProfiles[legacyProfileName])
+                    delete legacyProfileSource.settingsNavigationCollapsedGroups
                     var completedLegacyProfile = Profiles.completeLegacySnapshot(
-                        owner.profileDefaults || {}, normalizedProfiles[legacyProfileName])
+                        owner.profileDefaults || {}, legacyProfileSource)
                     if (Number(o.settingsSchemaVersion || 0) < 1
                             && normalizedProfiles[legacyProfileName].animationTimerOptionsVisibilityStyle === undefined) {
                         completedLegacyProfile.animationTimerOptionsVisibilityStyle = String(

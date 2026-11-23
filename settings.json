@@ -122,23 +122,12 @@
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
   "profileOverrides": {
-    "settingsNavigationCollapsedGroups": {
-      "modules": false
-    },
-    "dashboardVisibleCards": [
-      "system",
-      "network",
-      "weather",
-      "media",
-      "today"
-    ],
-    "dashboardCardOrder": [
-      "today",
-      "media",
-      "weather",
-      "system",
-      "network"
-    ]
+    "settingsSearchVisible": true
   },
-  "settingsSchemaVersion": 1
+  "settingsSchemaVersion": 1,
+  "settingsNavigationCollapsedGroups": {
+    "appearance": false,
+    "modules": true,
+    "launcher": true
+  }
 }

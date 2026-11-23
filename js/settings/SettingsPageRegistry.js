@@ -5,36 +5,36 @@
 // Sidebar groups are presentation-only. Page IDs remain stable and keep their
 // existing routes, profiles, reset scopes and user-customized labels.
 var NAVIGATION_GROUPS = [
-    { id: "appearance", label: "Внешний вид", symbol: "◈" },
-    { id: "modules", label: "Модули", symbol: "▦" },
-    { id: "dashboard", label: "Dashboard", symbol: "▣" },
-    { id: "launcher", label: "Лаунчер", symbol: "⌕" },
-    { id: "general", label: "Общие", symbol: "⚙" }
+    { id: "appearance", label: "Внешний вид", symbol: "◈", description: "Темы, цвета и оформление окна настроек." },
+    { id: "modules", label: "Модули", symbol: "▦", description: "Настройки и поведение встроенных модулей." },
+    { id: "dashboard", label: "Dashboard", symbol: "▣", description: "Состав, порядок и размеры карточек панели." },
+    { id: "launcher", label: "Лаунчер", symbol: "⌕", description: "Поиск, вкладки, действия и оформление лаунчера." },
+    { id: "general", label: "Общие", symbol: "⚙", description: "Общие параметры, профили и хранение данных." }
 ]
 
 var TAB_DEFINITIONS = [
-    { id: "modules", defaultLabel: "Включение модулей", groupId: "modules" },
-    { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard" },
-    { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance" },
-    { id: "general", defaultLabel: "Общие", groupId: "general" },
-    { id: "timers", defaultLabel: "Таймеры", groupId: "modules" },
-    { id: "player", defaultLabel: "Плеер", groupId: "modules" },
-    { id: "mopidy", defaultLabel: "Mopidy", groupId: "modules" },
-    { id: "weather", defaultLabel: "Погода", groupId: "modules" },
-    { id: "cava", defaultLabel: "CAVA", groupId: "modules" },
-    { id: "cpuRam", defaultLabel: "CPU/RAM", groupId: "modules" },
-    { id: "network", defaultLabel: "Сеть", groupId: "modules" },
-    { id: "volume", defaultLabel: "Громкость", groupId: "modules" },
-    { id: "calendar", defaultLabel: "Календарь", groupId: "modules" },
-    { id: "launcher", defaultLabel: "Общее", groupId: "launcher" },
-    { id: "launcherSearch", defaultLabel: "Поиск", groupId: "launcher" },
-    { id: "launcherTabs", defaultLabel: "Вкладки", groupId: "launcher" },
-    { id: "launcherProjects", defaultLabel: "Проекты", groupId: "launcher" },
-    { id: "launcherActions", defaultLabel: "Действия", groupId: "launcher" },
-    { id: "launcherAnimation", defaultLabel: "Анимация", groupId: "launcher" },
-    { id: "launcherApplications", defaultLabel: "Приложения", groupId: "launcher" },
-    { id: "notifications", defaultLabel: "Уведомления", groupId: "modules" },
-    { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance" }
+    { id: "modules", defaultLabel: "Включение модулей", groupId: "modules", description: "Включение и отключение модулей оболочки.", keywords: ["включить модуль", "отключить модуль", "компоненты оболочки", "виджеты", "список модулей"] },
+    { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard", description: "Состав, порядок, видимость и размеры карточек Dashboard.", keywords: ["панель обзора", "главный экран", "карточки панели", "виджеты панели", "обзор системы"] },
+    { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance", description: "Цветовые схемы, палитры, акцентные и пользовательские цвета.", keywords: ["палитра", "цветовая схема", "тема оформления", "акцентный цвет", "цвета интерфейса", "theme", "color scheme"] },
+    { id: "general", defaultLabel: "Общие", groupId: "general", description: "Общие параметры интерфейса, профили и пути хранения данных.", keywords: ["общие параметры", "настройки оболочки", "профили", "пресеты", "хранилище", "пути файлов", "каталог данных"] },
+    { id: "timers", defaultLabel: "Таймеры", groupId: "modules", description: "Поведение таймеров, оформление, кнопки, подписи и анимации.", keywords: ["обратный отсчет", "отсчет времени", "секундомер", "таймер обратного отсчета", "завершение таймера"] },
+    { id: "player", defaultLabel: "Плеер", groupId: "modules", description: "Подключение плеера, метаданные, прогресс, обложка и анимации.", keywords: ["медиаплеер", "музыкальный плеер", "воспроизведение", "трек", "композиция", "музыка", "media player"] },
+    { id: "mopidy", defaultLabel: "Mopidy", groupId: "modules", description: "Настройки Mopidy, отображение состояния, времени и иконок.", keywords: ["музыкальный сервер", "сервер музыки", "управление музыкой", "mopidy server"] },
+    { id: "weather", defaultLabel: "Погода", groupId: "modules", description: "Источник погоды, текущие условия, прогноз и оформление.", keywords: ["прогноз погоды", "погодные условия", "метео", "температура воздуха", "forecast", "weather forecast"] },
+    { id: "cava", defaultLabel: "CAVA", groupId: "modules", description: "Режим CAVA, количество полос, размеры и анимация.", keywords: ["визуализатор", "аудиовизуализатор", "спектр", "аудиоспектр", "эквалайзер", "музыкальные полосы"] },
+    { id: "cpuRam", defaultLabel: "CPU/RAM", groupId: "modules", description: "Мониторинг процессора и памяти, график CPU и Top Apps.", keywords: ["процессор", "загрузка процессора", "оперативная память", "оперативка", "озу", "оперативное запоминающее устройство", "монитор ресурсов", "процессы", "top apps"] },
+    { id: "network", defaultLabel: "Сеть", groupId: "modules", description: "Обновление сетевой статистики, подключения и оформление.", keywords: ["интернет", "wifi", "wi fi", "wi-fi", "ethernet", "подключение", "сетевой трафик", "скорость сети", "загрузка и отдача"] },
+    { id: "volume", defaultLabel: "Громкость", groupId: "modules", description: "Громкость, потоки, индикаторы, иконки и адаптивность.", keywords: ["звук", "аудио", "микшер", "громкость динамиков", "выходное устройство", "аудиопотоки", "системная громкость"] },
+    { id: "calendar", defaultLabel: "Календарь", groupId: "modules", description: "Разметка календаря, цвета, заметки и метки событий.", keywords: ["даты", "события", "календарные заметки", "расписание", "планировщик", "напоминания"] },
+    { id: "launcher", defaultLabel: "Общее", groupId: "launcher", description: "Общее поведение лаунчера, навигация, оформление и поиск.", keywords: ["запуск приложений", "меню приложений", "панель запуска", "запускалка", "поиск приложений"] },
+    { id: "launcherSearch", defaultLabel: "Поиск", groupId: "launcher", description: "Источники поиска лаунчера, приложения, действия и схемы.", keywords: ["поиск приложений", "поиск команд", "поиск файлов", "поиск в интернете", "калькулятор", "веб поиск", "nix search"] },
+    { id: "launcherTabs", defaultLabel: "Вкладки", groupId: "launcher", description: "Состав, порядок и оформление вкладок лаунчера.", keywords: ["вкладки лаунчера", "разделы лаунчера", "категории лаунчера", "табы"] },
+    { id: "launcherProjects", defaultLabel: "Проекты", groupId: "launcher", description: "Проекты и связанные с ними элементы лаунчера.", keywords: ["рабочие проекты", "проекты лаунчера", "наборы проектов"] },
+    { id: "launcherActions", defaultLabel: "Действия", groupId: "launcher", description: "Переходы, инструменты и пользовательские действия.", keywords: ["команды", "быстрые действия", "пользовательские команды", "переходы", "запустить действие"] },
+    { id: "launcherAnimation", defaultLabel: "Анимация", groupId: "launcher", description: "Профили и длительность анимаций лаунчера.", keywords: ["плавность", "скорость анимации", "анимация переходов", "эффекты движения"] },
+    { id: "launcherApplications", defaultLabel: "Приложения", groupId: "launcher", description: "Список приложений и параметры их отображения.", keywords: ["список программ", "установленные программы", "программы в меню", "запуск программ"] },
+    { id: "notifications", defaultLabel: "Уведомления", groupId: "modules", description: "Поведение, внешний вид, размещение и анимации уведомлений.", keywords: ["всплывающие сообщения", "попапы", "баннеры", "уведомления приложений", "notification", "popup"] },
+    { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance", description: "Размеры, поведение, навигация и внешний вид окна настроек.", keywords: ["окно конфигурации", "панель настроек", "размер окна", "боковая панель", "навигация настроек", "окно параметров"] }
 ]
 
 // Page IDs are the canonical route identity. Array order is only presentation metadata.
@@ -62,7 +62,31 @@ var OTHER_PAGE_DEFINITIONS = [
 ]
 
 function tabDefinitions() {
-    return TAB_DEFINITIONS.slice()
+    return pageMetadataCatalog()
+}
+
+// Build the concrete sidebar row model from the same canonical page metadata
+// used by search. Keeping this loop in the pure registry avoids QML property
+// bindings accidentally placing row creation outside the loop body.
+function navigationItemsForOrder(order, labels) {
+    var source = Array.isArray(order) ? order : []
+    var labelMap = labels && typeof labels === "object" ? labels : {}
+    var result = []
+    for (var i = 0; i < source.length; ++i) {
+        var pageId = String(source[i] === undefined || source[i] === null ? "" : source[i])
+        var metadata = pageMetadataForId(pageId)
+        if (!metadata)
+            continue
+        var configuredLabel = labelMap[pageId]
+        var label = configuredLabel === undefined || configuredLabel === null
+            ? "" : String(configuredLabel).trim()
+        result.push({
+            id: pageId,
+            label: label || metadata.defaultLabel,
+            groupId: metadata.groupId
+        })
+    }
+    return result
 }
 
 function navigationGroupDefinitions() {
@@ -80,11 +104,23 @@ function navigationGroupIdForTabId(id) {
 
 function navigationGroupLabelForTabId(id) {
     var groupId = navigationGroupIdForTabId(id)
+    var group = navigationGroupForId(groupId)
+    return group ? group.label : "Общие"
+}
+
+function navigationGroupForId(id) {
+    var groupId = String(id === undefined || id === null ? "" : id)
     for (var i = 0; i < NAVIGATION_GROUPS.length; ++i) {
-        if (NAVIGATION_GROUPS[i].id === groupId)
-            return NAVIGATION_GROUPS[i].label
+        if (NAVIGATION_GROUPS[i].id === groupId) {
+            return {
+                id: NAVIGATION_GROUPS[i].id,
+                label: NAVIGATION_GROUPS[i].label,
+                symbol: NAVIGATION_GROUPS[i].symbol,
+                description: NAVIGATION_GROUPS[i].description || ""
+            }
+        }
     }
-    return "Общие"
+    return null
 }
 
 function groupedTabOrder(order) {
@@ -118,19 +154,185 @@ function hasOtherPageId(id) {
     return pageForId(id) !== null
 }
 
-function subtabsForPageId(id) {
-    var page = pageForId(id)
-    return page ? page.subTabs.slice() : []
+// Alternate user wording for each settings subsection. Arrays follow the
+// canonical subtab order below; keep aliases narrow enough to avoid making
+// unrelated controls match generic words such as "время" or "цвет".
+var SUBTAB_KEYWORDS = {
+    general: [
+        ["интерфейс пользователя", "ui", "внешний вид окна"],
+        ["наборы настроек", "предустановки", "переключить профиль", "presets"],
+        ["файлы настроек", "каталог конфигурации", "пути хранения", "директории данных"]
+    ],
+    timers: [
+        ["настройки таймера", "длительность отсчета", "запуск и пауза"],
+        ["окно завершения", "таймер закончился", "сигнал завершения"],
+        ["значки таймера", "символы таймера"],
+        ["расположение элементов", "порядок элементов", "разметка таймера"],
+        ["эффекты таймера", "движение элементов"],
+        ["дополнительные режимы", "действия таймера", "опции обратного отсчета"]
+    ],
+    player: [
+        ["музыкальный плеер", "воспроизведение трека", "медиаплеер"],
+        ["пауза при тишине", "беззвучный режим", "тишина"],
+        ["остаток трека", "время до конца", "сколько осталось играть"],
+        ["название трека", "исполнитель", "альбом", "обложка метаданных"],
+        ["значки плеера", "кнопки управления музыкой"],
+        ["полоса воспроизведения", "позиция трека", "seek bar"],
+        ["обложка альбома", "album art", "изображение трека"],
+        ["эффекты плеера", "анимация воспроизведения"]
+    ],
+    weather: [
+        ["источник прогноза", "местоположение погоды", "город погоды"],
+        ["текущая температура", "сейчас на улице", "ощущается как", "ветер и давление"],
+        ["почасовой прогноз", "погода по часам", "температура каждый час"],
+        ["прогноз на несколько дней", "погода на неделю", "дневной прогноз"],
+        ["погодные эффекты", "анимация погоды"]
+    ],
+    cava: [
+        ["визуализатор звука", "аудиоспектр", "режим спектра"],
+        ["число полос", "частотные полосы", "столбики эквалайзера"],
+        ["анимация спектра", "плавность полос"]
+    ],
+    cpuRam: [
+        ["процессор и оперативная память", "нагрузка системы", "монитор ресурсов"],
+        ["график процессора", "история загрузки cpu", "линия нагрузки"],
+        ["топ процессов", "самые прожорливые приложения", "нагрузка приложений", "список процессов"],
+        ["эффекты графика cpu", "анимация процессора"]
+    ],
+    network: [
+        ["частота обновления сети", "интервал опроса", "скорость обновления статистики"],
+        ["интернет и подключения", "сетевые интерфейсы", "wifi и ethernet"],
+        ["анимация сетевых индикаторов", "движение скорости сети"]
+    ],
+    volume: [
+        ["значки звука", "иконки громкости"],
+        ["общий уровень звука", "устройство вывода", "динамики и наушники"],
+        ["индикаторы уровня", "полоса громкости", "звуковые полосы"],
+        ["аудиопотоки", "приложения со звуком", "громкость отдельных программ"],
+        ["адаптивный размер звука", "подстройка громкости"],
+        ["анимация громкости", "эффекты аудио"]
+    ],
+    calendar: [
+        ["расположение календаря", "сетка дат", "вид календаря"],
+        ["цвета календаря", "выделение дат", "цвет событий"],
+        ["метки заметок", "значки событий", "маркеры дат"],
+        ["анимация календаря", "переходы между месяцами"]
+    ],
+    settingsWindow: [
+        ["интерфейс окна", "внешний вид настроек", "размеры панели"],
+        ["размер и поведение окна", "позиция окна", "геометрия настроек"],
+        ["вкладки настроек", "группы навигации", "свернуть разделы"]
+    ],
+    mopidy: [
+        ["подключение к mopidy", "музыкальный сервер", "адрес сервера"],
+        ["время воспроизведения", "длительность трека"],
+        ["иконки mopidy", "значки состояния"],
+        ["пустой плеер", "сервер недоступен", "нет музыки"],
+        ["анимация mopidy", "эффекты музыкального сервера"]
+    ],
+    launcher: [
+        ["общие настройки лаунчера", "запускалка", "поведение меню"],
+        ["навигация по лаунчеру", "переключение разделов", "клавиши перемещения"],
+        ["оформление лаунчера", "внешний вид меню"],
+        ["поиск в лаунчере", "поисковая строка меню"]
+    ],
+    launcherSearch: [
+        ["поиск программ", "список приложений для поиска"],
+        ["поиск команд", "действия в поиске"],
+        ["внешний вид результатов", "схемы поиска"],
+        ["поиск фоновых изображений", "обои в поиске"]
+    ],
+    launcherActions: [
+        ["переходы лаунчера", "переключение страниц"],
+        ["инструменты лаунчера", "калькулятор", "командные инструменты"],
+        ["пользовательские команды", "свои действия", "кастомные действия"]
+    ],
+    notifications: [
+        ["поведение всплывающих сообщений", "таймаут уведомлений", "очередь уведомлений"],
+        ["внешний вид уведомлений", "карточки сообщений", "иконки и изображения уведомлений"],
+        ["позиция уведомлений", "координаты уведомлений", "размер и отступы уведомлений"],
+        ["анимация всплывающих окон", "появление уведомлений"]
+    ]
 }
 
+// Subtab IDs mirror the existing stable page + local index route. They are
+// metadata identifiers only: persistence and navigation still use page IDs
+// plus the established subtab index, so no stored settings are migrated.
+function subTabMetadataForPageId(id) {
+    var page = pageForId(id)
+    if (!page || !Array.isArray(page.subTabs))
+        return []
+    var result = []
+    for (var i = 0; i < page.subTabs.length; ++i) {
+        var label = String(page.subTabs[i])
+        var slug = label.toLocaleLowerCase().replace(/ё/g, "е")
+            .replace(/[^a-zа-я0-9]+/g, "-").replace(/^-+|-+$/g, "")
+        var pageKeywords = SUBTAB_KEYWORDS[page.id]
+        var aliases = pageKeywords && Array.isArray(pageKeywords[i]) ? pageKeywords[i].slice() : []
+        result.push({
+            id: page.id + "." + (slug || ("subtab-" + String(i))),
+            index: i,
+            label: label,
+            keywords: aliases
+        })
+    }
+    return result
+}
+
+function subtabsForPageId(id) {
+    var metadata = subTabMetadataForPageId(id)
+    var labels = []
+    for (var i = 0; i < metadata.length; ++i)
+        labels.push(metadata[i].label)
+    return labels
+}
+
+function pageMetadataForId(id) {
+    var pageId = String(id === undefined || id === null ? "" : id)
+    var tab = null
+    for (var i = 0; i < TAB_DEFINITIONS.length; ++i) {
+        if (TAB_DEFINITIONS[i].id === pageId) {
+            tab = TAB_DEFINITIONS[i]
+            break
+        }
+    }
+    if (!tab)
+        return null
+
+    var route = pageForId(pageId)
+    var group = navigationGroupForId(tab.groupId)
+    return {
+        id: tab.id,
+        defaultLabel: tab.defaultLabel,
+        label: tab.defaultLabel,
+        groupId: tab.groupId,
+        navigationGroupLabel: group ? group.label : "Общие",
+        navigationGroupDescription: group ? group.description : "",
+        description: tab.description || "",
+        keywords: Array.isArray(tab.keywords) ? tab.keywords.slice() : [],
+        saveScope: route ? (route.saveScope || "") : "",
+        subTabs: subTabMetadataForPageId(pageId),
+        hasSharedPageRoute: route !== null
+    }
+}
+
+function pageMetadataCatalog() {
+    var result = []
+    for (var i = 0; i < TAB_DEFINITIONS.length; ++i) {
+        var metadata = pageMetadataForId(TAB_DEFINITIONS[i].id)
+        if (metadata)
+            result.push(metadata)
+    }
+    return result
+}
 
 function saveScopeForPageId(id, subIndex) {
-    var page = pageForId(id)
-    if (!page)
+    var metadata = pageMetadataForId(id)
+    if (!metadata || !metadata.hasSharedPageRoute)
         return ""
     // General settings has shared UI/profile/storage subtabs. Only its
     // interface subtab has the scoped save/reset action.
-    if (page.id === "general" && Number(subIndex) !== 0)
+    if (metadata.id === "general" && Number(subIndex) !== 0)
         return ""
-    return page.saveScope || ""
+    return metadata.saveScope || ""
 }

@@ -19,9 +19,8 @@ Item {
     readonly property var settingsNavigationGroupDefinitions: SettingsPageRegistry.navigationGroupDefinitions()
 
     function defaultSettingsTabLabel(id) {
-        for (var i = 0; i < root.settingsTabDefinitions.length; ++i)
-            if (root.settingsTabDefinitions[i].id === id) return root.settingsTabDefinitions[i].defaultLabel
-        return "Настройки"
+        var metadata = SettingsPageRegistry.pageMetadataForId(id)
+        return metadata ? metadata.defaultLabel : "Настройки"
     }
 
     function settingsTabLabelForId(id) {
@@ -55,17 +54,8 @@ Item {
         return SettingsPageRegistry.groupedTabOrder(result)
     }
 
-    readonly property var settingsNavigationItems: {
-        var order = root.settingsTabOrderNormalized()
-        var rows = []
-        for (var i = 0; i < order.length; ++i)
-            rows.push({
-                id: order[i],
-                label: root.settingsTabLabelForId(order[i]),
-                groupId: SettingsPageRegistry.navigationGroupIdForTabId(order[i])
-            })
-        return rows
-    }
+    readonly property var settingsNavigationItems: SettingsPageRegistry.navigationItemsForOrder(
+        root.settingsTabOrderNormalized(), Config.settingsTabLabels || ({}))
 
     function isSettingsTabSelected(id) {
         return root.currentPageId === String(id)

@@ -4,14 +4,32 @@
 
 var GENERATED_WALLPAPER_THEME_NAME = "Wallpaper Dynamic"
 
+function managedColorNames(owner, fallback) {
+    if (owner && Array.isArray(owner.themeManagedColorNames))
+        return owner.themeManagedColorNames
+    var independent = ["settingsBackground", "playerProgressTrack", "playerProgressFill",
+        "topAppsCpuBarColor", "topAppsRamBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"]
+    return (Array.isArray(fallback) ? fallback : []).filter(function(name) {
+        return independent.indexOf(name) < 0
+    })
+}
+
+function independentColorNames(owner) {
+    if (owner && Array.isArray(owner.independentThemeColorNames))
+        return owner.independentThemeColorNames
+    return ["settingsBackground", "playerProgressTrack", "playerProgressFill",
+        "topAppsCpuBarColor", "topAppsRamBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"]
+}
+
 function palette(owner, themes, name) {
     return themes.palette(name, owner.customThemes)
 }
 
 function currentThemeColors(owner, colorNames, Config) {
     var result = {}
-    for (var i = 0; i < colorNames.length; ++i) {
-        var key = colorNames[i]
+    var managed = managedColorNames(owner, colorNames)
+    for (var i = 0; i < managed.length; ++i) {
+        var key = managed[i]
         result[key] = String(Config[key])
     }
     return result
@@ -19,8 +37,9 @@ function currentThemeColors(owner, colorNames, Config) {
 
 function isCurrentThemeModified(owner, themes, colorNames, Config) {
     var palette = themes.palette(owner.activeTheme, owner.customThemes)
-    for (var i = 0; i < colorNames.length; ++i) {
-        var key = colorNames[i]
+    var managed = managedColorNames(owner, colorNames)
+    for (var i = 0; i < managed.length; ++i) {
+        var key = managed[i]
         if (String(Config[key]) !== String(palette[key] !== undefined ? palette[key] : Config[key]))
             return true
     }
@@ -47,12 +66,7 @@ function applyTheme(owner, themes, Config, name) {
     var p = themes.palette(n, owner.customThemes)
     // These are user-tuned component/window colors, not part of the global
     // theme. Keep their current values when switching built-in or custom themes.
-    var independentColors = [
-        "settingsBackground",
-        "playerProgressTrack", "playerProgressFill",
-        "topAppsCpuBarColor", "topAppsRamBarColor",
-        "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"
-    ]
+    var independentColors = independentColorNames(owner)
     var preserved = {}
     for (var i = 0; i < independentColors.length; ++i) {
         var independentKey = independentColors[i]
@@ -77,7 +91,7 @@ function applyGeneratedTheme(owner, themes, Config, colorNames, name, paletteVal
         return false
 
     var generated = {}
-    var names = Array.isArray(colorNames) ? colorNames : []
+    var names = managedColorNames(owner, colorNames)
     for (var i = 0; i < names.length; ++i) {
         var key = String(names[i])
         var value = paletteValue[key]
@@ -137,13 +151,20 @@ function saveCustomTheme(owner, themes, Config, name) {
     if (!n || themes.builtinThemeNames.indexOf(n) >= 0 || !owner.themeDraft
             || (n === GENERATED_WALLPAPER_THEME_NAME && owner.themeDraftSource !== n)) return false
     var next = Object.assign({}, owner.customThemes || {})
-    next[n] = JSON.parse(JSON.stringify(owner.themeDraft))
+    var savedPalette = JSON.parse(JSON.stringify(owner.themeDraft))
+    var independent = independentColorNames(owner)
+    for (var i = 0; i < independent.length; ++i) delete savedPalette[independent[i]]
+    next[n] = savedPalette
     owner.customThemes = next
     owner.activeTheme = n
     owner.themeDraftSource = n
     owner.themeDraft = JSON.parse(JSON.stringify(next[n]))
     owner.themeDraftRevision++
-    for (var key in next[n]) Config[key] = next[n][key]
+    var managed = managedColorNames(owner, Object.keys(next[n]))
+    for (var j = 0; j < managed.length; ++j) {
+        var key = managed[j]
+        if (next[n][key] !== undefined) Config[key] = next[n][key]
+    }
     owner.themeStateRevision++
     owner.save()
     return true
@@ -177,7 +198,7 @@ function findExactThemeForColors(owner, themes, colors) {
     Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
         if (names.indexOf(name) < 0) names.push(name)
     })
-    var colorNames = owner.colorNames || []
+    var colorNames = managedColorNames(owner, owner.colorNames || [])
     if (!colorNames.length) return ""
 
     for (var i = 0; i < names.length; ++i) {

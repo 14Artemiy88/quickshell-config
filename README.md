@@ -21,7 +21,7 @@ Configurable desktop widgets and a keyboard-driven launcher for **Quickshell** o
 - Встроенный лаунчер: Apps, Run, Windows, Clipboard, Power, Network, Packages, Pass, Projects и Calculator; запуск по Enter, сохранённые команды и проекты. В палитре `>` доступен офлайн-каталог из 153 часто используемых эмодзи: `>emoji`, `>emoji smile` или `>emoji сердце`; `>emoji favorites` открывает только избранное, а `>emoji recent` — последние 12 использованных не избранных символов. Эти режимы понимают русские алиасы `избранное` и `недавние`; после имени режима можно добавить поисковое слово. Выбор копирует символ в буфер обмена. Эмодзи можно добавлять в избранное нажатием на звезду справа в строке или `Ctrl+Shift+F`; последние 12 использованных (не избранных) символов поднимаются к началу полного каталога, а счётчик использования сохраняется. Apps читает живую модель `DesktopEntries.applications.values`, поэтому список обновляется при изменении системного каталога. Для Apps можно закреплять избранные приложения и скрывать ненужные из обычной и метадатной выдачи; списки настраиваются в **Настройки → Лаунчер → Приложения** и сохраняются вместе с профилем. В настройке видимости вкладок скрытую вкладку можно снова включить, даже когда она осталась единственной скрытой.
 - Опциональная Vim-навигация в Launcher: `Ctrl+J`/`Ctrl+N` перемещают выбор вниз, `Ctrl+K`/`Ctrl+P` — вверх. По умолчанию выключена; обычный ввод `j/k/n/p`, стрелки и существующее переключение вкладок через `Tab` не меняются. Панель подсказок навигации внизу Launcher отдельно управляется переключателем «Отображать панель подсказок» и отображается по умолчанию; её высота (0–48 px, по умолчанию 24), размер шрифта (8–18 px, по умолчанию 11) и вертикальное смещение текста Y (−48…48 px, по умолчанию 0) настраиваются в «Настройки → Лаунчер → Общее → Навигация → Панель подсказок». Переключатель видимости и параметры панели находятся в одной рамке «Панель подсказок»; при отключении плавно сворачиваются только параметры, а рамка и переключатель остаются видимыми.
 - Сквозной поиск из Apps по установленным приложениям, проектам, сохранённым командам, пользовательским действиям и арифметическим выражениям; пользовательское действие ищется по названию, описанию и команде. Префикс `>` открывает каталог встроенных действий и позволяет перейти к вкладкам по запросу (`>wifi`, `>power`, `>calc`, `>projects`); пользовательские команды вынесены отдельно под префикс `:`. Сохранённые пользовательские команды запускаются отдельно через `:`. Встроенные действия показывают назначение раздела и находятся по русским и английским синонимам, например `>wireless`, `>менеджер паролей`, `>репозитории` и `>вычислить`. Каждый из 15 встроенных пунктов (10 переходов и 5 инструментов) можно независимо отключить в **Настройки → Лаунчер → Действия → Переходы** и **Инструменты**; это скрывает команду и её подкоманды из поиска `>`; сами вкладки остаются в панели вкладок, а настройки и данные инструментов сохраняются. Каталог `:` и обычный поиск Apps не меняются. Для включённого пользовательского действия обязательны название и команда, а краткое описание необязательно. Новая запись создаётся с пустыми полями: placeholders поясняют, что вводить («Название действия (обязательно)», «Краткое описание (необязательно)», «Команда для запуска (обязательно)»). При сохранении любого поля действия проверяются оба обязательных поля; незаполненное поле выделяется мягкой красной рамкой в тон кнопок удаления, а сохранение блокируется до исправления. Список учитывает скрытые вкладки. Калькулятор поддерживает скобки, унарные знаки, +, −, ×, ÷, остаток и степень.
-- Общая система настроек, тем, цветов, профилей и рамочных групп; общий примитив `SettingsAnimationGroup.qml` предоставляет выбор профиля внутренних переходов (включая «Без анимации»), длительность и плавное раскрытие дополнительных параметров; модули могут добавлять к нему собственные поля; стабильные ID и метаданные страниц собраны в `SettingsPageRegistry.js`, отдельно от QML-разметки. Общий хост прокрутки, заголовка, подразделов и действий страницы вынесен в `SettingsPageHost.qml`, а декларативная сборка страниц — в `SettingsPageContent.qml`; составные страницы Player и Mopidy дополнительно выделены в `pages/SettingsPlayerPage.qml` и `pages/SettingsMopidyPage.qml`. Навигация вынесена в `SettingsNavigationController.qml`: он владеет текущим ID страницы, порядком и названиями вкладок, подразделами, маркерами изменений и сбросом страницы; `SettingsWidget` сохраняет стабильный внешний API через aliases и делегирующие методы. Компоненты страниц получают контроллер навигации и хранилище через явные свойства. Навигация, поиск, области сохранения и сбросы используют ID страниц, а не числовые индексы; числовая позиция остаётся только у подразделов внутри страницы. Глобальный поиск вынесен в `SettingsSearchController.qml`: он индексирует параметры по подписям, разделам и ключам, открывает нужную вкладку и прокручивает к настройке с подсветкой; `SettingsWidget` передаёт ему дерево страниц и визуальные элементы поиска. Развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
+- Общая система настроек, тем, цветов, профилей и рамочных групп; общий примитив `SettingsAnimationGroup.qml` предоставляет выбор профиля внутренних переходов (включая «Без анимации»), длительность и плавное раскрытие дополнительных параметров; модули могут добавлять к нему собственные поля; стабильные ID и единый каталог метаданных страниц/подразделов (названия, группы, описания, поисковые поля и области сохранения) собраны в `SettingsPageRegistry.js`, отдельно от QML-разметки. Общий хост прокрутки, заголовка, подразделов и действий страницы вынесен в `SettingsPageHost.qml`, а декларативная сборка страниц — в `SettingsPageContent.qml`; составные страницы Player и Mopidy дополнительно выделены в `pages/SettingsPlayerPage.qml` и `pages/SettingsMopidyPage.qml`. Навигация вынесена в `SettingsNavigationController.qml`: он владеет текущим ID страницы, порядком и названиями вкладок, подразделами, маркерами изменений и сбросом страницы; `SettingsWidget` сохраняет стабильный внешний API через aliases и делегирующие методы. Компоненты страниц получают контроллер навигации и хранилище через явные свойства. Навигация, поиск, области сохранения и сбросы используют ID страниц, а не числовые индексы; числовая позиция остаётся только у подразделов внутри страницы. Глобальный поиск вынесен в `SettingsSearchController.qml`: он индексирует параметры по подписям, разделам и ключам, открывает нужную вкладку и прокручивает к настройке с подсветкой; `SettingsWidget` передаёт ему дерево страниц и визуальные элементы поиска. Развёрнутый список тем показывает палитры до выбора, а настройки виджетов редактируются через UI.
 - Собственная система уведомлений на базе Quickshell: всплывающие карточки, уровни важности, прогресс-полосы по подсказке `int:value`, форматирование и ссылки, иконки и изображения из image-path/image-data, автоматическое скрытие и действия. Для появления и исчезновения карточек доступны «Нет», затухание и сдвиги с четырёх направлений; общие профили кривых и длительность настраиваются независимо от перестройки очереди. Прозрачная поверхность уведомлений остаётся подключённой к слою и уменьшается до 1×1 в простое, чтобы анимация оконного композитора не добавляла нежелательный fade. На первом этапе она заменяет Dunst; перед запуском нужно остановить Dunst, чтобы Quickshell мог занять D-Bus имя `org.freedesktop.Notifications`.
 
 ### Требования
@@ -76,6 +76,20 @@ quickshell -c "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
 - В **Настройки → Общие → Хранилища** можно менять расположение только `settings.json`, `calendar-notes.json` и `calendar-marks.json`. Укажи абсолютный путь с исходным именем файла; перенос проверяет JSON, не перезаписывает существующее назначение и оставляет прежнюю копию с суффиксом `.qsw-backup-*`. При переносе `settings.json` его `.settings.json.bak` перемещается рядом. Реестр выбранных путей хранится в приватном `.storage-paths.conf` внутри канонического каталога конфигурации; после переноса рекомендуется перезапустить Quickshell.
 
 Для переноса через GitHub можно в **Настройки → Общие → Хранилища** указать пути к `settings.json` и `profiles.json` внутри рабочего клона репозитория, затем добавить эти два файла в Git после проверки их содержимого. `secrets.json` остаётся в локальном каталоге конфигурации и исключён из Git. Не добавляйте резервные/повреждённые копии, токены, заметки календаря или другие приватные данные. Если секрет уже попадал в Git, удалите его из индекса и при необходимости очистите историю.
+
+### Структура настроек
+
+Интерфейс настроек организован в пять групп навигации и 22 страницы. Стабильные ID страниц, группы, подписи, описания, ID/подписи подразделов и области сохранения находятся в `js/settings/SettingsPageRegistry.js`; две специальные страницы — «Включение модулей» и «Темы и цвета» — имеют собственные секции, остальные используют общий `SettingsPageHost`.
+
+| Группа | Страницы |
+|---|---|
+| Внешний вид | Темы и цвета; Окно настроек |
+| Модули | Включение модулей; Таймеры; Плеер; Mopidy; Погода; CAVA; CPU/RAM; Сеть; Громкость; Календарь; Уведомления |
+| Dashboard | Dashboard |
+| Лаунчер | Общее; Поиск; Вкладки; Проекты; Действия; Анимация; Приложения |
+| Общие | Общие |
+
+В реестре описано 65 подразделов. Поиск строит индекс по доступным элементам управления и учитывает подпись, группу, страницу, заголовок секции и индивидуальные `settingsSearchKeywords`; выбранный результат ведёт к конкретному элементу и подсвечивает его контекст. Сохранение и сброс разделов используют активный профиль и его sparse overrides, а не отдельную копию всех значений.
 
 ### Лаунчер и кейбинды Niri
 
@@ -201,6 +215,30 @@ Use `qs` instead of `quickshell` if that is the executable installed on your sys
 
 To transfer settings through GitHub, use **Settings → General → Storage** to point `settings.json` and `profiles.json` into your working repository clone, then review their contents before adding them to Git. `secrets.json` remains in the local config directory and is ignored by Git. Never commit backups/corrupt copies, API keys, calendar notes, or other private data. If a secret was already committed, remove it from the index and consider cleaning Git history as well.
 
+### Settings structure
+
+Settings are organized into five navigation groups and 22 pages. Stable page IDs, group membership, labels, subtabs, and save scopes live in `js/settings/SettingsPageRegistry.js`. The Modules and Themes pages use dedicated sections; the other pages share `SettingsPageHost`.
+
+| Group | Pages |
+|---|---|
+| Appearance | Themes & Colors; Settings Window |
+| Modules | Enable Modules; Timers; Player; Mopidy; Weather; CAVA; CPU/RAM; Network; Volume; Calendar; Notifications |
+| Dashboard | Dashboard |
+| Launcher | General; Search; Tabs; Projects; Actions; Animation; Applications |
+| General | General |
+
+The registry describes 65 subtabs. Search indexes available controls and considers their labels, navigation group, page, section heading, and optional `settingsSearchKeywords`; selecting a result navigates to and highlights the matching control and its context. Page-level save and reset actions use the active profile and its sparse overrides rather than storing a duplicate full settings snapshot.
+
+Navigation group expansion/collapse is a UI preference rather than a profile setting. Its state is persisted independently at the root of `settings.json`, outside `profileOverrides`, so expanding Appearance, Modules, or Launcher never creates Save/Reset indicators or changes a named profile. Existing profile-scoped values from older settings files are migrated to this standalone preference on load.
+
+### Settings navigation state (v1343)
+
+Expanded/collapsed navigation groups are stored independently from named profiles. Profile snapshots and scoped Save/Reset actions no longer include this UI-only state; existing values are migrated from legacy sparse overrides or profile snapshots and retained in `settings.json`.
+
+### Settings section surfaces (v1341)
+
+Settings section groups now use transparent interiors by default while retaining their thin outline, search-highlight overlay, and modified-state marker. Section captions sit inside the top edge of the frame; the separate opaque caption backing was removed so it no longer creates a second filled patch behind every group. Individual controls and action buttons keep their own backgrounds where those surfaces communicate interactivity.
+
 ### Niri keybindings
 
 Launcher is a collapsible navigation folder placed immediately before Settings Window. It contains the General, Search, Tabs, Projects, Actions, Animation, and Applications pages. Large framed groups are organized into meaning-based subtabs on General, Search, and Actions. Its startup tab, visible tabs, tab order, geometry, window and list-item rounding, backdrop opacity, and project catalogue are configurable. The search query is preserved across tab switches and cleared when the launcher closes. The launcher title has configurable color and vertical offset; other text, accent, and borders use the active shared theme; the launcher window background has its own setting under Settings → Launcher → General → Appearance. The settings-window background is configured under Settings → Settings Window rather than in the theme color editor.
@@ -305,3 +343,28 @@ The release audit ties the five runtime card definitions to Config defaults, Set
 
 The Dashboard keyboard interaction is now covered by focused behavior-level regression tests. Arrow navigation is checked against actual element bounds, including first-key edge entry, same-row wrapping and same-column vertical movement. PageUp/PageDown retain an overlapping viewport step and focus a card in the newly revealed area; Home/End follow configured visible-card order. Focused cards are scrolled fully into view after navigation and their logical focus is restored after responsive delegate rebuilds. The wheel path now shares a pure bounded-position helper for both mouse notches and high-resolution touchpad pixel deltas; non-zero wheel input remains consumed at the scroll boundaries, while zero vertical movement is left unhandled. The scrollbar stays hidden and no new visual surface or dependency is introduced.
 
+
+### CPU/RAM page reset and save includes Top Apps bar colors (v1342)
+
+Top Apps bar colors are now included in the CPU/RAM page-level Save and Reset scope. Their four nested palette values are restored from the active profile by CPU/RAM Reset, and a scoped CPU/RAM save captures only those four colors without absorbing unrelated palette edits.
+
+## Recent Settings fix
+
+- v1345 fixes the Settings navigation row model regression: all page tabs are rebuilt from canonical page metadata, preserving clickable tabs and expandable navigation groups.
+
+
+### Settings search synonyms (v1346)
+
+The central Settings page registry now carries targeted Russian and English aliases for all 22 pages and all 65 subsections. The search index includes these aliases as searchable metadata and as a page-ranking signal, while preserving the existing control label, target-property and explicit-keyword matching. Subsection aliases are intentionally specific (for example, RAM/ОЗУ wording for CPU/RAM, remaining-track wording for Player, and popup wording for Notifications) rather than adding generic terms to every control. No navigation routes, page IDs, profile scopes or settings values changed.
+
+### Settings dependent-control consistency (v1347)
+
+Settings controls inside animated conditional groups are now disabled immediately when their controlling option or disclosure is turned off, while the existing exit animation remains visible. This covers Volume streams, CAVA silent-state options, Top Apps headers/bars/system remainder, Calendar past-day color, Player outline/progress, Timer custom colors/finished-image options, Weather comfort/wind-direction details, and expanded theme editing. Shared text inputs, combo boxes and checkboxes now use the same muted disabled opacity; shared labels switch to the muted text color when their row is disabled. No setting values, profile scopes, save/reset semantics or active layouts changed.
+
+### Settings theme/profile color ownership (v1348)
+
+Global palettes and profile-scoped component colors now have explicit, centralized roles. Settings-window background, Player progress colors and the four Top Apps bar colors remain part of profile snapshots and their module-specific Save/Reset scopes, but no longer make a global theme appear as `(Changed)`, get copied into a newly saved theme, or influence custom-theme fallback matching after a theme is deleted. The Player progress colors are edited only on the Player page rather than being duplicated in the global theme editor. Existing profiles and custom palettes remain readable; no stored color values are discarded during load.
+
+### Settings final integration audit (v1349)
+
+The Settings release audit ties the canonical page registry to clickable navigation rows and search metadata, verifies all five navigation groups, 22 stable pages and 65 subsections, and confirms that expanded/collapsed navigation state is persisted as a standalone UI preference rather than a profile override. It also cross-checks the CPU/RAM scoped Save/Reset contract for the four nested Top Apps bar colors, the exact partition between global theme colors and profile-scoped component colors, dependent-control disabling, and registration of the key regression suites. No runtime QML, settings values or visual styling changed in this verification release.

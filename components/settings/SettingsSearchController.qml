@@ -135,10 +135,25 @@ Item {
                 var stableId = occurrence === 0 ? baseId : baseId + "#" + String(occurrence + 1)
                 var group = root.settingsSearchGroupHeading(item, activePageRoot)
                 var pageLabel = root.host ? root.host.settingsTabLabelForId(activePageId) : activePageId
-                var navigationGroupLabel = SettingsPageRegistry.navigationGroupLabelForTabId(activePageId)
-                var keywords = item.settingsSearchKeywords !== undefined ? String(item.settingsSearchKeywords || "") : ""
-                var keyTerms = SettingsSearch.keyTerms([label, group, navigationGroupLabel, activePageId, targetKey, explicitId].join(" "))
-                var searchable = [label, group, navigationGroupLabel, pageLabel, activePageId, targetKey, explicitId, keywords, keyTerms].join(" ")
+                var pageMetadata = typeof SettingsPageRegistry.pageMetadataForId === "function"
+                    ? (SettingsPageRegistry.pageMetadataForId(activePageId) || ({})) : ({})
+                var navigationGroupLabel = pageMetadata.navigationGroupLabel
+                    || SettingsPageRegistry.navigationGroupLabelForTabId(activePageId)
+                var pageDescription = String(pageMetadata.description || "")
+                var pageKeywords = Array.isArray(pageMetadata.keywords) ? pageMetadata.keywords.join(" ") : String(pageMetadata.keywords || "")
+                var subTabIndex = root.settingsSearchSubTabIndex(item, activePageRoot)
+                var subTabMetadata = pageMetadata.subTabs && subTabIndex >= 0
+                    ? pageMetadata.subTabs[subTabIndex] : null
+                var subTabLabel = subTabMetadata ? String(subTabMetadata.label || "") : ""
+                var subTabKeywords = subTabMetadata && Array.isArray(subTabMetadata.keywords)
+                    ? subTabMetadata.keywords.join(" ") : ""
+                var controlKeywords = item.settingsSearchKeywords !== undefined ? String(item.settingsSearchKeywords || "") : ""
+                var keywords = [controlKeywords, pageKeywords, subTabKeywords].filter(function(value) { return value.length > 0 }).join(" ")
+                var keyTerms = SettingsSearch.keyTerms([label, group, navigationGroupLabel, activePageId, targetKey, explicitId, subTabLabel].join(" "))
+                // Keep page descriptions as result context, not as a broad
+                // per-control match source. Page/subtab keywords remain the
+                // deliberate searchable metadata channels.
+                var searchable = [label, group, navigationGroupLabel, pageLabel, activePageId, subTabLabel, targetKey, explicitId, keywords, keyTerms].join(" ")
                 entries.push({
                     id: stableId,
                     label: label,
@@ -146,12 +161,16 @@ Item {
                     navigationGroupLabel: navigationGroupLabel,
                     pageId: activePageId,
                     pageLabel: pageLabel,
-                    subTabIndex: root.settingsSearchSubTabIndex(item, activePageRoot),
+                    pageDescription: pageDescription,
+                    pageKeywords: pageKeywords,
+                    subTabId: subTabMetadata ? subTabMetadata.id : "",
+                    subTabLabel: subTabLabel,
+                    subTabIndex: subTabIndex,
                     target: item,
                     pageRoot: activePageRoot,
                     targetKey: targetKey,
                     keywords: keywords,
-                    keyTerms: [targetKey, explicitId, keyTerms].join(" "),
+                    keyTerms: [targetKey, explicitId, keyTerms, keywords].join(" "),
                     searchText: searchable
                 })
             }

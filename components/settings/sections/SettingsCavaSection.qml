@@ -76,6 +76,7 @@ settingsSearchSubTabIndex: 0
         MorphGeometry {
             id: cavaHideZeroBarsMorph
             width: parent.width
+            enabled: Config.cavaHideWhenSilent
             clip: true
             visible: Config.cavaHideWhenSilent || normalizedProgress > 0.001
             fromGeometry: Qt.rect(0, 0, parent.width, 0)

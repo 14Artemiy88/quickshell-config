@@ -50,7 +50,7 @@ assert(!persistenceSource.includes('notificationsPosition: config.') && !persist
 for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificationsOffsetY', 'notificationsMargin'])
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
-assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules" }'), 'sidebar declares the Notifications page in the Modules group');
+assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules", description:'), 'sidebar declares the Notifications page and description in the Modules group');
 function sidebarOrder(source, pattern, label) {
   const match = source.match(pattern);
   assert(match, `${label} declares a settings sidebar order`);

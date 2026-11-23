@@ -409,6 +409,7 @@ settingsSearchSubTabIndex: 2
         MorphGeometry {
             id: topAppsHeadersMorph
             width: parent.width
+            enabled: Config.topAppsShowHeaders
             clip: true
             visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 && (Config.topAppsShowHeaders || normalizedProgress > 0.001)
@@ -563,6 +564,7 @@ settingsSearchSubTabIndex: 2
             MorphGeometry {
                 id: topAppsBarGeometryMorph
                 width: parent.width
+                enabled: Config.topAppsShowBars
                 clip: true
                 visible: host && ((Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2)
                     || (host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2 && normalizedProgress > 0.001))
@@ -681,6 +683,7 @@ settingsSearchSubTabIndex: 2
     MorphGeometry {
         id: topAppsBarColorsMorph
         width: parent.width
+        enabled: Config.topAppsShowBars
         clip: true
         visible: host && ((Config.topAppsShowBars && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2)
             || (host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2 && normalizedProgress > 0.001))
@@ -800,6 +803,7 @@ settingsSearchSubTabIndex: 2
         MorphGeometry {
             id: topAppsSystemRemainderMorph
             width: parent.width
+            enabled: Config.topAppsShowSystemRemainder
             clip: true
             visible: host && host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 && (Config.topAppsShowSystemRemainder || normalizedProgress > 0.001)

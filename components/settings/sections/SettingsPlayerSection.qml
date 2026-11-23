@@ -646,6 +646,7 @@ settingsSearchSubTabIndex: 3
             MorphGeometry {
                 id: playerTextOutlineColorMorph
                 width: parent.width
+                enabled: Config.playerTextOutlineEnabled
                 clip: true
                 visible: Config.playerTextOutlineEnabled || normalizedProgress > 0.001
                 fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -856,6 +857,7 @@ settingsSearchSubTabIndex: 5
         MorphGeometry {
             id: playerProgressOptionsMorph
             width: parent.width
+            enabled: Config.playerShowProgress
             clip: true
             visible: Config.playerShowProgress || normalizedProgress > 0.001
             fromGeometry: Qt.rect(0, 0, parent.width, 0)

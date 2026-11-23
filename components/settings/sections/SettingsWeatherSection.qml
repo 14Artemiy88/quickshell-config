@@ -165,6 +165,7 @@ settingsSearchSubTabIndex: 1
                         MorphGeometry {
                             id: windDirectionRowsMorph
                             width: parent.width
+                            enabled: weatherSection.windDirectionSettingsExpanded
                             clip: true
                             visible: weatherSection.windDirectionSettingsExpanded || normalizedProgress > 0.001
                             fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -493,6 +494,7 @@ settingsSearchSubTabIndex: 1
         MorphGeometry {
             id: weatherComfortOptionsMorph
             width: parent.width
+            enabled: Config.weatherShowComfort
             clip: true
             visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
                 && (Config.weatherShowComfort || normalizedProgress > 0.001)

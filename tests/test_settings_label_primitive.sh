@@ -15,7 +15,7 @@ assert re.search(r"(?m)^Text\s*\{", source), "SettingsLabel must remain a Text-b
 assert 'font.family: Config.settingsFont' in source, "shared settings font is not applied"
 assert 'font.pixelSize: Config.settingsUiSize(root.settingsFontSize)' in source, "settings font scaling is not applied"
 assert 'property real settingsFontSize: 11' in source, "default label size changed"
-assert 'color: Config.text' in source, "default label color changed"
+assert 'color: root.enabled ? Config.text : Config.textMuted' in source, "label must retain the default color and use muted color when disabled"
 assert 'verticalAlignment: Text.AlignVCenter' in source, "default label alignment changed"
 
 primitive_dir = root / "components/settings/primitives"

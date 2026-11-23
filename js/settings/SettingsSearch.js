@@ -75,7 +75,7 @@ function search(entries, query, limit) {
         // Page context is a deliberate ranking signal, not just searchable
         // metadata. Without it, module-layout controls such as "Погода · X"
         // can crowd out the actual Weather page settings for a short query.
-        var pageContext = normalize([entry.pageLabel || "", entry.pageId || ""].join(" "))
+        var pageContext = normalize([entry.pageLabel || "", entry.pageId || "", entry.pageKeywords || ""].join(" "))
         var valid = true
         var score = 0
 

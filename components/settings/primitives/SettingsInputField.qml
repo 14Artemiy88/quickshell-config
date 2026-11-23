@@ -14,6 +14,9 @@ TextField {
     // Optional inline clear affordance for compact search fields.
     property bool clearButtonEnabled: false
 
+    // Disabled dependent fields stay visible during their exit animation, but
+    // are immediately non-interactive and visually muted like other controls.
+    opacity: root.enabled ? 1 : 0.55
     rightPadding: root.clearButtonEnabled ? 30 : 8
 
     function clearSettingsFocus() {

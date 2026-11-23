@@ -167,7 +167,6 @@ function snapshotObject(owner, config) {
             settingsSearchVisible: config.settingsSearchVisible,
             settingsTabOrder: cloneValue(config.settingsTabOrder || ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]),
             settingsTabLabels: cloneValue(config.settingsTabLabels || {}),
-            settingsNavigationCollapsedGroups: cloneValue(config.settingsNavigationCollapsedGroups || { appearance: false, modules: false, launcher: false }),
             dashboardVisibleCards: normalizeDashboardCards(config.dashboardVisibleCards, config.dashboardCardOrder),
             dashboardCardOrder: normalizeDashboardCardOrder(config.dashboardCardOrder),
             dashboardColumnsMode: normalizeDashboardColumnsMode(config.dashboardColumnsMode),
@@ -352,6 +351,10 @@ function payloadObject(owner, config) {
     var full = typeof owner.snapshotObject === "function" ? owner.snapshotObject() : snapshotObject(owner, config)
     var state = cloneValue(full)
     delete state.weatherToken
+    // Navigation expansion is a UI preference, not part of any named profile.
+    // Keep it at the root of settings.json so expanding a group never creates
+    // sparse profile overrides or exposes Save/Reset actions.
+    delete state.settingsNavigationCollapsedGroups
 
     var base = activeProfileBase(owner)
     delete base.weatherToken
@@ -372,6 +375,8 @@ function payloadObject(owner, config) {
     // compact payload. Include keys for known maps separately so unknown future
     // nested entries can survive without retaining duplicate current values.
     var managedKeys = Object.keys(full);
+    if (managedKeys.indexOf("settingsNavigationCollapsedGroups") < 0)
+        managedKeys.push("settingsNavigationCollapsedGroups");
     ["playerControlIconSize", "timerFinishedImageTopMargin", "timerFinishedImageBottomMargin", "mopidyShowMoveButtons", "topApps", "timerPresets", "notificationsMargin", "notificationsPosition", "notificationsOffsetX", "notificationsOffsetY", "animationMopidyMorphEnabled", "animationPlayerMorphEnabled", "animationWeatherMorphEnabled", "animationTimerMorphEnabled"].forEach(function(key) {
         if (managedKeys.indexOf(key) < 0) managedKeys.push(key)
     })
@@ -389,6 +394,7 @@ function payloadObject(owner, config) {
         profileStorageFormat: PROFILE_STORAGE_FORMAT,
         activeProfile: owner.activeProfile || "",
         customThemes: owner.customThemes || {},
+        settingsNavigationCollapsedGroups: cloneValue(config.settingsNavigationCollapsedGroups || { appearance: false, modules: false, launcher: false }),
         profileOverrides: overrides,
         managedKeys: managedKeys,
         managedNestedKeys: managedNestedKeys

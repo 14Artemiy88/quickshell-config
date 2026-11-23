@@ -1,6 +1,7 @@
 // Settings reset logic extracted from Settings.qml.
 
 
+
 function normalizeDashboardColumnsMode(value) {
     var mode = String(value === undefined || value === null ? "" : value)
     return mode === "auto" || mode === "one" || mode === "two" ? mode : "auto"
@@ -86,8 +87,14 @@ function restoreProfileTheme(owner, profile, themes, colorNames) {
         for (var i = 0; i < candidates.length; ++i) {
             var palette = themes.palette(candidates[i], owner.customThemes)
             var matches = true
-            for (var j = 0; j < colorNames.length; ++j) {
-                var key = colorNames[j]
+            var comparableColors = owner && Array.isArray(owner.themeManagedColorNames)
+                ? owner.themeManagedColorNames
+                : (colorNames || []).filter(function(key) {
+                    return ["settingsBackground", "playerProgressTrack", "playerProgressFill",
+                        "topAppsCpuBarColor", "topAppsRamBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"].indexOf(key) < 0
+                })
+            for (var j = 0; j < comparableColors.length; ++j) {
+                var key = comparableColors[j]
                 if (profile.colors[key] === undefined) continue
                 if (String(profile.colors[key]) !== String(palette[key] !== undefined ? palette[key] : "")) {
                     matches = false
@@ -177,7 +184,7 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels"])
     if (profile.settingsSearchHighlightColor === undefined)
         config.settingsSearchHighlightColor = owner.defaultConfig.settingsSearchHighlightColor
     if (profile.settingsSearchHighlightBorderWidth === undefined)
@@ -418,7 +425,18 @@ function resetColors(owner, config, names, themes, colorNames) {
 
 function resetCpuSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "animationCpuMorphDuration", "animationCpuMorphProfile", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing", "cpuLabelLeftPadding", "cpuBarLeftOffset", "cpuBarRadius", "cpuBarDirection", "cpuGraphSegmentSlotWidth", "cpuGraphBarWidth", "cpuGraphMode", "cpuShowRam", "animationCpuMorphDuration", "animationCpuMorphProfile", "topAppsShowHeaders", "topAppsCpuHeaderTitle", "topAppsCpuHeaderSubtitle", "topAppsRamHeaderTitle", "topAppsRamHeaderSubtitle", "topAppsHeaderTitleFontSize", "topAppsHeaderSubtitleFontSize", "topAppsShowBars", "topAppsBarX", "topAppsBarY", "topAppsBarHeight", "topAppsBarWidth", "topAppsShowSystemRemainder", "topAppsSystemRemainderLabel", "topAppsFont", "topAppsFontSize", "topAppsRowSpacing", "topAppsTopOffset"])
+    // The four Top Apps bar colors live inside profile.colors. Restore only
+    // those fields here so the CPU/RAM page-level Reset action also clears
+    // their sparse overrides without disturbing unrelated palette edits.
+    var profileColors = profile.colors || {}
+    var topAppsColorNames = ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"]
+    for (var i = 0; i < topAppsColorNames.length; ++i) {
+        var colorName = topAppsColorNames[i]
+        if (profileColors[colorName] !== undefined)
+            config[colorName] = profileColors[colorName]
+    }
+    owner.save()
 }
 
 function resetNetworkSettings(owner, config) {

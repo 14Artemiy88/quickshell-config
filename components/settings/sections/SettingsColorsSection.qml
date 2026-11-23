@@ -102,6 +102,7 @@ Flickable {
 
                     MorphGeometry {
                         id: expandedThemeList
+                        enabled: root.themesExpanded
                         clip: true
                         fromGeometry: Qt.rect(0, 0, parent.width, 0)
                         toGeometry: Qt.rect(0, 0, parent.width, expandedThemeContent.implicitHeight)
@@ -307,6 +308,7 @@ Flickable {
                     MorphGeometry {
                         id: customThemeRenameMorph
                         width: parent.width
+                        enabled: root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified
                         clip: true
                         visible: (root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified) || normalizedProgress > 0.001
                         fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -375,6 +377,7 @@ Flickable {
                 MorphGeometry {
                     id: customThemeColorsMorph
                     width: parent.width
+                    enabled: root.editingColors
                     clip: true
                     visible: root.editingColors || normalizedProgress > 0.001
                     fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -410,7 +413,7 @@ Flickable {
                                 "ram", "ramTrack"
                             ]},
                             { title: "Плеер", colors: [
-                                "playerOverlay", "playerProgressTrack", "playerProgressFill"
+                                "playerOverlay"
                             ]},
                             { title: "Погоды", colors: [
                                 "currentWeather", "tempHot", "tempWarm", "tempMild", "tempCool", "tempZero",
@@ -483,8 +486,7 @@ Flickable {
                                             textDisabled: "Неактивный текст", calendarBackground: "Фон календаря",
                                             settingsBorder: "Рамка окна настроек", settingsSubheading: "Цвет мини-заголовков",
                                             volumeTrack: "Громкость: фон полосы", volumeFill: "Громкость: заполненная часть",
-                                            playerOverlay: "Плеер: затемнение фона", playerProgressTrack: "Фон прогресса плеера",
-                                            playerProgressFill: "Заполнение прогресса плеера", activeNetworkBackground: "Фон активной сети",
+                                            playerOverlay: "Плеер: затемнение фона", activeNetworkBackground: "Фон активной сети",
                                             cpu1: "CPU 1: заполнение", cpu1Track: "CPU 1: неактивный фон",
                                             cpu2: "CPU 2: заполнение", cpu2Track: "CPU 2: неактивный фон",
                                             cpu3: "CPU 3: заполнение", cpu3Track: "CPU 3: неактивный фон",

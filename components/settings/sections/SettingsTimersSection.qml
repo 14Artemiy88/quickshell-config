@@ -227,6 +227,7 @@ settingsSearchSubTabIndex: 0
         MorphGeometry {
             id: timerRandomCustomColorsMorph
             width: parent.width
+            enabled: Config.timerRandomColorMode === "custom"
             clip: true
             visible: root.host && root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 0
                 && (Config.timerRandomColorMode === "custom" || normalizedProgress > 0.001)
@@ -343,6 +344,7 @@ settingsSearchSubTabIndex: 1
         MorphGeometry {
             id: timerFinishedImageOptionsMorph
             width: parent.width
+            enabled: Config.timerFinishedImageEnabled
             clip: true
             visible: Config.timerFinishedImageEnabled || normalizedProgress > 0.001
             fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -432,6 +434,7 @@ settingsSearchSubTabIndex: 1
             MorphGeometry {
                 id: timerFinishedTitleColorMorph
                 width: parent.width
+                enabled: !Config.timerFinishedTitleUsesTimerColor
                 clip: true
                 visible: !Config.timerFinishedTitleUsesTimerColor || normalizedProgress > 0.001
                 fromGeometry: Qt.rect(0, 0, parent.width, 0)
@@ -571,6 +574,7 @@ settingsSearchSubTabIndex: 1
             MorphGeometry {
                 id: timerFinishedBackgroundColorMorph
                 width: parent.width
+                enabled: !Config.timerFinishedBackgroundUsesTimerColor
                 clip: true
                 visible: !Config.timerFinishedBackgroundUsesTimerColor || normalizedProgress > 0.001
                 fromGeometry: Qt.rect(0, 0, parent.width, 0)

@@ -9,6 +9,9 @@ match = re.search(r"function snapshotObject\(owner, config\) \{(.*?)\n\}", persi
 assert match, "SettingsPersistence.snapshotObject not found"
 snapshot_body = match.group(1)
 persisted = set(re.findall(r"\bconfig\.([A-Za-z_]\w*)", snapshot_body))
+payload_match = re.search(r"function payloadObject\(owner, config\) \{(.*?)\n\}", persistence, re.S)
+assert payload_match, "SettingsPersistence.payloadObject not found"
+standalone_persisted = set(re.findall(r"\bconfig\.([A-Za-z_]\w*)", payload_match.group(1)))
 
 metadata = (root / "js/settings/SettingsMetadata.js").read_text()
 color_match = re.search(r"var colorNames\s*=\s*\[(.*?)\]", metadata, re.S)
@@ -38,17 +41,19 @@ legacy_animation_compatibility = {
     "animationMopidyMorphEnabled", "animationPlayerMorphEnabled",
     "animationWeatherMorphEnabled", "animationTimerMorphEnabled"
 }
-not_saved = sorted(mutated - persisted - color_names - legacy_animation_compatibility)
+not_saved = sorted(mutated - persisted - standalone_persisted - color_names - legacy_animation_compatibility)
 not_loaded = sorted(mutated - loadable - color_names)
 persisted_not_loaded = sorted(persisted - loadable - color_names)
 for key in legacy_animation_compatibility:
     assert f"{key}: config.{key}" not in snapshot_body, f"legacy-only key unexpectedly returned to snapshots: {key}"
-assert not not_saved, "Settings UI fields missing from snapshots or color map: " + ", ".join(not_saved)
+assert "settingsNavigationCollapsedGroups" in standalone_persisted, "navigation expansion is not persisted as standalone UI state"
+assert "settingsNavigationCollapsedGroups" not in persisted, "navigation expansion leaked back into profile snapshots"
+assert not not_saved, "Settings UI fields missing from snapshots, standalone persistence or color map: " + ", ".join(not_saved)
 assert not not_loaded, "Settings UI fields missing load handling: " + ", ".join(not_loaded)
 assert not persisted_not_loaded, "Persisted settings without detected loader handling: " + ", ".join(persisted_not_loaded)
 
 # Explicitly retain coverage for the former player-time-font regression.
 assert "playerTimeFont" in persisted, "playerTimeFont is no longer in the saved snapshot"
 assert re.search(r"o\.playerTimeFont\s*!==\s*undefined", apply_source), "playerTimeFont is no longer restored from disk"
-print(f"Settings persistence field coverage: OK ({len(mutated)} UI fields, {len(persisted)} persisted scalar fields, {len(color_names)} color fields)")
+print(f"Settings persistence field coverage: OK ({len(mutated)} UI fields, {len(persisted)} profile snapshot fields, {len(standalone_persisted)} standalone fields, {len(color_names)} color fields)")
 PYTHON

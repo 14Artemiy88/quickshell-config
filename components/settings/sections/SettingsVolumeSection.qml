@@ -303,6 +303,7 @@ settingsSearchSubTabIndex: 3
         MorphGeometry {
             id: volumeStreamTrackOffsetMorph
             width: parent.width
+            enabled: Config.volumeShowStreams
             clip: true
             visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 3
                 && (Config.volumeShowStreams || normalizedProgress > 0.001)
@@ -363,6 +364,7 @@ settingsSearchSubTabIndex: 3
         MorphGeometry {
             id: volumeStreamLabelFontMorph
             width: parent.width
+            enabled: Config.volumeShowStreams
             clip: true
             visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 3
                 && (Config.volumeShowStreams || normalizedProgress > 0.001)

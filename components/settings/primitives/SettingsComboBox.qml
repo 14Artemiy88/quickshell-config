@@ -17,6 +17,8 @@ ComboBox {
     property bool pointerHovered: comboHoverArea.containsMouse
     signal itemChosen(int index)
 
+    opacity: root.enabled ? 1 : 0.55
+
     ToolTip.visible: root.settingsSearchHighlighted
         && root.settingsSearchMatchHint.length > 0 && root.pointerHovered
     ToolTip.text: root.settingsSearchMatchHint

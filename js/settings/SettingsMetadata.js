@@ -6,6 +6,19 @@ var moduleLabels = ({time:"Часы",cpu:"CPU",cpuGraph:"График CPU",topAp
 
 var colorNames = ["baseColor","accent","currentWeather","background","text","textMuted","textDim","textDisabled","calendarBackground","settingsBackground","settingsBorder","settingsSubheading","playerOverlay","playerProgressTrack","playerProgressFill","activeNetworkBackground","volumeTrack","volumeFill","cpu1","cpu1Track","cpu2","cpu2Track","cpu3","cpu3Track","cpu4","cpu4Track","cpu5","cpu5Track","cpu6","cpu6Track","cpu7","cpu7Track","cpu8","cpu8Track","ram","ramTrack","metricTrack","networkUpload","networkDownload","topAppsCpuBarColor","topAppsRamBarColor","topAppsCpuBarTrackColor","topAppsRamBarTrackColor","tempHot","tempWarm","tempMild","tempCool","tempZero","tempCold","tempVeryCold","tempFreezing"]
 
+// These component colors are intentionally independent of the global theme.
+// They remain profile-scoped, but switching/saving a theme must not overwrite
+// them or mark the selected palette as modified.
+var independentThemeColorNames = [
+    "settingsBackground",
+    "playerProgressTrack", "playerProgressFill",
+    "topAppsCpuBarColor", "topAppsRamBarColor",
+    "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"
+]
+var themeManagedColorNames = colorNames.filter(function(name) {
+    return independentThemeColorNames.indexOf(name) < 0
+})
+
 var defaultWeatherToken = ""
 var defaultTimerPresetDefaults = [5, 7, 15]
 var defaultGeometry = {"time":[3,6,315,58],"cpu":[5,70,315,170],"cpuGraph":[5,245,315,78],"topAppsCpu":[5,329,315,96],"topAppsRam":[5,430,315,96],"networkStat":[5,527,313,55],"weatherNow":[3,587,315,80],"weatherHourly":[5,672,314,106],"weatherDaily":[5,784,314,117],"timer":[3,907,316,50],"timerOptions":[325,888,110,95],"calendar":[5,65,316,286],"volumes":[331,72,275,152],"player":[330,380,300,200],"mopidy":[330,865,300,150],"cava":[330,588,300,80],"networks":[330,675,300,171],"notifications":[-999999,16,380,0],"launcher":[-999999,-999999,720,640]}

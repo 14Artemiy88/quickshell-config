@@ -1,5 +1,6 @@
 .pragma library
 
+
 var SPARSE_FORMAT = "sparse-v1"
 var PROFILE_SETTINGS_SCHEMA_VERSION = 1
 var REPLACE_MARKER = "__profile_replace__"
@@ -96,6 +97,45 @@ function expandStoredSettings(owner, stored) {
     var defaults = profileBase(owner)
     var profiles = clone(stored.profiles || {})
     var sparse = String(stored.profileStorageFormat || "") === SPARSE_FORMAT
+    var requestedProfileName = String(stored.activeProfile || "").trim()
+    var legacyOverrides = isObject(stored.profileOverrides) ? stored.profileOverrides : {}
+    var navigationGroupState = stored.settingsNavigationCollapsedGroups
+    var hasLegacyNavigationState = Object.prototype.hasOwnProperty.call(legacyOverrides, "settingsNavigationCollapsedGroups")
+    for (var profileCheckName in profiles) {
+        if (!Object.prototype.hasOwnProperty.call(profiles, profileCheckName)) continue
+        if (isObject(profiles[profileCheckName])
+                && Object.prototype.hasOwnProperty.call(profiles[profileCheckName], "settingsNavigationCollapsedGroups"))
+            hasLegacyNavigationState = true
+    }
+    // Earlier releases stored this UI-only preference inside profile overrides
+    // (and sometimes the profile itself). Recover the current value once, then
+    // strip it from every profile so future profile saves cannot reintroduce it.
+    if (navigationGroupState === undefined
+            && Object.prototype.hasOwnProperty.call(legacyOverrides, "settingsNavigationCollapsedGroups"))
+        navigationGroupState = clone(legacyOverrides.settingsNavigationCollapsedGroups)
+    if (navigationGroupState === undefined && requestedProfileName
+            && Object.prototype.hasOwnProperty.call(profiles, requestedProfileName)) {
+        var requestedProfile = sparse
+            ? mergeValue(defaults, profiles[requestedProfileName])
+            : clone(profiles[requestedProfileName])
+        if (requestedProfile && Object.prototype.hasOwnProperty.call(requestedProfile, "settingsNavigationCollapsedGroups"))
+            navigationGroupState = clone(requestedProfile.settingsNavigationCollapsedGroups)
+    }
+    if (navigationGroupState === undefined)
+        navigationGroupState = { appearance: false, modules: false, launcher: false }
+    if (hasLegacyNavigationState && owner)
+        owner.profileMigrationPending = true
+
+    if (sparse) {
+        var cleanedProfiles = {}
+        for (var cleanedProfileName in profiles) {
+            if (!Object.prototype.hasOwnProperty.call(profiles, cleanedProfileName)) continue
+            var cleanedProfile = clone(profiles[cleanedProfileName])
+            if (isObject(cleanedProfile)) delete cleanedProfile.settingsNavigationCollapsedGroups
+            cleanedProfiles[cleanedProfileName] = cleanedProfile
+        }
+        profiles = cleanedProfiles
+    }
     var needsTimerOptionsStyleMigration = Number(stored.settingsSchemaVersion || 0) < PROFILE_SETTINGS_SCHEMA_VERSION
 
     // New-format files are written with sparse profiles. If a hand-edited or
@@ -105,7 +145,9 @@ function expandStoredSettings(owner, stored) {
         var migrated = {}
         for (var legacyName in profiles) {
             if (!Object.prototype.hasOwnProperty.call(profiles, legacyName)) continue
-            var completed = completeLegacySnapshot(defaults, profiles[legacyName])
+            var legacyProfile = clone(profiles[legacyName])
+            if (isObject(legacyProfile)) delete legacyProfile.settingsNavigationCollapsedGroups
+            var completed = completeLegacySnapshot(defaults, legacyProfile)
             migrated[legacyName] = sparseProfile(owner, completed)
         }
         profiles = migrated
@@ -159,8 +201,11 @@ function expandStoredSettings(owner, stored) {
         base = mergeValue(base, profiles[active])
 
     var overrides = isObject(stored.profileOverrides) ? clone(stored.profileOverrides) : {}
+    if (isObject(overrides)) delete overrides.settingsNavigationCollapsedGroups
+    if (owner) owner.resetOverrides = clone(overrides)
     var reserved = [
         "settingsPersistenceFormat", "profileOverrides", "managedKeys", "managedNestedKeys",
+        "settingsNavigationCollapsedGroups",
         "weatherToken", "profiles", "profileStorageFormat", "activeProfile", "customThemes", "settingsSchemaVersion"
     ]
     // Preserve unrecognized top-level fields from newer app versions. They
@@ -179,6 +224,7 @@ function expandStoredSettings(owner, stored) {
                 ? effective.animationTimerVisibilityStyle
                 : (defaults.animationTimerOptionsVisibilityStyle || "fade"))
     }
+    effective.settingsNavigationCollapsedGroups = clone(navigationGroupState)
     effective.weatherToken = String(stored.weatherToken || "").trim()
     effective.profiles = profiles
     effective.profileStorageFormat = SPARSE_FORMAT
@@ -366,10 +412,13 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "settingsWindow") {
         if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
         if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
-        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "settingsNavigationCollapsedGroups", "animationSettings"])
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "animationSettings"])
     }
     if (scope === "general")
         return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0
+
+    if (scope === "cpu" && root === "colors")
+        return ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"].indexOf(child) >= 0
 
     var prefixesByScope = {
         timer: ["timer", "animationTimer"], player: ["player", "animationPlayer"], weather: ["weather", "animationWeather"],
@@ -515,7 +564,12 @@ function rewriteThemeReferences(owner, themes, oldName, newName) {
     Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
         if (candidateNames.indexOf(name) < 0) candidateNames.push(name)
     })
-    var colorNames = owner.colorNames || []
+    var colorNames = owner && Array.isArray(owner.themeManagedColorNames)
+        ? owner.themeManagedColorNames
+        : (owner.colorNames || []).filter(function(key) {
+            return ["settingsBackground", "playerProgressTrack", "playerProgressFill",
+                "topAppsCpuBarColor", "topAppsRamBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarTrackColor"].indexOf(key) < 0
+        })
 
     function matchingTheme(profile) {
         var colors = profile && profile.colors ? profile.colors : {}

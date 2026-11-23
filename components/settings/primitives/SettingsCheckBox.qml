@@ -20,6 +20,8 @@ CheckBox {
     property real labelLeftPadding: 5
     property bool labelElide: true
 
+    opacity: root.enabled ? 1 : 0.55
+
     SettingsSearchHighlight {
         anchors.fill: parent
         overlayZ: 2

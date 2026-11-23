@@ -16,7 +16,8 @@ Item {
     readonly property string renderedHeading: root.heading.trim().length > 0
         ? root.heading
         : (root.headingSource ? String(root.headingSource.text || "") : "")
-    property color backgroundColor: Config.settingsBackground
+    // Section frames are outlines only; avoid repeating a filled surface behind every group.
+    property color backgroundColor: Config.transparent
     property color borderColor: Config.baseColor
     property int borderWidth: 1
     property real radius: Config.frameRadius
@@ -95,17 +96,6 @@ Item {
         cornerRadius: root.radius
     }
 
-    Rectangle {
-        id: headingBackground
-        visible: root.hasHeading
-        x: headingLabel.x - 4
-        y: headingLabel.y
-        width: headingLabel.width + 8 + (root.modified ? 9 : 0)
-        height: headingLabel.height
-        color: root.backgroundColor
-        z: 1
-    }
-
     TextMetrics {
         id: headingMetrics
         font.family: Config.settingsFont
@@ -118,7 +108,8 @@ Item {
         id: headingLabel
         visible: root.hasHeading
         x: root.padding + 8
-        y: -Math.ceil(Config.settingsUiSize(11) / 2)
+        // Keep the caption inside the frame instead of masking its border with a backdrop.
+        y: 2
         width: Math.max(0, Math.min(headingMetrics.advanceWidth,
                                     root.width - root.padding * 2 - 16 - (root.modified ? 10 : 0)))
         height: Config.settingsUiSize(14)

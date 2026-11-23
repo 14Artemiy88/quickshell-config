@@ -497,6 +497,7 @@ settingsSearchSubTabIndex: 1
         MorphGeometry {
             id: calendarPastDaysColorMorph
             width: parent.width
+            enabled: Config.calendarPastDaysColorEnabled
             clip: true
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
                 && (Config.calendarPastDaysColorEnabled || normalizedProgress > 0.001)

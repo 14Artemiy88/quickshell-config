@@ -21,7 +21,7 @@ const clone = v => JSON.parse(JSON.stringify(v));
 const defaults = {
   font:'Nerd Font', fontSize:12, ledFont:'Nerd Font', frameBorderWidth:1, frameRadius:6, backgroundBlurRadius:8,
   activeTheme:'Default', playerFont:'Nerd Font', playerSilenceText:'Silence',
-  colors:{accent:'#00aaaa', text:'#ffffff', settingsBackground:'#222222', settingsBorder:'#555555', baseColor:'#444444'},
+  colors:{accent:'#00aaaa', text:'#ffffff', settingsBackground:'#222222', settingsBorder:'#555555', baseColor:'#444444', topAppsCpuBarColor:'#00cccc', topAppsCpuBarTrackColor:'#4d006666', topAppsRamBarColor:'#3daee9', topAppsRamBarTrackColor:'#4d006666'},
   timerWheelStep:1, timerRowSpacing:4, animationTimerVisibilityStyle:'fade', animationTimerOptionsVisibilityStyle:'fade', timerPresetDefaults:[5,7,15],
   weatherNowIntervalMinutes:30, weatherIconSize:30, weatherRetryDelayMinutes:5, weatherToken:'installation-only',
   launcherWidth:720, launcherHeight:640,
@@ -93,6 +93,17 @@ saved = api.expandedProfileByName(owner, 'Work');
 assert.strictEqual(saved.colors.accent, '#123456');
 assert.strictEqual(saved.colors.text, defaults.colors.text, 'one color group does not save colors outside the requested list');
 assert.strictEqual(saved.activeTheme, defaults.activeTheme, 'a color-group save does not silently change selected theme');
+
+// The CPU/RAM page scope owns only the four Top Apps bar colors nested in the
+// palette map; unrelated theme colors and theme identity remain unsaved.
+current.colors.topAppsCpuBarColor = '#112233';
+current.colors.topAppsRamBarTrackColor = '#334455';
+assert.strictEqual(api.saveProfileScope(owner, 'Work', 'cpu'), true, 'CPU/RAM scoped save captures Top Apps bar colors');
+saved = api.expandedProfileByName(owner, 'Work');
+assert.strictEqual(saved.colors.topAppsCpuBarColor, '#112233', 'CPU scope saves the CPU bar color');
+assert.strictEqual(saved.colors.topAppsRamBarTrackColor, '#334455', 'CPU scope saves the RAM track color');
+assert.strictEqual(saved.colors.text, defaults.colors.text, 'CPU scope does not save unrelated palette edits');
+assert.strictEqual(current.colors.text, '#eeeeee', 'CPU scoped save leaves the unrelated live palette edit untouched');
 
 // Saving the entire theme commits identity and every changed palette color.
 assert.strictEqual(api.saveProfileScope(owner, 'Work', 'themes'), true);
