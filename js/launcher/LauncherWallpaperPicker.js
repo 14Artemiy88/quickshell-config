@@ -3,6 +3,7 @@
 var MAX_WALLPAPERS = 300
 var MAX_WALLPAPER_USAGE = 100
 var MAX_RECENT_WALLPAPERS = 12
+var MAX_APPLIED_WALLPAPERS = 32
 var IMAGE_EXTENSION_PATTERN = /\.(?:jpe?g|png|webp|avif|bmp|gif)$/i
 
 function isValidLocalImagePath(value) {
@@ -96,7 +97,7 @@ function normalizeEntries(value) {
 }
 
 function emptyData() {
-    return { version: 1, favorites: [], usage: [] }
+    return { version: 1, favorites: [], usage: [], applied: [] }
 }
 
 function normalizeData(value) {
@@ -136,7 +137,42 @@ function normalizeData(value) {
     if (usage.length > MAX_WALLPAPER_USAGE)
         usage = usage.slice(0, MAX_WALLPAPER_USAGE)
 
-    return { version: 1, favorites: favorites, usage: usage }
+    // Keep the last successfully installed wallpaper per output separately
+    // from bounded usage history. Older v1 files have no `applied` field, so
+    // migrate their latest successful usage entry for each screen.
+    var appliedByScreen = Object.create(null)
+    var rawApplied = Array.isArray(source.applied) ? source.applied : []
+    for (var k = 0; k < rawApplied.length; ++k) {
+        var appliedEntry = rawApplied[k]
+        if (!appliedEntry || typeof appliedEntry !== "object")
+            continue
+        var appliedPath = String(appliedEntry.path === undefined || appliedEntry.path === null ? "" : appliedEntry.path).trim()
+        var appliedScreen = String(appliedEntry.screenName === undefined || appliedEntry.screenName === null ? "" : appliedEntry.screenName).trim()
+        var appliedAt = Math.max(0, Number(appliedEntry.lastApplied === undefined ? appliedEntry.lastUsed : appliedEntry.lastApplied) || 0)
+        if (!isValidLocalImagePath(appliedPath) || !appliedScreen || appliedAt <= 0)
+            continue
+        var appliedKey = "$" + appliedScreen.toLowerCase()
+        var oldApplied = appliedByScreen[appliedKey]
+        if (!oldApplied || appliedAt >= oldApplied.lastApplied)
+            appliedByScreen[appliedKey] = { path: appliedPath, screenName: appliedScreen, lastApplied: appliedAt }
+    }
+    for (var u = 0; u < usage.length; ++u) {
+        var usageEntry = usage[u]
+        var usageKey = "$" + usageEntry.screenName.toLowerCase()
+        var currentApplied = appliedByScreen[usageKey]
+        if (!currentApplied || usageEntry.lastUsed > currentApplied.lastApplied)
+            appliedByScreen[usageKey] = {
+                path: usageEntry.path,
+                screenName: usageEntry.screenName,
+                lastApplied: usageEntry.lastUsed
+            }
+    }
+    var applied = Object.keys(appliedByScreen).map(function(key) { return appliedByScreen[key] })
+    applied.sort(function(a, b) { return b.lastApplied - a.lastApplied })
+    if (applied.length > MAX_APPLIED_WALLPAPERS)
+        applied = applied.slice(0, MAX_APPLIED_WALLPAPERS)
+
+    return { version: 1, favorites: favorites, usage: usage, applied: applied }
 }
 
 function parseData(contents) {
@@ -168,7 +204,7 @@ function toggleFavorite(value, path) {
     }
     if (!found)
         result.unshift(wanted)
-    return normalizeData({ version: 1, favorites: result, usage: data.usage })
+    return normalizeData({ version: 1, favorites: result, usage: data.usage, applied: data.applied })
 }
 
 function recordUsage(value, path, screenNameValue, timestamp) {
@@ -190,7 +226,29 @@ function recordUsage(value, path, screenNameValue, timestamp) {
         nextUsage.push(item)
     }
     nextUsage.unshift({ path: wanted, screenName: screen, count: nextCount, lastUsed: time })
-    return normalizeData({ version: 1, favorites: data.favorites, usage: nextUsage })
+    return normalizeData({ version: 1, favorites: data.favorites, usage: nextUsage, applied: data.applied })
+}
+
+function recordAppliedWallpaper(value, path, screenNameValue, timestamp) {
+    var data = normalizeData(value)
+    var wanted = String(path === undefined || path === null ? "" : path).trim()
+    var screen = String(screenNameValue === undefined || screenNameValue === null ? "" : screenNameValue).trim()
+    var time = Math.max(0, Number(timestamp) || 0)
+    if (!isValidLocalImagePath(wanted) || !screen || time <= 0)
+        return data
+    var key = screen.toLowerCase()
+    var applied = data.applied.filter(function(item) { return item.screenName.toLowerCase() !== key })
+    applied.unshift({ path: wanted, screenName: screen, lastApplied: time })
+    return normalizeData({ version: 1, favorites: data.favorites, usage: data.usage, applied: applied })
+}
+
+function recordSuccessfulApply(value, path, screenNameValue, timestamp) {
+    var data = recordUsage(value, path, screenNameValue, timestamp)
+    return recordAppliedWallpaper(data, path, screenNameValue, timestamp)
+}
+
+function appliedWallpapers(value) {
+    return normalizeData(value).applied.slice()
 }
 
 function applyMutations(value, mutations) {
@@ -203,6 +261,8 @@ function applyMutations(value, mutations) {
             data = toggleFavorite(data, mutation.path)
         else if (type === "recordUsage")
             data = recordUsage(data, mutation.path, mutation.screenName, mutation.timestamp)
+        else if (type === "recordSuccessfulApply")
+            data = recordSuccessfulApply(data, mutation.path, mutation.screenName, mutation.timestamp)
     }
     return data
 }

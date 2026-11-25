@@ -23,7 +23,7 @@ grep -Fq 'root.host.settingsSearchPageMatchCount(parent.modelData.id)' "$NAV" ||
 grep -Fq 'ScrollBar.vertical: SettingsScrollBar' "$NAV" || fail 'navigation scroll bar was not extracted'
 ! grep -Fq 'id: mainSettingsTabs' "$WIDGET" || fail 'old inline sidebar still remains in SettingsWidget'
 ! grep -Fq 'id: settingsSearchInput' "$WIDGET" || fail 'search input remains duplicated in SettingsWidget'
-grep -Fq 'width: parent.width - settingsNavigation.width - 16' "$WIDGET" || fail 'page content width does not use the component width'
+grep -Fq 'Math.max(0, parent.width - settingsNavigation.width - settingsBody.spacing)' "$WIDGET" || fail 'page content width does not use the responsive component width'
 
 node - "$WIDGET" "$NAV" "$SEARCH" <<'NODE'
 const assert = require('assert');

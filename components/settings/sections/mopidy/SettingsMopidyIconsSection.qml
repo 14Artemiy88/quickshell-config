@@ -103,6 +103,7 @@ Column {
     }
 
     SettingsGroup {
+        id: mopidyTopIconOrderSettingsGroup
         visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
@@ -119,7 +120,7 @@ Column {
             }
 
             Text {
-                text: "Порядок применяется слева направо. Стрелки меняют только положение иконок, их настройки и действия не меняются."
+                text: "Порядок применяется слева направо. Перетаскивай маркер, чтобы изменить положение иконок; их настройки и действия не меняются."
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(9)
@@ -140,18 +141,24 @@ Column {
                 }
 
                 function moveItem(index, delta) {
+                    moveItemTo(index, index + Number(delta))
+                }
+
+                function moveItemTo(fromIndex, toIndex) {
                     var next = orderIds.slice(0)
-                    var target = index + delta
-                    if (target < 0 || target >= next.length) return
-                    var item = next[index]
-                    next.splice(index, 1)
-                    next.splice(target, 0, item)
+                    if (fromIndex < 0 || fromIndex >= next.length || toIndex < 0 || toIndex >= next.length || fromIndex === toIndex) return
+                    var item = next.splice(fromIndex, 1)[0]
+                    next.splice(toIndex, 0, item)
                     saveOrder(next)
                 }
 
                 Repeater {
-                    model: parent.orderIds
+                    id: mopidyTopIconOrderRepeater
+                    model: orderColumn.orderIds
                     delegate: Row {
+                        id: mopidyTopIconOrderRow
+                        Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                        property Item reorderTargetItem: mopidyTopIconOrderRow
                         width: parent.width
                         height: 28
                         spacing: 5
@@ -166,30 +173,16 @@ Column {
                             verticalAlignment: Text.AlignVCenter
                         }
 
-                        Primitives.MoveArrowButton {
-                            width: 22
-                            height: 22
-                            iconText: "↑"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index > 0
-                            toolTipText: "Поднять выше"
-                            onClicked: orderColumn.moveItem(index, -1)
-                        }
-
-                        Primitives.MoveArrowButton {
-                            width: 22
-                            height: 22
-                            iconText: "↓"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index < orderColumn.orderIds.length - 1
-                            toolTipText: "Опустить ниже"
-                            onClicked: orderColumn.moveItem(index, 1)
+                        Primitives.DragReorderHandle {
+                            width: 26
+                            height: 26
+                            listRepeater: mopidyTopIconOrderRepeater
+                            dropIndicatorHost: mopidyTopIconOrderSettingsGroup
+                            itemIndex: index
+                            accessibleLabel: root.topIconLabel(modelData)
+                            onReorderRequested: function(fromIndex, toIndex) {
+                                orderColumn.moveItemTo(fromIndex, toIndex)
+                            }
                         }
                     }
                 }
@@ -213,7 +206,7 @@ Column {
         visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyMutedIcon", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowAddIcon", "mopidyShowClearIcon", "mopidyShowMoveDownIcon", "mopidyShowMoveUpIcon", "mopidyShowOpenAddIcon", "mopidyShowPlaylistDeleteIcon", "mopidyShowRefreshIcon", "mopidyShowRepeatIcon", "mopidyShowShuffleIcon", "mopidyShowStopIcon", "mopidyShowSwitchPlaylistIcon", "mopidyShowVolumeIcon", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyVolumeIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY"] })
+        changeKeys: ({ keys: ["mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyMutedIcon", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowAddIcon", "mopidyShowClearIcon", "mopidyShowOpenAddIcon", "mopidyShowPlaylistDeleteIcon", "mopidyShowRefreshIcon", "mopidyShowRepeatIcon", "mopidyShowShuffleIcon", "mopidyShowStopIcon", "mopidyShowSwitchPlaylistIcon", "mopidyShowVolumeIcon", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyVolumeIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY"] })
         padding: 8
         contentSpacing: 6
 
@@ -421,46 +414,13 @@ Column {
                 }
             }
 
-            Row {
-                width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Вверх"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: moveUpIconField; width: 58; height: 30; text: Config.mopidyMoveUpIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
-                    settingsSearchLabel: "Иконка: Вверх"
-                    settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (moveUpIconField.activeFocus || moveUpIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: { Config.mopidyMoveUpIcon = text; text = Config.mopidyMoveUpIcon; settings.save() }
-                    Connections { target: Config; function onMopidyMoveUpIconChanged() { moveUpIconField.text = Config.mopidyMoveUpIcon } }
-                }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveUpIconSize; minimum: 6; maximum: 64; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveUpIconSize"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveUpIconX; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveUpIconX"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveUpIconY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveUpIconY"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsCheckBox {
-                    id: moveUpVisibilityCheckBox; width: 58; height: 30; indicatorOnly: true; checked: Config.mopidyShowMoveUpIcon
-                    onClicked: { Config.mopidyShowMoveUpIcon = checked; settings.save() }
-                    Connections { target: Config; function onMopidyShowMoveUpIconChanged() { moveUpVisibilityCheckBox.checked = Config.mopidyShowMoveUpIcon } }
-                }
-            }
-
-            Row {
-                width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Вниз"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-                SettingsTextField {
-                    id: moveDownIconField; width: 58; height: 30; text: Config.mopidyMoveDownIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
-                    settingsSearchLabel: "Иконка: Вниз"
-                    settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (moveDownIconField.activeFocus || moveDownIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                    onEditingFinished: { Config.mopidyMoveDownIcon = text; text = Config.mopidyMoveDownIcon; settings.save() }
-                    Connections { target: Config; function onMopidyMoveDownIconChanged() { moveDownIconField.text = Config.mopidyMoveDownIcon } }
-                }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveDownIconSize; minimum: 6; maximum: 64; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveDownIconSize"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveDownIconX; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveDownIconX"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyMoveDownIconY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyMoveDownIconY"; settingsObject: root.settings; saveOnEdit: true }
-                SettingsCheckBox {
-                    id: moveDownVisibilityCheckBox; width: 58; height: 30; indicatorOnly: true; checked: Config.mopidyShowMoveDownIcon
-                    onClicked: { Config.mopidyShowMoveDownIcon = checked; settings.save() }
-                    Connections { target: Config; function onMopidyShowMoveDownIconChanged() { moveDownVisibilityCheckBox.checked = Config.mopidyShowMoveDownIcon } }
-                }
+            Text {
+                width: parent.width
+                text: "Порядок треков очереди и записей плейлистов меняется перетаскиванием за маркер ⠿."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                wrapMode: Text.WordWrap
             }
 
             Row {

@@ -1316,6 +1316,13 @@ PanelWindow {
     property string wallpaperApplyPendingScreenName: ""
     property int wallpaperApplyPendingScreenIndex: -1
     property string wallpaperApplyError: ""
+    property bool wallpaperApplyIsRestore: false
+    property string wallpaperRestoreLastError: ""
+    property var wallpaperRestoreQueue: []
+    property var wallpaperRestoreCurrent: null
+    property var wallpaperManualPendingApply: null
+    property bool wallpaperRestoreStarted: false
+    property int wallpaperRestoreScreenWaitAttempts: 0
 
     property string dynamicSchemePendingPath: ""
     property string dynamicSchemePendingScreenName: ""
@@ -1417,16 +1424,35 @@ PanelWindow {
 
     function applyWallpaper(path) {
         const value = String(path || "").trim()
-        const screenIndex = root.wallpaperScreenIndex(root.wallpaperSelectedScreenName)
-        if (!value || wallpaperApplyProcess.running)
+        const screenName = String(root.wallpaperSelectedScreenName || "").trim()
+        const screenIndex = root.wallpaperScreenIndex(screenName)
+        if (!value)
             return
         if (screenIndex < 0) {
             root.wallpaperApplyError = "Не удалось определить выбранный монитор. Выберите экран в панели над плитками."
             return
         }
+
+        // A new manual choice must win over a queued startup restore for the
+        // same output. If a restore process is already running, queue the
+        // manual choice and apply it immediately after that process exits.
+        root.wallpaperRestoreQueue = root.wallpaperRestoreQueue.filter(function(item) {
+            return String(item.screenName || "").toLowerCase() !== screenName.toLowerCase()
+        })
+        if (wallpaperApplyProcess.running) {
+            if (root.wallpaperApplyIsRestore) {
+                root.wallpaperManualPendingApply = {
+                    path: value,
+                    screenName: screenName,
+                    screenIndex: screenIndex
+                }
+            }
+            return
+        }
         root.wallpaperApplyPendingPath = value
-        root.wallpaperApplyPendingScreenName = root.wallpaperSelectedScreenName
+        root.wallpaperApplyPendingScreenName = screenName
         root.wallpaperApplyPendingScreenIndex = screenIndex
+        root.wallpaperApplyIsRestore = false
         root.wallpaperApplyError = ""
         wallpaperApplyProcess.running = true
     }
@@ -1663,6 +1689,7 @@ PanelWindow {
         root.wallpaperPickerPersistAfterLoad = false
         if (shouldPersist)
             root.persistWallpaperPickerData()
+        root.scheduleWallpaperRestore()
     }
 
     function loadWallpaperPickerDataFromDisk() {
@@ -1723,9 +1750,105 @@ PanelWindow {
         if (!value || !screen)
             return
         const timestamp = Date.now()
-        root.recordWallpaperPickerMutation("recordUsage", value, screen, timestamp)
-        root.wallpaperPickerData = LauncherWallpaperPicker.recordUsage(root.wallpaperPickerData, value, screen, timestamp)
+        root.recordWallpaperPickerMutation("recordSuccessfulApply", value, screen, timestamp)
+        root.wallpaperPickerData = LauncherWallpaperPicker.recordSuccessfulApply(
+            root.wallpaperPickerData, value, screen, timestamp
+        )
         root.persistWallpaperPickerData()
+    }
+
+    function scheduleWallpaperRestore() {
+        if (root.wallpaperRestoreStarted || root.wallpaperPickerLoadPending)
+            return
+        root.wallpaperRestoreStarted = true
+        root.wallpaperRestoreQueue = LauncherWallpaperPicker.appliedWallpapers(root.wallpaperPickerData).map(function(item) {
+            return { path: item.path, screenName: item.screenName, attempt: 0 }
+        })
+        root.wallpaperRestoreScreenWaitAttempts = 0
+        if (root.wallpaperRestoreQueue.length > 0)
+            wallpaperRestoreTimer.start()
+    }
+
+    function restoreNextWallpaper() {
+        if (root.wallpaperPickerLoadPending)
+            return
+        if (wallpaperApplyProcess.running) {
+            wallpaperRestoreTimer.restart()
+            return
+        }
+        if (!root.wallpaperRestoreQueue.length)
+            return
+        if (!Quickshell.screens || Quickshell.screens.length === 0) {
+            root.wallpaperRestoreScreenWaitAttempts += 1
+            if (root.wallpaperRestoreScreenWaitAttempts <= 12)
+                wallpaperRestoreTimer.restart()
+            else
+                console.warn("Launcher: wallpaper restore skipped because no screens became available")
+            return
+        }
+        root.wallpaperRestoreScreenWaitAttempts = 0
+
+        const queue = root.wallpaperRestoreQueue.slice()
+        let selected = null
+        let selectedIndex = -1
+        while (queue.length > 0 && !selected) {
+            const candidate = queue.shift()
+            const index = root.wallpaperScreenIndex(candidate.screenName)
+            if (index < 0)
+                continue
+            selected = candidate
+            selectedIndex = index
+        }
+        root.wallpaperRestoreQueue = queue
+        if (!selected)
+            return
+
+        root.wallpaperRestoreCurrent = selected
+        root.wallpaperApplyPendingPath = selected.path
+        root.wallpaperApplyPendingScreenName = selected.screenName
+        root.wallpaperApplyPendingScreenIndex = selectedIndex
+        root.wallpaperApplyIsRestore = true
+        root.wallpaperRestoreLastError = ""
+        wallpaperApplyProcess.running = true
+    }
+
+    function finishWallpaperRestore(exitCode) {
+        const current = root.wallpaperRestoreCurrent
+        root.wallpaperApplyIsRestore = false
+        root.wallpaperRestoreCurrent = null
+        if (Number(exitCode) !== 0) {
+            const detail = String(root.wallpaperRestoreLastError || "").trim()
+            const attempts = Math.max(0, Math.floor(Number(current && current.attempt) || 0))
+            if (attempts < 2 && detail.indexOf("image file not found or unreadable") < 0) {
+                const retry = {
+                    path: String(current && current.path || ""),
+                    screenName: String(current && current.screenName || ""),
+                    attempt: attempts + 1
+                }
+                if (retry.path && retry.screenName)
+                    root.wallpaperRestoreQueue = root.wallpaperRestoreQueue.concat([retry])
+            } else {
+                console.warn("Launcher: could not restore wallpaper for", String(current && current.screenName || "unknown screen"), detail)
+            }
+        }
+        root.wallpaperRestoreLastError = ""
+
+        const manual = root.wallpaperManualPendingApply
+        if (manual && manual.path && manual.screenName && Number(manual.screenIndex) >= 0) {
+            root.wallpaperManualPendingApply = null
+            root.wallpaperApplyPendingPath = String(manual.path)
+            root.wallpaperApplyPendingScreenName = String(manual.screenName)
+            root.wallpaperApplyPendingScreenIndex = Number(manual.screenIndex)
+            root.wallpaperApplyError = ""
+            root.wallpaperApplyIsRestore = false
+            wallpaperApplyProcess.running = true
+            return
+        }
+
+        if (root.wallpaperRestoreQueue.length) {
+            wallpaperRestoreTimer.interval = Number(exitCode) === 0 ? 250 : 1800
+            wallpaperRestoreTimer.restart()
+        }
     }
 
     property var appsUnifiedResults: {
@@ -1956,7 +2079,7 @@ PanelWindow {
         }
 
         const results = []
-        const dashboardActionScore = root.builtinActionEnabled("tool.dashboard")
+        const dashboardActionScore = Settings.dashboard && root.builtinActionEnabled("tool.dashboard")
             ? (normalizedQuery === "" ? 0
                 : root.runFuzzyScore("dashboard overview overview-panel system dashboard panel summary обзор обзорная панель сводка панель системы", normalizedQuery))
             : -1
@@ -2422,6 +2545,13 @@ PanelWindow {
             root.copyLauncherEmoji(result.emoji)
     }
 
+    Timer {
+        id: wallpaperRestoreTimer
+        interval: 1200
+        repeat: false
+        onTriggered: root.restoreNextWallpaper()
+    }
+
     Process {
         id: wallpaperCatalogProcess
         command: [
@@ -2483,10 +2613,19 @@ PanelWindow {
         stderr: StdioCollector {
             onStreamFinished: {
                 const message = String(this.text || "").trim()
-                if (message !== "") root.wallpaperApplyError = message
+                if (message !== "") {
+                    if (root.wallpaperApplyIsRestore)
+                        root.wallpaperRestoreLastError = message
+                    else
+                        root.wallpaperApplyError = message
+                }
             }
         }
         onExited: function(exitCode) {
+            if (root.wallpaperApplyIsRestore) {
+                root.finishWallpaperRestore(exitCode)
+                return
+            }
             if (exitCode === 0) {
                 root.wallpaperApplyError = ""
                 root.rememberWallpaperUsage(root.wallpaperApplyPendingPath, root.wallpaperApplyPendingScreenName)
@@ -2494,6 +2633,8 @@ PanelWindow {
             } else if (root.wallpaperApplyError === "") {
                 root.wallpaperApplyError = "Не удалось установить обои. Проверьте backend и системные сообщения."
             }
+            if (root.wallpaperRestoreQueue.length)
+                wallpaperRestoreTimer.restart()
         }
     }
 

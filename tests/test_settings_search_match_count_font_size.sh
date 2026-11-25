@@ -19,7 +19,8 @@ for file in "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$PROFILES" "$RESETS" "$NA
 done
 
 grep -Fq 'font.pixelSize: Config.settingsUiSize(Config.settingsSearchMatchCountFontSize)' "$TAB" || fail 'page/subtab badges ignore configured font size'
-grep -Fq 'font.pixelSize: Config.settingsUiSize(Config.settingsSearchMatchCountFontSize)' "$WIDGET" || fail 'group/status counters ignore configured font size'
+grep -Fq 'Config.settingsUiSize(root.compactNavigation' "$WIDGET" || fail 'group/status counters ignore configured font size'
+grep -Fq 'Config.settingsSearchMatchCountFontSize' "$WIDGET" || fail 'group/status counters ignore configured font size'
 grep -Fq 'minimum: 6' "$WINDOW" || fail 'font size minimum is missing'
 grep -Fq 'maximum: 12' "$WINDOW" || fail 'font size maximum is missing'
 

@@ -4,11 +4,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TIMERS="$ROOT/components/settings/sections/SettingsTimersSection.qml"
 PLAYER="$ROOT/components/settings/sections/SettingsPlayerSection.qml"
 
-# Timer/alarm icon settings and reorder controls share the same row, ordered by screen position.
+# Timer/alarm icon settings and the shared drag handle stay in one row, ordered by screen position.
 grep -Fq 'function moveTimerIconOrder(iconId, delta)' "$TIMERS"
-grep -Fq 'MoveArrowButton {' "$TIMERS"
-grep -Fq 'interactionEnabled: index > 0' "$TIMERS"
-grep -Fq 'interactionEnabled: index < 1' "$TIMERS"
+grep -Fq 'DragReorderHandle {' "$TIMERS"
+grep -Fq 'id: timerIconOrderRepeater' "$TIMERS"
+grep -Fq 'function moveTimerIconOrderTo(iconId, destination)' "$TIMERS"
 grep -Fq 'Config.timerIconOrder === "timer-left" ? ["timer", "alarm"] : ["alarm", "timer"]' "$TIMERS"
 grep -Fq 'text: modelData === "alarm" ? "Будильник" : "Таймер"' "$TIMERS"
 grep -Fq 'targetProperty: modelData === "timer" ? "timerIconSize" : "timerAlarmIconSize"' "$TIMERS"
@@ -26,10 +26,10 @@ end_match = re.search(
 assert end_match, 'Could not locate the next shared timer layout row after the icon settings'
 end = start + end_match.start()
 row = s[start:end]
-for token in ('SettingsTextField {', 'targetProperty: modelData === "timer" ? "timerIconSize" : "timerAlarmIconSize"', 'targetProperty: modelData === "timer" ? "timerIconX" : "timerAlarmIconX"', 'targetProperty: modelData === "timer" ? "timerIconY" : "timerAlarmIconY"', 'MoveArrowButton {', 'onClicked: root.moveTimerIconOrder(modelData, -1)', 'onClicked: root.moveTimerIconOrder(modelData, 1)'):
+for token in ('SettingsTextField {', 'targetProperty: modelData === "timer" ? "timerIconSize" : "timerAlarmIconSize"', 'targetProperty: modelData === "timer" ? "timerIconX" : "timerAlarmIconX"', 'targetProperty: modelData === "timer" ? "timerIconY" : "timerAlarmIconY"', 'DragReorderHandle {', 'listRepeater: timerIconOrderRepeater', 'root.moveTimerIconOrderTo(modelData, toIndex)'):
     assert token in row, f'Missing timer/alarm icon setting in the shared delegate: {token}'
-first_arrow = row.index('MoveArrowButton {')
-assert 'Item {' not in row[:first_arrow], 'A flexible spacer is pushing timer/alarm reorder arrows away from the fields'
+handle = row.index('DragReorderHandle {')
+assert 'Item {' not in row[:handle], 'A flexible spacer is pushing timer/alarm drag handle away from the fields'
 PYCODE
 ! grep -Fq 'timerIconOrderCombo' "$TIMERS"
 grep -Fq 'Config.timerIconX = Math.round(oldAlarmX)' "$TIMERS"
@@ -99,7 +99,7 @@ grep -Fq 'Показывать оставшееся время альбома' "
 grep -Fq 'label: "Выравнивание"' "$ROOT/components/settings/sections/mopidy/SettingsMopidyTimeSection.qml"
 grep -Fq 'Переключать Mopidy по ПКМ на Player' "$ROOT/components/settings/sections/mopidy/SettingsMopidySection.qml"
 
-echo 'settings labels, alignment, and timer icon reorder: OK'
+echo 'settings labels, alignment, and timer icon drag reorder: OK'
 
 # The shared arrow primitive hides unavailable directions by default.
 MOVE="$ROOT/components/primitives/MoveArrowButton.qml"

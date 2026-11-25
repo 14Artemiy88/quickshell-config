@@ -18,7 +18,17 @@ const defaults = {
   moduleFrames: { player: true, mopidy: false },
   geometry: { player: [1, 2, 300, 180], mopidy: [5, 6, 300, 200] },
   colors: { accent: '#00cccc', text: '#ffffff' },
-  activeTheme: '14 Theme'
+  activeTheme: '14 Theme',
+  settingsNavigationOrder: {
+    groupOrder: ['appearance','modules','dashboard','launcher','general'],
+    pagesByGroup: {
+      appearance: ['themes','settingsWindow'],
+      modules: ['modules','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'],
+      dashboard: ['dashboard'],
+      launcher: ['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],
+      general: ['general']
+    }
+  }
 };
 const current = {
   ...defaults,

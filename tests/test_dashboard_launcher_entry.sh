@@ -50,7 +50,8 @@ assert 'case "dashboardAction":' in subtitle_fn and 'ОБЗОР · Быстра�
 app_delegate = launcher[launcher.index('Text {\n                                    anchors.centerIn: parent\n                                    visible: !appIconImage.visible', launcher.index('kind === "appCategory"')):launcher.index('ColumnLayout {\n                                Layout.fillWidth: true', launcher.index('kind === "appCategory"'))]
 assert 'appDelegate.itemData.kind === "dashboardAction"' in app_delegate, 'Dashboard action must have a visible icon fallback'
 assert 'appDelegate.itemData.kind === "dashboardAction"' in launcher[launcher.index('text: root.highlightFuzzy('):launcher.index('textFormat: Text.StyledText', launcher.index('text: root.highlightFuzzy('))], 'Dashboard action name must use the palette query for highlighting'
-assert 'function onDashboardRequested() { shell.dashboardVisible = true }' in shell
+assert 'function onDashboardRequested() { if (Settings.dashboard) shell.dashboardVisible = true }' in shell
+assert 'open: Settings.dashboard && shell.dashboardVisible' in shell
 assert 'target: launcherLoader.status === Loader.Ready ? launcherLoader.item : null' in shell
 assert 'visible: Settings.loaded && (root.open || root.keepWindowDuringClose)' in dash
 assert 'onOpenChanged:' in dash and 'closeWindowTimer.restart()' in dash

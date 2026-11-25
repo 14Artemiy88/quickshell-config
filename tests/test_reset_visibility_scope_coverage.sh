@@ -91,7 +91,7 @@ const scopeSamples = [
   ['calendar', { calendarDayFontSize: 12 }],
   ['mopidy', { mopidyHideTopPanel: true }],
   ['launcher', { launcherTitleText: 'Run' }],
-  ['settingsWindow', { settingsTabOrder: ['launcher'] }],
+  ['settingsWindow', { settingsNavigationOrder: { groupOrder: ['general'], pagesByGroup: { general: ['general'] } } }],
   ['notifications', { notificationsCardWidth: 420 }],
   ['modules', { modules: { time: false } }]
 ];

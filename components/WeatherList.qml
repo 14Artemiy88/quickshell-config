@@ -1,6 +1,7 @@
 import QtQuick
 import "primitives" as Primitives
 import ".."
+import "../js/dashboard/DashboardCards.js" as DashboardCards
 
 Primitives.ModuleFrame {
     id: root
@@ -32,7 +33,10 @@ Primitives.ModuleFrame {
 
     function rebuild() {
         const now = Date.now() / 1000
-        const future = (entries || []).filter(e => Number(e.date?.unix ?? 0) > now)
+        const future = (entries || []).filter(e => {
+            const timestamp = DashboardCards.normalizeWeatherUnixTimestamp(e && e.date ? e.date.unix : null)
+            return Number.isFinite(timestamp) && timestamp > now
+        })
         availableEntries = future
         if (hourly) {
             // Keep the temporary wheel override within the forecast data we actually have.

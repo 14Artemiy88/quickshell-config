@@ -1,6 +1,16 @@
 .pragma library
 
 // Keep old settings readable while new snapshots contain only canonical fields.
+
+// Persisted catalogs are keyed by user-controlled names. Define dynamic keys as
+// data properties so legacy names such as "__proto__" never mutate prototypes
+// or disappear during startup normalization.
+function setOwn(object, key, value) {
+    Object.defineProperty(object, String(key), {
+        value: value, enumerable: true, configurable: true, writable: true
+    })
+}
+
 function normalizeSavedColor(value, fallback) {
     if (typeof value === "string") {
         var text = value.trim()
@@ -60,14 +70,14 @@ function normalizeCustomThemes(customThemes, fallbackPalette) {
                         && (savedPalette.topAppsBarTrackColor !== undefined || savedPalette.metricTrack !== undefined))
                     fallbackColor = normalizeSavedColor(savedPalette.topAppsBarTrackColor !== undefined ? savedPalette.topAppsBarTrackColor : savedPalette.metricTrack, fallbackColor)
             }
-            normalized[fallbackKey] = normalizeSavedColor(savedPalette[fallbackKey], fallbackColor)
+            setOwn(normalized, fallbackKey, normalizeSavedColor(savedPalette[fallbackKey], fallbackColor))
         }
         for (var savedKey in savedPalette) {
             if (!Object.prototype.hasOwnProperty.call(savedPalette, savedKey) || normalized[savedKey] !== undefined) continue
             var extraColor = normalizeSavedColor(savedPalette[savedKey], null)
-            if (extraColor !== null) normalized[savedKey] = extraColor
+            if (extraColor !== null) setOwn(normalized, savedKey, extraColor)
         }
-        result[String(themeName)] = normalized
+        setOwn(result, String(themeName), normalized)
     }
     return result
 }
@@ -94,7 +104,7 @@ function splitLegacyTopAppsGeometry(geometry) {
 }
 
 function normalizeProfile(profile, isSparse) {
-    if (!profile || typeof profile !== "object") return null
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) return null
     var p = JSON.parse(JSON.stringify(profile))
 
     p.modules = migrateLegacyTopAppsMap(p.modules)
@@ -178,6 +188,100 @@ function normalizeProfile(profile, isSparse) {
     if (legacyVolumeAnimationStyle === "none")
         p.animationVolumeStreamsVisibilityStyle = "fade"
 
+    if (p.notificationsBackgroundColor !== undefined)
+        p.notificationsBackgroundColor = normalizeSavedColor(p.notificationsBackgroundColor, "#4d000000")
+    else if (!isSparse)
+        p.notificationsBackgroundColor = "#4d000000"
+
+    if (p.notificationsSummaryFont !== undefined) {
+        if (typeof p.notificationsSummaryFont === "string")
+            p.notificationsSummaryFont = p.notificationsSummaryFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        else if (isSparse)
+            delete p.notificationsSummaryFont
+        else
+            p.notificationsSummaryFont = ""
+    } else if (!isSparse) {
+        p.notificationsSummaryFont = ""
+    }
+    if (p.notificationsSummaryFontSize !== undefined) {
+        var summaryFontSize = Number(p.notificationsSummaryFontSize)
+        if (isFinite(summaryFontSize)) p.notificationsSummaryFontSize = Math.max(8, Math.min(32, Math.round(summaryFontSize)))
+        else delete p.notificationsSummaryFontSize
+    } else if (!isSparse) {
+        p.notificationsSummaryFontSize = 14
+    }
+    if (p.notificationsSummaryColor !== undefined) {
+        var rawSummaryColor = typeof p.notificationsSummaryColor === "string" ? p.notificationsSummaryColor.trim() : null
+        if (rawSummaryColor === "") p.notificationsSummaryColor = ""
+        else {
+            var summaryColor = normalizeSavedColor(rawSummaryColor, isSparse ? null : "")
+            if (summaryColor === null) delete p.notificationsSummaryColor
+            else p.notificationsSummaryColor = summaryColor
+        }
+    } else if (!isSparse) {
+        p.notificationsSummaryColor = ""
+    }
+    if (p.notificationsAppNameFont !== undefined) {
+        if (typeof p.notificationsAppNameFont === "string")
+            p.notificationsAppNameFont = p.notificationsAppNameFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        else if (isSparse) delete p.notificationsAppNameFont
+        else p.notificationsAppNameFont = ""
+    } else if (!isSparse) p.notificationsAppNameFont = ""
+
+    if (p.notificationsAppNameFontSize !== undefined) {
+        var appNameFontSize = Number(p.notificationsAppNameFontSize)
+        if (isFinite(appNameFontSize)) p.notificationsAppNameFontSize = Math.max(8, Math.min(24, Math.round(appNameFontSize)))
+        else delete p.notificationsAppNameFontSize
+    } else if (!isSparse) p.notificationsAppNameFontSize = 11
+
+    if (p.notificationsAppNameColor !== undefined) {
+        var rawAppNameColor = typeof p.notificationsAppNameColor === "string" ? p.notificationsAppNameColor.trim() : null
+        if (rawAppNameColor === "") p.notificationsAppNameColor = ""
+        else {
+            var appNameColor = normalizeSavedColor(rawAppNameColor, isSparse ? null : "")
+            if (appNameColor === null) delete p.notificationsAppNameColor
+            else p.notificationsAppNameColor = appNameColor
+        }
+    } else if (!isSparse) p.notificationsAppNameColor = ""
+
+    if (p.notificationsAppNameBold !== undefined) p.notificationsAppNameBold = !!p.notificationsAppNameBold
+    else if (!isSparse) p.notificationsAppNameBold = false
+
+    if (p.notificationsLeadingVisualSize !== undefined) {
+        var leadingVisualSize = Number(p.notificationsLeadingVisualSize)
+        if (isFinite(leadingVisualSize)) p.notificationsLeadingVisualSize = Math.max(24, Math.min(72, Math.round(leadingVisualSize)))
+        else delete p.notificationsLeadingVisualSize
+    } else if (!isSparse) {
+        p.notificationsLeadingVisualSize = 48
+    }
+    if (p.notificationsLeadingVisualRadius !== undefined) {
+        var leadingVisualRadius = Number(p.notificationsLeadingVisualRadius)
+        if (isFinite(leadingVisualRadius)) p.notificationsLeadingVisualRadius = Math.max(0, Math.min(36, Math.round(leadingVisualRadius)))
+        else delete p.notificationsLeadingVisualRadius
+    } else if (!isSparse) p.notificationsLeadingVisualRadius = 10
+
+    if (p.notificationsCardPadding !== undefined) {
+        var notificationCardPadding = Number(p.notificationsCardPadding)
+        if (isFinite(notificationCardPadding)) p.notificationsCardPadding = Math.max(0, Math.min(32, Math.round(notificationCardPadding)))
+        else delete p.notificationsCardPadding
+    } else if (!isSparse) p.notificationsCardPadding = 12
+
+    if (p.notificationsBodyFontSize !== undefined) {
+        var notificationBodyFontSize = Number(p.notificationsBodyFontSize)
+        if (isFinite(notificationBodyFontSize)) p.notificationsBodyFontSize = Math.max(8, Math.min(32, Math.round(notificationBodyFontSize)))
+        else delete p.notificationsBodyFontSize
+    } else if (!isSparse) p.notificationsBodyFontSize = 12
+
+    if (p.notificationsBodyColor !== undefined) {
+        var rawBodyColor = typeof p.notificationsBodyColor === "string" ? p.notificationsBodyColor.trim() : null
+        if (rawBodyColor === "") p.notificationsBodyColor = ""
+        else {
+            var bodyColor = normalizeSavedColor(rawBodyColor, isSparse ? null : "")
+            if (bodyColor === null) delete p.notificationsBodyColor
+            else p.notificationsBodyColor = bodyColor
+        }
+    } else if (!isSparse) p.notificationsBodyColor = ""
+
     // Notification placement is now stored in geometry.notifications as absolute X/Y.
     // Old corner/offset values are obsolete and intentionally do not survive profile normalization.
     delete p.notificationsPosition
@@ -207,7 +311,7 @@ function normalizeProfile(profile, isSparse) {
         for (var colorName in p.colors) {
             if (!Object.prototype.hasOwnProperty.call(p.colors, colorName)) continue
             var normalizedColor = normalizeSavedColor(p.colors[colorName], null)
-            if (normalizedColor !== null) normalizedColors[colorName] = normalizedColor
+            if (normalizedColor !== null) setOwn(normalizedColors, colorName, normalizedColor)
         }
         p.colors = normalizedColors
     }
@@ -216,11 +320,11 @@ function normalizeProfile(profile, isSparse) {
 
 function normalizeProfiles(profiles, isSparse) {
     var clean = {}
-    if (!profiles || typeof profiles !== "object") return clean
+    if (!profiles || typeof profiles !== "object" || Array.isArray(profiles)) return clean
     for (var name in profiles) {
         if (!Object.prototype.hasOwnProperty.call(profiles, name)) continue
         var p = normalizeProfile(profiles[name], !!isSparse)
-        if (p) clean[name] = p
+        if (p) setOwn(clean, name, p)
     }
     return clean
 }

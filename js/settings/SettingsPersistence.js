@@ -117,6 +117,7 @@ function diffValue(base, current) {
 function activeProfileBase(owner) {
     var base = cloneValue(owner.profileDefaults || {}) || {}
     delete base.weatherToken
+    delete base.settingsLastActivePageId
     var name = String(owner.activeProfile || "")
     if (!name || !owner.profiles || !Object.prototype.hasOwnProperty.call(owner.profiles, name))
         return base
@@ -124,6 +125,7 @@ function activeProfileBase(owner) {
         var expanded = owner.expandedProfileData(name)
         if (expanded && typeof expanded === "object") {
             delete expanded.weatherToken
+            delete expanded.settingsLastActivePageId
             return cloneValue(expanded)
         }
     }
@@ -165,7 +167,9 @@ function snapshotObject(owner, config) {
             settingsSearchHighlightBorderWidth: config.settingsSearchHighlightBorderWidth,
             settingsSearchMatchCountFontSize: config.settingsSearchMatchCountFontSize,
             settingsSearchVisible: config.settingsSearchVisible,
-            settingsTabOrder: cloneValue(config.settingsTabOrder || ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]),
+            settingsNavigationOrder: cloneValue(owner && typeof owner.normalizeSettingsNavigationOrder === "function"
+                ? owner.normalizeSettingsNavigationOrder(config.settingsNavigationOrder)
+                : (config.settingsNavigationOrder || {})),
             settingsTabLabels: cloneValue(config.settingsTabLabels || {}),
             dashboardVisibleCards: normalizeDashboardCards(config.dashboardVisibleCards, config.dashboardCardOrder),
             dashboardCardOrder: normalizeDashboardCardOrder(config.dashboardCardOrder),
@@ -173,10 +177,24 @@ function snapshotObject(owner, config) {
             dashboardCardSizes: normalizeDashboardCardSizes(config.dashboardCardSizes),
             notificationsDefaultTimeout: config.notificationsDefaultTimeout,
             notificationsCriticalTimeout: config.notificationsCriticalTimeout,
+            notificationsShowTimeoutIndicator: config.notificationsShowTimeoutIndicator,
             notificationsVerticalAnchor: config.notificationsVerticalAnchor,
             notificationsCardWidth: config.notificationsCardWidth,
             notificationsCardSpacing: config.notificationsCardSpacing,
             notificationsImageHeight: config.notificationsImageHeight,
+            notificationsBackgroundColor: String(config.notificationsBackgroundColor),
+            notificationsSummaryFont: config.notificationsSummaryFont,
+            notificationsSummaryFontSize: config.notificationsSummaryFontSize,
+            notificationsSummaryColor: String(config.notificationsSummaryColor),
+            notificationsAppNameFont: config.notificationsAppNameFont,
+            notificationsAppNameFontSize: config.notificationsAppNameFontSize,
+            notificationsAppNameColor: String(config.notificationsAppNameColor),
+            notificationsAppNameBold: config.notificationsAppNameBold,
+            notificationsLeadingVisualSize: config.notificationsLeadingVisualSize,
+            notificationsLeadingVisualRadius: config.notificationsLeadingVisualRadius,
+            notificationsCardPadding: config.notificationsCardPadding,
+            notificationsBodyFontSize: config.notificationsBodyFontSize,
+            notificationsBodyColor: String(config.notificationsBodyColor),
             notificationsShowAppIcon: config.notificationsShowAppIcon,
             notificationsShowBodyImages: config.notificationsShowBodyImages,
             notificationsShowProgress: config.notificationsShowProgress,
@@ -239,6 +257,8 @@ function snapshotObject(owner, config) {
             animationWeatherMorphProfile: config.animationWeatherMorphProfile,
             animationTimerMorphDuration: config.animationTimerMorphDuration,
             animationTimerMorphProfile: config.animationTimerMorphProfile,
+            animationNetworkVisibilityStyle: config.animationNetworkVisibilityStyle,
+            animationNetworkVisibilityDuration: config.animationNetworkVisibilityDuration,
             animationNetworkMorphDuration: config.animationNetworkMorphDuration,
             animationNetworkMorphProfile: config.animationNetworkMorphProfile,
             animationCavaMorphDuration: config.animationCavaMorphDuration,
@@ -351,13 +371,16 @@ function payloadObject(owner, config) {
     var full = typeof owner.snapshotObject === "function" ? owner.snapshotObject() : snapshotObject(owner, config)
     var state = cloneValue(full)
     delete state.weatherToken
-    // Navigation expansion is a UI preference, not part of any named profile.
-    // Keep it at the root of settings.json so expanding a group never creates
-    // sparse profile overrides or exposes Save/Reset actions.
+    // Navigation expansion and last selection are UI preferences, not named-profile data.
+    // Keep them at the settings.json root so navigation never creates sparse overrides
+    // or exposes unrelated Save/Reset actions.
     delete state.settingsNavigationCollapsedGroups
+    // The selected page is global navigation UI state, never a profile override.
+    delete state.settingsLastActivePageId
 
     var base = activeProfileBase(owner)
     delete base.weatherToken
+    delete base.settingsLastActivePageId
     var overrides = diffValue(base, state) || {}
 
     // Without an active profile, colors are installation-level preferences.
@@ -377,6 +400,13 @@ function payloadObject(owner, config) {
     var managedKeys = Object.keys(full);
     if (managedKeys.indexOf("settingsNavigationCollapsedGroups") < 0)
         managedKeys.push("settingsNavigationCollapsedGroups");
+    if (managedKeys.indexOf("settingsLastActivePageId") < 0)
+        managedKeys.push("settingsLastActivePageId");
+    if (managedKeys.indexOf("settingsNavigationOrder") < 0)
+        managedKeys.push("settingsNavigationOrder");
+    // Remove the obsolete flat field from persisted roots after migration.
+    if (managedKeys.indexOf("settingsTabOrder") < 0)
+        managedKeys.push("settingsTabOrder");
     ["playerControlIconSize", "timerFinishedImageTopMargin", "timerFinishedImageBottomMargin", "mopidyShowMoveButtons", "topApps", "timerPresets", "notificationsMargin", "notificationsPosition", "notificationsOffsetX", "notificationsOffsetY", "animationMopidyMorphEnabled", "animationPlayerMorphEnabled", "animationWeatherMorphEnabled", "animationTimerMorphEnabled"].forEach(function(key) {
         if (managedKeys.indexOf(key) < 0) managedKeys.push(key)
     })
@@ -395,6 +425,7 @@ function payloadObject(owner, config) {
         activeProfile: owner.activeProfile || "",
         customThemes: owner.customThemes || {},
         settingsNavigationCollapsedGroups: cloneValue(config.settingsNavigationCollapsedGroups || { appearance: false, modules: false, launcher: false }),
+        settingsLastActivePageId: String(config.settingsLastActivePageId || "general"),
         profileOverrides: overrides,
         managedKeys: managedKeys,
         managedNestedKeys: managedNestedKeys

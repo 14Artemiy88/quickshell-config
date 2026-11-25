@@ -74,8 +74,8 @@ required_dashboard = [
     'property string systemUptimeAccessibleText: ""',
     'root.weatherSource.now',
     'root.playerSource.player',
-    'launcherRequested()',
-    'calendarRequested()',
+    'id: settingsButton',
+    'text: "󰒓"',
     'settingsRequested()',
     'MouseArea {\n            anchors.fill: parent\n            onClicked: root.closeRequested()',
     'title: modelData.label',
@@ -187,15 +187,19 @@ assert 'visible: Settings.loaded\n' not in dash, 'Dashboard must not keep a full
 
 # The overview must consume shared models rather than creating parallel polling.
 assert 'Process {' not in dash, 'Dashboard starts its own external polling process'
-assert dash.count('Timer {') == 1 and 'id: closeWindowTimer' in dash and 'repeat: false' in dash, 'Dashboard may only have its one-shot close-transition timer'
+assert dash.count('Timer {') == 2 and 'id: closeWindowTimer' in dash and 'id: dashboardCardRemovalTimer' in dash and dash.count('repeat: false') >= 2, 'Dashboard may only have its close-transition and card-removal timers'
 dashboard_code = '\n'.join(line.split('//', 1)[0] for line in dash.splitlines())
 assert 'cpu_stats_once' not in dashboard_code and 'scripts/player' not in dashboard_code and 'scripts/weather' not in dashboard_code, 'Dashboard bypasses an existing shared source'
 
 required_shell = [
     'property bool dashboardVisible: false',
     'target: "dashboard"',
-    'function toggle(): void { shell.dashboardVisible = !shell.dashboardVisible }',
-    'function show(): void { shell.dashboardVisible = true }',
+    'function toggle(): void {',
+    'if (Settings.dashboard)',
+    'shell.dashboardVisible = !shell.dashboardVisible',
+    'function show(): void {',
+    'if (Settings.dashboard)',
+    'shell.dashboardVisible = true',
     'function hide(): void { shell.dashboardVisible = false }',
     'clock: clock',
     'cpuSource: cpuWidget',

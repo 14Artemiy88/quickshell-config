@@ -63,7 +63,7 @@ assert(page.includes('currentPageSubTabIndex === 2') && page.includes('Верт�
   'vertical anchor control lives on the Notifications page');
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'),
   'Notifications page keeps the Placement subtab alongside Animation');
-assert(modules.includes('model: settings.moduleNames') &&
+assert(modules.includes('model: settings.moduleNames.filter(function(name) { return name !== \"dashboard\" })') &&
        modules.includes('moduleRow.moduleName === "notifications"') &&
        modules.includes('modulesSection.writeNotificationsGeometry(index, n)'),
   'notification module uses the common enabled/X/Y/Width/Height/frame/background/blur/save/reset row');

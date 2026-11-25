@@ -56,7 +56,9 @@ for filename in sections:
     assert old_labels == 0, f"{filename} still contains inline SettingsLabel nodes"
     row_total += rows
 
-assert row_total == 224, f"expected 224 shared settings rows, got {row_total}"
+assert row_total == 232, f"expected 232 shared settings rows after the Networks visibility-animation controls, got {row_total}"
+network = (root / "components/settings/sections/SettingsNetworkSection.qml").read_text()
+assert len(re.findall(r"\bSettingsRow\s*\{", network)) == 9, "expected nine shared Network rows, including the two conditional module-animation controls"
 general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text()
 for label_text in [
     "Основной шрифт интерфейса", "Размер шрифта интерфейса", "LED-шрифт",
@@ -219,7 +221,7 @@ for control_id in [
 ]:
     assert control_id in launcher, f"Launcher SettingsRow lost control {control_id}"
 assert 'fieldWidth: Math.max(80, Math.min(222, parent.width - 38))' in launcher, "Launcher font fields no longer account for the SettingsRow control slot"
-assert row_total == 224, f"expected 224 shared settings rows across standard, Mopidy, Launcher, General and Settings Window sections, got {row_total}"
+assert row_total == 232, f"expected 232 shared settings rows across standard, Mopidy, Launcher, General and Settings Window sections, got {row_total}"
 print(f"SettingsRow primitive: {row_total} shared rows across {len(sections)} sections: OK")
 PY
 

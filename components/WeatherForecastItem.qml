@@ -1,6 +1,7 @@
 import QtQuick
 import "primitives" as Primitives
 import ".."
+import "../js/dashboard/DashboardCards.js" as DashboardCards
 import Quickshell
 
 Item {
@@ -10,6 +11,7 @@ Item {
     property var days: ["", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     readonly property bool hasHighTemperature: root.highText(root.entry) !== ""
     readonly property bool hasLowTemperature: !root.hourly && root.lowText(root.entry) !== ""
+    readonly property string iconCode: DashboardCards.normalizeWeatherIconCode(root.entry && root.entry.icon)
     readonly property int forecastMorphDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
 
     Text {
@@ -27,12 +29,30 @@ Item {
     // Keep forecast icons on the original direct Image path. Wrapping this
     // Image in MorphGeometry made the icons disappear in the live QML view.
     Image {
+        id: forecastIconImage
         x: (parent.width - (root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth)) / 2
         y: root.hourly ? Config.weatherHourlyIconY : Config.weatherDailyIconY
         width: root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth
         height: root.hourly ? Config.weatherHourlyIconHeight : Config.weatherDailyIconHeight
+        visible: root.iconCode !== ""
         fillMode: Image.PreserveAspectFit
-        source: Quickshell.shellDir + "/assets/gismeteo/new_png/" + (root.entry.icon || "") + ".png"
+        source: root.iconCode !== ""
+                ? Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.iconCode + ".png"
+                : ""
+    }
+
+    Text {
+        x: forecastIconImage.x
+        y: forecastIconImage.y
+        width: forecastIconImage.width
+        height: forecastIconImage.height
+        visible: root.iconCode !== "" && forecastIconImage.status !== Image.Ready
+        text: "☁"
+        color: Config.accent
+        font.family: Config.settingsFont
+        font.pixelSize: Math.max(14, Math.round(Math.min(width, height) * 0.68))
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
     }
 
     Primitives.MorphGeometry {
@@ -88,8 +108,11 @@ Item {
     }
 
     function dayText(e) {
-        const ts = Number(e.date?.unix ?? 0) * 1000
-        const d = new Date(ts)
+        const timestamp = DashboardCards.normalizeWeatherUnixTimestamp(e && e.date ? e.date.unix : null)
+        if (!Number.isFinite(timestamp)) return ""
+
+        const d = new Date(timestamp * 1000)
+        if (!Number.isFinite(d.getTime())) return ""
         if (hourly) return Qt.formatTime(d, "HH:mm")
         const day = d.getDate()
         const js = d.getDay()
@@ -97,12 +120,18 @@ Item {
         return day + " " + days[mondayIndex] + "."
     }
 
+    function normalizedTemperatureNumber(value) {
+        const normalized = DashboardCards.normalizeWeatherTemperature(value)
+        return normalized !== "" ? Number(normalized.replace(",", ".")) : NaN
+    }
+
     function highNumber(e) {
-        return Number(hourly ? e.temperature?.air?.C : e.temperature?.air?.max?.C)
+        const value = hourly ? e.temperature?.air?.C : e.temperature?.air?.max?.C
+        return normalizedTemperatureNumber(value)
     }
 
     function lowNumber(e) {
-        return Number(e.temperature?.air?.min?.C)
+        return normalizedTemperatureNumber(e.temperature?.air?.min?.C)
     }
 
     function highText(e) {

@@ -28,7 +28,7 @@ assert 'Behavior on height' in nav and 'Behavior on opacity' in nav, 'sidebar se
 assert 'spacing: Config.settingsSearchVisible ? 8 : 0' in nav, 'sidebar gap does not collapse with the search row'
 assert 'function clearSettingsSearchQuery()' in widget, 'query cleanup helper is missing'
 assert 'settingsNavigation.searchInput.text = ""' in widget, 'hiding search does not clear stale hidden query'
-assert 'width: parent.width - settingsNavigation.width - 16' in widget, 'page content width does not account for the extracted sidebar'
+assert 'Math.max(0, parent.width - settingsNavigation.width - settingsBody.spacing)' in widget, 'page content width does not account for the responsive extracted sidebar'
 header = widget[widget.index('Row {\n            width: parent.width\n            height: 28'):widget.index('id: settingsBody')]
 assert 'settingsSearchInput' not in header, 'search field is still in the top header'
 PY

@@ -1,77 +1,85 @@
-# QML language-server local settings
+# Editor and operating-system files
 .qmlls.ini
-
-# OS/editor files
 .DS_Store
 Thumbs.db
 *~
 *.swp
 *.swo
-*.tmp
-*.log
+*.orig
+*.rej
+*.user
+*.user.*
 
-# Local tooling/cache output
-.cache/
-__pycache__/
-*.py[cod]
-.venv/
-
-# User data copied into the project root by mistake (runtime data is normally outside the repo)
-/calendar-notes.json
-
-# Local build/release output
-/build/
-/dist/
-
-# Machine-local credentials; never commit these.
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+.direnv/
 secrets.json
 .secrets.json*
 
-# Local runtime settings/storage artifacts (including when testing in the repo root)
-/calendar-notes.json
-/calendar-marks.json
-/secrets.json
-/.settings.json.bak
-/.profiles.json.bak
-/.secrets.json.bak
-/.settings.lock
-/.profiles.lock
-/.storage-paths.conf
-/.storage-paths.lock
-/.calendar-notes.lock
-/.calendar-marks.lock
-/.migration-settings-v1
-/.migration-calendar-notes-v1
-/.migration-calendar-marks-v1
-/settings.json.before-launcher-project-recovery-*
-/.profiles.lock
-/.settings.json.corrupt.*
-/.profiles.json.corrupt.*
-/.secrets.json.corrupt.*
-
-# Storage sidecars must stay local even when settings/profiles are stored in a
-# nested directory inside a Git checkout. The primary settings.json and
-# profiles.json remain intentionally trackable for configuration sync.
-.settings.json.bak
-.profiles.json.bak
-.secrets.json.bak
-.settings.lock
-.profiles.lock
-.storage-paths.conf
-.storage-paths.lock
-.calendar-notes.lock
-.calendar-marks.lock
-.migration-settings-v1
-.migration-calendar-notes-v1
-.migration-calendar-marks-v1
-.settings.json.corrupt.*
-.settings.json.backup-corrupt.*
-.profiles.json.corrupt.*
-.secrets.json.corrupt.*
-settings.json.before-launcher-project-recovery-*
+# User data (normally stored outside the repository)
 calendar-notes.json
 calendar-marks.json
 
-# Recoverable journal for an interrupted settings/profile transaction
+# Runtime settings sidecars, recovery data, and transaction files.
+# The primary settings.json and profiles.json remain intentionally trackable.
+*.lock
+.settings.json.*
+.profiles.json.*
+.secrets.json.*
 .settings-profile-transaction
 .settings-profile-transaction.*
+.settings-transaction-restore.*
+.settings-scrub.*
+.storage-paths.conf
+.storage-paths.conf.*
+.calendar-notes.*
+.calendar-notes-init.*
+.calendar-marks.*
+.calendar-marks-init.*
+.migration-*
+*.migrate.*
+.*.migrate.*
+.*-backup-migrate.*
+*.qsw-backup-*
+settings.json.before-launcher-project-recovery-*
+*.bak
+*.bak.*
+*.corrupt
+*.corrupt.*
+*.backup
+*.backup.*
+*.tmp
+*.tmp.*
+*.download
+.mpris-art-*.lock
+.mpv-*.tmp.png
+
+# Caches, generated QML artifacts, and local build output
+.cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+node_modules/
+.qmlcache/
+*.qmlc
+*.jsc
+/build/
+/dist/
+/target/
+/result
+/result-*/
+coverage/
+*.log
+*.core
+core
+core.*
+
+/.secrets.json.bak

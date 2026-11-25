@@ -9,6 +9,8 @@ printf '%s\n' '{"weatherToken":"test-token"}' > "$TMP/config/secrets.json"
 export CURL_CALL_LOG="$TMP/curl-calls.log"
 cat > "$TMP/bin/curl" <<'MOCK_CURL'
 #!/bin/bash
+IFS= read -r request_header || exit 90
+[[ "$request_header" == 'X-Gismeteo-Token: '* ]] || exit 91
 printf 'called\n' >> "$CURL_CALL_LOG"
 exit 7
 MOCK_CURL

@@ -3,6 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 python3 - "$ROOT" <<'PY'
 from pathlib import Path
+import re
 import sys
 root = Path(sys.argv[1])
 checks = {
@@ -37,7 +38,8 @@ for name, expected in checks.items():
         assert actual == count, f"{name}: expected {count} occurrences of {token!r}, got {actual}"
 # Forecast weather icons must remain on the direct Image path; this was a known live-QML constraint.
 forecast = (root / "components/WeatherForecastItem.qml").read_text(encoding="utf-8")
-assert 'Image {\n        x:' in forecast and 'Keep forecast icons on the original direct Image path' in forecast
+assert 'Keep forecast icons on the original direct Image path' in forecast
+assert re.search(r'Image\s*\{\s*id:\s*forecastIconImage\s*\n\s*x:', forecast), "Forecast icon must remain a direct Image with its stable id and explicit x geometry"
 # Existing pilot components remain opt-in; no blanket conversion or global default change.
 network = (root / "components/NetworkStat.qml").read_text(encoding="utf-8")
 assert network.count('animationProfile: "expressive"') == 2

@@ -18,7 +18,8 @@ done
 for primitive in SettingsInputField SettingsComboBox SettingsTabBase; do
     file="$ROOT/components/settings/primitives/$primitive.qml"
     grep -Fq 'ToolTip.visible' "$file" || fail "$primitive has no hover explanation"
-    grep -Fq 'ToolTip.text: root.settingsSearchMatchHint' "$file" || fail "$primitive does not display the explanation text"
+    grep -Fq 'root.settingsSearchMatchHint' "$file" || fail "$primitive does not display the explanation text"
+    grep -Fq 'ToolTip.text:' "$file" || fail "$primitive does not bind a tooltip text"
 done
 grep -Fq 'ToolTip.text: root.matchHint' "$ROOT/components/settings/primitives/SettingsSearchHighlight.qml" || fail 'shared highlight does not display the explanation text'
 grep -Fq 'root.host.settingsSearchNavigationGroupMatchHint(modelData.id)' "$WIDGET" || fail 'navigation group tooltip does not describe matches'

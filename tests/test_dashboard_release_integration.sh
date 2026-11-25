@@ -41,8 +41,10 @@ assert.match(defaultsJs, /dashboardCardOrder: \["today", "system", "network", "w
   'settings defaults must match the Config card order');
 
 for (const id of expectedIds) {
-  assert.ok(dashboard.DEFINITIONS.find(card => card.id === id && card.settingsPageId),
-    `${id} must have a settings destination`);
+  assert.ok(dashboard.DEFINITIONS.find(card => card.id === id),
+    `${id} must have a presentation definition`);
+  assert.ok(!dashboard.DEFINITIONS.find(card => card.id === id).settingsPageId,
+    `${id} must stay an informational card without a Settings click destination`);
   assert.ok(qml.includes(`infoCard.cardId === "${id}"`),
     `${id} must have a corresponding Dashboard content renderer`);
 }

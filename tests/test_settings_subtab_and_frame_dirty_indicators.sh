@@ -92,9 +92,14 @@ for (const [file, heading] of [
   ['components/settings/sections/SettingsTimersSection.qml','heading: "Анимация окна опций"'],
   ['components/settings/sections/SettingsTimersSection.qml','heading: "Иконки окна опций"'],
   ['components/settings/sections/SettingsCalendarSection.qml','heading: "Показ"'],
-  ['components/settings/sections/SettingsWindowSection.qml','heading: "Вкладки панели настроек"'],
+  ['components/settings/sections/SettingsWindowSection.qml','text: "Вкладки панели настроек"'],
 ]) {
-  assert(fs.readFileSync(path.join(base,file),'utf8').includes(heading+'\n        changeKeys:'), `${heading} has a frame-level change selector`);
+  const source = fs.readFileSync(path.join(base,file),'utf8');
+  if (file.endsWith('SettingsWindowSection.qml') && heading.includes('Вкладки панели')) {
+    assert(source.includes('settingsWindowColumn.settings.hasResetChanges("keys", ({ keys: ["settingsNavigationOrder", "settingsTabLabels"] }))'), 'tab editor keeps one shared dirty marker for the complete grouped editor');
+  } else {
+    assert(source.includes(heading+'\n        changeKeys:'), `${heading} has a frame-level change selector`);
+  }
 }
 
 // All Save All buttons are compact and icon-only; single-save buttons retain their floppy icon.
@@ -103,7 +108,9 @@ for (const file of saveFiles) {
   assert(file.includes('iconText: "󰆔"'), 'Save All keeps the paired-diskette glyph');
 }
 assert(pageHost.includes('modified: root.host && root.host.settingsSubTabHasChanges(root.host.currentPageId, index)'), 'subtabs bind modified state to their precise scope');
-assert(pageHost.includes('width: 30\n                    height: 30\n                    visible: root.host && root.host.quickSaveProfileAvailable'), 'Save All is icon-width in the common header');
+assert(pageHost.includes('SettingsSaveButton {\n                    actionAvailable: root.host && root.host.quickSaveProfileAvailable'), 'Save All uses the shared action primitive in the common header');
+const savePrimitive = fs.readFileSync(path.join(base, 'components/settings/primitives/SettingsSaveButton.qml'), 'utf8');
+assert(savePrimitive.includes('width: 30\n    height: 30'), 'shared Save action keeps the compact icon-button dimensions');
 
 console.log('Settings subtab/frame dirty indicators and icon-only Save All: OK');
 JS

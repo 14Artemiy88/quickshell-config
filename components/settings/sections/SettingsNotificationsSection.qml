@@ -19,7 +19,7 @@ settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] })
+        changeKeys: ({ keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator"] })
         heading: "Тайм-ауты"
         padding: 8
         contentSpacing: 6
@@ -101,6 +101,24 @@ settingsSearchSubTabIndex: 0
         Text {
             width: parent.width
             text: "По умолчанию критические уведомления не закрываются автоматически."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+
+        SettingsCheckBox {
+            id: notificationsShowTimeoutIndicatorCheck
+            width: parent.width
+            height: 28
+            text: "Показывать время до закрытия"
+            checked: Config.notificationsShowTimeoutIndicator
+            onToggled: { Config.notificationsShowTimeoutIndicator = checked; root.settings.save() }
+            Connections { target: Config; function onNotificationsShowTimeoutIndicatorChanged() { notificationsShowTimeoutIndicatorCheck.checked = Config.notificationsShowTimeoutIndicator } }
+        }
+        Text {
+            width: parent.width
+            text: "Полоса показывает оставшееся время автоматического закрытия. При наведении на карточку отсчёт приостанавливается."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(9)
@@ -207,6 +225,269 @@ settingsSearchSubTabIndex: 1
             Connections { target: Config; function onNotificationsShowProgressChanged() { notificationsShowProgressCheck.checked = Config.notificationsShowProgress } }
         }
     }
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsLeadingVisualSize"] })
+        heading: "Заголовок и иконка"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsFontField {
+            width: parent.width
+            height: 30
+            label: "Шрифт заголовка"
+            value: Config.notificationsSummaryFont
+            targetObject: Config
+            targetProperty: "notificationsSummaryFont"
+            settingsObject: root.settings
+            saveOnEdit: true
+            labelWidth: 220
+            fieldWidth: 150
+        }
+
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            label: "Размер заголовка"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
+            SettingsNumberField {
+                width: 100
+                height: 30
+                value: Config.notificationsSummaryFontSize
+                minimum: 8
+                maximum: 32
+                step: 1
+                wheelStep: 1
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "notificationsSummaryFontSize"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет заголовка"
+            value: String(Config.notificationsSummaryColor || Config.text)
+            targetObject: Config
+            targetProperty: "notificationsSummaryColor"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: false
+            labelWidth: 220
+            fieldWidth: 120
+        }
+
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            label: "Размер иконки / аватара"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+
+            SettingsNumberField {
+                width: 100
+                height: 30
+                value: Config.notificationsLeadingVisualSize
+                minimum: 24
+                maximum: 72
+                step: 2
+                wheelStep: 2
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "notificationsLeadingVisualSize"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "Пустой шрифт использует системный. Размер иконки применяется одинаково к иконкам приложений, аватарам и ведущим изображениям."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold"] })
+        heading: "Название приложения"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsFontField {
+            width: parent.width
+            height: 30
+            label: "Шрифт названия"
+            value: Config.notificationsAppNameFont
+            targetObject: Config
+            targetProperty: "notificationsAppNameFont"
+            settingsObject: root.settings
+            saveOnEdit: true
+            labelWidth: 220
+            fieldWidth: 150
+        }
+        SettingsRow {
+            width: parent.width
+            height: 30
+            label: "Размер названия"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+            SettingsNumberField {
+                width: 100; height: 30; value: Config.notificationsAppNameFontSize
+                minimum: 8; maximum: 24; step: 1; wheelStep: 1; decimals: 0
+                compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config; targetProperty: "notificationsAppNameFontSize"
+                settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет названия"
+            value: String(Config.notificationsAppNameColor || Config.text)
+            targetObject: Config; targetProperty: "notificationsAppNameColor"
+            settingsObject: root.settings; saveOnEdit: true
+            allowAlpha: true; allowTransparent: false
+            labelWidth: 220; fieldWidth: 120
+        }
+        SettingsCheckBox {
+            width: parent.width; height: 28
+            text: "Полужирное начертание"
+            checked: Config.notificationsAppNameBold
+            onToggled: { Config.notificationsAppNameBold = checked; root.settings.save() }
+        }
+        Text {
+            width: parent.width
+            text: "Пустой шрифт и цвет используют системное семейство и активный цвет текста."
+            color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsLeadingVisualRadius"] })
+        heading: "Скругление иконки / аватара"
+        padding: 8
+        contentSpacing: 6
+        SettingsRow {
+            width: parent.width; height: 30
+            label: "Радиус скругления"; labelWidth: 220; labelElide: Text.ElideRight
+            SettingsNumberField {
+                width: 100; height: 30; value: Config.notificationsLeadingVisualRadius
+                minimum: 0; maximum: 36; step: 1; wheelStep: 1; decimals: 0
+                compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config; targetProperty: "notificationsLeadingVisualRadius"
+                settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+        Text { width: parent.width; text: "0 — квадратные углы; максимальный радиус автоматически ограничивается половиной размера изображения."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsCardPadding"] })
+        heading: "Внутренние отступы карточки"
+        padding: 8
+        contentSpacing: 6
+        SettingsRow {
+            width: parent.width; height: 30
+            label: "Отступ от краёв"; labelWidth: 220; labelElide: Text.ElideRight
+            SettingsNumberField {
+                width: 100; height: 30; value: Config.notificationsCardPadding
+                minimum: 0; maximum: 32; step: 1; wheelStep: 1; decimals: 0
+                compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config; targetProperty: "notificationsCardPadding"
+                settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsBodyFontSize", "notificationsBodyColor"] })
+        heading: "Основной текст уведомления"
+        padding: 8
+        contentSpacing: 6
+        SettingsRow {
+            width: parent.width; height: 30
+            label: "Размер текста"; labelWidth: 220; labelElide: Text.ElideRight
+            SettingsNumberField {
+                width: 100; height: 30; value: Config.notificationsBodyFontSize
+                minimum: 8; maximum: 32; step: 1; wheelStep: 1; decimals: 0
+                compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config; targetProperty: "notificationsBodyFontSize"
+                settingsObject: root.settings; saveOnEdit: true
+            }
+        }
+        SettingsColorField {
+            width: parent.width; label: "Цвет текста"
+            value: String(Config.notificationsBodyColor || Config.text)
+            targetObject: Config; targetProperty: "notificationsBodyColor"
+            settingsObject: root.settings; saveOnEdit: true
+            allowAlpha: true; allowTransparent: false
+            labelWidth: 220; fieldWidth: 120
+        }
+        Text { width: parent.width; text: "Пустой цвет использует основной цвет активной темы."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
+    }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 1
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsBackgroundColor"] })
+        heading: "Фон уведомлений"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет и прозрачность"
+            value: String(Config.notificationsBackgroundColor)
+            targetObject: Config
+            targetProperty: "notificationsBackgroundColor"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: true
+            allowTransparent: true
+            labelWidth: 220
+            fieldWidth: 120
+        }
+    }
+
     SettingsGroup {
                 visible: root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 2
 settingsSearchSubTabIndex: 2

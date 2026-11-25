@@ -14,7 +14,7 @@ checks = {
     "preflight checks file existence and readability safely": r'test -f \"$1\" && test -r \"$1\"' in source and 'card.pendingImagePath]' in source,
     "the checked source is assigned only after a successful check": 'if (exitCode === 0 && candidateSource.length > 0)' in source and 'card.imageSource = candidateSource' in source,
     "a missing local file leaves an empty source": 'card.imageSource = ""' in source and 'card.imageLoadFailed = true' in source,
-    "failed image decodes still hide preview and reserve no space": 'if (status === Image.Error)' in source and 'card.imageLoadFailed = true' in source and 'imageSource.length > 0 && !imageLoadFailed' in source,
+    "failed image decodes still hide preview and reserve no space": 'if (status === Image.Error)' in source and 'card.imageLoadFailed = true' in source and 'imageSource.length > 0' in source and '!imageLoadFailed' in source,
     "unknown theme image hints resolve empty rather than to a missing texture": 'Quickshell.iconPath(rawPath, true)' in source and 'return String(checkedIconSource || "")' in source,
     "embedded image-data keeps the native notification image source": 'return String(notification.image || "").trim()' in source,
     "body image is separate and preserves aspect ratio": 'id: bodyImage' in source and 'source: card.imageSource' in source and 'fillMode: Image.PreserveAspectFit' in source,

@@ -15,8 +15,8 @@ const registry = {};
 vm.runInNewContext(registrySource + '\nthis.api = { DEFAULT_IDS, DEFINITIONS, defaults, normalize, normalizeOrder, orderedVisible };', registry);
 assert.deepStrictEqual(Array.from(registry.api.defaults()), ['today', 'system', 'network', 'weather', 'media'],
   'Today is the first default Dashboard card');
-assert.strictEqual(registry.api.DEFINITIONS[0].settingsPageId, 'calendar',
-  'Today card routes to Calendar settings');
+assert.strictEqual(registry.api.DEFINITIONS[0].settingsPageId, undefined,
+  'Today remains an informational card rather than a Calendar settings button');
 assert.strictEqual(registry.api.normalize(['system', 'media']).includes('today'), false,
   'older explicit custom visibility lists remain unchanged and can be customized independently');
 assert.deepStrictEqual(Array.from(registry.api.normalize(['system', 'network', 'weather', 'media'])),
@@ -123,9 +123,9 @@ const settings = read('components/settings/sections/SettingsDashboardSection.qml
 assert.match(settings, /model:\s*DashboardCards\.orderedVisible\(Config\.dashboardCardOrder, null\)/,
   'Today inherits the existing visibility, order and size controls');
 const shell = read('shell.qml');
-assert.match(shell, /allowedPages\s*=\s*\["cpuRam", "network", "weather", "player", "calendar", "dashboard"\]/,
-  'Today card can route to the existing Calendar settings page');
+assert.doesNotMatch(shell, /openDashboardModuleSettings/,
+  'Today is a passive information card and does not route into Calendar Settings');
 
-console.log('Dashboard Today card: shared time/date/today+tomorrow notes, local date rollover, accessibility and card settings: OK');
+console.log('Dashboard Today card: shared time/date/today+tomorrow notes, local date rollover and passive accessibility: OK');
 NODE
 echo 'dashboard Today card: OK'

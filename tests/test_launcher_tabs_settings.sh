@@ -31,7 +31,9 @@ grep -q 'function visibleTabCount()' "$SECTION"
 grep -q 'root.visibleTabCount() <= 1' "$SECTION"
 ! grep -q 'enabled: launcherTabRow.modelData.visible' "$SECTION"
 grep -q 'function moveTab(tabId, delta)' "$SECTION"
-grep -q 'MoveArrowButton {' "$SECTION"
+grep -q 'function moveTabToIndex(tabId, destination)' "$SECTION"
+grep -q 'DragReorderHandle {' "$SECTION"
+grep -q 'listRepeater: launcherTabsRepeater' "$SECTION"
 grep -q 'onToggled: root.setTabVisible' "$SECTION"
 
 # Hidden tabs remain re-enableable even when only one other tab is visible.
@@ -62,7 +64,7 @@ context.root.setTabVisible(0, false);
 context.root.setTabVisible(1, false);
 assert.strictEqual(context.Config.launcherTabVisible[1], true, 'the last visible tab cannot be disabled');
 JS
-grep -q 'onClicked: root.moveTab' "$SECTION"
+grep -q 'root.moveTabToIndex(launcherTabRow.modelData.id, toIndex)' "$SECTION"
 ! grep -q 'Цвета из активной темы' "$SECTION"
 ! grep -q 'Палитра лаунчера автоматически' "$SECTION"
 ! grep -q 'почти непрозрачно' "$SECTION"

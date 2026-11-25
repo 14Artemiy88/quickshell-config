@@ -31,7 +31,7 @@ const defaults = {
   moduleBlurEnabled:{time:false, calendar:false, player:false, launcher:false, settings:false},
   moduleMonitors:{}, geometry:{time:[1,2,300,60], calendar:[3,4,300,200], player:[5,6,300,200], launcher:[7,8,720,640]},
   settingsGeometry:[10,20,560,800], settingsMonitorName:'DP-1', settingsFont:'Nerd Font', settingsFontSize:11,
-  settingsPadding:8, settingsSpacing:6, settingsTabOrder:['modules','themes','general'], settingsTabLabels:{modules:'Modules'},
+  settingsPadding:8, settingsSpacing:6, settingsNavigationOrder:{groupOrder:['appearance','modules','dashboard','launcher','general'],pagesByGroup:{appearance:['themes','settingsWindow'],modules:['modules','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'],dashboard:['dashboard'],launcher:['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],general:['general']}}, settingsTabLabels:{modules:'Modules'},
   animationSettingsVisibilityStyle:'fade'
 };
 let current = clone(defaults);

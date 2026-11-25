@@ -4,6 +4,34 @@
 var SPARSE_FORMAT = "sparse-v1"
 var PROFILE_SETTINGS_SCHEMA_VERSION = 1
 var REPLACE_MARKER = "__profile_replace__"
+var MAX_PROFILE_NAME_LENGTH = 32
+
+// Profile catalogs are dictionaries keyed by user-controlled names. Define
+// keys explicitly so names such as "__proto__" remain ordinary JSON keys
+// instead of invoking Object.prototype setters.
+function setOwn(object, key, value) {
+    Object.defineProperty(object, String(key), {
+        value: value, enumerable: true, configurable: true, writable: true
+    })
+}
+
+function copyProfileMap(source) {
+    var result = {}
+    if (!isObject(source)) return result
+    var names = Object.keys(source)
+    for (var i = 0; i < names.length; ++i)
+        setOwn(result, names[i], clone(source[names[i]]))
+    return result
+}
+
+function hasProfile(owner, name) {
+    return !!(owner && isObject(owner.profiles)
+        && Object.prototype.hasOwnProperty.call(owner.profiles, String(name)))
+}
+
+function normalizedProfileName(value) {
+    return String(value === undefined || value === null ? "" : value).trim()
+}
 
 function clone(value) {
     if (value === undefined) return undefined
@@ -90,15 +118,112 @@ var STORAGE_FORMAT = "profile-overrides-v1"
 // Expand the compact settings file back into the effective flat snapshot used
 // by the existing QML settings adapters. The active profile is the base;
 // profileOverrides contains only deliberate differences from that profile.
+
+function fallbackNavigationOrder(source) {
+    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
+    var defaults = {
+        appearance: ["themes", "settingsWindow"],
+        modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        dashboard: ["dashboard"],
+        launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+        general: ["general"]
+    }
+    var input = isObject(source) ? source : {}
+    var result = { groupOrder: [], pagesByGroup: {} }
+    var seenGroups = {}
+    var groups = Array.isArray(input.groupOrder) ? input.groupOrder : []
+    for (var i = 0; i < groups.length; ++i) {
+        var groupId = groups[i]
+        if (typeof groupId === "string" && defaults[groupId] && !seenGroups[groupId]) {
+            seenGroups[groupId] = true
+            result.groupOrder.push(groupId)
+        }
+    }
+    for (var j = 0; j < groupOrder.length; ++j)
+        if (!seenGroups[groupOrder[j]]) result.groupOrder.push(groupOrder[j])
+    var savedPages = isObject(input.pagesByGroup) ? input.pagesByGroup : {}
+    for (var g = 0; g < groupOrder.length; ++g) {
+        var id = groupOrder[g], pageList = [], seenPages = {}
+        var candidates = Array.isArray(savedPages[id]) ? savedPages[id] : []
+        for (var p = 0; p < candidates.length; ++p) {
+            var pageId = candidates[p]
+            if (typeof pageId === "string" && defaults[id].indexOf(pageId) >= 0 && !seenPages[pageId]) {
+                seenPages[pageId] = true
+                pageList.push(pageId)
+            }
+        }
+        for (var d = 0; d < defaults[id].length; ++d)
+            if (!seenPages[defaults[id][d]]) pageList.push(defaults[id][d])
+        result.pagesByGroup[id] = pageList
+    }
+    return result
+}
+
+function fallbackNavigationOrderFromLegacy(source) {
+    var defaults = fallbackNavigationOrder(null)
+    var pagesByGroup = {}
+    for (var i = 0; i < defaults.groupOrder.length; ++i) pagesByGroup[defaults.groupOrder[i]] = []
+    var seen = {}, saved = Array.isArray(source) ? source : []
+    for (var j = 0; j < saved.length; ++j) {
+        var pageId = saved[j]
+        if (typeof pageId !== "string" || seen[pageId]) continue
+        for (var g = 0; g < defaults.groupOrder.length; ++g) {
+            var groupId = defaults.groupOrder[g]
+            if (defaults.pagesByGroup[groupId].indexOf(pageId) >= 0) {
+                pagesByGroup[groupId].push(pageId)
+                seen[pageId] = true
+                break
+            }
+        }
+    }
+    return fallbackNavigationOrder({ groupOrder: defaults.groupOrder, pagesByGroup: pagesByGroup })
+}
+
+function normalizeNavigationOrderForOwner(owner, source) {
+    return owner && typeof owner.normalizeSettingsNavigationOrder === "function"
+        ? owner.normalizeSettingsNavigationOrder(source) : fallbackNavigationOrder(source)
+}
+
+function legacyNavigationOrderForOwner(owner, source) {
+    return owner && typeof owner.settingsNavigationOrderFromLegacyTabOrder === "function"
+        ? owner.settingsNavigationOrderFromLegacyTabOrder(source) : fallbackNavigationOrderFromLegacy(source)
+}
+
+function migrateLegacyNavigationOrderObject(owner, value) {
+    if (!isObject(value)) return false
+    var changed = false
+    if (value.settingsNavigationOrder === undefined && value.settingsTabOrder !== undefined) {
+        value.settingsNavigationOrder = legacyNavigationOrderForOwner(owner, value.settingsTabOrder)
+        changed = true
+    }
+    if (value.settingsTabOrder !== undefined) {
+        delete value.settingsTabOrder
+        changed = true
+    }
+    return changed
+}
+
 function expandStoredSettings(owner, stored) {
     if (!stored || typeof stored !== "object" || stored.settingsPersistenceFormat !== STORAGE_FORMAT)
         return clone(stored)
 
     var defaults = profileBase(owner)
-    var profiles = clone(stored.profiles || {})
+    var profiles = copyProfileMap(stored.profiles || {})
     var sparse = String(stored.profileStorageFormat || "") === SPARSE_FORMAT
     var requestedProfileName = String(stored.activeProfile || "").trim()
-    var legacyOverrides = isObject(stored.profileOverrides) ? stored.profileOverrides : {}
+    var legacyOverrides = isObject(stored.profileOverrides) ? clone(stored.profileOverrides) : {}
+    var navigationOrderMigrationPending = migrateLegacyNavigationOrderObject(owner, legacyOverrides)
+    var legacyRootNavigationOrder = stored.settingsNavigationOrder !== undefined
+        ? normalizeNavigationOrderForOwner(owner, stored.settingsNavigationOrder)
+        : (stored.settingsTabOrder !== undefined
+            ? legacyNavigationOrderForOwner(owner, stored.settingsTabOrder) : undefined)
+    if (stored.settingsTabOrder !== undefined)
+        navigationOrderMigrationPending = true
+    for (var navigationProfileName in profiles) {
+        if (!Object.prototype.hasOwnProperty.call(profiles, navigationProfileName)) continue
+        if (migrateLegacyNavigationOrderObject(owner, profiles[navigationProfileName]))
+            navigationOrderMigrationPending = true
+    }
     var navigationGroupState = stored.settingsNavigationCollapsedGroups
     var hasLegacyNavigationState = Object.prototype.hasOwnProperty.call(legacyOverrides, "settingsNavigationCollapsedGroups")
     for (var profileCheckName in profiles) {
@@ -123,7 +248,7 @@ function expandStoredSettings(owner, stored) {
     }
     if (navigationGroupState === undefined)
         navigationGroupState = { appearance: false, modules: false, launcher: false }
-    if (hasLegacyNavigationState && owner)
+    if ((hasLegacyNavigationState || navigationOrderMigrationPending) && owner)
         owner.profileMigrationPending = true
 
     if (sparse) {
@@ -132,7 +257,7 @@ function expandStoredSettings(owner, stored) {
             if (!Object.prototype.hasOwnProperty.call(profiles, cleanedProfileName)) continue
             var cleanedProfile = clone(profiles[cleanedProfileName])
             if (isObject(cleanedProfile)) delete cleanedProfile.settingsNavigationCollapsedGroups
-            cleanedProfiles[cleanedProfileName] = cleanedProfile
+            setOwn(cleanedProfiles, cleanedProfileName, cleanedProfile)
         }
         profiles = cleanedProfiles
     }
@@ -148,7 +273,7 @@ function expandStoredSettings(owner, stored) {
             var legacyProfile = clone(profiles[legacyName])
             if (isObject(legacyProfile)) delete legacyProfile.settingsNavigationCollapsedGroups
             var completed = completeLegacySnapshot(defaults, legacyProfile)
-            migrated[legacyName] = sparseProfile(owner, completed)
+            setOwn(migrated, legacyName, sparseProfile(owner, completed))
         }
         profiles = migrated
     }
@@ -165,7 +290,7 @@ function expandStoredSettings(owner, stored) {
                 timerStyleProfile.animationTimerVisibilityStyle !== undefined
                     ? timerStyleProfile.animationTimerVisibilityStyle
                     : (defaults.animationTimerOptionsVisibilityStyle || "fade"))
-            migratedTimerStyles[timerStyleProfileName] = sparseProfile(owner, timerStyleProfile)
+            setOwn(migratedTimerStyles, timerStyleProfileName, sparseProfile(owner, timerStyleProfile))
         }
         profiles = migratedTimerStyles
     }
@@ -190,7 +315,7 @@ function expandStoredSettings(owner, stored) {
                 animationProfile[animationProfileKey] = "none"
             delete animationProfile[legacyEnabledKey]
         }
-        normalizedAnimationProfiles[animationProfileName] = sparseProfile(owner, animationProfile)
+        setOwn(normalizedAnimationProfiles, animationProfileName, sparseProfile(owner, animationProfile))
     }
     profiles = normalizedAnimationProfiles
 
@@ -200,12 +325,14 @@ function expandStoredSettings(owner, stored) {
     if (active)
         base = mergeValue(base, profiles[active])
 
-    var overrides = isObject(stored.profileOverrides) ? clone(stored.profileOverrides) : {}
+    var overrides = isObject(legacyOverrides) ? clone(legacyOverrides) : {}
     if (isObject(overrides)) delete overrides.settingsNavigationCollapsedGroups
+    if (legacyRootNavigationOrder !== undefined && overrides.settingsNavigationOrder === undefined)
+        overrides.settingsNavigationOrder = legacyRootNavigationOrder
     if (owner) owner.resetOverrides = clone(overrides)
     var reserved = [
         "settingsPersistenceFormat", "profileOverrides", "managedKeys", "managedNestedKeys",
-        "settingsNavigationCollapsedGroups",
+        "settingsNavigationCollapsedGroups", "settingsTabOrder", "settingsNavigationOrder",
         "weatherToken", "profiles", "profileStorageFormat", "activeProfile", "customThemes", "settingsSchemaVersion"
     ]
     // Preserve unrecognized top-level fields from newer app versions. They
@@ -225,6 +352,7 @@ function expandStoredSettings(owner, stored) {
                 : (defaults.animationTimerOptionsVisibilityStyle || "fade"))
     }
     effective.settingsNavigationCollapsedGroups = clone(navigationGroupState)
+    effective.settingsNavigationOrder = normalizeNavigationOrderForOwner(owner, effective.settingsNavigationOrder)
     effective.weatherToken = String(stored.weatherToken || "").trim()
     effective.profiles = profiles
     effective.profileStorageFormat = SPARSE_FORMAT
@@ -248,7 +376,7 @@ function rebuildProfileList(owner) {
 }
 
 function profileNames(owner) {
-    return owner.profileList
+    return Array.isArray(owner && owner.profileList) ? owner.profileList.slice() : []
 }
 
 // Complete a legacy full snapshot with defaults that did not exist when the
@@ -294,23 +422,33 @@ function sparsifyProfiles(owner, fullProfiles) {
     var result = {}
     for (var name in (fullProfiles || {})) {
         if (!Object.prototype.hasOwnProperty.call(fullProfiles, name)) continue
-        result[name] = sparseProfile(owner, fullProfiles[name])
+        setOwn(result, name, sparseProfile(owner, fullProfiles[name]))
     }
     return result
 }
 
 function expandProfile(owner, profile) {
     if (!profile || typeof profile !== "object") return null
+    var normalizedProfile = clone(profile)
+    // Profiles created before v1353 may still contain the flat tab order.
+    // Convert it before merging sparse data with the new hierarchical defaults.
+    migrateLegacyNavigationOrderObject(owner, normalizedProfile)
+    var expanded
     if (owner.profileStorageFormat === SPARSE_FORMAT)
-        return mergeValue(profileBase(owner), profile)
-    var full = clone(profile)
-    delete full.weatherToken
-    return full
+        expanded = mergeValue(profileBase(owner), normalizedProfile)
+    else
+        expanded = normalizedProfile
+    delete expanded.weatherToken
+    expanded.settingsNavigationOrder = normalizeNavigationOrderForOwner(owner, expanded.settingsNavigationOrder)
+    // Profiles expose only the canonical hierarchy. The former flat array is
+    // accepted only by the one-time migration reader and never recreated at runtime.
+    delete expanded.settingsTabOrder
+    return expanded
 }
 
 function expandedProfileByName(owner, name) {
     var key = String(name || owner.activeProfile || "")
-    var profile = owner.profiles ? owner.profiles[key] : null
+    var profile = hasProfile(owner, key) ? owner.profiles[key] : null
     return profile ? expandProfile(owner, profile) : null
 }
 
@@ -324,12 +462,14 @@ function updateResetOverrideCache(owner, profileBaseline, currentSnapshot) {
 }
 
 function saveProfile(owner, name) {
-    var n = String(name || "").trim()
+    var n = normalizedProfileName(name)
     if (!n) return false
-    n = n.slice(0, 32)
+    // Existing legacy names longer than the current limit remain saveable;
+    // new names are rejected rather than silently truncated into collisions.
+    if (n.length > MAX_PROFILE_NAME_LENGTH && !hasProfile(owner, n)) return false
     var current = owner.snapshotObject()
-    var next = Object.assign({}, owner.profiles || {})
-    next[n] = sparseProfile(owner, current)
+    var next = copyProfileMap(owner.profiles || {})
+    setOwn(next, n, sparseProfile(owner, current))
     owner.profiles = next
     owner.profileStorageFormat = SPARSE_FORMAT
     owner.activeProfile = n
@@ -404,6 +544,10 @@ function profileSavePathMatches(owner, scope, argument, path) {
     }
     if (scope === "module") return modulePathMatches(path, argument)
     if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
+    if (scope === "dashboardModule") {
+        if (root === "modules") return path.length > 1 && child === "dashboard"
+        return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
+    }
     if (scope === "launcher") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
             return path.length < 2 || child === "launcher"
@@ -412,7 +556,7 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "settingsWindow") {
         if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
         if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
-        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels", "animationSettings"])
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels", "animationSettings"])
     }
     if (scope === "general")
         return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0
@@ -469,6 +613,11 @@ function expandRootReplacementPaths(owner, scope, argument, path, current, outpu
         return
     }
     if (mapRoots.indexOf(root) >= 0) {
+        if (scope === "dashboardModule" && root === "modules" && currentMap
+                && Object.prototype.hasOwnProperty.call(currentMap, "dashboard")) {
+            output.push(["modules", "dashboard"])
+            return
+        }
         if (scope === "module" && currentMap && Object.prototype.hasOwnProperty.call(currentMap, String(argument))) {
             output.push([root, String(argument)])
             return
@@ -492,9 +641,8 @@ function expandRootReplacementPaths(owner, scope, argument, path, current, outpu
 // unsaved differences remain in the active settings snapshot and stay visible
 // through the sparse reset/save cache when owner.save() prepares the next write.
 function saveProfileScope(owner, name, scope, argument) {
-    var n = String(name || "").trim()
-    if (!n || !owner.profiles || !Object.prototype.hasOwnProperty.call(owner.profiles, n)) return false
-    n = n.slice(0, 32)
+    var n = normalizedProfileName(name)
+    if (!n || !hasProfile(owner, n)) return false
     var current = owner.snapshotObject()
     var base = expandedProfileByName(owner, n) || profileBase(owner)
     var delta = diffValue(base, current) || {}
@@ -514,8 +662,8 @@ function saveProfileScope(owner, name, scope, argument) {
         assignValueAtPath(updatedFullProfile, selectedPath, currentValueAtPath(current, selectedPath))
     }
 
-    var next = Object.assign({}, owner.profiles || {})
-    next[n] = sparseProfile(owner, updatedFullProfile)
+    var next = copyProfileMap(owner.profiles || {})
+    setOwn(next, n, sparseProfile(owner, updatedFullProfile))
     owner.profiles = next
     owner.profileStorageFormat = SPARSE_FORMAT
     owner.activeProfile = n
@@ -526,8 +674,8 @@ function saveProfileScope(owner, name, scope, argument) {
 }
 
 function loadProfile(owner, name) {
-    var n = String(name || "")
-    var profile = owner.profiles ? owner.profiles[n] : null
+    var n = normalizedProfileName(name)
+    var profile = hasProfile(owner, n) ? owner.profiles[n] : null
     if (!profile) return false
     var expanded = expandProfile(owner, profile)
     if (!expanded) return false
@@ -540,9 +688,9 @@ function loadProfile(owner, name) {
 }
 
 function deleteProfile(owner, name) {
-    var n = String(name || "")
-    if (!owner.profiles || owner.profiles[n] === undefined) return false
-    var next = Object.assign({}, owner.profiles)
+    var n = normalizedProfileName(name)
+    if (!hasProfile(owner, n)) return false
+    var next = copyProfileMap(owner.profiles)
     delete next[n]
     owner.profiles = next
     if (owner.activeProfile === n) owner.activeProfile = ""
@@ -558,7 +706,7 @@ function deleteProfile(owner, name) {
 // when possible, or the default theme while retaining the saved colors.
 function rewriteThemeReferences(owner, themes, oldName, newName) {
     var current = owner.profiles || {}
-    var next = Object.assign({}, current)
+    var next = copyProfileMap(current)
     var changed = false
     var candidateNames = (themes && themes.builtinThemeNames ? themes.builtinThemeNames.slice() : [])
     Object.keys(owner.customThemes || {}).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(name) {
@@ -594,7 +742,7 @@ function rewriteThemeReferences(owner, themes, oldName, newName) {
         var full = expandProfile(owner, current[name])
         if (!full || String(full.activeTheme || "") !== String(oldName)) return
         full.activeTheme = newName ? String(newName) : matchingTheme(full)
-        next[name] = owner.profileStorageFormat === SPARSE_FORMAT ? sparseProfile(owner, full) : full
+        setOwn(next, name, owner.profileStorageFormat === SPARSE_FORMAT ? sparseProfile(owner, full) : full)
         changed = true
     })
 

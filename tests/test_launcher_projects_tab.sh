@@ -31,6 +31,26 @@ grep -q 'function updateLauncherProject(index, field, value)' "$SETTINGS"
 grep -q 'function addLauncherProject()' "$SETTINGS"
 grep -q 'function removeLauncherProject(index)' "$SETTINGS"
 grep -q 'function moveLauncherProject(index, delta)' "$SETTINGS"
+grep -q 'function moveLauncherProjectTo(fromIndex, toIndex)' "$SETTINGS"
+grep -q 'function moveTo(source, fromIndex, toIndex)' "$PROJECTS"
+node - "$PROJECTS" <<'JS'
+const fs = require('fs');
+const vm = require('vm');
+const assert = require('assert');
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '');
+const api = vm.runInThisContext(source + '\n({ normalize, moveTo })');
+const items = [
+  { name: 'One', path: '/one', ide: 'a' },
+  { name: 'Two', path: '/two', ide: 'b' },
+  { name: 'Three', path: '/three', ide: 'c' }
+];
+const movedForward = api.moveTo(items, 0, 2);
+assert.deepStrictEqual(movedForward.map(item => item.name), ['Two', 'Three', 'One']);
+assert.strictEqual(movedForward[2].path, '/one', 'drag keeps the complete project record');
+const movedBackward = api.moveTo(movedForward, 2, 0);
+assert.deepStrictEqual(movedBackward.map(item => item.name), ['One', 'Two', 'Three']);
+assert.deepStrictEqual(api.moveTo(items, -1, 1), api.normalize(items), 'invalid drag source leaves order untouched');
+JS
 
 # Settings subtab supports icon/name/path/IDE, add/remove and movement.
 grep -Fq '{ id: "launcherProjects", saveScope: "launcher", subTabs: [] }' "$ROOT/js/settings/SettingsPageRegistry.js"
@@ -41,7 +61,8 @@ grep -q 'placeholderText: "Путь к проекту' "$SECTION"
 grep -q 'placeholderText: "IDE:' "$SECTION"
 grep -q 'onClicked: root.settings.addLauncherProject()' "$SECTION"
 grep -q 'onClicked: root.settings.removeLauncherProject' "$SECTION"
-grep -q 'onClicked: root.settings.moveLauncherProject' "$SECTION"
+grep -q 'listRepeater: launcherProjectsRepeater' "$SECTION"
+grep -q 'root.settings.moveLauncherProjectTo(fromIndex, toIndex)' "$SECTION"
 
 # Single flat launcher tab, keyboard interaction, selection, search and safe argv execution.
 grep -q 'readonly property int modeProjects: 8' "$LAUNCHER"

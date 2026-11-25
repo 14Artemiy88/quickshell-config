@@ -21,6 +21,15 @@ get_weather() {
     local endpoint_type="$2"
     local params="$3"
     local force="${4:-false}"
+    local expected_type
+    case "$endpoint_type" in
+        current) expected_type="object" ;;
+        forecast|forecast/aggregate) expected_type="array" ;;
+        *)
+            echo "weather: unsupported endpoint type: $endpoint_type" >&2
+            return 1
+            ;;
+    esac
     local cache_file lock_file attempt_file token cached_payload=""
 
     # The cache key is deterministic; build it in the current shell rather than
@@ -34,7 +43,7 @@ get_weather() {
     # A fresh cached forecast does not need the API token, so defer its JSON
     # parse until a real refresh is required.
     if [[ "$force" != "true" ]] && weather_cache_valid "$cache_file"; then
-        cached_payload=$(weather_cache_read_usable "$cache_file") && {
+        cached_payload=$(weather_cache_read_usable "$cache_file" "$expected_type") && {
             printf '%s\n' "$cached_payload"
             return 0
         }
@@ -44,7 +53,7 @@ get_weather() {
 
     command -v flock >/dev/null 2>&1 || {
         echo "weather: flock is required to serialize refreshes safely" >&2
-        cached_payload=$(weather_cache_read_usable "$cache_file") && {
+        cached_payload=$(weather_cache_read_usable "$cache_file" "$expected_type") && {
             printf '%s\n' "$cached_payload"
             return 0
         }
@@ -61,7 +70,7 @@ get_weather() {
 
         local now payload=""
         if [[ "$force" != "true" ]] && weather_cache_valid "$cache_file"; then
-            cached_payload=$(weather_cache_read_usable "$cache_file") && {
+            cached_payload=$(weather_cache_read_usable "$cache_file" "$expected_type") && {
                 printf '%s\n' "$cached_payload"
                 exit 0
             }
@@ -72,7 +81,7 @@ get_weather() {
         # automatic retries briefly. Explicit forced refreshes bypass this
         # cooldown, so a user can always request a new attempt.
         if [[ "$force" != "true" ]] && weather_attempt_recent "$attempt_file" "$now"; then
-            cached_payload=$(weather_cache_read_usable "$cache_file") && {
+            cached_payload=$(weather_cache_read_usable "$cache_file" "$expected_type") && {
                 printf '%s\n' "$cached_payload"
                 exit 0
             }
@@ -83,10 +92,11 @@ get_weather() {
 
         weather_mark_attempt "$attempt_file" "$now" || true
         payload=$(weather_gismeteo_fetch "$token" "$endpoint_type" "$params") || payload=""
-        # The Gismeteo parser emits only non-empty JSON objects/arrays; an
-        # empty payload here means the request or response validation failed.
+        # The Gismeteo parser emits only the endpoint's expected non-empty JSON
+        # type (object for current weather, array for forecasts). An empty
+        # payload means the request or response validation failed.
         if [[ -z "$payload" ]]; then
-            cached_payload=$(weather_cache_read_usable "$cache_file") || exit 1
+            cached_payload=$(weather_cache_read_usable "$cache_file" "$expected_type") || exit 1
             printf '%s\n' "$cached_payload"
             exit 0
         fi

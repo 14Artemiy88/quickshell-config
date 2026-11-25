@@ -34,6 +34,8 @@ exec "$REAL_CAT" "$@"
 STUB
 cat > "$TMP/bin/curl" <<'STUB'
 #!/usr/bin/env bash
+IFS= read -r request_header || exit 90
+[[ "$request_header" == 'X-Gismeteo-Token: '* ]] || exit 91
 printf '%s\n' "${WEATHER_TEST_RESPONSE:-}" 
 STUB
 chmod +x "$TMP/bin/jq" "$TMP/bin/cat" "$TMP/bin/curl"

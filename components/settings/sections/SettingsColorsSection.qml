@@ -13,8 +13,15 @@ Flickable {
     height: visible ? parent.height - y : 0
     property bool editingColors: false
     property bool themesExpanded: false
+    property string themeActionMessage: ""
+    property bool themeActionMessageIsError: false
+    property string pendingDeleteThemeName: ""
 
     function resetScroll() { root.contentY = 0 }
+    function showThemeFeedback(message, isError) {
+        root.themeActionMessage = String(message || "")
+        root.themeActionMessageIsError = !!isError
+    }
     contentWidth: Math.max(width, colorsColumn.width)
     contentHeight: colorsColumn.height
     clip: true
@@ -58,28 +65,15 @@ Flickable {
                             font.pixelSize: Config.settingsUiSize(15)
                             verticalAlignment: Text.AlignVCenter
                         }
-                        SettingsButton {
-                            width: 30
-                            height: 30
-                            visible: host && host.profileController.canSaveScope("all")
-                            enabled: visible
-                            text: ""
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("all")
                             iconText: "󰆔"
-                            fontSize: 11
                             tooltip: "Сохранить всё в активный профиль"
-                            backgroundColor: Config.settingsBackground
                             onClicked: host.profileController.saveAll()
                         }
-                        SettingsButton {
-                            width: 30
-                            height: 30
-                            visible: host && host.profileController.canSaveScope("themes")
-                            enabled: visible
-                            text: ""
-                            iconText: "\uf0c7"
-                            fontSize: 11
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("themes")
                             tooltip: "Сохранить тему в активный профиль"
-                            backgroundColor: Config.settingsBackground
                             onClicked: host.profileController.saveScope("themes")
                         }
                     }
@@ -254,16 +248,28 @@ Flickable {
                                 var name = text.trim()
                                 if (name.endsWith(" (Changed)"))
                                     name = name.slice(0, -10).trim()
-                                if (settings.saveCurrentTheme(name))
+                                if (settings.saveCurrentTheme(name)) {
                                     text = settings.activeTheme
+                                    root.showThemeFeedback("Тема сохранена", false)
+                                } else {
+                                    root.showThemeFeedback("Не удалось сохранить: имя должно быть уникальным и содержать не более 32 символов", true)
+                                }
                             }
+                            onTextEdited: root.showThemeFeedback("", false)
                             Keys.onReturnPressed: saveThemeFromField()
                             Keys.onEnterPressed: saveThemeFromField()
                         }
                     }
 
-
-
+                    Text {
+                        width: parent.width
+                        visible: root.themeActionMessage.length > 0
+                        text: root.themeActionMessage
+                        color: root.themeActionMessageIsError ? Config.tempHot : Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: Config.settingsUiSize(9)
+                        wrapMode: Text.WordWrap
+                    }
 
                     Row {
                         id: activeThemePreviewRow
@@ -290,7 +296,12 @@ Flickable {
                         id: editColorsCheck
                         text: "Редактировать цвета"
                         checked: root.editingColors
-                        onToggled: root.editingColors = checked
+                        onToggled: {
+                            root.editingColors = checked
+                            if (checked) settings.beginThemeEdit(settings.activeTheme)
+                            root.pendingDeleteThemeName = ""
+                            root.showThemeFeedback("", false)
+                        }
                     }
 
                     Connections {
@@ -299,6 +310,8 @@ Flickable {
                             themeCombo.currentIndex = Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
                             themeNameField.text = settings.activeTheme + (settings.currentThemeModified ? " (Changed)" : "")
                             themeRenameField.text = settings.activeTheme
+                            root.pendingDeleteThemeName = ""
+                            root.showThemeFeedback("", false)
                         }
                         function onThemeNamesChanged() {
                             themeCombo.currentIndex = Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
@@ -312,55 +325,123 @@ Flickable {
                         clip: true
                         visible: (root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified) || normalizedProgress > 0.001
                         fromGeometry: Qt.rect(0, 0, parent.width, 0)
-                        toGeometry: Qt.rect(0, 0, parent.width, 30)
+                        toGeometry: Qt.rect(0, 0, parent.width, customThemeRenameContent.implicitHeight)
                         progress: root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? 1 : 0
                         animationDuration: Config.animationDuration(180, "appearance")
                         animationEasing: Config.animationEasingType("standard", root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? "enter" : "exit")
 
-                        Row {
+                        Column {
+                            id: customThemeRenameContent
                             width: parent.width
-                            height: 30
-                            spacing: 6
+                            spacing: 5
 
-                            SettingsTextField {
-                                id: themeRenameField
-                                width: parent.width - 38
+                            Row {
+                                width: parent.width
                                 height: 30
-                                text: settings.activeTheme
-                                color: Config.text
-                                selectionColor: Config.accent
-                                selectedTextColor: Config.black
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(11)
-                                activeFocusOnTab: true
-                                background: Rectangle {
-                                    color: Config.settingsBackground
-                                    border.color: (themeRenameField.activeFocus || themeRenameField.pointerHovered) ? Config.accent : Config.baseColor
-                                    border.width: 1
-                                    radius: Config.frameRadius
+                                spacing: 6
+
+                                SettingsTextField {
+                                    id: themeRenameField
+                                    width: parent.width - 38
+                                    height: 30
+                                    text: settings.activeTheme
+                                    color: Config.text
+                                    selectionColor: Config.accent
+                                    selectedTextColor: Config.black
+                                    font.family: Config.settingsFont
+                                    font.pixelSize: Config.settingsUiSize(11)
+                                    activeFocusOnTab: true
+                                    background: Rectangle {
+                                        color: Config.settingsBackground
+                                        border.color: (themeRenameField.activeFocus || themeRenameField.pointerHovered) ? Config.accent : Config.baseColor
+                                        border.width: 1
+                                        radius: Config.frameRadius
+                                    }
+                                    function renameCurrentTheme() {
+                                        var name = themeRenameField.text.trim()
+                                        if (settings.renameCustomTheme(settings.activeTheme, name)) {
+                                            themeRenameField.text = settings.activeTheme
+                                            root.pendingDeleteThemeName = ""
+                                            root.showThemeFeedback("Название темы обновлено", false)
+                                        } else {
+                                            root.showThemeFeedback("Не удалось переименовать: проверьте длину имени и отсутствие совпадений", true)
+                                        }
+                                    }
+                                    onTextEdited: root.showThemeFeedback("", false)
+                                    Keys.onReturnPressed: renameCurrentTheme()
+                                    Keys.onEnterPressed: renameCurrentTheme()
                                 }
-                                function renameCurrentTheme() {
-                                    var name = themeRenameField.text.trim()
-                                    settings.renameCustomTheme(settings.activeTheme, name)
-                                    themeRenameField.text = settings.activeTheme
+
+                                SettingsResetButton {
+                                    id: themeDeleteButton
+                                    visible: actionAvailable && settings.isCustomTheme(settings.activeTheme)
+                                    width: 30
+                                    height: 30
+                                    label: "×"
+                                    tooltip: "Запросить удаление пользовательской темы"
+                                    emphasized: true
+                                    emphasizedHoverOnly: true
+                                    emphasizedColor: "#ff9999"
+                                    emphasizedHoverColor: "#ff6666"
+                                    onClicked: {
+                                        root.pendingDeleteThemeName = settings.activeTheme
+                                        root.showThemeFeedback("", false)
+                                    }
                                 }
-                                Keys.onReturnPressed: renameCurrentTheme()
-                                Keys.onEnterPressed: renameCurrentTheme()
                             }
 
-                            SettingsResetButton {
-                                id: themeDeleteButton
-                                visible: actionAvailable && settings.customThemes && settings.customThemes[settings.activeTheme] !== undefined
-                                width: 30
-                                height: 30
-                                label: "×"
-                                tooltip: "Удалить пользовательскую тему"
-                                emphasized: true
-                                emphasizedHoverOnly: true
-                                emphasizedColor: "#ff9999"
-                                emphasizedHoverColor: "#ff6666"
-                                onClicked: settings.deleteCustomTheme(settings.activeTheme)
+                            Column {
+                                width: parent.width
+                                visible: root.pendingDeleteThemeName === settings.activeTheme && root.pendingDeleteThemeName.length > 0
+                                spacing: 4
+
+                                Text {
+                                    width: parent.width
+                                    text: "Удалить пользовательскую тему «" + root.pendingDeleteThemeName + "»?"
+                                    color: Config.textMuted
+                                    font.family: Config.settingsFont
+                                    font.pixelSize: Config.settingsUiSize(10)
+                                    wrapMode: Text.WordWrap
                                 }
+
+                                Row {
+                                    width: parent.width
+                                    height: 28
+                                    spacing: 6
+
+                                    SettingsButton {
+                                        width: 74
+                                        height: 28
+                                        text: "Удалить"
+                                        fontSize: 10
+                                        emphasized: true
+                                        accentColor: "#aa0000"
+                                        outlineColor: "#aa0000"
+                                        textColor: "#ff9999"
+                                        fillOnHover: true
+                                        hoverBackgroundColor: "#aa0000"
+                                        hoverTextColor: Config.black
+                                        tooltip: "Подтвердить удаление темы"
+                                        onClicked: {
+                                            var deletingName = root.pendingDeleteThemeName
+                                            root.pendingDeleteThemeName = ""
+                                            if (settings.deleteCustomTheme(deletingName))
+                                                root.showThemeFeedback("Пользовательская тема удалена", false)
+                                            else
+                                                root.showThemeFeedback("Тема больше недоступна", true)
+                                        }
+                                    }
+
+                                    SettingsButton {
+                                        width: 68
+                                        height: 28
+                                        text: "Отмена"
+                                        fontSize: 10
+                                        tooltip: "Отменить удаление темы"
+                                        onClicked: root.pendingDeleteThemeName = ""
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -440,16 +521,9 @@ Flickable {
                                         font.pixelSize: Config.settingsUiSize(14)
                                         verticalAlignment: Text.AlignVCenter
                                     }
-                                    SettingsButton {
-                                        width: 30
-                                        height: 30
-                                        visible: host && host.profileController.canSaveScope("colors", modelData.colors)
-                                        enabled: visible
-                                        text: ""
-                                        iconText: "\uf0c7"
-                                        fontSize: 11
+                                    SettingsSaveButton {
+                                        actionAvailable: host && host.profileController.canSaveScope("colors", modelData.colors)
                                         tooltip: "Сохранить цвета: " + modelData.title
-                                        backgroundColor: Config.settingsBackground
                                         onClicked: host.profileController.saveScope("colors", modelData.colors)
                                     }
                                     SettingsResetButton {
@@ -515,6 +589,7 @@ Flickable {
                                             allowTransparent: true
                                             fieldWidth: 120
                                             compact: false
+                                            onValueEdited: function(value) { settings.setThemeDraftColor(colorName, value) }
                                         }
                                     }
                                 }

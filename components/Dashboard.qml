@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Wayland
 import ".."
 import "../js/dashboard/DashboardCards.js" as DashboardCards
+import "../js/player/PlayerImage.js" as PlayerImage
 
 PanelWindow {
     id: root
@@ -29,6 +30,19 @@ PanelWindow {
     property point navigationAnchor: Qt.point(0, 0)
     property bool hasNavigationAnchor: false
     property bool navigationStarted: false
+    // The in-panel editor changes card order and presentation without opening
+    // Settings. It is transient UI state; card choices remain profile-backed.
+    property bool cardEditMode: false
+    property string draggingCardId: ""
+    property string cardDropTargetId: ""
+    property point dashboardDragScenePosition: Qt.point(0, 0)
+    // Distinguish spatial keyboard focus from pointer focus so a model rebuild
+    // never leaves an unrelated card visually selected under the mouse.
+    property bool keyboardNavigationActive: false
+    // Short-lived card IDs drive appearance/removal transitions without
+    // changing the profile-backed visibility list until a removal fades out.
+    property string pendingDashboardCardAppearanceId: ""
+    property string pendingDashboardCardRemovalId: ""
     // Preserve a card's logical identity across Repeater model rebuilds. The
     // focused Item may be destroyed/reused when Bento orientation or order
     // changes, but the card id remains the stable navigation target.
@@ -37,10 +51,7 @@ PanelWindow {
     property bool navigationLayoutRestoreScheduled: false
 
     signal closeRequested()
-    signal launcherRequested()
-    signal calendarRequested()
     signal settingsRequested()
-    signal moduleSettingsRequested(string pageId)
 
     readonly property var playerData: root.playerSource && root.playerSource.player
                                       ? root.playerSource.player : ({})
@@ -415,7 +426,7 @@ PanelWindow {
     readonly property string weatherTemperature: {
         var value = root.weatherData && root.weatherData.temperature
                     ? root.weatherData.temperature.air : null
-        var celsius = value && value.C !== undefined ? String(value.C) : ""
+        var celsius = DashboardCards.normalizeWeatherTemperature(value ? value.C : null)
         return celsius !== "" ? celsius + "°C" : "—"
     }
     readonly property string weatherDescription: {
@@ -490,27 +501,30 @@ PanelWindow {
     // Backends encode the remaining time as a negative clock string. Normalize
     // only known clock formats for the small visual label; unknown values are
     // omitted rather than announced as if they were a valid countdown.
-    readonly property string mediaRemainingTime: {
-        var remaining = String(root.playerData.timeleft || "").trim().replace(/^-/, "")
-        return /^\d{1,3}:\d{2}(?::\d{2})?$/.test(remaining) ? remaining : ""
+    readonly property string mediaRemainingTime: DashboardCards.normalizeRemainingTime(root.playerData.timeleft)
+    readonly property string mediaImageSource: Settings.player
+        && !PlayerImage.isPlaceholderImage(root.playerData.image, Quickshell.shellDir)
+        ? PlayerImage.imageSourceForPath(root.playerData.image, Quickshell.shellDir) : ""
+    readonly property string weatherIconSource: {
+        var iconCode = DashboardCards.normalizeWeatherIconCode(root.weatherData && root.weatherData.icon)
+        return iconCode !== "" ? Quickshell.shellDir + "/assets/gismeteo/new_png/" + iconCode + ".png" : ""
     }
-    readonly property string weatherIconSource: root.weatherData && root.weatherData.icon
-                                                  ? Quickshell.shellDir + "/assets/gismeteo/new_png/" + String(root.weatherData.icon) + ".png" : ""
     readonly property string weatherComfortTemperature: {
         var temperature = root.weatherData && root.weatherData.temperature
                           ? root.weatherData.temperature : null
-        var comfort = temperature && temperature.comfort ? temperature.comfort.C : null
-        return comfort !== null && comfort !== undefined && String(comfort) !== String(temperature.air && temperature.air.C)
-                ? String(comfort) + "°C" : ""
+        var comfort = DashboardCards.normalizeWeatherTemperature(
+            temperature && temperature.comfort ? temperature.comfort.C : null)
+        if (comfort === "") return ""
+        var air = DashboardCards.normalizeWeatherTemperature(
+            temperature && temperature.air ? temperature.air.C : null)
+        if (air === "") return comfort + "°C"
+        return Number(comfort.replace(",", ".")) !== Number(air.replace(",", "."))
+                ? comfort + "°C" : ""
     }
     readonly property int weatherWindScale: {
         var wind = root.weatherData && root.weatherData.wind ? root.weatherData.wind : null
         var direction = wind && wind.direction ? wind.direction.scale_8 : null
-        if (direction === null || direction === undefined || String(direction).trim() === "")
-            return -1
-        var scale = Number(direction)
-        return isFinite(scale) && Math.round(scale) === scale && scale >= 0 && scale <= 8
-                ? scale : -1
+        return DashboardCards.normalizeWeatherWindScale(direction)
     }
     readonly property string weatherWindDirection: {
         switch (root.weatherWindScale) {
@@ -543,22 +557,141 @@ PanelWindow {
     readonly property string weatherWindSpeed: {
         var wind = root.weatherData && root.weatherData.wind ? root.weatherData.wind : null
         var speed = wind && wind.speed ? wind.speed.m_s : null
-        return speed !== null && speed !== undefined && String(speed) !== "" ? String(speed) + " м/с" : ""
+        var normalized = DashboardCards.normalizeWeatherWindSpeed(speed)
+        return normalized !== "" ? normalized + " м/с" : ""
     }
-    // WeatherNow already consumes Gismeteo's mm_hg_atm field. Reuse the same
-    // current sample for the expanded Dashboard card; do not start another poll.
+    // Reuse the same Gismeteo sample as Weather Now. Both surfaces share strict
+    // pressure normalization so malformed metadata cannot appear in only one.
     readonly property string weatherPressure: {
         var pressure = root.weatherData && root.weatherData.pressure
                        ? root.weatherData.pressure.mm_hg_atm : null
-        var textValue = pressure === null || pressure === undefined
-                        ? "" : String(pressure).trim()
-        if (textValue === "") return ""
-        var numericValue = Number(textValue.replace(",", "."))
-        return isFinite(numericValue) && numericValue > 0 ? textValue : ""
+        return DashboardCards.normalizeWeatherPressure(pressure)
     }
 
     function isCardEnabled(cardId) {
         return DashboardCards.contains(Config.dashboardVisibleCards, cardId)
+    }
+
+    function toggleDashboardCardEditMode() {
+        root.cardEditMode = !root.cardEditMode
+        if (!root.cardEditMode) {
+            root.draggingCardId = ""
+            root.cardDropTargetId = ""
+        }
+    }
+
+    function setDashboardCardEnabled(cardId, enabled) {
+        var key = String(cardId || "")
+        var current = DashboardCards.normalize(Config.dashboardVisibleCards)
+        var next = DashboardCards.setEnabled(current, key, enabled)
+        if (JSON.stringify(next) === JSON.stringify(current))
+            return
+        if (root.pendingDashboardCardRemovalId !== "")
+            return
+
+        if (!enabled) {
+            // Let the card fade and shrink before removing its delegate. Other
+            // cards then settle into the freed space using their x/y Behaviors.
+            root.pendingDashboardCardRemovalId = key
+            dashboardCardRemovalTimer.start()
+            return
+        }
+
+        root.pendingDashboardCardAppearanceId = key
+        Config.dashboardVisibleCards = next
+        Settings.save()
+        root.scheduleDashboardLayoutSync()
+    }
+
+    function commitPendingDashboardCardRemoval() {
+        var key = root.pendingDashboardCardRemovalId
+        if (key === "")
+            return
+        root.pendingDashboardCardRemovalId = ""
+        var current = DashboardCards.normalize(Config.dashboardVisibleCards)
+        var next = DashboardCards.setEnabled(current, key, false)
+        if (JSON.stringify(next) === JSON.stringify(current))
+            return
+        Config.dashboardVisibleCards = next
+        Settings.save()
+        root.scheduleDashboardLayoutSync()
+    }
+
+    function setDashboardCardSize(cardId, mode) {
+        var next = DashboardCards.setCardSize(Config.dashboardCardSizes, cardId, mode)
+        if (JSON.stringify(next) === JSON.stringify(DashboardCards.normalizeCardSizes(Config.dashboardCardSizes)))
+            return
+        Config.dashboardCardSizes = next
+        Settings.save()
+        root.scheduleDashboardLayoutSync()
+    }
+
+    function moveDashboardCardByDrop(sourceId, targetId) {
+        var next = DashboardCards.moveByDrop(Config.dashboardCardOrder, sourceId, targetId)
+        if (JSON.stringify(next) === JSON.stringify(DashboardCards.normalizeOrder(Config.dashboardCardOrder)))
+            return false
+        Config.dashboardCardOrder = next
+        Settings.save()
+        root.scheduleDashboardLayoutSync()
+        return true
+    }
+
+    function beginDashboardCardDrag(cardId, sceneX, sceneY) {
+        if (!root.cardEditMode)
+            return
+        root.draggingCardId = String(cardId || "")
+        root.cardDropTargetId = ""
+        root.dashboardDragScenePosition = Qt.point(Number(sceneX) || 0, Number(sceneY) || 0)
+        root.updateDashboardCardDrag(cardId, sceneX, sceneY)
+    }
+
+    function updateDashboardCardDrag(cardId, sceneX, sceneY) {
+        if (!root.cardEditMode || root.draggingCardId !== String(cardId || "") || !drawer)
+            return
+        // PointerHandler's scenePosition is independent of the tiny drag
+        // handle's dimensions and remains correct while crossing columns.
+        root.dashboardDragScenePosition = Qt.point(Number(sceneX) || 0, Number(sceneY) || 0)
+        var point = drawer.mapFromItem(null, root.dashboardDragScenePosition.x, root.dashboardDragScenePosition.y)
+        var targetId = ""
+        var bestScore = Number.POSITIVE_INFINITY
+        for (var i = 0; i < navigationTargets.length; ++i) {
+            var candidate = navigationTargets[i]
+            if (!candidate || !candidate.navigationCard || !root.navigationTargetUsable(candidate)
+                    || String(candidate.cardId || "") === root.draggingCardId)
+                continue
+
+            var rect = root.navigationRect(candidate)
+            // Any point inside a card is accepted. In the gaps, choose the
+            // nearest real rectangle within a generous but bounded tolerance.
+            var slopX = 88
+            var slopY = 72
+            var score = DashboardCards.cardDropTargetScore(point, rect, slopX, slopY)
+            if (score < bestScore) {
+                bestScore = score
+                targetId = String(candidate.cardId || "")
+            }
+        }
+        root.cardDropTargetId = targetId
+    }
+
+    function finishDashboardCardDrag(cardId) {
+        if (!root.cardEditMode || root.draggingCardId !== String(cardId || "")) {
+            root.draggingCardId = ""
+            root.cardDropTargetId = ""
+            root.dashboardDragScenePosition = Qt.point(0, 0)
+            return
+        }
+        // HandlerPoint coordinates may reset on release; use the last scene
+        // position captured while the gesture was active for the final hit test.
+        root.updateDashboardCardDrag(cardId,
+            root.dashboardDragScenePosition.x, root.dashboardDragScenePosition.y)
+        var source = root.draggingCardId
+        var target = root.cardDropTargetId
+        root.draggingCardId = ""
+        root.cardDropTargetId = ""
+        root.dashboardDragScenePosition = Qt.point(0, 0)
+        if (target !== "")
+            root.moveDashboardCardByDrop(source, target)
     }
 
     function visibleCardCount() {
@@ -1297,6 +1430,9 @@ PanelWindow {
             closeWindowTimer.stop()
             root.keepWindowDuringClose = true
         } else {
+            root.cardEditMode = false
+            root.draggingCardId = ""
+            root.cardDropTargetId = ""
             root.clearNavigationFocus()
             if (root.keepWindowDuringClose)
                 closeWindowTimer.restart()
@@ -1325,14 +1461,20 @@ PanelWindow {
         anchors.fill: parent
     }
 
-    Rectangle {
+    Timer {
+        id: dashboardCardRemovalTimer
+        interval: Config.animationDuration(180, "appearance")
+        repeat: false
+        onTriggered: root.commitPendingDashboardCardRemoval()
+    }
+
+    // Keep an invisible full-screen dismissal layer while Dashboard is open.
+    // The previous translucent black rectangle dimmed every application behind
+    // the overview; the click catcher remains, but it no longer paints a veil.
+    Item {
+        id: dashboardDismissLayer
         anchors.fill: parent
-        color: "#55000000"
-        opacity: root.open ? 1 : 0
-        visible: opacity > 0
-        Behavior on opacity {
-            NumberAnimation { duration: Config.animationDuration(220, "appearance"); easing.type: Easing.OutCubic }
-        }
+        visible: root.open
         MouseArea {
             anchors.fill: parent
             onClicked: root.closeRequested()
@@ -1355,12 +1497,25 @@ PanelWindow {
         border.color: Config.settingsBorder
         border.width: Math.max(1, Config.frameBorderWidth)
         clip: true
+        HoverHandler {
+            enabled: root.open
+            onHoveredChanged: {
+                if (hovered)
+                    root.keyboardNavigationActive = false
+            }
+        }
         // The drawer is the invisible keyboard entry point. It has focus but
         // no visual selection; the first arrow press chooses a real target.
         focus: root.open
         activeFocusOnTab: false
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab
+                    || event.key === Qt.Key_Left || event.key === Qt.Key_Right
+                    || event.key === Qt.Key_Up || event.key === Qt.Key_Down
+                    || event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown
+                    || event.key === Qt.Key_Home || event.key === Qt.Key_End)
+                root.keyboardNavigationActive = true
             if (event.key === Qt.Key_Left || event.key === Qt.Key_Right
                     || event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
                 event.accepted = true
@@ -1377,7 +1532,17 @@ PanelWindow {
             NumberAnimation { duration: Config.animationDuration(300, "appearance"); easing.type: Easing.OutCubic }
         }
 
+        // Passive card surfaces must still absorb clicks inside the drawer so
+        // they do not fall through to the desktop-dismiss backdrop underneath.
+        MouseArea {
+            anchors.fill: parent
+            z: 0
+            acceptedButtons: Qt.AllButtons
+            onClicked: function(mouse) { mouse.accepted = true }
+        }
+
         ColumnLayout {
+            z: 1
             anchors.fill: parent
             anchors.margins: 18
             spacing: 14
@@ -1397,10 +1562,134 @@ PanelWindow {
                     }
                 }
                 Rectangle {
+                    id: cardEditButton
+                    readonly property bool navigationCard: false
+                    Layout.preferredWidth: 82
+                    Layout.preferredHeight: 32
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 8
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.cardEditMode ? "Завершить редактирование карточек" : "Редактировать карточки Dashboard"
+                    Accessible.description: "Включает перестановку карточек, изменение размера и управление видимостью прямо в панели."
+                    Component.onCompleted: root.registerNavigationTarget(cardEditButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(cardEditButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(cardEditButton)
+                        else
+                            root.releaseNavigationTargetFocus(cardEditButton)
+                    }
+                    color: cardEditMouse.pressed
+                           ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.22)
+                           : (root.cardEditMode || activeFocus
+                              ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.15)
+                              : (cardEditMouse.containsMouse
+                                 ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
+                                 : "transparent"))
+                    border.width: root.cardEditMode || activeFocus || cardEditMouse.containsMouse ? 1 : 0
+                    border.color: Config.accent
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.cardEditMode ? "Готово" : "Изменить"
+                        color: root.cardEditMode || cardEditButton.activeFocus ? Config.accent : Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: 10
+                        font.bold: root.cardEditMode || cardEditButton.activeFocus
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.toggleDashboardCardEditMode()
+                            cardEditButton.forceActiveFocus()
+                        }
+                    }
+                    MouseArea {
+                        id: cardEditMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            cardEditButton.forceActiveFocus()
+                            root.toggleDashboardCardEditMode()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: settingsButton
+                    readonly property bool navigationCard: false
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 36
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 9
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: "Открыть настройки"
+                    Accessible.description: "Открывает общие настройки Quickshell Widgets"
+                    ToolTip.visible: settingsMouse.containsMouse
+                    ToolTip.text: "Настройки"
+                    ToolTip.delay: 400
+                    Component.onCompleted: root.registerNavigationTarget(settingsButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(settingsButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(settingsButton)
+                        else
+                            root.releaseNavigationTargetFocus(settingsButton)
+                    }
+                    color: settingsMouse.pressed
+                           ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.22)
+                           : (activeFocus
+                              ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.18)
+                              : (settingsMouse.containsMouse
+                                 ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
+                                 : "transparent"))
+                    border.width: activeFocus ? 2 : (settingsMouse.containsMouse ? 1 : 0)
+                    border.color: activeFocus
+                                  ? Config.accent
+                                  : Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.48)
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.closeRequested()
+                            root.settingsRequested()
+                        }
+                    }
+                    Behavior on color {
+                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+                    }
+                    Behavior on border.color {
+                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+                    }
+                    Behavior on border.width {
+                        NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰒓"
+                        color: settingsButton.activeFocus || settingsMouse.containsMouse ? Config.accent : Config.textMuted
+                        font.family: "Symbols Nerd Font Mono"
+                        font.pixelSize: 20
+                    }
+                    MouseArea {
+                        id: settingsMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.keyboardNavigationActive = false
+                            root.closeRequested()
+                            root.settingsRequested()
+                        }
+                    }
+                }
+
+                Rectangle {
                     id: closeButton
                     // A real 36 px target keeps the visible control, mouse hit area
                     // and spatial-navigation bounds aligned with one another.
-                    // Include it in the same navigation graph as quick actions/cards.
+                    // Keep the close control in the same spatial navigation graph as the header and cards.
                     readonly property bool navigationCard: false
                     Layout.preferredWidth: 36
                     Layout.preferredHeight: 36
@@ -1464,37 +1753,45 @@ PanelWindow {
                 }
             }
 
-            RowLayout {
+            ColumnLayout {
+                visible: root.cardEditMode
                 Layout.fillWidth: true
-                spacing: 8
-                QuickAction {
-                    id: launcherQuickAction
+                spacing: 4
+
+                Text {
                     Layout.fillWidth: true
-                    label: "Лаунчер"
-                    symbol: "⌕"
-                    onClicked: {
-                        root.closeRequested()
-                        root.launcherRequested()
+                    text: "Перетаскивай карточки за ⠿. Здесь же можно изменить размер или скрыть карточку."
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: 9
+                    wrapMode: Text.WordWrap
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 5
+                    Repeater {
+                        model: DashboardCards.DEFINITIONS.filter(function(definition) {
+                            return !root.isCardEnabled(definition.id)
+                        })
+                        delegate: CardEditAction {
+                            required property var modelData
+                            width: 92
+                            height: 26
+                            label: "+ " + modelData.label
+                            accessibleName: "Добавить карточку " + modelData.label
+                            onActivated: root.setDashboardCardEnabled(modelData.id, true)
+                        }
                     }
                 }
-                QuickAction {
+
+                Text {
                     Layout.fillWidth: true
-                    label: "Календарь"
-                    symbol: "▦"
-                    enabled: Settings.calendar
-                    onClicked: {
-                        root.closeRequested()
-                        root.calendarRequested()
-                    }
-                }
-                QuickAction {
-                    Layout.fillWidth: true
-                    label: "Настройки"
-                    symbol: "⚙"
-                    onClicked: {
-                        root.closeRequested()
-                        root.settingsRequested()
-                    }
+                    visible: DashboardCards.normalize(Config.dashboardVisibleCards).length === DashboardCards.DEFAULT_IDS.length
+                    text: "Все карточки уже добавлены"
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: 9
                 }
             }
 
@@ -1608,8 +1905,6 @@ PanelWindow {
                                         expanded: DashboardCards.cardSizeMode(Config.dashboardCardSizes, horizontalLeadSlot.modelData.id) === "expanded"
                                         title: horizontalLeadSlot.modelData.label
                                         symbol: horizontalLeadSlot.modelData.symbol
-                                        settingsPageId: horizontalLeadSlot.modelData.settingsPageId
-                                        onSettingsRequested: pageId => root.moduleSettingsRequested(pageId)
                                         primaryText: root.cardPrimaryText(horizontalLeadSlot.modelData.id)
                                         secondaryText: root.cardSecondaryText(horizontalLeadSlot.modelData.id)
                                         footerText: root.cardFooterText(horizontalLeadSlot.modelData.id)
@@ -1636,6 +1931,8 @@ PanelWindow {
                                         networkConnectionText: horizontalLeadSlot.modelData.id === "network" ? root.networkConnectionText : ""
                                         networkConnectionAccessibleText: horizontalLeadSlot.modelData.id === "network" ? root.networkConnectionAccessibleText : ""
                                         tertiaryText: horizontalLeadSlot.modelData.id === "media" && Settings.player ? root.mediaDetail : ""
+                                        mediaImageSource: horizontalLeadSlot.modelData.id === "media" ? root.mediaImageSource : ""
+                                        mediaPlaybackState: horizontalLeadSlot.modelData.id === "media" && Settings.player ? root.mediaPlaybackState : "unknown"
                                         tertiaryLabel: horizontalLeadSlot.modelData.id === "media" && Settings.player && root.mediaDetail !== "" ? root.mediaDetailLabel : ""
                                         mediaProgressPercent: horizontalLeadSlot.modelData.id === "media" && Settings.player ? root.mediaProgressPercent : -1
                                         mediaRemainingTime: horizontalLeadSlot.modelData.id === "media" && Settings.player ? root.mediaRemainingTime : ""
@@ -1677,8 +1974,6 @@ PanelWindow {
                                             expanded: DashboardCards.cardSizeMode(Config.dashboardCardSizes, modelData.id) === "expanded"
                                             title: modelData.label
                                             symbol: modelData.symbol
-                                            settingsPageId: modelData.settingsPageId
-                                            onSettingsRequested: pageId => root.moduleSettingsRequested(pageId)
                                             primaryText: root.cardPrimaryText(modelData.id)
                                             secondaryText: root.cardSecondaryText(modelData.id)
                                             footerText: root.cardFooterText(modelData.id)
@@ -1705,6 +2000,8 @@ PanelWindow {
                                             networkConnectionText: modelData.id === "network" ? root.networkConnectionText : ""
                                             networkConnectionAccessibleText: modelData.id === "network" ? root.networkConnectionAccessibleText : ""
                                             tertiaryText: modelData.id === "media" && Settings.player ? root.mediaDetail : ""
+                                            mediaImageSource: modelData.id === "media" ? root.mediaImageSource : ""
+                                            mediaPlaybackState: modelData.id === "media" && Settings.player ? root.mediaPlaybackState : "unknown"
                                             tertiaryLabel: modelData.id === "media" && Settings.player && root.mediaDetail !== "" ? root.mediaDetailLabel : ""
                                             mediaProgressPercent: modelData.id === "media" && Settings.player ? root.mediaProgressPercent : -1
                                             mediaRemainingTime: modelData.id === "media" && Settings.player ? root.mediaRemainingTime : ""
@@ -1748,8 +2045,6 @@ PanelWindow {
                                     expanded: DashboardCards.cardSizeMode(Config.dashboardCardSizes, modelData.id) === "expanded"
                                     title: modelData.label
                                     symbol: modelData.symbol
-                                    settingsPageId: modelData.settingsPageId
-                                    onSettingsRequested: pageId => root.moduleSettingsRequested(pageId)
                                     primaryText: root.cardPrimaryText(modelData.id)
                                     secondaryText: root.cardSecondaryText(modelData.id)
                                     footerText: root.cardFooterText(modelData.id)
@@ -1776,6 +2071,8 @@ PanelWindow {
                                     networkConnectionText: modelData.id === "network" ? root.networkConnectionText : ""
                                     networkConnectionAccessibleText: modelData.id === "network" ? root.networkConnectionAccessibleText : ""
                                     tertiaryText: modelData.id === "media" && Settings.player ? root.mediaDetail : ""
+                                    mediaImageSource: modelData.id === "media" ? root.mediaImageSource : ""
+                                    mediaPlaybackState: modelData.id === "media" && Settings.player ? root.mediaPlaybackState : "unknown"
                                     tertiaryLabel: modelData.id === "media" && Settings.player && root.mediaDetail !== "" ? root.mediaDetailLabel : ""
                                     mediaProgressPercent: modelData.id === "media" && Settings.player ? root.mediaProgressPercent : -1
                                     mediaRemainingTime: modelData.id === "media" && Settings.player ? root.mediaRemainingTime : ""
@@ -1811,8 +2108,6 @@ PanelWindow {
                                     expanded: DashboardCards.cardSizeMode(Config.dashboardCardSizes, modelData.id) === "expanded"
                                     title: modelData.label
                                     symbol: modelData.symbol
-                                    settingsPageId: modelData.settingsPageId
-                                    onSettingsRequested: pageId => root.moduleSettingsRequested(pageId)
                                     primaryText: root.cardPrimaryText(modelData.id)
                                     secondaryText: root.cardSecondaryText(modelData.id)
                                     footerText: root.cardFooterText(modelData.id)
@@ -1839,6 +2134,8 @@ PanelWindow {
                                     networkConnectionText: modelData.id === "network" ? root.networkConnectionText : ""
                                     networkConnectionAccessibleText: modelData.id === "network" ? root.networkConnectionAccessibleText : ""
                                     tertiaryText: modelData.id === "media" && Settings.player ? root.mediaDetail : ""
+                                    mediaImageSource: modelData.id === "media" ? root.mediaImageSource : ""
+                                    mediaPlaybackState: modelData.id === "media" && Settings.player ? root.mediaPlaybackState : "unknown"
                                     tertiaryLabel: modelData.id === "media" && Settings.player && root.mediaDetail !== "" ? root.mediaDetailLabel : ""
                                     mediaProgressPercent: modelData.id === "media" && Settings.player ? root.mediaProgressPercent : -1
                                     mediaRemainingTime: modelData.id === "media" && Settings.player ? root.mediaRemainingTime : ""
@@ -1861,7 +2158,7 @@ PanelWindow {
 
                         Text {
                             Layout.fillWidth: true
-                            text: "Карточки не выбраны\nДобавь нужные карточки в обзор"
+                            text: "Карточки не выбраны\nНажми «Изменить» в заголовке, чтобы добавить их в обзор"
                             color: Config.textMuted
                             font.family: Config.settingsFont
                             font.pixelSize: 12
@@ -1870,20 +2167,6 @@ PanelWindow {
                             wrapMode: Text.WordWrap
                         }
 
-                        QuickAction {
-                            id: configureDashboardAction
-                            visible: cards.orderedCards.length === 0
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: Math.min(220, Math.max(160, parent.width - 16))
-                            label: "Настроить карточки"
-                            symbol: "⚙"
-                            Accessible.name: "Настроить карточки Dashboard"
-                            Accessible.description: "Открывает настройки Dashboard, где можно вернуть карточки в обзор."
-                            onClicked: {
-                                root.closeRequested()
-                                root.moduleSettingsRequested("dashboard")
-                            }
-                        }
                     }
                 }
             }
@@ -1898,18 +2181,22 @@ PanelWindow {
                         var actionHint = "Выбрать"
                         if (root.currentNavigationTarget === closeButton)
                             actionHint = "Закрыть"
-                        else if (root.currentNavigationTarget === configureDashboardAction)
-                            actionHint = "Настроить"
+                        else if (root.currentNavigationTarget === settingsButton)
+                            actionHint = "Настройки"
+                        else if (root.currentNavigationTarget === cardEditButton)
+                            actionHint = "Изменить"
+                        else if (root.currentNavigationTarget && root.currentNavigationTarget.navigationCard)
+                            actionHint = "Просмотр"
                         else if (root.currentNavigationTarget)
                             actionHint = "Открыть"
 
-                        // Keep every implemented navigation key discoverable.
-                        // The former decorative Dashboard caption used the space
-                        // needed to explain Home/End and the empty-state action.
                         var navigationHint = drawer.width < 440
-                            ? "←↑→↓ Навигация · PgUp/PgDn Листать · Home/End Края"
+                            ? "←↑→ Навигация · PgUp/PgDn Листать · Home/End Края"
                             : "← ↑ → ↓ Навигация · PgUp/PgDn Листать · Home/End Начало/конец"
-                        return navigationHint + " · Enter/Space " + actionHint + " · Esc Закрыть"
+                        var actionHintText = root.currentNavigationTarget && root.currentNavigationTarget.navigationCard
+                            ? ""
+                            : " · Enter/Space " + actionHint
+                        return navigationHint + actionHintText + " · Esc Закрыть"
                     }
                     color: Config.textMuted
                     font.family: Config.settingsFont
@@ -1925,100 +2212,6 @@ PanelWindow {
         sequence: "Esc"
         enabled: root.open
         onActivated: root.closeRequested()
-    }
-
-    component QuickAction: Rectangle {
-        id: actionRoot
-        readonly property bool navigationCard: false
-        property string label: ""
-        property string symbol: ""
-        signal clicked()
-        implicitHeight: 54
-        radius: Config.frameRadius
-        activeFocusOnTab: enabled
-        Accessible.role: Accessible.Button
-        Accessible.name: actionRoot.label
-        Accessible.description: {
-            if (actionRoot.label === "Лаунчер") return "Открывает лаунчер приложений и команд."
-            if (actionRoot.label === "Календарь") return "Открывает календарь."
-            if (actionRoot.label === "Настройки") return "Открывает настройки Quickshell Widgets."
-            return "Выполняет быстрое действие Dashboard."
-        }
-        Component.onCompleted: root.registerNavigationTarget(actionRoot)
-        Component.onDestruction: root.unregisterNavigationTarget(actionRoot)
-        onActiveFocusChanged: {
-            if (activeFocus)
-                root.setNavigationTargetFocused(actionRoot)
-            else
-                root.releaseNavigationTargetFocus(actionRoot)
-        }
-        onEnabledChanged: {
-            if (!enabled)
-                root.invalidateNavigationTarget(actionRoot)
-        }
-        onVisibleChanged: {
-            if (!visible)
-                root.invalidateNavigationTarget(actionRoot)
-        }
-        // Pointer hover is a soft preview; keyboard focus is the persistent,
-        // high-contrast selection state. Press remains the strongest transient state.
-        color: actionMouse.pressed
-               ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.22)
-               : (actionRoot.activeFocus
-                  ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_FOCUS_SURFACE_ALPHA)
-                  : (actionMouse.containsMouse
-                     ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_HOVER_SURFACE_ALPHA)
-                     : Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.18)))
-        border.color: actionRoot.activeFocus
-                      ? Config.accent
-                      : (actionMouse.containsMouse
-                         ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_HOVER_BORDER_ALPHA)
-                         : Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.65))
-        border.width: actionRoot.activeFocus ? DashboardCards.CARD_FOCUS_BORDER_WIDTH : 1
-        opacity: enabled ? 1 : 0.45
-        Keys.onPressed: function(event) {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                event.accepted = true
-                actionRoot.clicked()
-            }
-        }
-        Behavior on color {
-            ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-        }
-        Behavior on border.color {
-            ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-        }
-        Behavior on border.width {
-            NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
-        }
-        Column {
-            anchors.centerIn: parent
-            spacing: 2
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: actionRoot.symbol
-                color: Config.accent
-                font.pixelSize: 17
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: actionRoot.label
-                color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: 10
-            }
-        }
-        MouseArea {
-            id: actionMouse
-            anchors.fill: parent
-            enabled: actionRoot.enabled
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                actionRoot.forceActiveFocus()
-                actionRoot.clicked()
-            }
-        }
     }
 
     component UsageMeter: ColumnLayout {
@@ -2060,6 +2253,122 @@ PanelWindow {
                 height: parent.height
                 radius: parent.radius
                 color: Config.accent
+            }
+        }
+    }
+
+    component CardEditAction: Rectangle {
+        id: editAction
+        property string label: ""
+        property string accessibleName: ""
+        property string accessibleDescription: ""
+        signal activated()
+        readonly property bool navigationCard: false
+        visible: root.cardEditMode
+        radius: 6
+        color: editActionMouse.pressed
+               ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.24)
+               : (activeFocus || editActionMouse.containsMouse
+                  ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.14)
+                  : "transparent")
+        border.width: activeFocus || editActionMouse.containsMouse ? 1 : 0
+        border.color: Config.accent
+        activeFocusOnTab: visible && enabled
+        Accessible.role: Accessible.Button
+        Accessible.name: accessibleName !== "" ? accessibleName : label
+        Accessible.description: accessibleDescription
+        Component.onCompleted: root.registerNavigationTarget(editAction)
+        Component.onDestruction: root.unregisterNavigationTarget(editAction)
+        onActiveFocusChanged: {
+            if (activeFocus)
+                root.setNavigationTargetFocused(editAction)
+            else
+                root.releaseNavigationTargetFocus(editAction)
+        }
+        Text {
+            id: labelText
+            anchors.fill: parent
+            anchors.leftMargin: 4
+            anchors.rightMargin: 4
+            text: editAction.label
+            color: activeFocus || editActionMouse.containsMouse ? Config.accent : Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: 9
+            font.bold: activeFocus || editActionMouse.containsMouse
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                event.accepted = true
+                editAction.activated()
+            }
+        }
+        MouseArea {
+            id: editActionMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.keyboardNavigationActive = false
+                editAction.forceActiveFocus()
+                editAction.activated()
+            }
+        }
+    }
+
+    component CardDragHandle: Rectangle {
+        id: dragHandle
+        property string cardId: ""
+        property string cardLabel: ""
+        readonly property bool navigationCard: false
+        visible: root.cardEditMode
+        width: 28
+        height: 24
+        radius: 6
+        color: dragHandleHover.hovered || dragHandler.active
+               ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.16)
+               : "transparent"
+        border.width: dragHandler.active ? 1 : 0
+        border.color: Config.accent
+        activeFocusOnTab: visible && enabled
+        Accessible.role: Accessible.Button
+        Accessible.name: "Переместить карточку " + cardLabel
+        Accessible.description: "Перетащите, чтобы изменить порядок карточек."
+        Component.onCompleted: root.registerNavigationTarget(dragHandle)
+        Component.onDestruction: root.unregisterNavigationTarget(dragHandle)
+        onActiveFocusChanged: {
+            if (activeFocus)
+                root.setNavigationTargetFocused(dragHandle)
+            else
+                root.releaseNavigationTargetFocus(dragHandle)
+        }
+        Text {
+            anchors.centerIn: parent
+            text: "⠿"
+            color: dragHandle.activeFocus || dragHandler.active || dragHandleHover.hovered ? Config.accent : Config.textMuted
+            font.pixelSize: 17
+        }
+        HoverHandler { id: dragHandleHover; enabled: root.cardEditMode }
+        DragHandler {
+            id: dragHandler
+            target: null
+            enabled: root.cardEditMode && root.open
+            onActiveChanged: {
+                root.keyboardNavigationActive = false
+                if (active)
+                    root.beginDashboardCardDrag(dragHandle.cardId, centroid.scenePosition.x, centroid.scenePosition.y)
+                else
+                    root.finishDashboardCardDrag(dragHandle.cardId)
+            }
+            onCentroidChanged: {
+                if (active)
+                    root.updateDashboardCardDrag(dragHandle.cardId, centroid.scenePosition.x, centroid.scenePosition.y)
+            }
+            onActiveTranslationChanged: {
+                if (active)
+                    root.updateDashboardCardDrag(dragHandle.cardId, centroid.scenePosition.x, centroid.scenePosition.y)
             }
         }
     }
@@ -2109,6 +2418,8 @@ PanelWindow {
         property string networkConnectionAccessibleText: ""
         property string tertiaryText: ""
         property string tertiaryLabel: ""
+        property string mediaImageSource: ""
+        property string mediaPlaybackState: "unknown"
         property int mediaProgressPercent: -1
         property string mediaRemainingTime: ""
         property string iconSource: ""
@@ -2126,12 +2437,9 @@ PanelWindow {
         readonly property bool hasTodayNote: todayNoteText.trim() !== ""
         readonly property bool hasTomorrowNote: tomorrowNoteText.trim() !== ""
         readonly property bool hasAnyCalendarNotes: hasTodayNote || hasTomorrowNote
-        property string settingsPageId: ""
-        signal settingsRequested(string pageId)
         radius: Config.frameRadius + 1
-        enabled: settingsPageId !== ""
-        activeFocusOnTab: enabled
-        Accessible.role: Accessible.Button
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Grouping
         Accessible.name: infoCard.title
         function accessibleDetails() {
             var details = []
@@ -2153,20 +2461,20 @@ PanelWindow {
                     details.push(infoCard.secondaryValue >= 0
                         ? "Использование оперативной памяти " + infoCard.secondaryValue + " процентов"
                         : "Данные об использовании оперативной памяти пока недоступны")
-                    if (infoCard.expanded && infoCard.ramCapacityAccessibleText !== "")
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.ramCapacityAccessibleText !== "")
                         details.push(infoCard.ramCapacityAccessibleText)
-                    if (infoCard.expanded && infoCard.cpuCoreCount > 0) {
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.cpuCoreCount > 0) {
                         details.push("Количество логических CPU " + infoCard.cpuCoreCount)
                         if (infoCard.cpuCorePeak >= 0)
                             details.push(infoCard.cpuCorePeakId !== ""
                                 ? "Максимальная загрузка логического процессора " + infoCard.cpuCorePeakId + ": " + infoCard.cpuCorePeak + " процентов"
                                 : "Максимальная загрузка наиболее загруженного логического процессора: " + infoCard.cpuCorePeak + " процентов")
                     }
-                    if (infoCard.expanded && infoCard.swapCapacityAccessibleText !== "")
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.swapCapacityAccessibleText !== "")
                         details.push(infoCard.swapCapacityAccessibleText)
-                    if (infoCard.expanded && infoCard.cpuLoadAverageAccessibleText !== "")
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.cpuLoadAverageAccessibleText !== "")
                         details.push(infoCard.cpuLoadAverageAccessibleText)
-                    if (infoCard.expanded && infoCard.topResourceAppAccessibleText !== "")
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.topResourceAppAccessibleText !== "")
                         details.push(infoCard.topResourceAppAccessibleText)
                     if (infoCard.systemUptimeAccessibleText !== "")
                         details.push(infoCard.systemUptimeAccessibleText)
@@ -2183,7 +2491,7 @@ PanelWindow {
                     details.push(uploadRate !== "" && uploadRate !== "—"
                         ? "Скорость отдачи " + uploadRate
                         : "Скорость отдачи пока недоступна")
-                    if (infoCard.expanded) {
+                    if (infoCard.expanded || infoCard.wideLead) {
                         if (infoCard.networkConnectionAccessibleText !== "")
                             details.push(infoCard.networkConnectionAccessibleText)
                         var downloadedTotal = String(infoCard.detailPrimaryText || "").trim()
@@ -2209,7 +2517,7 @@ PanelWindow {
                         details.push("Погодные условия " + conditions)
                     else
                         details.push("Описание погодных условий пока недоступно")
-                    if (infoCard.expanded) {
+                    if (infoCard.expanded || infoCard.wideLead) {
                         if (String(infoCard.comfortText || "").trim() !== "")
                             details.push("Ощущается " + infoCard.comfortText)
                         var windSpeed = String(infoCard.windText || "").trim()
@@ -2257,12 +2565,12 @@ PanelWindow {
                         details.push("Исполнитель " + trackArtist)
                     if (backendLabel !== "")
                         details.push("Источник воспроизведения " + backendLabel)
-                    if (infoCard.expanded && infoCard.mediaProgressPercent >= 0) {
+                    if ((infoCard.expanded || infoCard.wideLead) && infoCard.mediaProgressPercent >= 0) {
                         details.push("Позиция воспроизведения " + infoCard.mediaProgressPercent + " процентов")
                         if (infoCard.mediaRemainingTime !== "")
                             details.push("Осталось " + infoCard.mediaRemainingTime)
                     }
-                    if (infoCard.expanded && String(infoCard.tertiaryText || "").trim() !== "") {
+                    if ((infoCard.expanded || infoCard.wideLead) && String(infoCard.tertiaryText || "").trim() !== "") {
                         var detailLabel = String(infoCard.tertiaryLabel || "Дополнительные данные").trim()
                         details.push(detailLabel + " " + String(infoCard.tertiaryText).trim())
                     }
@@ -2276,11 +2584,19 @@ PanelWindow {
                 || (infoCard.cardId === "weather" && Settings.weatherNow)
             if (announceFooter && footer !== "" && details.indexOf(footer) < 0)
                 details.push(footer)
-            details.push("Нажмите Enter или Пробел, чтобы открыть настройки модуля.")
+            details.push("Карточка предназначена для просмотра. Состав и размер карточек меняются в режиме «Изменить», остальные настройки доступны через общие Settings.")
             return details.join(". ")
         }
         Accessible.description: infoCard.accessibleDetails()
-        Component.onCompleted: root.registerNavigationTarget(infoCard)
+        Component.onCompleted: {
+            root.registerNavigationTarget(infoCard)
+            if (root.pendingDashboardCardAppearanceId === infoCard.cardId) {
+                Qt.callLater(function() {
+                    if (root.pendingDashboardCardAppearanceId === infoCard.cardId)
+                        root.pendingDashboardCardAppearanceId = ""
+                })
+            }
+        }
         Component.onDestruction: root.unregisterNavigationTarget(infoCard)
         onActiveFocusChanged: {
             if (activeFocus)
@@ -2296,29 +2612,40 @@ PanelWindow {
             if (!visible)
                 root.invalidateNavigationTarget(infoCard)
         }
-        // Keep a single unmistakable selection: focus wins over hover, while
-        // a hovered neighbour receives only a subdued preview treatment.
-        // Dashboard cards have no permanent surface. Hover and keyboard focus
-        // retain their temporary feedback so the whole-card settings action stays discoverable.
-        color: infoCard.activeFocus
+        // Pointer focus is intentionally not shown as a persistent card
+        // selection. The accent focus treatment is reserved for keyboard navigation.
+        readonly property bool pendingRemoval: root.pendingDashboardCardRemovalId === infoCard.cardId
+        readonly property bool pendingAppearance: root.pendingDashboardCardAppearanceId === infoCard.cardId
+        opacity: infoCard.pendingRemoval ? 0
+                 : (root.draggingCardId === infoCard.cardId ? 0.62 : (infoCard.pendingAppearance ? 0 : 1))
+        scale: infoCard.pendingRemoval ? 0.96 : (infoCard.pendingAppearance ? 0.97 : 1)
+        Behavior on scale {
+            NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+        }
+        Behavior on x {
+            enabled: root.cardEditMode
+            NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic }
+        }
+        Behavior on y {
+            enabled: root.cardEditMode
+            NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: Config.animationDuration(140, "appearance"); easing.type: Easing.OutCubic }
+        }
+        color: root.keyboardNavigationActive && infoCard.activeFocus
                ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_FOCUS_SURFACE_ALPHA)
-               : (cardMouse.containsMouse
+               : (cardHover.hovered
                   ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_HOVER_SURFACE_ALPHA)
                   : "transparent")
-        border.color: infoCard.activeFocus
+        border.color: root.cardDropTargetId === infoCard.cardId || (root.keyboardNavigationActive && infoCard.activeFocus)
                       ? Config.accent
-                      : (cardMouse.containsMouse
+                      : (cardHover.hovered
                          ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_HOVER_BORDER_ALPHA)
                          : Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.52))
-        border.width: infoCard.activeFocus ? Math.max(DashboardCards.CARD_FOCUS_BORDER_WIDTH, Config.frameBorderWidth + 1)
-                                          : 1
-        Keys.onPressed: function(event) {
-            if (infoCard.settingsPageId !== ""
-                    && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) {
-                event.accepted = true
-                infoCard.settingsRequested(infoCard.settingsPageId)
-            }
-        }
+        border.width: root.cardDropTargetId === infoCard.cardId ? 3
+                      : (root.keyboardNavigationActive && infoCard.activeFocus
+                         ? Math.max(DashboardCards.CARD_FOCUS_BORDER_WIDTH, Config.frameBorderWidth + 1) : 1)
         Behavior on color {
             ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
         }
@@ -2368,6 +2695,32 @@ PanelWindow {
                 }
 
                 Item { Layout.fillWidth: true }
+
+                RowLayout {
+                    visible: root.cardEditMode
+                    spacing: 3
+
+                    CardEditAction {
+                        width: infoCard.expanded ? 38 : 42
+                        height: 24
+                        label: infoCard.expanded ? "Сжать" : "Расш."
+                        accessibleName: (infoCard.expanded ? "Сделать компактной карточку " : "Расширить карточку ") + infoCard.title
+                        onActivated: root.setDashboardCardSize(infoCard.cardId, infoCard.expanded ? "compact" : "expanded")
+                    }
+
+                    CardEditAction {
+                        width: 24
+                        height: 24
+                        label: "×"
+                        accessibleName: "Скрыть карточку " + infoCard.title
+                        onActivated: root.setDashboardCardEnabled(infoCard.cardId, false)
+                    }
+
+                    CardDragHandle {
+                        cardId: infoCard.cardId
+                        cardLabel: infoCard.title
+                    }
+                }
             }
 
             // Keep each card's content block on a shared vertical centreline.
@@ -2596,9 +2949,11 @@ PanelWindow {
                 }
             }
 
-            // Compact cards retain the original two-line summary from v1219.
+            // Ordinary compact cards keep their original stacked summary.
+            // Wide compact leads below use the spare horizontal canvas to show
+            // the same live data in balanced module-specific groups.
             ColumnLayout {
-                visible: !infoCard.expanded && infoCard.cardId !== "today"
+                visible: !infoCard.expanded && !infoCard.wideLead && infoCard.cardId !== "today"
                 Layout.fillWidth: true
                 spacing: DashboardCards.CARD_BODY_GAP
 
@@ -2621,6 +2976,545 @@ PanelWindow {
                     elide: Text.ElideRight
                     maximumLineCount: 2
                     wrapMode: Text.WordWrap
+                }
+            }
+
+            // Compact wide System: CPU and RAM occupy equal columns so both
+            // primary resources remain visible without stacking one beneath
+            // the other. Core/load and capacity/swap details reuse the same sample.
+            GridLayout {
+                visible: !infoCard.expanded && infoCard.wideLead && infoCard.cardId === "system"
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP
+                rowSpacing: 5
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 4
+
+                    UsageMeter {
+                        Layout.fillWidth: true
+                        label: "CPU"
+                        value: infoCard.primaryValue
+                        dense: true
+                    }
+                    Text {
+                        visible: infoCard.cpuCoreCount > 0
+                        Layout.fillWidth: true
+                        text: "Лог. CPU · " + infoCard.cpuCoreCount
+                              + (infoCard.cpuCorePeak >= 0
+                                 ? " · пик " + infoCard.cpuCorePeak + "%"
+                                   + (infoCard.cpuCorePeakId !== "" ? " · " + infoCard.cpuCorePeakId : "")
+                                 : "")
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        visible: infoCard.cpuLoadAverageText !== ""
+                        Layout.fillWidth: true
+                        text: infoCard.cpuLoadAverageText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 4
+
+                    UsageMeter {
+                        Layout.fillWidth: true
+                        label: "RAM"
+                        value: infoCard.secondaryValue
+                        dense: true
+                    }
+                    Text {
+                        visible: infoCard.ramCapacityText !== ""
+                        Layout.fillWidth: true
+                        text: "Память · " + infoCard.ramCapacityText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        visible: infoCard.swapCapacityText !== ""
+                        Layout.fillWidth: true
+                        text: "Подкачка · " + infoCard.swapCapacityText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                }
+
+                RowLayout {
+                    visible: infoCard.topResourceAppText !== ""
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.columnSpan: 2
+                    spacing: 4
+
+                    Text {
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppLabel + " ·"
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        text: infoCard.topResourceAppName
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        visible: infoCard.topResourceAppProcessCount !== ""
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppProcessCount
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                    Text {
+                        visible: infoCard.topResourceAppValue !== ""
+                        Layout.fillWidth: false
+                        Layout.minimumWidth: implicitWidth
+                        Layout.preferredWidth: implicitWidth
+                        text: infoCard.topResourceAppValue
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        textFormat: Text.PlainText
+                    }
+                }
+            }
+
+            // Compact wide Network: live download/upload rates and accumulated
+            // totals are paired in two columns, with active connection context
+            // sharing one final full-width line when available.
+            GridLayout {
+                visible: !infoCard.expanded && infoCard.wideLead && infoCard.cardId === "network"
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP
+                rowSpacing: 4
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: 2
+                    Text {
+                        Layout.fillWidth: true
+                        text: "ЗАГРУЗКА ↓"
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.bold: true
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: infoCard.primaryText.replace("↓", "").trim()
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: 17
+                        font.bold: true
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Всего · " + infoCard.detailPrimaryText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    spacing: 2
+                    Text {
+                        Layout.fillWidth: true
+                        text: "ОТДАЧА ↑"
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.bold: true
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: infoCard.secondaryText.replace("↑", "").trim()
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: 17
+                        font.bold: true
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Всего · " + infoCard.detailSecondaryText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                }
+
+                ColumnLayout {
+                    visible: infoCard.networkConnectionDetails !== ""
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.columnSpan: 2
+                    spacing: 3
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        Layout.minimumHeight: 1
+                        Layout.maximumHeight: 1
+                        color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.38)
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: infoCard.networkConnectionHeading.toUpperCase()
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.bold: true
+                        font.letterSpacing: 0.7
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: infoCard.networkConnectionDetails
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                        textFormat: Text.PlainText
+                    }
+                }
+            }
+
+            // Compact wide Weather: temperature and conditions stay together
+            // on the left; feels-like, wind and pressure use the right column.
+            GridLayout {
+                visible: !infoCard.expanded && infoCard.wideLead && infoCard.cardId === "weather"
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP
+                rowSpacing: 4
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.horizontalStretchFactor: 42
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 8
+
+                    Item {
+                        visible: infoCard.iconSource !== ""
+                        Layout.preferredWidth: visible ? 38 : 0
+                        Layout.minimumWidth: visible ? 38 : 0
+                        Layout.maximumWidth: visible ? 38 : 0
+                        Layout.preferredHeight: visible ? 38 : 0
+                        Layout.minimumHeight: visible ? 38 : 0
+                        Layout.maximumHeight: visible ? 38 : 0
+
+                        Image {
+                            id: compactWeatherIconImage
+                            anchors.fill: parent
+                            source: infoCard.iconSource
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                            cache: true
+                            smooth: true
+                            sourceSize.width: 96
+                            sourceSize.height: 96
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: compactWeatherIconImage.status !== Image.Ready
+                            text: "☁"
+                            color: Config.accent
+                            font.family: Config.settingsFont
+                            font.pixelSize: 26
+                        }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        spacing: 2
+                        Text {
+                            Layout.fillWidth: true
+                            text: infoCard.primaryText
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: 21
+                            font.bold: true
+                            maximumLineCount: 1
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: infoCard.secondaryText
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                            maximumLineCount: 2
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.horizontalStretchFactor: 58
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 4
+
+                    Text {
+                        visible: infoCard.comfortText !== ""
+                        Layout.fillWidth: true
+                        text: "Ощущается " + infoCard.comfortText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        visible: infoCard.windText !== "" || infoCard.windDirection !== ""
+                        Layout.fillWidth: true
+                        text: infoCard.windDirection === "Штиль"
+                              ? (infoCard.windText !== "" ? "Штиль · " + infoCard.windText : "Штиль")
+                              : (infoCard.windDirection !== ""
+                                 ? (infoCard.windText !== "" ? "Ветер " + infoCard.windDirection + " · " + infoCard.windText : "Ветер " + infoCard.windDirection)
+                                 : "Ветер " + infoCard.windText)
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        visible: infoCard.pressureText !== ""
+                        Layout.fillWidth: true
+                        text: "Давление " + infoCard.pressureText + " мм рт. ст."
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 1
+                        elide: Text.ElideRight
+                    }
+                }
+            }
+
+            // Compact wide Media: track identity uses the wider left column;
+            // album metadata and the bounded progress indicator use the right.
+            GridLayout {
+                visible: !infoCard.expanded && infoCard.wideLead && infoCard.cardId === "media"
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: DashboardCards.WIDE_LEAD_GROUP_GAP
+                rowSpacing: 4
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.horizontalStretchFactor: 56
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 9
+
+                    Item {
+                        Layout.preferredWidth: 58
+                        Layout.minimumWidth: 58
+                        Layout.maximumWidth: 58
+                        Layout.preferredHeight: 58
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.42)
+                            border.width: 1
+                            border.color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.48)
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: mediaArtwork.status !== Image.Ready
+                            text: "♫"
+                            color: Config.accent
+                            font.family: Config.settingsFont
+                            font.pixelSize: 25
+                            font.bold: true
+                        }
+
+                        Image {
+                            id: mediaArtwork
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            source: infoCard.mediaImageSource
+                            visible: source !== ""
+                            asynchronous: true
+                            cache: true
+                            smooth: true
+                            mipmap: true
+                            sourceSize.width: 160
+                            sourceSize.height: 160
+                            fillMode: Image.PreserveAspectCrop
+                        }
+
+                        Rectangle {
+                            visible: infoCard.mediaPlaybackState === "playing"
+                                     || infoCard.mediaPlaybackState === "paused"
+                            width: 18
+                            height: 18
+                            radius: 9
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.rightMargin: 3
+                            anchors.bottomMargin: 3
+                            color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.92)
+                            border.width: 1
+                            border.color: infoCard.mediaPlaybackState === "playing" ? Config.accent : Config.textMuted
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: infoCard.mediaPlaybackState === "playing" ? "▶" : "Ⅱ"
+                                color: infoCard.mediaPlaybackState === "playing" ? Config.accent : Config.textMuted
+                                font.pixelSize: 8
+                                font.bold: true
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 0
+                        spacing: 3
+                        Text {
+                            Layout.fillWidth: true
+                            text: infoCard.primaryText
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: 15
+                            font.bold: true
+                            maximumLineCount: 2
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: infoCard.secondaryText
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                            maximumLineCount: 2
+                            wrapMode: Text.WordWrap
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    Layout.horizontalStretchFactor: 44
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 5
+                    Text {
+                        visible: infoCard.tertiaryText.trim() !== ""
+                        Layout.fillWidth: true
+                        text: infoCard.tertiaryLabel !== ""
+                              ? infoCard.tertiaryLabel + " · " + infoCard.tertiaryText
+                              : infoCard.tertiaryText
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        maximumLineCount: 2
+                        wrapMode: Text.WordWrap
+                        elide: Text.ElideRight
+                    }
+                    Item {
+                        visible: infoCard.mediaProgressPercent >= 0
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 10
+                        Layout.minimumHeight: 10
+                        Layout.maximumHeight: 10
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 6
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 4
+                                Layout.minimumHeight: 4
+                                Layout.maximumHeight: 4
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 2
+                                    color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.52)
+                                }
+                                Rectangle {
+                                    width: parent.width * Math.max(0, Math.min(100, infoCard.mediaProgressPercent)) / 100
+                                    height: parent.height
+                                    radius: 2
+                                    color: Config.accent
+                                }
+                            }
+                            Text {
+                                text: infoCard.mediaRemainingTime !== ""
+                                      ? "−" + infoCard.mediaRemainingTime
+                                      : infoCard.mediaProgressPercent + "%"
+                                color: Config.textMuted
+                                font.family: Config.settingsFont
+                                font.pixelSize: 8
+                                horizontalAlignment: Text.AlignRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                    }
                 }
             }
 
@@ -3070,14 +3964,31 @@ PanelWindow {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 9
-                        Image {
-                            source: infoCard.iconSource
-                            visible: source.toString() !== ""
+                        Item {
+                            visible: infoCard.iconSource !== ""
                             Layout.preferredWidth: visible ? (infoCard.narrow ? 36 : 42) : 0
                             Layout.preferredHeight: visible ? (infoCard.narrow ? 36 : 42) : 0
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true
-                            cache: true
+
+                            // The same expanded delegate serves ordinary and wide cards,
+                            // so keep the placeholder available in both compositions.
+                            Image {
+                                id: expandedWeatherIcon
+                                anchors.fill: parent
+                                source: infoCard.iconSource
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                                cache: true
+                                smooth: true
+                            }
+
+                            Text {
+                                anchors.centerIn: parent
+                                visible: expandedWeatherIcon.status !== Image.Ready
+                                text: "☁"
+                                color: Config.accent
+                                font.family: Config.settingsFont
+                                font.pixelSize: infoCard.narrow ? 24 : 26
+                            }
                         }
                         Text {
                             Layout.fillWidth: true
@@ -3300,16 +4211,12 @@ PanelWindow {
             }
         }
 
-        MouseArea {
-            id: cardMouse
-            anchors.fill: parent
-            enabled: infoCard.settingsPageId !== ""
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton
-            onClicked: {
-                infoCard.forceActiveFocus()
-                infoCard.settingsRequested(infoCard.settingsPageId)
+        HoverHandler {
+            id: cardHover
+            enabled: !root.cardEditMode
+            onHoveredChanged: {
+                if (hovered)
+                    root.keyboardNavigationActive = false
             }
         }
     }

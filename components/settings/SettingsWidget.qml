@@ -74,7 +74,12 @@ Item {
         root.expandSettingsNavigationGroupForPage("weather")
         root.currentPageId = "weather"
         root.currentPageSubTabIndex = 0
-        root.clearSettingsFocus()
+        // This shortcut may originate in page content rather than the sidebar.
+        // Move focus to the newly selected navigation item after it is visible.
+        Qt.callLater(function() {
+            if (root.currentPageId === "weather")
+                root.focusSettingsNavigationPage("weather")
+        })
     }
 
     // Background click catcher. It stays behind the settings content,
@@ -96,33 +101,16 @@ Item {
     property alias currentPageSubTabIndex: settingsNavigationController.currentPageSubTabIndex
     readonly property var settingsTabDefinitions: settingsNavigationController.settingsTabDefinitions
     readonly property var settingsNavigationItems: settingsNavigationController.settingsNavigationItems
-    readonly property var settingsNavigationGroups: {
-        var definitions = settingsNavigationController.settingsNavigationGroupDefinitions
-        var items = root.settingsNavigationItems
-        var groups = []
-        for (var i = 0; i < definitions.length; ++i) {
-            var definition = definitions[i]
-            var groupItems = []
-            for (var j = 0; j < items.length; ++j) {
-                if (items[j].groupId === definition.id)
-                    groupItems.push(items[j])
-            }
-            groups.push({
-                id: definition.id,
-                label: definition.label,
-                symbol: definition.symbol,
-                items: groupItems
-            })
-        }
-        return groups
-    }
+    readonly property var settingsNavigationGroups: SettingsPageRegistry.navigationGroupsForOrder(
+        settingsNavigationController.settingsNavigationOrderNormalized(), Config.settingsTabLabels || ({}))
     readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false, launcher: false })
     readonly property var currentPageSubTabs: settingsNavigationController.currentPageSubTabs
     readonly property string currentPageTitle: settingsNavigationController.currentPageTitle
 
     function defaultSettingsTabLabel(id) { return settingsNavigationController.defaultSettingsTabLabel(id) }
     function settingsTabLabelForId(id) { return settingsNavigationController.settingsTabLabelForId(id) }
-    function settingsTabOrderNormalized() { return settingsNavigationController.settingsTabOrderNormalized() }
+    function settingsNavigationOrderNormalized() { return settingsNavigationController.settingsNavigationOrderNormalized() }
+    function settingsNavigationGroupOrderNormalized() { return settingsNavigationController.settingsNavigationGroupOrderNormalized() }
     function isSettingsTabSelected(id) { return settingsNavigationController.isSettingsTabSelected(id) }
     function settingsSubTabChangeSpec(pageId, sub) { return settingsNavigationController.settingsSubTabChangeSpec(pageId, sub) }
     function settingsSubTabHasChanges(pageId, sub) { return settingsNavigationController.settingsSubTabHasChanges(pageId, sub) }
@@ -135,6 +123,12 @@ Item {
     function setSettingsTabLabel(id, value) { return settingsNavigationController.setSettingsTabLabel(id, value) }
     function moveSettingsTab(id, delta) { return settingsNavigationController.moveSettingsTab(id, delta) }
     function settingsTabCanMove(id, delta) { return settingsNavigationController.settingsTabCanMove(id, delta) }
+    function moveSettingsTabWithinGroup(groupId, id, delta) { return settingsNavigationController.moveSettingsTabWithinGroup(groupId, id, delta) }
+    function moveSettingsTabWithinGroupTo(groupId, id, toIndex) { return settingsNavigationController.moveSettingsTabWithinGroupTo(groupId, id, toIndex) }
+    function settingsTabCanMoveWithinGroup(groupId, id, delta) { return settingsNavigationController.settingsTabCanMoveWithinGroup(groupId, id, delta) }
+    function settingsNavigationGroupCanMove(id, delta) { return settingsNavigationController.settingsNavigationGroupCanMove(id, delta) }
+    function moveSettingsNavigationGroup(id, delta) { return settingsNavigationController.moveSettingsNavigationGroup(id, delta) }
+    function moveSettingsNavigationGroupTo(id, toIndex) { return settingsNavigationController.moveSettingsNavigationGroupTo(id, toIndex) }
 
     function settingsNavigationGroupCollapsed(id) {
         return collapsedSettingsNavigationGroups[String(id)] === true
@@ -152,10 +146,102 @@ Item {
         return false
     }
 
+    function focusAdjacentSettingsNavigationItem(currentItem, forward) {
+        if (!currentItem || typeof currentItem.nextItemInFocusChain !== "function")
+            return false
+        var candidate = currentItem.nextItemInFocusChain(forward === true)
+        var visited = 0
+        while (candidate && candidate !== currentItem && visited < 256) {
+            if (candidate.settingsNavigationFocusTarget === true
+                    && candidate.visible !== false && candidate.enabled !== false
+                    && typeof candidate.forceActiveFocus === "function") {
+                candidate.forceActiveFocus(Qt.TabFocusReason)
+                if (root.settingsNavigation && root.settingsNavigation.ensureNavigationItemVisible)
+                    root.settingsNavigation.ensureNavigationItemVisible(candidate)
+                return true
+            }
+            candidate = candidate.nextItemInFocusChain(forward === true)
+            visited += 1
+        }
+        return false
+    }
+
+    function focusSettingsNavigationPage(pageId) {
+        var targetId = String(pageId || "")
+        if (!targetId || !root.settingsNavigation || !root.settingsNavigation.searchInput)
+            return false
+        var start = root.settingsNavigation.searchInput
+        if (typeof start.nextItemInFocusChain !== "function")
+            return false
+        var candidate = start.nextItemInFocusChain(true)
+        var visited = 0
+        while (candidate && candidate !== start && visited < 256) {
+            if (candidate.settingsNavigationFocusTarget === true
+                    && candidate.settingsNavigationPageId === targetId
+                    && candidate.visible !== false && candidate.enabled !== false
+                    && typeof candidate.forceActiveFocus === "function") {
+                candidate.forceActiveFocus(Qt.OtherFocusReason)
+                if (root.settingsNavigation && root.settingsNavigation.ensureNavigationItemVisible)
+                    root.settingsNavigation.ensureNavigationItemVisible(candidate)
+                return true
+            }
+            candidate = candidate.nextItemInFocusChain(true)
+            visited += 1
+        }
+        return false
+    }
+
+    function settingsNavigationGroupCurrentPageLabel(id) {
+        var groups = root.settingsNavigationGroups
+        for (var i = 0; i < groups.length; ++i) {
+            if (groups[i].id !== String(id)) continue
+            for (var j = 0; j < groups[i].items.length; ++j) {
+                if (groups[i].items[j].id === root.currentPageId)
+                    return String(groups[i].items[j].label || root.settingsTabLabelForId(root.currentPageId))
+            }
+        }
+        return ""
+    }
+
     function setSettingsNavigationCollapsedGroups(value) {
         Config.settingsNavigationCollapsedGroups = SettingsSchema.normalizeSettingsNavigationCollapsedGroups(
             value, Config.settingsNavigationCollapsedGroups)
         root.settings.save()
+    }
+
+    function restoreSettingsLastActivePage() {
+        if (!root.settings || !root.settings.loaded)
+            return false
+
+        // Restore the selected page before enabling navigation side effects.
+        // A selected page inside a collapsed group is valid and must stay there.
+        root.settingsNavigationReady = false
+        var savedPageId = String(Config.settingsLastActivePageId || "general").trim()
+        if (!SettingsPageRegistry.pageMetadataForId(savedPageId))
+            savedPageId = "general"
+        root.currentPageId = savedPageId
+        root.currentPageSubTabIndex = 0
+        if (String(Config.settingsLastActivePageId || "") !== savedPageId) {
+            Config.settingsLastActivePageId = savedPageId
+            root.settings.save()
+        }
+        root.settingsNavigationReady = true
+        return true
+    }
+
+    function persistCurrentSettingsPage() {
+        if (!root.settingsNavigationReady)
+            return
+        var pageId = String(root.currentPageId || "")
+        if (!SettingsPageRegistry.pageMetadataForId(pageId))
+            return
+        // An explicit page selection can reveal its destination group. This
+        // handler is not used during restore, so collapsed state stays intact.
+        root.expandSettingsNavigationGroupForPage(pageId)
+        if (String(Config.settingsLastActivePageId || "") !== pageId) {
+            Config.settingsLastActivePageId = pageId
+            root.settings.save()
+        }
     }
 
     function toggleSettingsNavigationGroup(id) {
@@ -236,16 +322,21 @@ Item {
         return settingsSearchController.cycleSettingsSearchMatch(direction)
     }
 
+    Connections {
+        target: root.settings
+        function onLoadedChanged() {
+            if (root.settings.loaded && !root.settingsNavigationReady)
+                root.restoreSettingsLastActivePage()
+        }
+    }
+
     Component.onCompleted: {
         settingsSearchController.searchInput = settingsNavigation.searchInput
-        root.settingsNavigationReady = true
+        root.restoreSettingsLastActivePage()
         Qt.callLater(root.rebuildSettingsSearchIndex)
     }
 
-    onCurrentPageIdChanged: {
-        if (root.settingsNavigationReady)
-            root.expandSettingsNavigationGroupForPage(root.currentPageId)
-    }
+    onCurrentPageIdChanged: root.persistCurrentSettingsPage()
 
     Rectangle {
         anchors.fill: parent
@@ -314,12 +405,13 @@ Item {
             id: settingsBody
             width: parent.width
             height: parent.height - y
-            // Keep the settings text visually separated from the sidebar tabs.
-            spacing: 16
+            // Preserve the normal desktop proportions while returning space to
+            // page content on narrow settings windows.
+            spacing: width < 440 ? 10 : 16
 
             SettingsNavigation {
                 id: settingsNavigation
-                width: 176
+                width: Math.min(176, Math.max(112, Math.round(settingsBody.width * 0.33)))
                 height: parent.height
                 host: root
                 navigationGroups: root.settingsNavigationGroups
@@ -330,7 +422,7 @@ Item {
 
             SettingsPageContent {
                 id: settingsPageContent
-                width: parent.width - settingsNavigation.width - 16
+                width: Math.max(0, parent.width - settingsNavigation.width - settingsBody.spacing)
                 height: parent.height
                 host: root
                 settings: root.settings

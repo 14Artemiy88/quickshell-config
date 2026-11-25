@@ -20,13 +20,13 @@ grep -Fq 'property bool fontBold: true' "$RESET" || { echo 'Reset arrow should s
 if grep -Eq 'MouseArea|ToolTip|Rectangle[[:space:]]*\{' "$RESET"; then
     echo 'Reset button duplicates rendering or hover interaction already owned by HoverButtonSurface' >&2; exit 1
 fi
-grep -Fq 'spacing: 16' "$WIDGET" || { echo 'Settings sidebar/content gutter was not increased to 16 px' >&2; exit 1; }
-grep -Fq 'width: parent.width - settingsNavigation.width - 16' "$WIDGET" || { echo 'Settings content width does not account for its wider sidebar gutter' >&2; exit 1; }
+grep -Fq 'spacing: width < 440 ? 10 : 16' "$WIDGET" || { echo 'Settings sidebar/content gutter is not responsive' >&2; exit 1; }
+grep -Fq 'Math.max(0, parent.width - settingsNavigation.width - settingsBody.spacing)' "$WIDGET" || { echo 'Settings content width does not account for the responsive sidebar gutter' >&2; exit 1; }
 python3 - "$RESET" <<'PY'
 from pathlib import Path
 import sys
 s=Path(sys.argv[1]).read_text()
 for token in ['SettingsButton {','onClicked: root.clicked()','root.clicked()','property bool fillOnHover: false','emphasized: root.emphasized && (!root.emphasizedHoverOnly || root.hovered)','disabledBorderColor: root.emphasized ? "#ff593d3d" : Config.baseColor']:
     if token not in s: raise SystemExit('missing reset button contract: '+token)
-print('Reset button uses border-only hover styling and settings sidebar spacing: OK')
+print('Reset button uses border-only hover styling and responsive settings sidebar spacing: OK')
 PY

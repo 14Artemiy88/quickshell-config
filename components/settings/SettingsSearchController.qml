@@ -114,6 +114,31 @@ Item {
         return -1
     }
 
+    // Return a compact, user-facing route for a matched setting. All labels
+    // come from the live page metadata and the current custom page label, so
+    // breadcrumbs follow navigation reordering and renaming automatically.
+    function settingsSearchBreadcrumb(entry) {
+        if (!entry)
+            return ""
+        var candidates = [
+            entry.navigationGroupLabel,
+            entry.pageLabel,
+            entry.subTabLabel,
+            entry.group,
+            entry.label
+        ]
+        var segments = []
+        for (var i = 0; i < candidates.length; ++i) {
+            var value = String(candidates[i] === undefined || candidates[i] === null ? "" : candidates[i]).trim()
+            if (value.length === 0)
+                continue
+            if (segments.length > 0 && segments[segments.length - 1] === value)
+                continue
+            segments.push(value)
+        }
+        return segments.join(" › ")
+    }
+
     function collectSettingsSearchItems(item, pageId, pageRoot, entries, ordinalByPage, idCounts) {
         if (!item)
             return
@@ -166,6 +191,13 @@ Item {
                     subTabId: subTabMetadata ? subTabMetadata.id : "",
                     subTabLabel: subTabLabel,
                     subTabIndex: subTabIndex,
+                    navigationPath: root.settingsSearchBreadcrumb({
+                        navigationGroupLabel: navigationGroupLabel,
+                        pageLabel: pageLabel,
+                        subTabLabel: subTabLabel,
+                        group: group,
+                        label: label
+                    }),
                     target: item,
                     pageRoot: activePageRoot,
                     targetKey: targetKey,
@@ -209,7 +241,8 @@ Item {
             var entry = results[i]
             var current = entry ? entry.target : null
             var explanation = SettingsSearch.explainMatch(entry, root.settingsSearchQuery)
-            var ancestorHint = "• " + entry.label + " — " + explanation
+            var breadcrumb = String(entry.navigationPath || root.settingsSearchBreadcrumb(entry))
+            var ancestorHint = "• " + (breadcrumb || entry.label) + "\n  " + explanation
             while (current) {
                 if (current.settingsSearchHighlighted !== undefined)
                     current.settingsSearchHighlighted = true
@@ -218,7 +251,8 @@ Item {
                         && String(entry.id || "") === root.settingsSearchActiveMatchId
                 if (current.settingsSearchMatchHint !== undefined) {
                     if (current === entry.target) {
-                        current.settingsSearchMatchHint = explanation
+                        current.settingsSearchMatchHint = (breadcrumb.length > 0 ? "Путь: " + breadcrumb + "\n" : "")
+                            + "Совпадение: " + explanation
                     } else {
                         var existing = String(current.settingsSearchMatchHint || "")
                         var header = "Найдено внутри:\n"
@@ -383,7 +417,9 @@ Item {
         var cap = Math.min(matches.length, 4)
         for (var j = 0; j < cap; ++j) {
             var match = matches[j]
-            lines.push("• " + match.label + " — " + SettingsSearch.explainMatch(match, root.settingsSearchQuery))
+            var breadcrumb = String(match.navigationPath || root.settingsSearchBreadcrumb(match))
+            lines.push("• " + (breadcrumb || match.label) + "\n  "
+                + SettingsSearch.explainMatch(match, root.settingsSearchQuery))
         }
         if (matches.length > cap)
             lines.push("…и ещё " + String(matches.length - cap))
@@ -419,12 +455,15 @@ Item {
         root.host.currentPageId = entry.pageId
         var pageId = String(entry.pageId)
         var subTabIndex = Number(entry.subTabIndex)
-        if (isFinite(subTabIndex) && subTabIndex >= 0) {
-            Qt.callLater(function() {
-                if (root.host && root.host.currentPageId === pageId)
+        Qt.callLater(function() {
+            if (root.host && root.host.currentPageId === pageId) {
+                if (isFinite(subTabIndex) && subTabIndex >= 0)
                     root.host.currentPageSubTabIndex = subTabIndex
-            })
-        }
+                // Keep the query and highlights, but move keyboard focus to the
+                // selected page so subsequent Up/Down navigation stays in the sidebar.
+                root.host.focusSettingsNavigationPage(pageId)
+            }
+        })
     }
 
     function handleSettingsSearchKey(event) {

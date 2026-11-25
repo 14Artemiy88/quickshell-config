@@ -55,10 +55,10 @@ grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$NAV" || fail 'navigation 
 
 MOPIDY_ICONS="$ROOT/components/settings/sections/mopidy/SettingsMopidyIconsSection.qml"
 grep -Fq 'property int settingsSearchSubTabIndex: 2' "$MOPIDY_ICONS" || fail 'Mopidy Icons section has no subtab search index'
-for icon_id in stopIconField refreshIconField openAddIconField addIconField shuffleIconField repeatIconField switchPlaylistIconField playlistDeleteIconField moveUpIconField moveDownIconField volumeIconField mutedIconField clearIconField; do
+for icon_id in stopIconField refreshIconField openAddIconField addIconField shuffleIconField repeatIconField switchPlaylistIconField playlistDeleteIconField volumeIconField mutedIconField clearIconField; do
     grep -Fq "settingsSearchLabel: \"Иконка:" "$MOPIDY_ICONS" || fail 'Mopidy icon column is missing searchable labels'
 done
-[ "$(grep -c 'settingsSearchLabel: \"Иконка:' "$MOPIDY_ICONS")" -eq 13 ] || fail 'not all Mopidy icon fields have explicit search labels'
+[ "$(grep -c 'settingsSearchLabel: \"Иконка:' "$MOPIDY_ICONS")" -eq 11 ] || fail 'not all Mopidy icon fields have explicit search labels'
 
 node - "$ROOT" <<'NODE'
 const fs = require('fs');

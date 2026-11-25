@@ -16,7 +16,7 @@ function loadLibrary(relativePath, appended = '') {
   return context;
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
-  'this.api = { normalizeSettingsTabOrder, normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
+  'this.api = { normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
 const ids = ['modules','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
@@ -27,16 +27,16 @@ const navigationSource = fs.readFileSync(path.join(root, 'components/settings/Se
 const configSource = fs.readFileSync(path.join(root, 'Config.qml'), 'utf8');
 const defaultsSource = fs.readFileSync(path.join(root, 'js/settings/SettingsDefaults.js'), 'utf8');
 const registrySource = loadLibrary('js/settings/SettingsPageRegistry.js',
-  'this.api = { tabDefinitions, otherPageDefinitions, pageForId, hasOtherPageId, subtabsForPageId, saveScopeForPageId };');
+  'this.api = { tabDefinitions, otherPageDefinitions, pageForId, hasOtherPageId, subtabsForPageId, saveScopeForPageId, defaultNavigationOrder, normalizeNavigationOrder, navigationOrderFromLegacyTabOrder, flattenNavigationOrder };');
 const definitions = Array.from(registrySource.api.tabDefinitions());
 const otherPages = Array.from(registrySource.api.otherPageDefinitions());
 assert(navigationSource.includes('SettingsPageRegistry.tabDefinitions()'), 'navigation controller must consume the page registry');
 assert(navigationSource.includes('SettingsPageRegistry.hasOtherPageId('), 'navigation routes must validate stable page IDs');
 assert(navigationSource.includes('SettingsPageRegistry.subtabsForPageId('), 'subtab metadata must be resolved by stable page ID');
 assert(widgetSource.includes('SettingsPageRegistry.saveScopeForPageId('), 'save scopes must be resolved by stable page ID');
-assert(navigationSource.includes('if (typeof saved[i] !== "string") continue'), 'navigation path must reject malformed tab IDs before coercion');
+assert(registrySource.api.normalizeNavigationOrder({ groupOrder: ['modules', {}, 'general'], pagesByGroup: { modules: ['weather', {}, 'modules'], general: ['general'] } }).pagesByGroup.modules.indexOf('[object Object]') < 0, 'hierarchical navigation rejects malformed page IDs before coercion');
 assert(widgetSource.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes stable page state');
-assert(navigationSource.includes('property string currentPageId: "modules"'), 'navigation controller owns primary page state');
+assert(navigationSource.includes('property string currentPageId: "general"'), 'navigation controller owns primary page state with General as the first-run fallback');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widgetSource), 'numeric primary page state is fully removed');
 assert(!/currentOtherTab/.test(fs.readFileSync(path.join(root, 'components/settings/sections/SettingsCalendarSection.qml'), 'utf8')), 'content components no longer route by numeric page index');
 assert(registrySource.api.hasOtherPageId('notifications'), 'known page IDs resolve');
@@ -62,9 +62,10 @@ assert.strictEqual(registrySource.api.saveScopeForPageId('general', 0), 'general
 assert.strictEqual(registrySource.api.saveScopeForPageId('general', 1), '', 'profile subtab has no unrelated scoped save');
 for (const id of ids.filter(id => id.startsWith('launcher'))) assert.strictEqual(registrySource.api.saveScopeForPageId(id, 0), 'launcher', `${id} shares the Launcher save scope`);
 assert.strictEqual(registrySource.api.saveScopeForPageId('unknown', 0), '', 'unknown routes have no save scope');
-const configOrder = configSource.match(/property var settingsTabOrder: \[([^\]]*)\]/);
-assert(configOrder, 'Config tab defaults must exist');
-assert.deepStrictEqual(Array.from(configOrder[1].matchAll(/"([A-Za-z0-9]+)"/g), match => match[1]), ids, 'Config default order matches the supported tab IDs');
+assert(configSource.includes('property var settingsNavigationOrder:'), 'Config must expose the canonical hierarchical navigation order');
+assert(!configSource.includes('property var settingsTabOrder:'), 'Config must not expose the obsolete flat order');
+assert(!defaultsSource.includes('settingsTabOrder:'), 'new defaults must not seed the obsolete flat order');
+assert(!navigationSource.includes('Config.settingsTabOrder'), 'runtime navigation must not read the obsolete flat order');
 const configLabelBlock = configSource.match(/property var settingsTabLabels: \(\{([\s\S]*?)\}\)/);
 assert(configLabelBlock, 'Config tab labels must exist');
 const configLabelIds = Array.from(configLabelBlock[1].matchAll(/([A-Za-z0-9]+)\s*:/g), match => match[1]);
@@ -74,14 +75,8 @@ assert(defaultLabelBlock, 'profile defaults must define tab labels');
 const defaultLabelIds = Array.from(defaultLabelBlock[1].matchAll(/([A-Za-z0-9]+)\s*:/g), match => match[1]);
 assert.deepStrictEqual(defaultLabelIds, ids, 'profile default labels match supported tab IDs');
 
-const normalizedOrder = apply.api.normalizeSettingsTabOrder(vm.runInContext("['launcher','launcher','bad-tab',null,3,{toString:null,valueOf:null},'settingsWindow']", apply));
-assert.strictEqual(normalizedOrder.length, ids.length, 'all known tabs remain present');
-assert(!normalizedOrder.includes('[object Object]'), 'objects and non-string values are rejected without coercion');
-assert.strictEqual(new Set(normalizedOrder).size, ids.length, 'normalized order contains no duplicates');
-assert.deepStrictEqual(Array.from(normalizedOrder.slice(0, 2)), ['launcher','settingsWindow'], 'valid saved order is preserved when newer tabs are appended');
-assert(normalizedOrder.includes('notifications'), 'new notification tab is appended to legacy saved orders');
-assert.deepStrictEqual(Array.from(apply.api.normalizeSettingsTabOrder(vm.runInContext('({})', apply))), ids, 'non-array order falls back to defaults');
-assert.deepStrictEqual(Array.from(apply.api.normalizeSettingsTabOrder(vm.runInContext('([])', apply))), ids, 'empty order fills all defaults');
+assert(!fs.readFileSync(path.join(root, 'js/settings/SettingsApplyCore.js'), 'utf8').includes('function normalizeSettingsTabOrder('),
+  'the legacy flat-order array normalizer is removed from runtime APIs');
 
 const defaults = apply.api.DEFAULT_SETTINGS_TAB_LABELS;
 const labels = apply.api.normalizeSettingsTabLabels(
@@ -96,62 +91,75 @@ assert.strictEqual(labels.launcher, 'L'.repeat(32), 'labels are length-limited')
 assert.strictEqual(labels.staleTab, undefined, 'unsupported labels are removed');
 assert.strictEqual(labels.settingsWindow, defaults.settingsWindow, 'missing label receives default');
 
-// Exercise the real profile serializer with tab state included in snapshots.
+// Exercise the real profile serializer with hierarchical navigation state.
 const profiles = loadLibrary('js/settings/SettingsProfiles.js', 'this.api = { saveProfile, loadProfile, SPARSE_FORMAT };');
-const defaultOrder = ids.slice();
+const defaultHierarchy = registrySource.api.defaultNavigationOrder();
+const cloneHierarchy = value => JSON.parse(JSON.stringify(value));
+const customHierarchy = cloneHierarchy(defaultHierarchy);
+customHierarchy.pagesByGroup.modules = ['weather','modules','calendar','timers','player','mopidy','cava','cpuRam','network','volume','notifications'];
+customHierarchy.pagesByGroup.appearance = ['settingsWindow','themes'];
+const alternateHierarchy = cloneHierarchy(defaultHierarchy);
+alternateHierarchy.pagesByGroup.modules = ['player','modules','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'];
 const defaultLabels = JSON.parse(JSON.stringify(defaults));
 const owner = {
-  profileDefaults: { settingsTabOrder: defaultOrder, settingsTabLabels: defaultLabels },
-  currentOrder: defaultOrder.slice(), currentLabels: JSON.parse(JSON.stringify(defaultLabels)),
+  profileDefaults: { settingsNavigationOrder: cloneHierarchy(defaultHierarchy), settingsTabLabels: defaultLabels },
+  currentOrder: cloneHierarchy(defaultHierarchy), currentLabels: JSON.parse(JSON.stringify(defaultLabels)),
   profiles: {}, activeProfile: '', profileStorageFormat: '', profileList: [], profilesRevision: 0,
-  snapshotObject() { return { settingsTabOrder: this.currentOrder.slice(), settingsTabLabels: JSON.parse(JSON.stringify(this.currentLabels)) }; },
-  applyObject(value) { this.currentOrder = value.settingsTabOrder.slice(); this.currentLabels = JSON.parse(JSON.stringify(value.settingsTabLabels)); },
+  normalizeSettingsNavigationOrder(value) { return registrySource.api.normalizeNavigationOrder(value); },
+  settingsNavigationOrderFromLegacyTabOrder(value) { return registrySource.api.navigationOrderFromLegacyTabOrder(value); },
+  snapshotObject() { return { settingsNavigationOrder: cloneHierarchy(this.currentOrder), settingsTabLabels: JSON.parse(JSON.stringify(this.currentLabels)) }; },
+  applyObject(value) { this.currentOrder = cloneHierarchy(value.settingsNavigationOrder); this.currentLabels = JSON.parse(JSON.stringify(value.settingsTabLabels)); },
   save() { this.saveCount = (this.saveCount || 0) + 1; }
 };
-owner.currentOrder = ['launcher','modules', ...ids.filter(id => !['launcher','modules'].includes(id))];
+owner.currentOrder = cloneHierarchy(customHierarchy);
 owner.currentLabels = { ...defaultLabels, general: 'Workspace', launcher: 'Tools' };
 assert.strictEqual(profiles.api.saveProfile(owner, 'Custom'), true);
-owner.currentOrder = defaultOrder.slice();
+owner.currentOrder = cloneHierarchy(defaultHierarchy);
 owner.currentLabels = JSON.parse(JSON.stringify(defaultLabels));
 assert.strictEqual(profiles.api.saveProfile(owner, 'Default'), true);
-owner.currentOrder = ['themes','modules', ...ids.filter(id => !['themes','modules'].includes(id))];
+owner.currentOrder = cloneHierarchy(alternateHierarchy);
 owner.currentLabels.general = 'Temporary';
 assert.strictEqual(profiles.api.loadProfile(owner, 'Custom'), true);
-assert.deepStrictEqual(Array.from(owner.currentOrder), ['launcher','modules', ...ids.filter(id => !['launcher','modules'].includes(id))]);
+assert.deepStrictEqual(Array.from(owner.currentOrder.pagesByGroup.modules), customHierarchy.pagesByGroup.modules);
+assert.deepStrictEqual(Array.from(owner.currentOrder.pagesByGroup.appearance), ['settingsWindow','themes']);
 assert.strictEqual(owner.currentLabels.general, 'Workspace');
 assert.strictEqual(owner.currentLabels.launcher, 'Tools');
 assert.strictEqual(profiles.api.loadProfile(owner, 'Default'), true);
-assert.deepStrictEqual(Array.from(owner.currentOrder), ids, 'loading a profile with default order removes another profile order');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(owner.currentOrder)), JSON.parse(JSON.stringify(defaultHierarchy)), 'loading a profile with default hierarchical order removes another profile order');
 assert.strictEqual(owner.currentLabels.general, defaults.general, 'loading a profile with default labels removes stale custom labels');
 assert.strictEqual(owner.currentLabels.launcher, defaults.launcher);
 
-// Verify the settings.json persistence payload records changed tab labels/order
-// as sparse overrides and clears them again when restored to application defaults.
+// Verify settings.json persists hierarchical page/group order as sparse overrides.
 const persistence = loadLibrary('js/settings/SettingsPersistence.js', 'this.api = { payloadObject };');
 const storageOwner = {
-  profileDefaults: { settingsTabOrder: ids.slice(), settingsTabLabels: JSON.parse(JSON.stringify(defaults)) },
-  activeProfile: '', profiles: {}, customThemes: {}, weatherToken: '',
-  currentOrder: ['launcher','modules', ...ids.filter(id => !['launcher','modules'].includes(id))],
+  profileDefaults: { settingsNavigationOrder: cloneHierarchy(defaultHierarchy), settingsTabLabels: JSON.parse(JSON.stringify(defaults)) },
+  activeProfile: '', profiles: {}, customThemes: {}, weatherToken: '', profileStorageFormat: 'sparse-v1',
+  currentOrder: cloneHierarchy(customHierarchy),
   currentLabels: { ...JSON.parse(JSON.stringify(defaults)), general: 'Workspace' },
-  snapshotObject() { return { settingsTabOrder: this.currentOrder.slice(), settingsTabLabels: JSON.parse(JSON.stringify(this.currentLabels)), weatherToken: '' }; }
+  normalizeSettingsNavigationOrder(value) { return registrySource.api.normalizeNavigationOrder(value); },
+  settingsNavigationOrderFromLegacyTabOrder(value) { return registrySource.api.navigationOrderFromLegacyTabOrder(value); },
+  snapshotObject() { return { settingsNavigationOrder: cloneHierarchy(this.currentOrder), settingsTabLabels: JSON.parse(JSON.stringify(this.currentLabels)), weatherToken: '' }; }
 };
 storageOwner.expandedProfileData = () => null;
 let payload = persistence.api.payloadObject(storageOwner, {});
-assert.deepStrictEqual(Array.from(payload.profileOverrides.settingsTabOrder), storageOwner.currentOrder, 'order is written to settings.json overrides');
+assert.deepStrictEqual(Array.from(payload.profileOverrides.settingsNavigationOrder.pagesByGroup.modules), customHierarchy.pagesByGroup.modules, 'module page order is written to settings.json overrides');
+assert.deepStrictEqual(Array.from(payload.profileOverrides.settingsNavigationOrder.pagesByGroup.appearance), customHierarchy.pagesByGroup.appearance, 'appearance page order is written independently');
+assert.strictEqual(payload.profileOverrides.settingsNavigationOrder.groupOrder, undefined, 'unchanged frame order remains sparse');
+assert.strictEqual(payload.profileOverrides.settingsTabOrder, undefined, 'obsolete flat order is not persisted');
 assert.strictEqual(payload.profileOverrides.settingsTabLabels.general, 'Workspace', 'custom label is written to settings.json overrides');
 assert.strictEqual(payload.profileOverrides.settingsTabLabels.modules, undefined, 'unchanged labels stay sparse');
-let expanded = null;
 const settingsPersistence = loadLibrary('js/settings/SettingsProfiles.js', 'this.api = { expandStoredSettings };');
-expanded = settingsPersistence.api.expandStoredSettings(storageOwner, payload);
-assert.deepStrictEqual(Array.from(expanded.settingsTabOrder), storageOwner.currentOrder, 'startup expansion restores order');
+let expanded = settingsPersistence.api.expandStoredSettings(storageOwner, payload);
+assert.deepStrictEqual(JSON.parse(JSON.stringify(expanded.settingsNavigationOrder)), JSON.parse(JSON.stringify(customHierarchy)), 'startup expansion restores the hierarchy');
+assert.strictEqual('settingsTabOrder' in expanded, false, 'expanded runtime settings do not recreate the obsolete flat key');
 assert.strictEqual(expanded.settingsTabLabels.general, 'Workspace', 'startup expansion restores custom labels');
-storageOwner.currentOrder = ids.slice();
+storageOwner.currentOrder = cloneHierarchy(defaultHierarchy);
 storageOwner.currentLabels = JSON.parse(JSON.stringify(defaults));
 payload = persistence.api.payloadObject(storageOwner, {});
-assert.strictEqual(payload.profileOverrides.settingsTabOrder, undefined, 'default order removes stale override');
+assert.strictEqual(payload.profileOverrides.settingsNavigationOrder, undefined, 'default hierarchical order removes stale override');
 assert.strictEqual(payload.profileOverrides.settingsTabLabels, undefined, 'default labels remove stale override');
 expanded = settingsPersistence.api.expandStoredSettings(storageOwner, payload);
-assert.deepStrictEqual(Array.from(expanded.settingsTabOrder), ids, 'defaults restore after overrides are removed');
+assert.deepStrictEqual(JSON.parse(JSON.stringify(expanded.settingsNavigationOrder)), JSON.parse(JSON.stringify(defaultHierarchy)), 'defaults restore after hierarchical overrides are removed');
 assert.strictEqual(expanded.settingsTabLabels.general, defaults.general);
 console.log('settings tabs: malformed-data normalization, profile round-trip, and settings.json persistence: OK');
 NODE

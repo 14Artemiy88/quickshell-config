@@ -9,13 +9,14 @@ Item {
 
     property var settings: Settings
     property alias profileModel: profileEntries
+    readonly property int maxProfileNameLength: 32
 
     readonly property string activeProfileName: settings && settings.activeProfile
         ? String(settings.activeProfile) : ""
     readonly property bool hasActiveProfile: {
         var name = root.activeProfileName
         return name.length > 0 && settings && settings.profiles
-            && settings.profiles[name] !== undefined
+            && Object.prototype.hasOwnProperty.call(settings.profiles, name)
     }
 
     visible: false
@@ -61,6 +62,16 @@ Item {
 
     function saveProfile(name) {
         return !!settings && settings.saveProfile(String(name || ""))
+    }
+
+    function profileNameError(name) {
+        var key = String(name === undefined || name === null ? "" : name).trim()
+        if (!key) return "Введите имя профиля"
+        var exists = settings && settings.profiles
+            && Object.prototype.hasOwnProperty.call(settings.profiles, key)
+        if (key.length > root.maxProfileNameLength && !exists)
+            return "Новое имя профиля: не более " + root.maxProfileNameLength + " символов"
+        return ""
     }
 
     function saveAll() {

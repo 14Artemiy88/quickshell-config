@@ -4,8 +4,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUTTON="$ROOT/components/settings/primitives/SettingsButton.qml"
 RESET="$ROOT/components/settings/primitives/SettingsResetButton.qml"
 MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
+DRAG="$ROOT/components/primitives/DragReorderHandle.qml"
 ICON="$ROOT/components/primitives/HoverIconButton.qml"
-for file in "$BUTTON" "$RESET" "$MOVE" "$ICON"; do test -f "$file"; done
+for file in "$BUTTON" "$RESET" "$MOVE" "$DRAG" "$ICON"; do test -f "$file"; done
 
 grep -Fq 'property bool fillOnHover: false' "$BUTTON"
 grep -Fq 'property color outlineColor: Config.baseColor' "$BUTTON" || { echo 'SettingsButton default outlineColor is undefined' >&2; exit 1; }
@@ -17,7 +18,8 @@ grep -Fq 'enabled: root.requestedVisible && (!root.hideWhenDisabled || root.inte
 grep -Fq 'backgroundColor: root.hoverMode === "frame" ? Config.settingsBackground : Config.transparent' "$ICON"
 grep -Fq 'borderColor: root.hoverMode === "frame" ? Config.baseColor : Config.transparent' "$ICON"
 grep -Fq 'hoverBorderEnabled: root.hoverMode === "frame"' "$ICON"
-for file in   "$ROOT/components/settings/sections/SettingsPlayerSection.qml"   "$ROOT/components/settings/sections/SettingsTimersSection.qml"   "$ROOT/components/settings/sections/SettingsLauncherSection.qml"   "$ROOT/components/settings/sections/mopidy/SettingsMopidyIconsSection.qml"; do
-  grep -Fq 'hoverMode: "frame"' "$file"
-done
-echo 'Settings buttons use subtle surfaces, accent hover borders, and arrows reserve unavailable slots: OK'
+grep -Fq 'DragHandler {' "$DRAG"
+grep -Fq 'Accessible.description:' "$DRAG"
+grep -Fq 'Alt + ↑/↓' "$DRAG"
+grep -Fq 'dropIndicator' "$DRAG"
+echo 'Settings buttons and shared drag-reorder handle expose consistent hover, accessibility, and keyboard behavior: OK'

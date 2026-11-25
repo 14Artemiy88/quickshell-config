@@ -28,13 +28,20 @@ const geometryHelper = read('js/NotificationsGeometry.js');
 
 const fields = [
   'notificationsDefaultTimeout', 'notificationsCriticalTimeout', 'notificationsCardWidth', 'notificationsCardSpacing',
-  'notificationsImageHeight', 'notificationsShowAppIcon', 'notificationsShowBodyImages', 'notificationsShowProgress'
+  'notificationsImageHeight', 'notificationsBackgroundColor', 'notificationsSummaryFont', 'notificationsSummaryFontSize',
+  'notificationsSummaryColor', 'notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor',
+  'notificationsAppNameBold', 'notificationsLeadingVisualSize', 'notificationsLeadingVisualRadius', 'notificationsCardPadding',
+  'notificationsBodyFontSize', 'notificationsBodyColor', 'notificationsShowAppIcon', 'notificationsShowBodyImages', 'notificationsShowProgress'
 ];
+const boolFields = ['notificationsAppNameBold','notificationsShowAppIcon','notificationsShowBodyImages','notificationsShowProgress'];
+const colorFields = ['notificationsBackgroundColor'];
+const stringFields = ['notificationsSummaryFont','notificationsSummaryColor','notificationsAppNameFont','notificationsAppNameColor','notificationsBodyColor'];
 for (const field of fields) {
-  const type = ['notificationsShowAppIcon','notificationsShowBodyImages','notificationsShowProgress'].includes(field) ? 'bool' : 'int';
+  const type = boolFields.includes(field) ? 'bool' : (colorFields.includes(field) ? 'color' : (stringFields.includes(field) ? 'string' : 'int'));
   assert(config.includes(`property ${type} ${field}:`), `Config declares ${field}`);
   assert(defaults.includes(`${field}:`), `profile defaults include ${field}`);
-  assert(persistenceSource.includes(`${field}: config.${field}`), `snapshot persists ${field}`);
+  const snapshotField = colorFields.includes(field) || ['notificationsSummaryColor','notificationsAppNameColor','notificationsBodyColor'].includes(field) ? `${field}: String(config.${field})` : `${field}: config.${field}`;
+  assert(persistenceSource.includes(snapshotField), `snapshot persists ${field}`);
   assert(applySource.includes(`o.${field}`), `settings loader restores ${field}`);
   assert(notifications.includes(`Config.${field}`), `notification runtime consumes ${field}`);
 }
@@ -51,18 +58,16 @@ for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificatio
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
 assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules", description:'), 'sidebar declares the Notifications page and description in the Modules group');
-function sidebarOrder(source, pattern, label) {
-  const match = source.match(pattern);
-  assert(match, `${label} declares a settings sidebar order`);
-  return match[1].split(',').map(value => value.trim().replace(/^['"]|['"]$/g, ''));
-}
-const configOrder = sidebarOrder(config, /property var settingsTabOrder:\s*\[([^\]]+)\]/, 'Config');
-const defaultsOrder = sidebarOrder(defaults, /settingsTabOrder:\s*\[([^\]]+)\]/, 'SettingsDefaults');
-for (const [label, order] of [['Config', configOrder], ['SettingsDefaults', defaultsOrder]]) {
-  assert(order.includes('notifications') && order.includes('settingsWindow') &&
-    order.indexOf('notifications') < order.indexOf('settingsWindow'),
-    `${label} sidebar order places Notifications before Settings Window`);
-}
+assert(config.includes('property var settingsNavigationOrder:'), 'Config declares the canonical hierarchical navigation order');
+assert(defaults.includes('settingsNavigationOrder: ({'), 'profile defaults use the canonical hierarchical navigation order');
+assert(!config.includes('property var settingsTabOrder:'), 'Config no longer creates the obsolete flat runtime order');
+assert(!defaults.includes('settingsTabOrder:'), 'new profiles no longer receive the obsolete flat order');
+const navigationRegistry = {};
+vm.runInNewContext(registry.replace(/^\.pragma library\s*$/gm, '').replace(/^\.import .*$/gm, ''), navigationRegistry);
+assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('notifications'), 'modules', 'Notifications belongs to the Modules frame');
+assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('settingsWindow'), 'appearance', 'Settings Window belongs to Appearance rather than a global flat order');
+const defaultNavigation = navigationRegistry.defaultNavigationOrder();
+assert(defaultNavigation.pagesByGroup.modules.includes('notifications'), 'Notifications remains available in the Modules frame');
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
 assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
 assert(navigation.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
@@ -75,6 +80,7 @@ assert(section.includes('currentPageSubTabIndex === 2') && section.includes('В�
 assert(!section.includes('notificationsCardWidth') && section.includes('notificationsCardSpacing'), 'Notifications page no longer contains the moved window-width control');
 assert(modulesSection.includes('moduleRow.moduleName === "notifications"') && modulesSection.includes('modulesSection.writeNotificationsGeometry(index, n)'), 'Modules page exposes notification window width and maximum height through shared geometry fields');
 assert(section.includes('notificationsShowAppIcon') && section.includes('notificationsShowBodyImages') && section.includes('notificationsShowProgress'), 'section exposes display toggles');
+assert(section.includes('heading: "Фон уведомлений"') && section.includes('targetProperty: "notificationsBackgroundColor"'), 'Notifications exposes an independent background color control');
 
 assert(settings.includes('notifications: [-999999,16,380,0]'), 'Settings singleton has absolute notification X/Y geometry defaults');
 assert(metadata.includes('"notifications":[-999999,16,380,0]'), 'profile defaults include notification absolute geometry');
@@ -90,7 +96,7 @@ assert(modulesSection.includes('settings.setModuleBlurEnabled(moduleRow.moduleNa
 assert(modulesSection.includes('settings.moduleFrames[moduleRow.moduleName]') && modulesSection.includes('settings.moduleBackgrounds[moduleRow.moduleName]') && modulesSection.includes('settings.moduleBlurEnabled[moduleRow.moduleName]'), 'appearance options use the common module control maps');
 assert(notifications.includes('Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent'), 'background checkbox changes card fill without affecting the frame');
 assert(notifications.includes('Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0'), 'frame checkbox independently controls card border');
-assert(notifications.includes('Settings.moduleBlurEnabled.notifications === true') && notifications.includes('? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0 ? notificationList : layoutEditPreview)'), 'blur checkbox controls compositor blur behind the queue or its smart-edit preview');
+assert(notifications.includes('Settings.moduleBlurEnabled.notifications === true') && notifications.includes('root.layoutEditMode ? layoutEditPreview : null') && notifications.includes('? notificationList'), 'blur checkbox controls only the active queue or explicit smart-edit preview, and clears while idle');
 assert(cliSettings.includes('"notifications":true'), 'CLI settings defaults also enable the Notifications module');
 assert(notifications.includes('Settings.geometry') && notifications.includes('margins.left: root.notificationCoordinate(0)') && notifications.includes('margins.bottom:'), 'toast window uses module X and a top/bottom vertical inset');
 assert(notifications.includes('anchors.left: true') && notifications.includes('anchors.top: String(Config.notificationsVerticalAnchor || \"top\") !== \"bottom\"') && notifications.includes('anchors.bottom: String(Config.notificationsVerticalAnchor || \"top\") === \"bottom\"'), 'toast window can anchor to the selected screen top or bottom while remaining left-anchored');
@@ -108,7 +114,8 @@ assert(resetsSource.includes('function resetNotificationsSettings(owner, config)
 assert(!resetsSource.includes('geometry.notifications = profile.geometry && profile.geometry.notifications'), 'Notifications content reset no longer resets module geometry');
 assert(profilesSource.includes('notifications: ["notifications", "animationNotifications"]'), 'save-profile scope includes notification preferences');
 assert(navigation.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
-assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks only the remaining notification-content fields');
+assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks all notification typography and card appearance settings');
+assert(section.includes('heading: "Заголовок и иконка"') && section.includes('targetProperty: "notificationsSummaryFont"') && section.includes('targetProperty: "notificationsSummaryFontSize"') && section.includes('targetProperty: "notificationsSummaryColor"') && section.includes('targetProperty: "notificationsLeadingVisualSize"'), 'Appearance exposes title typography and icon sizing controls');
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');
 
 function shellHasNotificationLoader(source) {
@@ -116,15 +123,21 @@ function shellHasNotificationLoader(source) {
 }
 function load(relative, exportLine) {
   const source = read(relative).replace(/^\.pragma library\s*$/gm, '').replace(/^\.import .*$/gm, '');
-  const context = {};
+  const context = relative === 'js/settings/SettingsApplyCore.js' ? { Schema: { normalizeSavedColor: (value, fallback) => /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(String(value || '')) ? String(value).toLowerCase() : fallback } } : {};
   vm.runInNewContext(source + `\nthis.api = { ${exportLine} };`, context, { filename: relative });
   return context.api;
 }
 
 // Execute the real SettingsApplyCore loader and validate normal fields plus legacy inputs.
-const apply = load('js/settings/SettingsApplyCore.js', 'apply, normalizeSettingsTabOrder');
+const apply = load('js/settings/SettingsApplyCore.js', 'apply');
 const loaded = {};
 apply.apply({}, loaded, {
+  notificationsSummaryFont: '  JetBrains Mono\n',
+  notificationsSummaryFontSize: 99,
+  notificationsSummaryColor: '#7f12ab34',
+  notificationsAppNameFont: '  JetBrains Mono\n', notificationsAppNameFontSize: 1, notificationsAppNameColor: '#AABBCCDD', notificationsAppNameBold: 1,
+  notificationsLeadingVisualSize: 100, notificationsLeadingVisualRadius: 99, notificationsCardPadding: -5,
+  notificationsBodyFontSize: 99, notificationsBodyColor: '#DDEEFF',
   notificationsDefaultTimeout: 135000,
   notificationsCriticalTimeout: -50,
   notificationsPosition: 'bottom-left',
@@ -134,6 +147,7 @@ apply.apply({}, loaded, {
   notificationsCardWidth: 210,
   notificationsCardSpacing: 40,
   notificationsImageHeight: 400,
+  notificationsBackgroundColor: '#7f182838',
   notificationsShowAppIcon: 0,
   notificationsShowBodyImages: 1,
   notificationsShowProgress: false
@@ -147,6 +161,19 @@ assert.strictEqual(loaded.notificationsLegacyOffsetY, 24, 'old Y offset is retai
 assert.strictEqual(loaded.notificationsCardWidth, 280, 'card width is clamped');
 assert.strictEqual(loaded.notificationsCardSpacing, 32, 'queue spacing is clamped');
 assert.strictEqual(loaded.notificationsImageHeight, 320, 'preview height is clamped');
+assert.strictEqual(loaded.notificationsBackgroundColor, '#7f182838', 'independent notification background color is restored');
+assert.strictEqual(loaded.notificationsSummaryFont, 'JetBrains Mono', 'summary font is normalized and restored');
+assert.strictEqual(loaded.notificationsSummaryFontSize, 32, 'summary font size is clamped');
+assert.strictEqual(loaded.notificationsSummaryColor, '#7f12ab34', 'summary color is normalized and restored');
+assert.strictEqual(loaded.notificationsAppNameFont, 'JetBrains Mono', 'application-name font is normalized and restored');
+assert.strictEqual(loaded.notificationsAppNameFontSize, 8, 'application-name font size is clamped');
+assert.strictEqual(loaded.notificationsAppNameColor, '#aabbccdd', 'application-name color is normalized and restored');
+assert.strictEqual(loaded.notificationsAppNameBold, true, 'application-name bold style is restored');
+assert.strictEqual(loaded.notificationsLeadingVisualSize, 72, 'leading visual size is clamped');
+assert.strictEqual(loaded.notificationsLeadingVisualRadius, 36, 'leading visual radius is clamped');
+assert.strictEqual(loaded.notificationsCardPadding, 0, 'card padding is clamped');
+assert.strictEqual(loaded.notificationsBodyFontSize, 32, 'body font size is clamped');
+assert.strictEqual(loaded.notificationsBodyColor, '#ddeeff', 'body color is normalized and restored');
 assert.strictEqual(loaded.notificationsShowAppIcon, false, 'app-icon toggle is restored');
 assert.strictEqual(loaded.notificationsShowBodyImages, true, 'body-image toggle is restored');
 assert.strictEqual(loaded.notificationsShowProgress, false, 'progress toggle is restored');
@@ -157,7 +184,18 @@ assert.strictEqual(marginOnly.notificationsLegacyOffsetY, 90, 'old symmetric mar
 assert.strictEqual(marginOnly.notificationsLegacyPosition, 'top-right', 'old margin-only layout defaults to its former top-right anchor before coordinate conversion');
 
 const persistence = load('js/settings/SettingsPersistence.js', 'snapshotObject');
-const snapshotConfig = Object.fromEntries(fields.map((field, i) => [field, [6000, 1000, 420, 12, 150, false, true, false][i]]));
+const snapshotValues = {
+  notificationsDefaultTimeout: 6000, notificationsCriticalTimeout: 1000, notificationsCardWidth: 420,
+  notificationsCardSpacing: 12, notificationsImageHeight: 150, notificationsBackgroundColor: '#7f182838',
+  notificationsSummaryFont: 'Inter', notificationsSummaryFontSize: 16, notificationsSummaryColor: '#7f12ab34',
+  notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#ffaa2211', notificationsAppNameBold: true,
+  notificationsLeadingVisualSize: 56, notificationsLeadingVisualRadius: 14, notificationsCardPadding: 16,
+  notificationsBodyFontSize: 15, notificationsBodyColor: '#ff112233', notificationsShowAppIcon: false, notificationsShowBodyImages: true,
+  notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#ffaa2211', notificationsAppNameBold: true,
+  notificationsLeadingVisualRadius: 14, notificationsCardPadding: 16, notificationsBodyFontSize: 15, notificationsBodyColor: '#ff112233',
+  notificationsShowProgress: false
+};
+const snapshotConfig = Object.assign({}, snapshotValues);
 snapshotConfig.notificationsVerticalAnchor = 'bottom';
 const snapshot = persistence.snapshotObject({ weatherToken: '', moduleNames: ['notifications'], colorNames: [], notifications: false, geometry: { notifications: [123, 456, 380, 0] } }, snapshotConfig);
 for (const field of fields) assert.strictEqual(snapshot[field], snapshotConfig[field], `snapshot retains ${field}`);
@@ -168,13 +206,28 @@ assert(!Object.prototype.hasOwnProperty.call(snapshot, 'notificationsPosition'),
 
 const profiles = load('js/settings/SettingsProfiles.js', 'profileSavePathMatches');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, ['notificationsCardWidth']), false, 'Notifications page scope excludes the moved module width');
+assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, ['notificationsBackgroundColor']), true, 'Notifications page scope includes its independent background color');
+for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFontSize', 'notificationsBodyColor'])
+  assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, [field]), true, `Notifications page scope includes ${field}`);
+for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFontSize', 'notificationsBodyColor'])
+  assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', [field]), true, `Notifications module scope includes ${field}`);
+assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', ['notificationsBackgroundColor']), true, 'Notifications module scope includes its independent background color');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'modules', null, ['notificationsCardWidth']), true, 'Modules scope includes the moved notification width');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, ['launcherWidth']), false, 'notification save scope excludes launcher preferences');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', ['modules', 'notifications']), true, 'module scope includes notification enable flag');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', ['geometry', 'notifications']), true, 'module scope includes notification geometry');
 
 const resets = load('js/settings/SettingsResets.js', 'resetNotificationsSettings, resetModule');
-const profileSettings = Object.fromEntries(fields.map((field, i) => [field, [9000, 2000, 440, 14, 160, false, false, false][i]]));
+const profileValues = {
+  notificationsDefaultTimeout: 9000, notificationsCriticalTimeout: 2000, notificationsCardWidth: 440,
+  notificationsCardSpacing: 14, notificationsImageHeight: 160, notificationsBackgroundColor: '#aa332211',
+  notificationsSummaryFont: 'Noto Sans', notificationsSummaryFontSize: 18, notificationsSummaryColor: '#ccffffff',
+  notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#aa112233', notificationsAppNameBold: true,
+  notificationsLeadingVisualSize: 64, notificationsLeadingVisualRadius: 18, notificationsCardPadding: 17,
+  notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', notificationsShowAppIcon: false, notificationsShowBodyImages: false,
+  notificationsShowProgress: false
+};
+const profileSettings = Object.assign({}, profileValues);
 profileSettings.notificationsVerticalAnchor = 'bottom';
 const resetConfig = Object.fromEntries(fields.map(field => [field, 'changed']));
 resetConfig.notificationsVerticalAnchor = 'top';
@@ -190,21 +243,47 @@ resets.resetNotificationsSettings(resetOwner, resetConfig);
 for (const field of fields.filter(field => field !== 'notificationsCardWidth')) assert.strictEqual(resetConfig[field], profileSettings[field], `reset restores ${field} from the active profile`);
 assert.strictEqual(resetConfig.notificationsCardWidth, 'changed', 'Notifications content reset leaves the module width untouched');
 assert.strictEqual(resetConfig.notificationsVerticalAnchor, 'bottom', 'Notifications page reset restores vertical anchoring');
+assert.strictEqual(resetConfig.notificationsBackgroundColor, '#aa332211', 'Notifications page reset restores the independent background color');
+assert.strictEqual(resetConfig.notificationsSummaryFont, 'Noto Sans', 'Notifications page reset restores summary font');
+assert.strictEqual(resetConfig.notificationsSummaryFontSize, 18, 'Notifications page reset restores summary font size');
+assert.strictEqual(resetConfig.notificationsSummaryColor, '#ccffffff', 'Notifications page reset restores summary color');
+assert.strictEqual(resetConfig.notificationsAppNameFont, 'Noto Sans', 'Notifications page reset restores application-name font');
+assert.strictEqual(resetConfig.notificationsAppNameFontSize, 13, 'Notifications page reset restores application-name font size');
+assert.strictEqual(resetConfig.notificationsAppNameColor, '#aa112233', 'Notifications page reset restores application-name color');
+assert.strictEqual(resetConfig.notificationsAppNameBold, true, 'Notifications page reset restores application-name bold style');
+assert.strictEqual(resetConfig.notificationsLeadingVisualSize, 64, 'Notifications page reset restores leading visual size');
+assert.strictEqual(resetConfig.notificationsLeadingVisualRadius, 18, 'Notifications page reset restores leading visual radius');
+assert.strictEqual(resetConfig.notificationsCardPadding, 17, 'Notifications page reset restores card padding');
+assert.strictEqual(resetConfig.notificationsBodyFontSize, 16, 'Notifications page reset restores body font size');
+assert.strictEqual(resetConfig.notificationsBodyColor, '#bb223344', 'Notifications page reset restores body color');
 assert.deepStrictEqual(Array.from(resetOwner.geometry.notifications), [8, 9, 380, 0], 'notification page reset leaves module geometry untouched');
 assert.strictEqual(saveCount, 1, 'reset persists the restored notification settings once');
 
-const moduleProfile = { modules: { notifications: false }, notificationsCardWidth: 460, notificationsVerticalAnchor: 'bottom', geometry: { notifications: [71, 82, 440, 320] } };
+const moduleProfile = { modules: { notifications: false }, notificationsCardWidth: 460, notificationsVerticalAnchor: 'bottom', notificationsBackgroundColor: '#aa332211', notificationsSummaryFont: 'Noto Sans', notificationsSummaryFontSize: 18, notificationsSummaryColor: '#ccffffff', notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#aa112233', notificationsAppNameBold: true, notificationsLeadingVisualSize: 64, notificationsLeadingVisualRadius: 18, notificationsCardPadding: 17, notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', geometry: { notifications: [71, 82, 440, 320] } };
 const moduleOwner = {
   activeProfile: 'Work', profiles: { Work: {} }, expandedProfileData: () => moduleProfile,
   notifications: true, geometry: {}, defaultGeometry: { notifications: [-999999, 16, 380, 0] },
   moduleFrames: {}, moduleBackgrounds: {}, moduleBlurEnabled: {}, moduleMonitors: {}, defaultModuleBlurEnabled: {}, save: () => { saveCount += 1; }
 };
-const moduleConfig = { notificationsCardWidth: 380, notificationsVerticalAnchor: 'top' };
+const moduleConfig = { notificationsCardWidth: 380, notificationsVerticalAnchor: 'top', notificationsBackgroundColor: '#4d000000', notificationsSummaryFont: '', notificationsSummaryFontSize: 14, notificationsSummaryColor: '#ffffff', notificationsAppNameFont: '', notificationsAppNameFontSize: 11, notificationsAppNameColor: '', notificationsAppNameBold: false, notificationsLeadingVisualSize: 48, notificationsLeadingVisualRadius: 10, notificationsCardPadding: 12, notificationsBodyFontSize: 12, notificationsBodyColor: '' };
 resets.resetModule(moduleOwner, moduleConfig, 'notifications');
 assert.strictEqual(moduleOwner.notifications, false, 'module reset restores Notifications enabled/disabled state');
 assert.deepStrictEqual(Array.from(moduleOwner.geometry.notifications), [71, 82, 460, 320], 'module reset restores notification X/Y and dimensions');
 assert.strictEqual(moduleConfig.notificationsCardWidth, 460, 'module reset keeps legacy width synchronized');
 assert.strictEqual(moduleConfig.notificationsVerticalAnchor, 'bottom', 'module reset restores the selected vertical anchor');
+assert.strictEqual(moduleConfig.notificationsBackgroundColor, '#aa332211', 'module reset restores the notification background color');
+assert.strictEqual(moduleConfig.notificationsSummaryFont, 'Noto Sans', 'module reset restores summary font');
+assert.strictEqual(moduleConfig.notificationsSummaryFontSize, 18, 'module reset restores summary font size');
+assert.strictEqual(moduleConfig.notificationsSummaryColor, '#ccffffff', 'module reset restores summary color');
+assert.strictEqual(moduleConfig.notificationsLeadingVisualSize, 64, 'module reset restores leading visual size');
+assert.strictEqual(moduleConfig.notificationsAppNameFont, 'Noto Sans', 'module reset restores application-name font');
+assert.strictEqual(moduleConfig.notificationsAppNameFontSize, 13, 'module reset restores application-name font size');
+assert.strictEqual(moduleConfig.notificationsAppNameColor, '#aa112233', 'module reset restores application-name color');
+assert.strictEqual(moduleConfig.notificationsAppNameBold, true, 'module reset restores application-name bold style');
+assert.strictEqual(moduleConfig.notificationsLeadingVisualRadius, 18, 'module reset restores leading visual radius');
+assert.strictEqual(moduleConfig.notificationsCardPadding, 17, 'module reset restores card padding');
+assert.strictEqual(moduleConfig.notificationsBodyFontSize, 16, 'module reset restores body font size');
+assert.strictEqual(moduleConfig.notificationsBodyColor, '#bb223344', 'module reset restores body color');
 
 const geometry = load('js/NotificationsGeometry.js', 'resolvedCoordinate, migrateLegacyPlacement, normalizeGeometry');
 assert.strictEqual(geometry.resolvedCoordinate([-999999, 16, 380, 0], 0, 1920, 380, 16), 1524, 'auto default X preserves previous top-right default as a numeric coordinate');

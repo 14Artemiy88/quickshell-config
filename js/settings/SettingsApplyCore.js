@@ -1,30 +1,85 @@
 .pragma library
 
 .import "SettingsSchema.js" as Schema
-
 var SETTINGS_TAB_IDS = ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
 var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"})
 
-function normalizeSettingsTabOrder(source) {
-    var result = []
-    var seen = ({})
-    if (source instanceof Array) {
-        for (var i = 0; i < source.length; ++i) {
-            // Accept only canonical string IDs. Avoid coercing malformed JSON
-            // objects into strings while settings are being loaded.
-            if (typeof source[i] !== "string") continue
-            var id = source[i]
-            if (SETTINGS_TAB_IDS.indexOf(id) >= 0 && !seen[id]) {
-                seen[id] = true
-                result.push(id)
-            }
+function normalizeSettingsLastActivePageId(value) {
+    var pageId = typeof value === "string" ? value.trim() : ""
+    return SETTINGS_TAB_IDS.indexOf(pageId) >= 0 ? pageId : "general"
+}
+
+function fallbackNavigationOrder(source) {
+    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
+    var defaults = {
+        appearance: ["themes", "settingsWindow"],
+        modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        dashboard: ["dashboard"],
+        launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+        general: ["general"]
+    }
+    var input = source && typeof source === "object" && !Array.isArray(source) ? source : {}
+    var result = { groupOrder: [], pagesByGroup: {} }
+    var seenGroups = {}
+    var savedGroups = Array.isArray(input.groupOrder) ? input.groupOrder : []
+    for (var g = 0; g < savedGroups.length; ++g) {
+        var groupId = savedGroups[g]
+        if (typeof groupId === "string" && defaults[groupId] && !seenGroups[groupId]) {
+            seenGroups[groupId] = true
+            result.groupOrder.push(groupId)
         }
     }
-    for (var j = 0; j < SETTINGS_TAB_IDS.length; ++j) {
-        var fallbackId = SETTINGS_TAB_IDS[j]
-        if (!seen[fallbackId]) result.push(fallbackId)
+    for (var dg = 0; dg < groupOrder.length; ++dg)
+        if (!seenGroups[groupOrder[dg]]) result.groupOrder.push(groupOrder[dg])
+    var savedPages = input.pagesByGroup && typeof input.pagesByGroup === "object" && !Array.isArray(input.pagesByGroup) ? input.pagesByGroup : {}
+    for (var p = 0; p < groupOrder.length; ++p) {
+        var id = groupOrder[p]
+        var pages = []
+        var seen = {}
+        var candidates = Array.isArray(savedPages[id]) ? savedPages[id] : []
+        for (var c = 0; c < candidates.length; ++c) {
+            var pageId = candidates[c]
+            if (typeof pageId === "string" && defaults[id].indexOf(pageId) >= 0 && !seen[pageId]) {
+                seen[pageId] = true
+                pages.push(pageId)
+            }
+        }
+        for (var d = 0; d < defaults[id].length; ++d)
+            if (!seen[defaults[id][d]]) pages.push(defaults[id][d])
+        result.pagesByGroup[id] = pages
     }
     return result
+}
+
+function fallbackNavigationOrderFromLegacy(source) {
+    var order = fallbackNavigationOrder(null)
+    var pagesByGroup = {}
+    for (var i = 0; i < order.groupOrder.length; ++i) pagesByGroup[order.groupOrder[i]] = []
+    var seen = {}
+    var saved = Array.isArray(source) ? source : []
+    for (var j = 0; j < saved.length; ++j) {
+        var pageId = saved[j]
+        if (typeof pageId !== "string" || seen[pageId]) continue
+        var groupId = "general"
+        for (var k = 0; k < order.groupOrder.length; ++k) {
+            var candidateGroup = order.groupOrder[k]
+            if (order.pagesByGroup[candidateGroup].indexOf(pageId) >= 0) { groupId = candidateGroup; break }
+        }
+        if (!pagesByGroup[groupId]) continue
+        seen[pageId] = true
+        pagesByGroup[groupId].push(pageId)
+    }
+    return fallbackNavigationOrder({ groupOrder: order.groupOrder, pagesByGroup: pagesByGroup })
+}
+
+function normalizeNavigationOrderForOwner(owner, source) {
+    return owner && typeof owner.normalizeSettingsNavigationOrder === "function"
+        ? owner.normalizeSettingsNavigationOrder(source) : fallbackNavigationOrder(source)
+}
+
+function legacyNavigationOrderForOwner(owner, source) {
+    return owner && typeof owner.settingsNavigationOrderFromLegacyTabOrder === "function"
+        ? owner.settingsNavigationOrderFromLegacyTabOrder(source) : fallbackNavigationOrderFromLegacy(source)
 }
 
 function normalizeSettingsTabLabel(value, fallback) {
@@ -87,8 +142,15 @@ function apply(owner, Config, o) {
         }
         if (o.settingsSearchVisible !== undefined)
             Config.settingsSearchVisible = o.settingsSearchVisible === true
-        if (o.settingsTabOrder !== undefined)
-            Config.settingsTabOrder = normalizeSettingsTabOrder(o.settingsTabOrder)
+        if (o.settingsLastActivePageId !== undefined)
+            Config.settingsLastActivePageId = normalizeSettingsLastActivePageId(o.settingsLastActivePageId)
+        if (o.settingsNavigationOrder !== undefined) {
+            Config.settingsNavigationOrder = normalizeNavigationOrderForOwner(owner, o.settingsNavigationOrder)
+        } else if (o.settingsTabOrder !== undefined) {
+            // One-time migration from the old flat list. The former group order
+            // was fixed, so only per-group page order can be recovered.
+            Config.settingsNavigationOrder = legacyNavigationOrderForOwner(owner, o.settingsTabOrder)
+        }
         if (o.settingsTabLabels !== undefined) {
             var normalizedSettingsLabels = normalizeSettingsTabLabels(o.settingsTabLabels, Config.settingsTabLabels)
             // The old single Launcher page is now the first child of its sidebar folder.
@@ -106,6 +168,7 @@ function apply(owner, Config, o) {
             var criticalNotificationTimeout = Number(o.notificationsCriticalTimeout)
             if (isFinite(criticalNotificationTimeout)) Config.notificationsCriticalTimeout = Math.max(0, Math.min(120000, Math.round(criticalNotificationTimeout)))
         }
+        if (o.notificationsShowTimeoutIndicator !== undefined) Config.notificationsShowTimeoutIndicator = !!o.notificationsShowTimeoutIndicator
         // One-time compatibility inputs for older corner/offset placement.
         // Notifications.qml converts them to absolute module geometry once a target screen is known.
         if (o.notificationsPosition !== undefined) {
@@ -138,6 +201,52 @@ function apply(owner, Config, o) {
         if (o.notificationsCardWidth !== undefined) { var notificationWidth = Number(o.notificationsCardWidth); if (isFinite(notificationWidth)) Config.notificationsCardWidth = Math.max(280, Math.min(600, Math.round(notificationWidth))) }
         if (o.notificationsCardSpacing !== undefined) { var notificationSpacing = Number(o.notificationsCardSpacing); if (isFinite(notificationSpacing)) Config.notificationsCardSpacing = Math.max(0, Math.min(32, Math.round(notificationSpacing))) }
         if (o.notificationsImageHeight !== undefined) { var notificationImageHeight = Number(o.notificationsImageHeight); if (isFinite(notificationImageHeight)) Config.notificationsImageHeight = Math.max(0, Math.min(320, Math.round(notificationImageHeight))) }
+        if (o.notificationsBackgroundColor !== undefined) Config.notificationsBackgroundColor = Schema.normalizeSavedColor(o.notificationsBackgroundColor, "#4d000000")
+        if (o.notificationsSummaryFont !== undefined) {
+            Config.notificationsSummaryFont = typeof o.notificationsSummaryFont === "string"
+                ? o.notificationsSummaryFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
+        if (o.notificationsSummaryFontSize !== undefined) {
+            var summaryFontSize = Number(o.notificationsSummaryFontSize)
+            if (isFinite(summaryFontSize)) Config.notificationsSummaryFontSize = Math.max(8, Math.min(32, Math.round(summaryFontSize)))
+        }
+        if (o.notificationsSummaryColor !== undefined) {
+            var summaryColor = typeof o.notificationsSummaryColor === "string" ? o.notificationsSummaryColor.trim() : ""
+            Config.notificationsSummaryColor = summaryColor === "" ? "" : Schema.normalizeSavedColor(summaryColor, "")
+        }
+        if (o.notificationsAppNameFont !== undefined) {
+            Config.notificationsAppNameFont = typeof o.notificationsAppNameFont === "string"
+                ? o.notificationsAppNameFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
+        if (o.notificationsAppNameFontSize !== undefined) {
+            var appNameFontSize = Number(o.notificationsAppNameFontSize)
+            if (isFinite(appNameFontSize)) Config.notificationsAppNameFontSize = Math.max(8, Math.min(24, Math.round(appNameFontSize)))
+        }
+        if (o.notificationsAppNameColor !== undefined) {
+            var appNameColor = typeof o.notificationsAppNameColor === "string" ? o.notificationsAppNameColor.trim() : ""
+            Config.notificationsAppNameColor = appNameColor === "" ? "" : Schema.normalizeSavedColor(appNameColor, "")
+        }
+        if (o.notificationsAppNameBold !== undefined) Config.notificationsAppNameBold = !!o.notificationsAppNameBold
+        if (o.notificationsLeadingVisualSize !== undefined) {
+            var leadingVisualSize = Number(o.notificationsLeadingVisualSize)
+            if (isFinite(leadingVisualSize)) Config.notificationsLeadingVisualSize = Math.max(24, Math.min(72, Math.round(leadingVisualSize)))
+        }
+        if (o.notificationsLeadingVisualRadius !== undefined) {
+            var leadingVisualRadius = Number(o.notificationsLeadingVisualRadius)
+            if (isFinite(leadingVisualRadius)) Config.notificationsLeadingVisualRadius = Math.max(0, Math.min(36, Math.round(leadingVisualRadius)))
+        }
+        if (o.notificationsCardPadding !== undefined) {
+            var notificationCardPadding = Number(o.notificationsCardPadding)
+            if (isFinite(notificationCardPadding)) Config.notificationsCardPadding = Math.max(0, Math.min(32, Math.round(notificationCardPadding)))
+        }
+        if (o.notificationsBodyFontSize !== undefined) {
+            var notificationBodyFontSize = Number(o.notificationsBodyFontSize)
+            if (isFinite(notificationBodyFontSize)) Config.notificationsBodyFontSize = Math.max(8, Math.min(32, Math.round(notificationBodyFontSize)))
+        }
+        if (o.notificationsBodyColor !== undefined) {
+            var bodyColor = typeof o.notificationsBodyColor === "string" ? o.notificationsBodyColor.trim() : ""
+            Config.notificationsBodyColor = bodyColor === "" ? "" : Schema.normalizeSavedColor(bodyColor, "")
+        }
         if (o.notificationsShowAppIcon !== undefined) Config.notificationsShowAppIcon = !!o.notificationsShowAppIcon
         if (o.notificationsShowBodyImages !== undefined) Config.notificationsShowBodyImages = !!o.notificationsShowBodyImages
         if (o.notificationsShowProgress !== undefined) Config.notificationsShowProgress = !!o.notificationsShowProgress

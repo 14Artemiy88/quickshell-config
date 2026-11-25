@@ -54,8 +54,9 @@ require(settings, 'model: root.timerOptionsActionIconOrderNormalized()', 'settin
 require(settings, 'checked: Config[timerOptionsActionIconRow.keyPrefix + "IconEnabled"]', 'visibility toggle must bind to each action')
 require(settings, 'Config[timerOptionsActionIconRow.keyPrefix + "Icon"] = text', 'icon field must edit the selected action')
 require(settings, 'targetProperty: timerOptionsActionIconRow.keyPrefix + "IconSize"', 'size field must edit the selected action')
-require(settings, 'root.moveTimerOptionsActionIconOrder(modelData, -1)', 'move-up action must reorder popup icons')
-require(settings, 'root.moveTimerOptionsActionIconOrder(modelData, 1)', 'move-down action must reorder popup icons')
+require(settings, 'function moveTimerOptionsActionIconOrderTo(iconId, destination)', 'drag destination must reorder popup icons')
+require(settings, 'listRepeater: timerOptionsActionIconsRepeater', 'popup icon rows must be valid drop targets')
+require(settings, 'root.moveTimerOptionsActionIconOrderTo(modelData, toIndex)', 'drag drop must commit the selected destination')
 require(settings, 'keys: ["timerOptionsActionIconOrder"]', 'frame dirty tracking must include action order')
 require(widget, 'keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"]', 'timer options subtab dirty tracking must include icon order')
 

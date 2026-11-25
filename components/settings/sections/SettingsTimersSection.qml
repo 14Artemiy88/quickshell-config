@@ -32,12 +32,19 @@ Column {
         var order = Config.timerIconOrder === "timer-left"
             ? ["timer", "alarm"]
             : ["alarm", "timer"]
+        root.moveTimerIconOrderTo(iconId, order.indexOf(String(iconId)) + Number(delta))
+    }
+
+    function moveTimerIconOrderTo(iconId, destination) {
+        var order = Config.timerIconOrder === "timer-left"
+            ? ["timer", "alarm"]
+            : ["alarm", "timer"]
         var index = order.indexOf(String(iconId))
-        var target = index + Number(delta)
-        if (index < 0 || target < 0 || target >= order.length)
+        var target = Number(destination)
+        if (index < 0 || !isFinite(target) || Math.floor(target) !== target
+                || target < 0 || target >= order.length || target === index)
             return
-        var item = order[index]
-        order.splice(index, 1)
+        var item = order.splice(index, 1)[0]
         order.splice(target, 0, item)
         root.setTimerIconOrder(order[0] === "timer" ? "timer-left" : "alarm-left")
     }
@@ -82,11 +89,17 @@ Column {
 
     function moveTimerOptionsActionIconOrder(iconId, delta) {
         var order = root.timerOptionsActionIconOrderNormalized()
+        root.moveTimerOptionsActionIconOrderTo(iconId, order.indexOf(String(iconId)) + Number(delta))
+    }
+
+    function moveTimerOptionsActionIconOrderTo(iconId, destination) {
+        var order = root.timerOptionsActionIconOrderNormalized()
         var index = order.indexOf(String(iconId))
-        var target = index + Number(delta)
-        if (index < 0 || target < 0 || target >= order.length) return
-        var item = order[index]
-        order.splice(index, 1)
+        var target = Number(destination)
+        if (index < 0 || !isFinite(target) || Math.floor(target) !== target
+                || target < 0 || target >= order.length || target === index)
+            return
+        var item = order.splice(index, 1)[0]
         order.splice(target, 0, item)
         Config.timerOptionsActionIconOrder = order
         root.settings.save()
@@ -610,6 +623,7 @@ settingsSearchSubTabIndex: 1
     }
 
     SettingsGroup {
+        id: timerIconOrderSettingsGroup
                 visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 2
 settingsSearchSubTabIndex: 2
         width: parent.width
@@ -637,8 +651,12 @@ settingsSearchSubTabIndex: 2
                 }
 
                 Repeater {
+                    id: timerIconOrderRepeater
                     model: Config.timerIconOrder === "timer-left" ? ["timer", "alarm"] : ["alarm", "timer"]
                     delegate: Row {
+                        id: timerIconOrderRow
+                        Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                        property Item reorderTargetItem: timerIconOrderRow
                         width: parent.width
                         height: 30
                         spacing: 6
@@ -755,30 +773,16 @@ settingsSearchSubTabIndex: 2
                             saveOnEdit: true
                         }
 
-                        MoveArrowButton {
-                            width: 22
-                            height: 22
-                            iconText: "↑"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index > 0
-                            toolTipText: "Поднять выше"
-                            onClicked: root.moveTimerIconOrder(modelData, -1)
-                        }
-
-                        MoveArrowButton {
-                            width: 22
-                            height: 22
-                            iconText: "↓"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index < 1
-                            toolTipText: "Опустить ниже"
-                            onClicked: root.moveTimerIconOrder(modelData, 1)
+                        DragReorderHandle {
+                            width: 26
+                            height: 26
+                            listRepeater: timerIconOrderRepeater
+                            dropIndicatorHost: timerIconOrderSettingsGroup
+                            itemIndex: index
+                            accessibleLabel: modelData === "alarm" ? "будильник" : "таймер"
+                            onReorderRequested: function(fromIndex, toIndex) {
+                                root.moveTimerIconOrderTo(modelData, toIndex)
+                            }
                         }
                     }
                 }
@@ -1238,6 +1242,7 @@ settingsSearchSubTabIndex: 5
 
 
     SettingsGroup {
+        id: timerOptionsActionIconSettingsGroup
                 visible: host && host.currentPageId === "timers" && host.currentPageSubTabIndex === 5
 settingsSearchSubTabIndex: 5
         width: parent.width
@@ -1260,9 +1265,12 @@ settingsSearchSubTabIndex: 5
         }
 
         Repeater {
+            id: timerOptionsActionIconsRepeater
             model: root.timerOptionsActionIconOrderNormalized()
             delegate: Row {
                 id: timerOptionsActionIconRow
+                Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                property Item reorderTargetItem: timerOptionsActionIconRow
                 width: parent.width
                 height: 30
                 spacing: 6
@@ -1339,30 +1347,16 @@ settingsSearchSubTabIndex: 5
                     saveOnEdit: true
                 }
 
-                MoveArrowButton {
-                    width: 22
-                    height: 22
-                    iconText: "↑"
-                    iconSize: Config.settingsUiSize(12)
-                    baseColor: Config.text
-                    hoverMode: "frame"
-                    hoverColor: Config.accent
-                    interactionEnabled: index > 0
-                    toolTipText: "Поднять выше"
-                    onClicked: root.moveTimerOptionsActionIconOrder(modelData, -1)
-                }
-
-                MoveArrowButton {
-                    width: 22
-                    height: 22
-                    iconText: "↓"
-                    iconSize: Config.settingsUiSize(12)
-                    baseColor: Config.text
-                    hoverMode: "frame"
-                    hoverColor: Config.accent
-                    interactionEnabled: index < root.timerOptionsActionIconOrderNormalized().length - 1
-                    toolTipText: "Опустить ниже"
-                    onClicked: root.moveTimerOptionsActionIconOrder(modelData, 1)
+                DragReorderHandle {
+                    width: 26
+                    height: 26
+                    listRepeater: timerOptionsActionIconsRepeater
+                    dropIndicatorHost: timerOptionsActionIconSettingsGroup
+                    itemIndex: index
+                    accessibleLabel: root.timerOptionsActionIconLabel(modelData)
+                    onReorderRequested: function(fromIndex, toIndex) {
+                        root.moveTimerOptionsActionIconOrderTo(modelData, toIndex)
+                    }
                 }
             }
         }

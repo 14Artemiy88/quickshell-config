@@ -7,8 +7,8 @@ from pathlib import Path
 import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
-    "card height uses actual text layout measurement": "function notificationCardHeight(summaryHeight, bodyHeight, hasActions, hasBody, hasProgress, hasImage, hasAvatar)",
-    "independent RichText implicit height drives the card": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)",
+    "card height uses actual text layout measurement": "function notificationCardHeight(summaryHeight, bodyHeight, hasActions, hasBody, hasProgress, hasImage, hasLeadingVisual)",
+    "independent RichText implicit height drives the card": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
     "measured text height includes body offset and action space": "Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace)",
     "body wraps within card width": "wrapMode: Text.Wrap",
     "body remains RichText": "textFormat: Text.RichText",

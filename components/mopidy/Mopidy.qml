@@ -5,6 +5,7 @@ import Quickshell.Io
 import "." as MopidyWidgets
 import "../primitives" as Primitives
 import "../.."
+import "../../js/mopidy/QueueReorderGeometry.js" as QueueReorderGeometry
 
 Primitives.ModuleFrame {
     id: root
@@ -35,6 +36,11 @@ Primitives.ModuleFrame {
     property bool mopidySingle: false
     property var tracks: []
     property bool queueBusy: false
+    property bool queueMovePending: false
+    property bool queueReorderDragging: false
+    property real queueDragPointerY: -1
+    property var queueActiveDragHandle: null
+    property bool queueRefreshPending: false
     readonly property int queueTotalDuration: root.tracks.reduce(function(sum, track) {
         var duration = Number(track && track.duration)
         return sum + (isFinite(duration) && duration > 0 ? duration : 0)
@@ -72,8 +78,12 @@ Primitives.ModuleFrame {
     property var browseStack: []
     property var browseEntries: []
     property bool playlistsBusy: false
+    property bool playlistContentReorderDragging: false
+    property real playlistContentDragY: -1
+    property var playlistContentActiveDragHandle: null
     property var playlists: []
     property string playlistUri: ""
+    property string playlistContentMoveUri: ""
     property string playlistTitle: ""
     property var playlistItems: []
     property string playlistEditNotice: ""
@@ -99,28 +109,46 @@ Primitives.ModuleFrame {
     property int stickyAlbumIndex: -1
     property var stickyAlbumData: null
     property real stickyAlbumY: 0
+    property alias queueReorderAdapter: queueReorderAdapterObject
+    property alias queueReorderHost: queueReorderOverlay
+    readonly property bool queueReorderEnabled: root.queueAvailable && root.tracks.length > 1
+        && root.tracklistVersion >= 0 && !root.queueBusy && !root.queueMovePending
+        && !queueProcess.running && !queuePositionProcess.running
 
     readonly property var queueLayout: {
         var items = root.queueItems
         var tops = []
+        var heights = []
         var albumIndices = []
+        var trackDisplayIndices = []
         var y = 0
         var spacing = 2
         var albumHeight = Math.max(26, Config.mopidyAlbumFontSize + 9)
+        var trackHeight = Config.mopidyTrackRowHeight
 
         for (var i = 0; i < items.length; ++i) {
             tops.push(y)
             if (items[i] && items[i].kind === "album") {
                 albumIndices.push(i)
+                heights.push(albumHeight)
                 y += albumHeight
             } else {
-                y += Config.mopidyTrackRowHeight
+                trackDisplayIndices.push(i)
+                heights.push(trackHeight)
+                y += trackHeight
             }
             if (i < items.length - 1)
                 y += spacing
         }
 
-        return { tops: tops, albumIndices: albumIndices, contentHeight: y }
+        return {
+            tops: tops,
+            heights: heights,
+            albumIndices: albumIndices,
+            trackDisplayIndices: trackDisplayIndices,
+            contentHeight: y,
+            spacing: spacing
+        }
     }
     property string addNoticeText: ""
     property bool addNoticeVisible: false
@@ -137,7 +165,13 @@ Primitives.ModuleFrame {
     property string playlistManageTitle: ""
     property var playlistManageResult: null
     readonly property bool playlistManageBusy: playlistManageProcess.running
+    readonly property bool queueReorderPending: queueReorderProcess.running || root.queueMovePending
     readonly property bool playlistContentMoveBusy: playlistContentMoveProcess.running
+    readonly property bool playlistContentActionBusy: playlistContentActionProcess.running
+    // Keep the view context stable while either backend-aware reorder is active.
+    readonly property bool reorderInteractionLocked: root.queueReorderPending || root.queueReorderDragging
+        || root.playlistContentMoveBusy || root.playlistContentMoveUri.length > 0
+        || root.playlistContentReorderDragging
 
     function updateStickyAlbum() {
         if (!Config.mopidyGroupAlbums || !queueView || root.queueItems.length === 0) {
@@ -301,7 +335,7 @@ Primitives.ModuleFrame {
             if (isFinite(duration) && duration > 0)
                 currentSegment.duration += duration
             var tlid = Number(track.tlid)
-            if (isFinite(tlid) && tlid > 0)
+            if (isFinite(tlid) && tlid >= 0)
                 currentSegment.tlids.push(tlid)
             segmentIndexByTrack.push(segments.length - 1)
         }
@@ -335,6 +369,113 @@ Primitives.ModuleFrame {
         return items
     }
 
+    function queueTrackGeometry(trackIndex) {
+        var index = Number(trackIndex)
+        var layout = root.queueLayout
+        if (!isFinite(index) || Math.floor(index) !== index || index < 0
+                || index >= layout.trackDisplayIndices.length || !queueView)
+            return null
+        var displayIndex = layout.trackDisplayIndices[index]
+        return {
+            x: 0,
+            y: layout.tops[displayIndex] - queueView.contentY,
+            width: queueView.width,
+            height: layout.heights[displayIndex]
+        }
+    }
+
+    function queueTrackInsertionSlotGeometry(sourceIndex, destination, host, anchorInfo) {
+        var layout = root.queueLayout
+        var count = layout.trackDisplayIndices.length
+        if (!queueView || destination < 0 || destination >= count || anchorInfo.index < 0)
+            return null
+
+        var centerY
+        if (anchorInfo.afterLast) {
+            var lastDisplay = layout.trackDisplayIndices[anchorInfo.index]
+            var lastBottom = layout.tops[lastDisplay] + layout.heights[lastDisplay]
+            centerY = QueueReorderGeometry.gapCenterAfter(lastBottom, layout.spacing) - queueView.contentY
+        } else {
+            // A visual album header belongs to the first track in its segment.
+            // Insert before that header, not between the header and its first track.
+            var candidateDisplay = QueueReorderGeometry.insertionAnchorDisplayIndex(
+                        root.queueItems, layout.trackDisplayIndices, anchorInfo.index, sourceIndex)
+            if (candidateDisplay < 0)
+                return null
+            var candidateTop = layout.tops[candidateDisplay]
+            var previousDisplay = candidateDisplay - 1
+            if (previousDisplay >= 0) {
+                var previousBottom = layout.tops[previousDisplay] + layout.heights[previousDisplay]
+                centerY = QueueReorderGeometry.gapCenterBetween(previousBottom, candidateTop) - queueView.contentY
+            } else {
+                centerY = QueueReorderGeometry.gapCenterBefore(candidateTop, layout.spacing) - queueView.contentY
+            }
+        }
+
+        return {
+            destination: destination,
+            x: 4,
+            y: centerY - 1,
+            width: Math.max(0, queueView.width - 8),
+            centerY: centerY
+        }
+    }
+
+    function queueTrackSourceAdjacentGapGeometry(sourceIndex, edge, host) {
+        var layout = root.queueLayout
+        var index = Number(sourceIndex)
+        if (!queueView || index < 0 || index >= layout.trackDisplayIndices.length)
+            return null
+        var displayIndex = layout.trackDisplayIndices[index]
+        var sourceTop = layout.tops[displayIndex]
+        var sourceBottom = sourceTop + layout.heights[displayIndex]
+        var centerY
+
+        if (edge === "before") {
+            // This is the physical gap immediately before the track row. If
+            // the row begins an album segment, that gap is after its header;
+            // the header stays attached to the whole segment.
+            var previousDisplay = displayIndex - 1
+            if (previousDisplay >= 0) {
+                var previousBottom = layout.tops[previousDisplay] + layout.heights[previousDisplay]
+                centerY = QueueReorderGeometry.gapCenterBetween(previousBottom, sourceTop) - queueView.contentY
+            } else {
+                centerY = QueueReorderGeometry.gapCenterBefore(sourceTop, layout.spacing) - queueView.contentY
+            }
+        } else {
+            var nextDisplay = displayIndex + 1
+            if (nextDisplay < layout.tops.length) {
+                centerY = (sourceBottom + layout.tops[nextDisplay]) / 2 - queueView.contentY
+            } else {
+                centerY = sourceBottom + layout.spacing / 2 - queueView.contentY
+            }
+        }
+
+        return {
+            destination: index,
+            kind: "source",
+            x: 4,
+            y: centerY - 1,
+            width: Math.max(0, queueView.width - 8),
+            centerY: centerY
+        }
+    }
+
+    function setQueueReorderDragging(active, handle) {
+        root.queueReorderDragging = !!active
+        root.queueActiveDragHandle = active ? handle : null
+        if (!root.queueReorderDragging) root.queueDragPointerY = -1
+        if (!root.queueReorderDragging && root.queueRefreshPending && !root.queueMovePending) {
+            root.queueRefreshPending = false
+            Qt.callLater(function() { root.refreshQueue() })
+        }
+    }
+
+    function updateQueueDragPosition(sceneX, sceneY) {
+        var point = queueView.mapFromItem(null, sceneX, sceneY)
+        root.queueDragPointerY = isFinite(point.y) ? point.y : -1
+    }
+
     function rememberQueueScroll() {
         if (queueView)
             root.preservedQueueContentY = queueView.contentY
@@ -351,13 +492,19 @@ Primitives.ModuleFrame {
     }
 
     function refreshQueue() {
-        if (!Settings.mopidy || queueProcess.running) return
+        if (!Settings.mopidy) return
+        if (root.queueMovePending || root.queueReorderDragging) {
+            root.queueRefreshPending = true
+            return
+        }
+        if (queueProcess.running) return
+        root.queueRefreshPending = false
         root.rememberQueueScroll()
         queueProcess.running = true
     }
 
     function refreshPlaybackPosition() {
-        if (!Settings.mopidy || queuePositionProcess.running) return
+        if (!Settings.mopidy || queuePositionProcess.running || root.queueMovePending || root.queueReorderDragging) return
         queuePositionProcess.running = true
     }
 
@@ -378,7 +525,12 @@ Primitives.ModuleFrame {
 
         root.currentTlid = nextTlid
         root.currentPositionMs = nextPosition
-        if (version >= 0) root.tracklistVersion = version
+        if (version >= 0 && !(versionChanged && root.queueReorderDragging))
+            root.tracklistVersion = version
+        if (versionChanged && root.queueReorderDragging) {
+            root.queueRefreshPending = true
+            return false
+        }
         return refreshFullQueue
     }
 
@@ -406,7 +558,20 @@ Primitives.ModuleFrame {
             args.push(String(tlids[i]))
         runQueueCommand(args)
     }
-    function moveTrack(tlid, position) { runQueueCommand(["move", String(tlid), String(position)]) }
+    function moveTrack(tlid, position) {
+        var target = Number(position)
+        var trackId = Number(tlid)
+        if (!Settings.mopidy || !root.queueReorderEnabled || !isFinite(trackId)
+                || Math.floor(trackId) !== trackId || trackId < 0 || !isFinite(target) || Math.floor(target) !== target
+                || target < 0 || target >= root.tracks.length)
+            return
+        root.queueBusy = true
+        root.queueMovePending = true
+        queueReorderProcess.result = null
+        queueReorderProcess.command = [Quickshell.shellDir + "/scripts/mopidy/tracklist.sh",
+            "move", String(trackId), String(target), String(root.tracklistVersion)]
+        queueReorderProcess.running = true
+    }
     function clearQueue() { runQueueCommand(["clear"]) }
     function stopPlayback() { runQueueCommand(["stop"]) }
     function refreshMopidyStatus() {
@@ -490,6 +655,7 @@ Primitives.ModuleFrame {
     }
 
     function toggleSearch() {
+        if (root.reorderInteractionLocked) return
         if (root.searchOpen) {
             root.searchOpen = false
             root.fileFilterOpen = false
@@ -518,7 +684,7 @@ Primitives.ModuleFrame {
     }
 
     function openPlaylistAddMode() {
-        if (!root.playlistUri || root.playlistsBusy) return
+        if (root.reorderInteractionLocked || !root.playlistUri || root.playlistsBusy) return
         root.addingToPlaylist = true
         root.searchOpen = true
         root.searchQuery = ""
@@ -558,6 +724,7 @@ Primitives.ModuleFrame {
     }
 
     function openBrowseRoot() {
+        if (root.reorderInteractionLocked) return
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         root.libraryMode = "browse"
@@ -571,7 +738,7 @@ Primitives.ModuleFrame {
     }
 
     function browseUriAt(uri, title) {
-        if (root.browseBusy) return
+        if (root.reorderInteractionLocked || root.browseBusy) return
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         root.browseStack = root.browseStack.concat([{uri: root.browseUri, title: root.browseTitle}])
@@ -583,7 +750,7 @@ Primitives.ModuleFrame {
     }
 
     function browseBack() {
-        if (root.browseBusy || root.browseStack.length === 0) return
+        if (root.reorderInteractionLocked || root.browseBusy || root.browseStack.length === 0) return
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         var stack = root.browseStack.slice(0)
@@ -599,6 +766,7 @@ Primitives.ModuleFrame {
     }
 
     function closeLibraryBrowserToQueue() {
+        if (root.reorderInteractionLocked) return
         root.searchOpen = false
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
@@ -617,6 +785,7 @@ Primitives.ModuleFrame {
     }
 
     function showSearch() {
+        if (root.reorderInteractionLocked) return
         if (root.searchOpen && root.libraryMode === "search") {
             root.closeLibraryBrowserToQueue()
             return
@@ -629,6 +798,7 @@ Primitives.ModuleFrame {
     }
 
     function showBrowse() {
+        if (root.reorderInteractionLocked) return
         if (root.searchOpen && root.libraryMode === "browse" && root.browseStack.length === 0) {
             root.closeLibraryBrowserToQueue()
             return
@@ -643,6 +813,7 @@ Primitives.ModuleFrame {
     }
 
     function showPlaylists() {
+        if (root.reorderInteractionLocked) return
         if (root.searchOpen && root.libraryMode === "playlists") {
             root.closeLibraryBrowserToQueue()
             return
@@ -664,14 +835,14 @@ Primitives.ModuleFrame {
     }
 
     function loadPlaylists() {
-        if (root.playlistsBusy) return
+        if (root.reorderInteractionLocked || root.playlistsBusy) return
         root.playlistsBusy = true
         playlistsProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "list"]
         playlistsProcess.running = true
     }
 
     function openPlaylist(uri, title) {
-        if (!uri || root.playlistsBusy) return
+        if (root.reorderInteractionLocked || !uri || root.playlistsBusy) return
         root.libraryMode = "playlistItems"
         root.playlistUri = String(uri)
         root.playlistTitle = String(title || "Плейлист")
@@ -682,6 +853,7 @@ Primitives.ModuleFrame {
     }
 
     function backToPlaylists() {
+        if (root.reorderInteractionLocked) return
         root.libraryMode = "playlists"
         root.playlistUri = ""
         root.playlistTitle = ""
@@ -690,6 +862,7 @@ Primitives.ModuleFrame {
     }
 
     function resetToInitialScreen() {
+        if (root.reorderInteractionLocked) return
         root.searchOpen = false
         root.addingToPlaylist = false
         root.searchQuery = ""
@@ -711,41 +884,75 @@ Primitives.ModuleFrame {
     }
 
     function switchPlaylist(uri, label) {
-        if (!uri || playlistSwitchProcess.running) return
+        if (root.reorderInteractionLocked || !uri || playlistSwitchProcess.running) return
         root.playlistSwitchNotice = String(label || "плейлист")
         playlistSwitchProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "switch_playlist", uri]
         playlistSwitchProcess.running = true
     }
 
     function addPlaylist(uri, label) {
-        if (!uri || playlistActionProcess.running) return
+        if (root.reorderInteractionLocked || !uri || playlistActionProcess.running) return
         root.playlistActionNotice = String(label || "плейлист")
         playlistActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "add_playlist", uri]
         playlistActionProcess.running = true
     }
 
     function addPlaylistItem(uri, label) {
-        if (!uri || playlistActionProcess.running) return
+        if (root.reorderInteractionLocked || !uri || playlistActionProcess.running) return
         root.playlistActionNotice = String(label || "трек")
         playlistActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "add_track", uri]
         playlistActionProcess.running = true
     }
 
+    function setPlaylistContentReorderDragging(active, handle) {
+        root.playlistContentReorderDragging = !!active
+        root.playlistContentActiveDragHandle = active ? handle : null
+        if (!root.playlistContentReorderDragging)
+            root.playlistContentDragY = -1
+    }
+
+    function updatePlaylistContentDragPosition(y) {
+        var nextY = Number(y)
+        root.playlistContentDragY = isFinite(nextY) ? nextY : -1
+    }
+
     function removePlaylistItem(index, label) {
-        if (!root.playlistUri || playlistContentActionProcess.running) return
+        if (!root.playlistUri || playlistContentActionProcess.running
+                || playlistContentMoveProcess.running || root.playlistContentReorderDragging) return
         root.playlistContentActionNotice = String(label || "трек")
         playlistContentActionProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "remove_item", root.playlistUri, String(index)]
         playlistContentActionProcess.running = true
     }
 
-    function movePlaylistItem(index, newIndex, label) {
-        if (!root.playlistUri || playlistContentMoveProcess.running || playlistContentActionProcess.running) return
-        playlistContentMoveProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "move_item", root.playlistUri, String(index), String(newIndex)]
+    function movePlaylistItem(index, newIndex, label, expectedUri) {
+        // This callback is invoked by the active drag handle before its
+        // draggingChanged(false) notification. Allow that one gesture to
+        // commit, while rejecting any already-running backend mutation.
+        if (!root.playlistUri || playlistContentMoveProcess.running || root.queueReorderPending
+                || root.queueReorderDragging || playlistContentActionProcess.running || playlistEditProcess.running
+                || playlistsProcess.running || root.playlistsBusy)
+            return
+        var from = Number(index)
+        var to = Number(newIndex)
+        var moveUri = String(root.playlistUri)
+        if (!isFinite(from) || Math.floor(from) !== from || !isFinite(to) || Math.floor(to) !== to
+                || from < 0 || to < 0 || from >= root.playlistItems.length || to >= root.playlistItems.length
+                || from === to)
+            return
+        var expectedOrder = root.playlistItems.map(function(item) { return String(item && item.uri || "") })
+        if (!expectedUri || expectedOrder[from] !== String(expectedUri))
+            return
+        root.playlistContentMoveUri = moveUri
+        root.playlistContentActionNotice = String(label || "трек")
+        playlistContentMoveProcess.result = null
+        playlistContentMoveProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh",
+            "move_item", moveUri, String(from), String(to),
+            String(expectedUri), JSON.stringify(expectedOrder)]
         playlistContentMoveProcess.running = true
     }
 
     function openCreatePlaylistDialog() {
-        if (playlistManageProcess.running) return
+        if (root.reorderInteractionLocked || playlistManageProcess.running) return
         root.playlistDialogMode = "create"
         root.playlistDialogInput = ""
         root.playlistDialogError = ""
@@ -755,7 +962,7 @@ Primitives.ModuleFrame {
     }
 
     function openRenamePlaylistDialog() {
-        if (!root.playlistUri || playlistManageProcess.running) return
+        if (root.reorderInteractionLocked || !root.playlistUri || playlistManageProcess.running) return
         root.playlistDialogMode = "rename"
         root.playlistDialogInput = String(root.playlistTitle || "")
         root.playlistDialogError = ""
@@ -765,7 +972,7 @@ Primitives.ModuleFrame {
     }
 
     function openDeletePlaylistDialog() {
-        if (!root.playlistUri || playlistManageProcess.running) return
+        if (root.reorderInteractionLocked || !root.playlistUri || playlistManageProcess.running) return
         root.playlistDialogMode = "delete"
         root.playlistDialogInput = ""
         root.playlistDialogError = ""
@@ -775,7 +982,7 @@ Primitives.ModuleFrame {
     }
 
     function openDeletePlaylistFromListDialog(uri, title) {
-        if (!uri || playlistManageProcess.running) return
+        if (root.reorderInteractionLocked || !uri || playlistManageProcess.running) return
         root.playlistDialogMode = "delete"
         root.playlistDialogInput = ""
         root.playlistDialogError = ""
@@ -790,7 +997,7 @@ Primitives.ModuleFrame {
     }
 
     function submitPlaylistDialog() {
-        if (playlistManageProcess.running) return
+        if (root.reorderInteractionLocked || playlistManageProcess.running) return
         var name = String(root.playlistDialogInput || "").trim()
         if (root.playlistDialogMode !== "delete" && !name) {
             root.playlistDialogError = "Введите название"
@@ -820,7 +1027,7 @@ Primitives.ModuleFrame {
     }
 
     function addBrowseFolder(uri, label) {
-        if (!uri) return
+        if (root.reorderInteractionLocked || !uri) return
         if (root.addingToPlaylist) {
             if (!root.playlistUri || playlistEditProcess.running) return
             root.playlistEditNotice = String(label || "папка")
@@ -835,7 +1042,7 @@ Primitives.ModuleFrame {
     }
 
     function addSearchResult(uri, label) {
-        if (!uri) return
+        if (root.reorderInteractionLocked || !uri) return
         if (root.addingToPlaylist) {
             if (!root.playlistUri || playlistEditProcess.running) return
             root.playlistEditNotice = String(label || "трек")
@@ -907,6 +1114,19 @@ Primitives.ModuleFrame {
         return remaining ? "-" + formatted : formatted
     }
 
+    QtObject {
+        id: queueReorderAdapterObject
+        readonly property int count: root.tracks.length
+        readonly property int spacing: 2
+        function geometryAt(index, host) { return root.queueTrackGeometry(index) }
+        function insertionSlotGeometry(sourceIndex, destination, host, anchorInfo) {
+            return root.queueTrackInsertionSlotGeometry(sourceIndex, destination, host, anchorInfo)
+        }
+        function sourceAdjacentGapGeometry(sourceIndex, edge, host) {
+            return root.queueTrackSourceAdjacentGapGeometry(sourceIndex, edge, host)
+        }
+    }
+
     Process {
         id: mopidyLaunchProcess
         command: [Quickshell.shellDir + "/scripts/mopidy/start.sh"]
@@ -926,6 +1146,30 @@ Primitives.ModuleFrame {
         interval: 5000
         repeat: false
         onTriggered: root.mopidyLaunchCooldown = false
+    }
+
+    Timer {
+        interval: 16
+        repeat: true
+        running: root.queueReorderDragging
+        onTriggered: {
+            var pointerY = Number(root.queueDragPointerY)
+            if (!isFinite(pointerY) || pointerY < 0 || !queueView)
+                return
+            var edge = 36
+            var maxY = Math.max(0, queueView.contentHeight - queueView.height)
+            var previousContentY = queueView.contentY
+            if (pointerY < edge && queueView.contentY > 0) {
+                var strengthUp = Math.max(0.15, (edge - pointerY) / edge)
+                queueView.contentY = Math.max(0, queueView.contentY - 12 * strengthUp)
+            } else if (pointerY > queueView.height - edge && queueView.contentY < maxY) {
+                var strengthDown = Math.max(0.15, (pointerY - (queueView.height - edge)) / edge)
+                queueView.contentY = Math.min(maxY, queueView.contentY + 12 * strengthDown)
+            }
+            if (queueView.contentY !== previousContentY && root.queueActiveDragHandle
+                    && typeof root.queueActiveDragHandle.refreshDropTargetForLayoutChange === "function")
+                root.queueActiveDragHandle.refreshDropTargetForLayoutChange()
+        }
     }
 
     Process {
@@ -976,6 +1220,44 @@ Primitives.ModuleFrame {
                 }
                 queueProcess.running = false
             }
+        }
+    }
+
+    Process {
+        id: queueReorderProcess
+        command: []
+        running: false
+        property var result: null
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try { queueReorderProcess.result = JSON.parse(this.text.trim() || "{}") }
+                catch (e) { queueReorderProcess.result = {ok: false, error: "invalid_response"} }
+            }
+        }
+        stderr: StdioCollector {}
+        onExited: function(exitCode) {
+            var data = queueReorderProcess.result || {}
+            queueReorderProcess.result = null
+            queueReorderProcess.running = false
+            root.queueMovePending = false
+            root.queueBusy = false
+            if (Settings.mopidy && (exitCode !== 0 || data.ok !== true)) {
+                var error = String(data.error || "move_failed")
+                var message = "Не удалось изменить порядок очереди"
+                if (error === "queue_changed")
+                    message = "Очередь изменилась. Порядок обновлён — повтори перетаскивание."
+                else if (error === "offline")
+                    message = "Mopidy недоступен"
+                else if (error === "move_unconfirmed")
+                    message = "Mopidy не подтвердил новый порядок очереди"
+                else if (error === "queue_version_unavailable")
+                    message = "Не удалось проверить актуальность очереди"
+                else if (error === "track_not_found")
+                    message = "Трек уже отсутствует в очереди"
+                root.showErrorNotice(message)
+            }
+            if (Settings.mopidy) root.refreshQueue()
+            else root.queueRefreshPending = false
         }
     }
 
@@ -1287,16 +1569,26 @@ Primitives.ModuleFrame {
         stderr: StdioCollector {}
         onExited: {
             var data = playlistContentMoveProcess.result || {}
+            var moveUri = String(root.playlistContentMoveUri || "")
             playlistContentMoveProcess.result = null
             playlistContentMoveProcess.running = false
-            if (data.ok) {
-                if (root.playlistUri) {
+            root.playlistContentMoveUri = ""
+            if (Settings.mopidy && moveUri) {
+                if (!data.ok)
+                    root.showErrorNotice(data.error === "playlist_changed"
+                        ? "Плейлист изменился. Порядок обновлён — повтори перетаскивание."
+                        : (data.error === "move_unconfirmed"
+                            ? "Mopidy не подтвердил новый порядок плейлиста"
+                            : (data.error === "offline"
+                                ? "Mopidy недоступен"
+                                : (data.error === "playlist_save_failed"
+                                    ? "Сервер не разрешил изменить этот плейлист"
+                                    : "Не удалось изменить порядок плейлиста"))))
+                if (root.playlistUri === moveUri && root.libraryMode === "playlistItems") {
                     root.playlistsBusy = true
-                    playlistsProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "items", root.playlistUri]
+                    playlistsProcess.command = [Quickshell.shellDir + "/scripts/mopidy/playlists.sh", "items", moveUri]
                     playlistsProcess.running = true
                 }
-            } else {
-                root.showErrorNotice(data.error || "не удалось переместить трек в плейлисте")
             }
         }
     }
@@ -1474,6 +1766,7 @@ Primitives.ModuleFrame {
                 if (queueProcess.running) queueProcess.running = false
                 if (queuePositionProcess.running) queuePositionProcess.running = false
                 if (queueActionProcess.running) queueActionProcess.running = false
+                if (queueReorderProcess.running) queueReorderProcess.running = false
                 if (mopidyStatusProcess.running) mopidyStatusProcess.running = false
                 if (mixerActionProcess.running) mixerActionProcess.running = false
                 if (mixerSoftMuteMigrationProcess.running) mixerSoftMuteMigrationProcess.running = false
@@ -1481,6 +1774,14 @@ Primitives.ModuleFrame {
                 root.mixerSoftMuteMigrationAttempted = false
                 if (playbackPrefsActionProcess.running) playbackPrefsActionProcess.running = false
                 queueBusy = false
+                root.queueMovePending = false
+                root.queueReorderDragging = false
+                root.queueActiveDragHandle = null
+                root.queueDragPointerY = -1
+                root.queueRefreshPending = false
+                root.playlistContentReorderDragging = false
+                root.playlistContentActiveDragHandle = null
+                root.playlistContentDragY = -1
                 root.mixerAvailable = false
                 root.mopidyVolume = -1
                 root.mopidyRestoreVolume = -1
@@ -1512,6 +1813,9 @@ Primitives.ModuleFrame {
                 if (playlistSwitchProcess.running) playlistSwitchProcess.running = false
                 if (playlistEditProcess.running) playlistEditProcess.running = false
                 if (playlistContentActionProcess.running) playlistContentActionProcess.running = false
+                if (playlistContentMoveProcess.running) playlistContentMoveProcess.running = false
+                root.playlistContentMoveUri = ""
+                root.playlistContentReorderDragging = false
                 root.playlists = []
                 root.playlistItems = []
                 root.playlistUri = ""
@@ -1593,6 +1897,11 @@ Primitives.ModuleFrame {
                 clip: true
                 spacing: 2
                 boundsBehavior: Flickable.StopAtBounds
+                // Keep the source delegate alive while edge auto-scroll moves
+                // the list across long queues; restore normal virtualization
+                // as soon as the drag ends.
+                cacheBuffer: root.queueReorderDragging ? contentHeight : height * 2
+                interactive: !root.queueReorderDragging
                 model: root.queueItems
                 visible: !root.searchOpen
 
@@ -1622,6 +1931,16 @@ Primitives.ModuleFrame {
                 sourceComponent: albumHeaderComponent
                 property var itemData: root.stickyAlbumData
                 property bool stickyHeader: true
+            }
+
+            // The reorder marker is hosted above the sticky album header, but
+            // outside the ListView's positioner/content item. Its coordinates
+            // are viewport-relative, just like queueView.mapFromItem().
+            Item {
+                id: queueReorderOverlay
+                anchors.fill: parent
+                clip: true
+                z: 30
             }
 
             Component {

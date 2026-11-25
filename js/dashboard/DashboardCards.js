@@ -67,6 +67,120 @@ var COMPACT_CARD_HEIGHTS = { today: 164, system: 164, network: 164, weather: 164
 // Expanded cards reserve more vertical room for the growing detail blocks while keeping one shared silhouette.
 var EXPANDED_CARD_HEIGHTS = { today: 208, system: 208, network: 208, weather: 208, media: 208 }
 
+// Player backends expose the remaining track time as a negative clock string.
+// Accept only MM:SS or H:MM:SS values with real minute/second ranges so
+// malformed metadata cannot appear as a plausible countdown in Dashboard.
+function normalizeRemainingTime(value) {
+    if (value === undefined || value === null) return ""
+
+    var raw = String(value).trim()
+    if (raw.charAt(0) === "-") raw = raw.slice(1)
+    if (raw === "") return ""
+
+    var parts = raw.split(":")
+    if (parts.length !== 2 && parts.length !== 3) return ""
+    if (!/^\d{1,3}$/.test(parts[0])) return ""
+
+    var seconds = parts[parts.length - 1]
+    if (!/^\d{2}$/.test(seconds) || Number(seconds) >= 60) return ""
+
+    if (parts.length === 3) {
+        if (!/^\d{2}$/.test(parts[1]) || Number(parts[1]) >= 60) return ""
+    }
+
+    return parts.join(":")
+}
+
+// Gismeteo wind speed is expected to be a non-negative decimal value in m/s.
+// Do not surface malformed API strings (NaN, Infinity, negative values, or
+// arbitrary text) as if they were a real measurement in Dashboard.
+function normalizeWeatherWindSpeed(value) {
+    if (value === undefined || value === null) return ""
+
+    var raw = String(value).trim()
+    if (raw === "" || !/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(raw)) return ""
+
+    var numeric = Number(raw.replace(",", "."))
+    if (!isFinite(numeric) || numeric < 0) return ""
+
+    return raw
+}
+
+// Gismeteo atmospheric pressure is expected as a positive decimal in mmHg.
+// Accept plain decimal numbers (including comma decimals), but reject coercible
+// values such as booleans, arrays, exponent notation and malformed strings.
+function normalizeWeatherPressure(value) {
+    if (typeof value !== "number" && typeof value !== "string") return ""
+
+    var raw = String(value).trim()
+    if (raw === "" || !/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(raw)) return ""
+
+    var numeric = Number(raw.replace(",", "."))
+    if (!isFinite(numeric) || numeric <= 0) return ""
+
+    return raw
+}
+
+// Gismeteo air and comfort temperatures are Celsius measurements. Accept
+// signed plain decimals (including comma decimals), but reject malformed
+// strings and coercible non-numeric values instead of displaying them as data.
+function normalizeWeatherTemperature(value) {
+    if (typeof value !== "number" && typeof value !== "string") return ""
+
+    var raw = String(value).trim()
+    if (raw === "" || !/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(raw)) return ""
+
+    var numeric = Number(raw.replace(",", "."))
+    if (!isFinite(numeric)) return ""
+
+    return raw
+}
+
+// Gismeteo forecast dates use Unix timestamps in whole seconds. Validate the
+// raw value before Date conversion: Number() alone would coerce booleans,
+// arrays, exponent-form strings, and Infinity-like values into misleading dates.
+// The upper bound is the largest timestamp representable by JavaScript Date.
+function normalizeWeatherUnixTimestamp(value) {
+    if (typeof value !== "number" && typeof value !== "string") return NaN
+
+    var raw = String(value).trim()
+    if (raw === "" || !/^\d+$/.test(raw)) return NaN
+
+    var timestamp = Number(raw)
+    if (!isFinite(timestamp) || Math.floor(timestamp) !== timestamp
+            || timestamp <= 0 || timestamp > 8640000000000) return NaN
+
+    return timestamp
+}
+
+// Gismeteo's eight-point compass scale is an integer from 0 (calm) through
+// 8 (north-west). Accept numeric values and plain decimal integer strings,
+// but reject coercible non-numbers such as booleans, arrays, hex and exponent
+// notation so malformed payloads cannot masquerade as a valid direction.
+function normalizeWeatherWindScale(value) {
+    if (typeof value !== "number" && typeof value !== "string") return -1
+    if (typeof value === "string" && !/^\d+$/.test(value.trim())) return -1
+
+    var scale = Number(value)
+    return isFinite(scale) && Math.floor(scale) === scale && scale >= 0 && scale <= 8
+            ? scale : -1
+}
+
+// Gismeteo icon codes become local PNG filenames. Keep the value to one safe
+// filename token so malformed API data cannot inject path separators or
+// traversal segments into a shell-local image path.
+function normalizeWeatherIconCode(value) {
+    if (typeof value !== "string" && typeof value !== "number") return ""
+    if (typeof value === "number"
+            && (!isFinite(value) || Math.floor(value) !== value || value < 0)) return ""
+
+    var code = String(value).trim()
+    if (code === "" || code.length > 32 || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(code))
+        return ""
+
+    return code
+}
+
 function normalizeCardSizeMode(value) {
     var mode = String(value === undefined || value === null ? "" : value)
     return CARD_SIZE_MODES.indexOf(mode) >= 0 ? mode : "compact"
@@ -363,11 +477,11 @@ function resolveDashboardLayout(cards, mode, width, sizes, spacing) {
 // visible model and the inactive composition receives empty arrays.
 
 var DEFINITIONS = [
-    { id: "today", label: "Сегодня", settingsLabel: "Сегодня — время, дата и заметки", description: "Текущее время, дата и заметки календаря", symbol: "󰃭", settingsPageId: "calendar", keywords: "today time date calendar notes current clock время дата календарь заметки сегодня" },
-    { id: "system", label: "Система", settingsLabel: "Система — CPU и RAM", description: "Использование CPU и RAM", symbol: "", settingsPageId: "cpuRam", keywords: "system cpu ram performance memory processor система производительность память процессор" },
-    { id: "network", label: "Сеть", settingsLabel: "Сеть — скорость загрузки и отдачи", description: "Скорость загрузки и отдачи", symbol: "󰖩", settingsPageId: "network", keywords: "network speed upload download internet сеть скорость интернет передача" },
-    { id: "weather", label: "Погода", settingsLabel: "Погода — текущие условия", description: "Текущая температура и условия", symbol: "󰖐", settingsPageId: "weather", keywords: "weather temperature forecast погода температура прогноз" },
-    { id: "media", label: "Медиа", settingsLabel: "Медиа — текущий плеер", description: "Текущий плеер и композиция", symbol: "󰎆", settingsPageId: "player", keywords: "media player music track artist медиа плеер музыка композиция исполнитель" }
+    { id: "today", label: "Сегодня", settingsLabel: "Сегодня — время, дата и заметки", description: "Текущее время, дата и заметки календаря", symbol: "󰃭", keywords: "today time date calendar notes current clock время дата календарь заметки сегодня" },
+    { id: "system", label: "Система", settingsLabel: "Система — CPU и RAM", description: "Использование CPU и RAM", symbol: "", keywords: "system cpu ram performance memory processor система производительность память процессор" },
+    { id: "network", label: "Сеть", settingsLabel: "Сеть — скорость загрузки и отдачи", description: "Скорость загрузки и отдачи", symbol: "󰖩", keywords: "network speed upload download internet сеть скорость интернет передача" },
+    { id: "weather", label: "Погода", settingsLabel: "Погода — текущие условия", description: "Текущая температура и условия", symbol: "󰖐", keywords: "weather temperature forecast погода температура прогноз" },
+    { id: "media", label: "Медиа", settingsLabel: "Медиа — текущий плеер", description: "Текущий плеер и композиция", symbol: "󰎆", keywords: "media player music track artist медиа плеер музыка композиция исполнитель" }
 ]
 
 function defaults() {
@@ -437,6 +551,71 @@ function move(values, id, direction) {
     result.splice(from, 1)
     result.splice(to, 0, item)
     return result
+}
+
+// Move one card directly before another. Dashboard's in-panel editor uses
+// this after a drag/drop gesture; visibility remains independent of order.
+function moveBefore(values, sourceId, targetId) {
+    var result = normalizeOrder(values)
+    var source = String(sourceId || "")
+    var target = String(targetId || "")
+    if (source === target || DEFAULT_IDS.indexOf(source) < 0 || DEFAULT_IDS.indexOf(target) < 0)
+        return result
+
+    var from = result.indexOf(source)
+    var to = result.indexOf(target)
+    if (from < 0 || to < 0) return result
+
+    result.splice(from, 1)
+    to = result.indexOf(target)
+    if (to < 0) return normalizeOrder(result)
+    result.splice(to, 0, source)
+    return result
+}
+
+// Reorder in the direction of the drop. Dropping an earlier card on a later
+// card places it after the target; dropping a later card on an earlier one
+// places it before. This avoids the old forward-drop no-op of moveBefore().
+function moveByDrop(values, sourceId, targetId) {
+    var result = normalizeOrder(values)
+    var source = String(sourceId || "")
+    var target = String(targetId || "")
+    if (source === target || DEFAULT_IDS.indexOf(source) < 0 || DEFAULT_IDS.indexOf(target) < 0)
+        return result
+
+    var from = result.indexOf(source)
+    var to = result.indexOf(target)
+    if (from < 0 || to < 0) return result
+
+    var placeAfter = from < to
+    result.splice(from, 1)
+    to = result.indexOf(target)
+    if (to < 0) return normalizeOrder(result)
+    result.splice(placeAfter ? to + 1 : to, 0, source)
+    return result
+}
+
+// Measure pointer-to-card-rectangle distance. A point anywhere inside the
+// card is a valid target; a modest outside tolerance also makes the gaps
+// between neighbouring cards forgiving without requiring a centre hit.
+function cardDropTargetScore(point, rect, toleranceX, toleranceY) {
+    if (!point || !rect) return Number.POSITIVE_INFINITY
+    var left = Number(rect.left)
+    var right = Number(rect.right)
+    var top = Number(rect.top)
+    var bottom = Number(rect.bottom)
+    var x = Number(point.x)
+    var y = Number(point.y)
+    if (![left, right, top, bottom, x, y].every(isFinite)
+            || right <= left || bottom <= top)
+        return Number.POSITIVE_INFINITY
+
+    var dx = x < left ? left - x : (x > right ? x - right : 0)
+    var dy = y < top ? top - y : (y > bottom ? y - bottom : 0)
+    if (dx > Math.max(0, Number(toleranceX) || 0)
+            || dy > Math.max(0, Number(toleranceY) || 0))
+        return Number.POSITIVE_INFINITY
+    return dx * dx + dy * dy
 }
 
 function orderedVisible(order, visibleIds) {

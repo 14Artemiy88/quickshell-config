@@ -15,13 +15,13 @@ assert 'card.notification ? String(card.notification.appName || "Уведомл�
 assert 'card.notification ? String(card.notification.summary || "") : ""' in source
 assert 'property string formattedBody: notification ? root.formatNotificationBody(notification.body) : ""' in source
 assert 'text: card.formattedBody' in source
-assert 'interval: 100' in source, 'visible-time timeout uses a repeating timer tick'
+assert 'interval: Config.notificationsShowTimeoutIndicator ? 16 : 100' in source, 'visible-time timeout uses display-cadence ticks only when the indicator is enabled'
 assert '* 1000)) : 1000' not in source, 'timeout must not be multiplied by 1000 again'
 assert 'property var buttonActions: root.notificationButtonActions(notification)' in source
 assert 'model: card.buttonActions' in source
 assert 'if (card.notification && !card.removalPending) card.notification.dismiss()' in source
-assert 'running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0' in source, 'off-screen notification expiry timer must remain paused'
-assert 'card.visibleTimeoutElapsed += interval' in source, 'visible timeout progress must pause when off-screen instead of restarting or expiring unseen'
+assert 'running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && !card.pointerHovered && card.effectiveTimeout > 0' in source, 'off-screen notification expiry timer must remain paused'
+assert 'card.visibleTimeoutElapsed += tickElapsed' in source, 'visible timeout progress must use measured elapsed time and pause when off-screen'
 assert 'card.mapToItem(notificationList, 0, 0)' in source, 'viewport visibility must use mapped viewport coordinates'
 assert 'card.notification.expire()' in source
 assert 'if (!card.removalPending && modelData && typeof modelData.invoke === "function") modelData.invoke()' in source

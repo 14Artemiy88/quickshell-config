@@ -8,7 +8,8 @@ SECTION="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 grep -Fq 'visible: enabled' "$BUTTON" || { echo 'Disabled standard buttons must be hidden' >&2; exit 1; }
 grep -Fq 'visible: enabled' "$RESET" || { echo 'Disabled reset buttons must be hidden' >&2; exit 1; }
 grep -Fq 'function syncProfileComboToActiveProfile()' "$SECTION" || { echo 'Profile selector lacks active-profile synchronization' >&2; exit 1; }
-grep -Fq 'function onProfilesRevisionChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }' "$SECTION" || { echo 'Profile selector does not resync after profile list changes' >&2; exit 1; }
+grep -Fq 'function onProfilesRevisionChanged() {' "$SECTION" || { echo 'Profile selector does not listen for profile-list changes' >&2; exit 1; }
+grep -Fq 'settingsWindowColumn.syncProfileComboToActiveProfile()' "$SECTION" || { echo 'Profile selector does not resync after profile list changes' >&2; exit 1; }
 grep -Fq 'function onActiveProfileChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }' "$SECTION" || { echo 'Profile selector does not resync after active profile changes' >&2; exit 1; }
 grep -Fq 'text: settings.activeProfile ? "Активный профиль: " + settings.activeProfile : "Активный профиль: по умолчанию"' "$SECTION" || { echo 'Profile groupbox heading does not show the active profile' >&2; exit 1; }
 if grep -Fq 'Текущий профиль:' "$SECTION"; then echo 'Redundant current-profile text remains' >&2; exit 1; fi

@@ -10,9 +10,10 @@ checks = {
     "off-screen cards are measured in ListView viewport coordinates": "card.mapToItem(notificationList, 0, 0)",
     "scroll position invalidates viewport calculation": "const scrollPosition = notificationList.contentY",
     "delegate relayout invalidates viewport calculation": "const delegatePosition = card.y",
-    "hidden cards do not accumulate timeout": "running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0",
+    "hidden cards do not accumulate timeout": "running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && !card.pointerHovered && card.effectiveTimeout > 0",
     "visible timeout is preserved while scrolling off-screen": "property real visibleTimeoutElapsed: 0",
-    "timeout advances only while visible timer ticks": "card.visibleTimeoutElapsed += interval",
+    "timeout advances only by measured visible time": "card.visibleTimeoutElapsed += tickElapsed",
+    "tick origin clears when the visibility timer pauses": "card.visibleTimeoutLastTick = running ? Date.now() : 0",
     "expiration waits for accumulated visible time": "if (card.visibleTimeoutElapsed >= timeout && !card.timeoutExpirationRequested)",
     "hidden cards remain tracked until shown or dismissed": "notification.tracked = true",
 }

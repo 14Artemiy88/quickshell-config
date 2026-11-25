@@ -1,6 +1,7 @@
 import QtQuick
 import "primitives" as Primitives
 import ".."
+import "../js/volumes/VolumeLayout.js" as VolumeLayout
 import Quickshell
 import Quickshell.Io
 
@@ -8,7 +9,6 @@ Primitives.ModuleFrame {
     id: root
     moduleName: "volumes"
     width: 275
-    height: 210
     property var monitor
     property real mainBackendValue: 0
     property bool mainMuted: Boolean(root.monitor?.data?.current_muted ?? false)
@@ -39,12 +39,10 @@ Primitives.ModuleFrame {
     readonly property int mainContentHeight: 2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight
     // Use the actual stream-list geometry so the window and clipped content
     // grow/shrink together without leaving unused space below a short list.
-    readonly property int adaptiveHeight: Math.min(
-        Config.volumeMaxHeight,
-        Math.max(
-            Config.volumeMinHeight,
-            mainContentHeight + (streamsExpanded ? streamListGapHeight + streamListContentHeight : 0)
-        )
+    readonly property int adaptiveHeight: VolumeLayout.adaptiveHeight(
+        root.streamsExpanded, root.streamCount, root.mainContentHeight,
+        root.streamListGapHeight, root.streamListContentHeight,
+        Config.volumeMinHeight, Config.volumeMaxHeight
     )
     readonly property int streamListViewportTargetHeight: Math.min(
         streamListContentHeight,

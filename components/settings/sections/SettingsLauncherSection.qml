@@ -132,10 +132,17 @@ Column {
     function moveTab(tabId, delta) {
         var order = root.normalizedTabOrder()
         var index = order.indexOf(tabId)
-        var destination = index + delta
-        if (index < 0 || destination < 0 || destination >= order.length) return
+        root.moveTabToIndex(tabId, index + Number(delta))
+    }
+
+    function moveTabToIndex(tabId, destination) {
+        var order = root.normalizedTabOrder()
+        var index = order.indexOf(tabId)
+        var target = Number(destination)
+        if (index < 0 || !isFinite(target) || Math.floor(target) !== target || target < 0 || target >= order.length || target === index)
+            return
         order.splice(index, 1)
-        order.splice(destination, 0, tabId)
+        order.splice(target, 0, tabId)
         Config.launcherTabOrder = order
         root.settings.save()
     }
@@ -1188,6 +1195,7 @@ Column {
     }
 
     SettingsGroup {
+        id: launcherTabsSettingsGroup
         objectName: "settings-search-page:launcherTabs"
         visible: root.host && root.host.currentPageId === "launcherTabs"
 
@@ -1242,10 +1250,13 @@ Column {
         }
 
         Repeater {
+            id: launcherTabsRepeater
             model: root.orderedTabRows
 
             delegate: Row {
                 id: launcherTabRow
+                Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                property Item reorderTargetItem: launcherTabRow
                 required property var modelData
                 required property int index
                 width: parent.width
@@ -1300,37 +1311,17 @@ Column {
                     }
                 }
 
-                Item { width: Math.max(0, launcherTabRow.width - 40 - 78 - 165 - 44 - 5 * launcherTabRow.spacing); height: 1 }
+                Item { width: Math.max(0, launcherTabRow.width - 40 - 78 - 165 - 26 - 4 * launcherTabRow.spacing); height: 1 }
 
-                Item {
-                    width: 22
-                    height: 22
-                    MoveArrowButton {
-                        anchors.fill: parent
-                        iconText: "↑"
-                        iconSize: Config.settingsUiSize(12)
-                        baseColor: Config.text
-                        hoverMode: "frame"
-                        hoverColor: Config.accent
-                        interactionEnabled: launcherTabRow.index > 0
-                        toolTipText: "Поднять выше"
-                        onClicked: root.moveTab(launcherTabRow.modelData.id, -1)
-                    }
-                }
-
-                Item {
-                    width: 22
-                    height: 22
-                    MoveArrowButton {
-                        anchors.fill: parent
-                        iconText: "↓"
-                        iconSize: Config.settingsUiSize(12)
-                        baseColor: Config.text
-                        hoverMode: "frame"
-                        hoverColor: Config.accent
-                        interactionEnabled: launcherTabRow.index < root.orderedTabRows.length - 1
-                        toolTipText: "Опустить ниже"
-                        onClicked: root.moveTab(launcherTabRow.modelData.id, 1)
+                DragReorderHandle {
+                    width: 26
+                    height: 26
+                    listRepeater: launcherTabsRepeater
+                    dropIndicatorHost: launcherTabsSettingsGroup
+                    itemIndex: launcherTabRow.index
+                    accessibleLabel: launcherTabRow.modelData.label
+                    onReorderRequested: function(fromIndex, toIndex) {
+                        root.moveTabToIndex(launcherTabRow.modelData.id, toIndex)
                     }
                 }
             }
@@ -1339,6 +1330,7 @@ Column {
 
 
     SettingsGroup {
+        id: launcherProjectsSettingsGroup
         objectName: "settings-search-page:launcherProjects"
         visible: root.host && root.host.currentPageId === "launcherProjects"
 
@@ -1350,10 +1342,14 @@ Column {
         contentSpacing: 6
 
         Repeater {
-            model: Config.launcherProjects instanceof Array ? Config.launcherProjects.length : 0
+            id: launcherProjectsRepeater
+            model: Config.launcherProjects instanceof Array ? Config.launcherProjects : []
 
             delegate: SettingsGroup {
                 id: projectSettingsCard
+                required property var modelData
+                Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                property Item reorderTargetItem: projectSettingsCard
                 required property int index
                 width: projectSettingsCard.parent ? projectSettingsCard.parent.width : root.width
                 showFrame: true
@@ -1380,7 +1376,7 @@ Column {
 
                     SettingsTextField {
                         id: projectNameField
-                        width: Math.max(100, parent.width - 48 - 22 - 22 - 50 - 4 * parent.spacing)
+                        width: Math.max(100, parent.width - 48 - 26 - 50 - 3 * parent.spacing)
                         height: 28
                         text: root.projectValue(projectSettingsCard.index, "name")
                         placeholderText: "Название"
@@ -1390,39 +1386,15 @@ Column {
                         onEditingFinished: root.updateProject(projectSettingsCard.index, "name", text)
                     }
 
-                    Item {
-                        width: 22
-                        height: 28
-                        MoveArrowButton {
-                            anchors.centerIn: parent
-                            width: 22
-                            height: 22
-                            iconText: "↑"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: projectSettingsCard.index > 0
-                            toolTipText: "Поднять выше"
-                            onClicked: root.settings.moveLauncherProject(projectSettingsCard.index, -1)
-                        }
-                    }
-
-                    Item {
-                        width: 22
-                        height: 28
-                        MoveArrowButton {
-                            anchors.centerIn: parent
-                            width: 22
-                            height: 22
-                            iconText: "↓"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: projectSettingsCard.index < Config.launcherProjects.length - 1
-                            toolTipText: "Опустить ниже"
-                            onClicked: root.settings.moveLauncherProject(projectSettingsCard.index, 1)
+                    DragReorderHandle {
+                        width: 26
+                        height: 26
+                        listRepeater: launcherProjectsRepeater
+                        dropIndicatorHost: launcherProjectsSettingsGroup
+                        itemIndex: projectSettingsCard.index
+                        accessibleLabel: root.projectValue(projectSettingsCard.index, "name") || "проект"
+                        onReorderRequested: function(fromIndex, toIndex) {
+                            root.settings.moveLauncherProjectTo(fromIndex, toIndex)
                         }
                     }
 
@@ -1479,6 +1451,7 @@ Column {
     }
 
     SettingsGroup {
+        id: launcherActionsSettingsGroup
         objectName: "settings-search-page:launcherActions"
         visible: root.host && root.host.currentPageId === "launcherActions" && root.host.currentPageSubTabIndex === 2
         settingsSearchSubTabIndex: 2
@@ -1500,10 +1473,13 @@ Column {
         }
 
         Repeater {
+            id: launcherCustomActionsRepeater
             model: Array.isArray(Config.launcherCustomActions) ? Config.launcherCustomActions : []
 
             delegate: SettingsGroup {
                 id: customActionCard
+                Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                property Item reorderTargetItem: customActionCard
                 required property var modelData
                 required property int index
                 property bool validationAttempted: false
@@ -1574,7 +1550,7 @@ Column {
 
                     SettingsTextField {
                         id: customActionNameField
-                        width: Math.max(90, parent.width - 34 - 48 - 22 - 22 - 54 - 5 * parent.spacing)
+                        width: Math.max(90, parent.width - 34 - 48 - 26 - 54 - 4 * parent.spacing)
                         height: 28
                         validationFailed: customActionCard.validationAttempted
                             && customActionCard.validationTargetEnabled && text.trim().length === 0
@@ -1586,39 +1562,15 @@ Column {
                         onEditingFinished: customActionCard.saveAction()
                     }
 
-                    Item {
-                        width: 22
-                        height: 28
-                        MoveArrowButton {
-                            anchors.centerIn: parent
-                            width: 22
-                            height: 22
-                            iconText: "↑"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: customActionCard.index > 0
-                            toolTipText: "Поднять выше"
-                            onClicked: root.settings.moveLauncherCustomAction(customActionCard.index, -1)
-                        }
-                    }
-
-                    Item {
-                        width: 22
-                        height: 28
-                        MoveArrowButton {
-                            anchors.centerIn: parent
-                            width: 22
-                            height: 22
-                            iconText: "↓"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: customActionCard.index < Config.launcherCustomActions.length - 1
-                            toolTipText: "Опустить ниже"
-                            onClicked: root.settings.moveLauncherCustomAction(customActionCard.index, 1)
+                    DragReorderHandle {
+                        width: 26
+                        height: 26
+                        listRepeater: launcherCustomActionsRepeater
+                        dropIndicatorHost: launcherActionsSettingsGroup
+                        itemIndex: customActionCard.index
+                        accessibleLabel: String(customActionCard.modelData.name || "действие")
+                        onReorderRequested: function(fromIndex, toIndex) {
+                            root.settings.moveLauncherCustomActionTo(fromIndex, toIndex)
                         }
                     }
 

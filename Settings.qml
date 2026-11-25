@@ -15,6 +15,7 @@ import "js/settings/SettingsGeometry.js" as SettingsGeometry
 import "js/NotificationsGeometry.js" as NotificationsGeometry
 import "js/settings/SettingsApply.js" as SettingsApply
 import "js/settings/SettingsMetadata.js" as SettingsMetadata
+import "js/settings/SettingsPageRegistry.js" as SettingsPageRegistry
 import "."
 
 QtObject {
@@ -43,6 +44,7 @@ QtObject {
     property bool networks: true
     property bool notifications: true
     property bool calendar: true
+    property bool dashboard: true
     property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
     property var moduleMonitors: ({})
     property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
@@ -108,6 +110,15 @@ QtObject {
     signal saved()
     signal resetUnavailable(string message)
 
+    // Expose the pure navigation registry to shared settings JS modules without
+    // coupling those modules to QML import directives. This also keeps their
+    // Node-based regression harnesses portable.
+    function normalizeSettingsNavigationOrder(value) {
+        return SettingsPageRegistry.normalizeNavigationOrder(value)
+    }
+    function settingsNavigationOrderFromLegacyTabOrder(value) {
+        return SettingsPageRegistry.navigationOrderFromLegacyTabOrder(value)
+    }
     function applyObject(o) { return SettingsApply.applyObject(root, Config, o, moduleNames, defaultModuleFrames, defaultModuleBackgrounds, colorNames, defaultModuleBlurEnabled) }
     function setModuleBlurEnabled(moduleName, enabled) {
         var values = Object.assign({}, root.moduleBlurEnabled || {})
@@ -327,6 +338,11 @@ QtObject {
         root.save()
     }
 
+    function moveLauncherProjectTo(fromIndex, toIndex) {
+        Config.launcherProjects = SettingsLauncherProjects.moveTo(Config.launcherProjects, fromIndex, toIndex)
+        root.save()
+    }
+
     function updateLauncherCustomAction(index, field, value) {
         Config.launcherCustomActions = SettingsLauncherActions.update(Config.launcherCustomActions, index, field, value)
         root.save()
@@ -352,6 +368,11 @@ QtObject {
         root.save()
     }
 
+    function moveLauncherCustomActionTo(fromIndex, toIndex) {
+        Config.launcherCustomActions = SettingsLauncherActions.moveTo(Config.launcherCustomActions, fromIndex, toIndex)
+        root.save()
+    }
+
     function resetConfigKeys(names) { SettingsResets.resetConfigKeys(root, Config, names) }
 
     // Reset-button visibility follows the sparse profileOverrides payload used by
@@ -359,7 +380,7 @@ QtObject {
     // profile baseline. This keeps the UI aligned with the actual persistence model.
     function hasResetChanges(scope, argument) {
         var name = String(activeProfile || "")
-        if (!name || !profiles || profiles[name] === undefined) return false
+        if (!name || !profiles || !Object.prototype.hasOwnProperty.call(profiles, name)) return false
 
         // Read a cached reference: calling payloadObject here used to clone and
         // diff the entire settings snapshot once per reset-button binding on each
@@ -470,6 +491,9 @@ QtObject {
         }
         if (scope === "dashboard")
             return hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"])
+        if (scope === "dashboardModule")
+            return hasNested("modules", "dashboard")
+                || hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"])
         if (scope === "launcher")
             return hasResetChanges("module", "launcher") || hasPrefixed(["launcher"])
         if (scope === "themes") {
@@ -501,7 +525,7 @@ QtObject {
             cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
             dashboard: ["dashboard"],
-            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsTabOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsNavigationOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
             notifications: ["notifications", "animationNotifications"]
         }
         if (scope === "settingsWindow") {
@@ -554,6 +578,7 @@ QtObject {
     function resetSettingsWindow() { SettingsResets.resetSettingsWindow(root, Config) }
 
     function resetDashboardSettings() { SettingsResets.resetDashboardSettings(root, Config) }
+    function resetDashboardModule() { SettingsResets.resetDashboardSettings(root, Config, true) }
     function resetLauncherSettings() { SettingsResets.resetLauncherSettings(root, Config) }
     function resetNotificationsSettings() { SettingsResets.resetNotificationsSettings(root, Config) }
 
@@ -596,7 +621,7 @@ QtObject {
 
     function isCustomTheme(name) { return SettingsThemeManager.isCustomTheme(root, name) }
 
-    function beginThemeEdit(name) { SettingsThemeManager.beginThemeEdit(root, SettingsThemes, name) }
+    function beginThemeEdit(name) { return SettingsThemeManager.beginThemeEdit(root, SettingsThemes, name, Config) }
 
     function themeDraftValue(name) { return SettingsThemeManager.themeDraftValue(root, Config, name) }
 

@@ -41,12 +41,14 @@ const persistence = loadLibrary('js/settings/SettingsPersistence.js');
 const payloadOwner = {
   snapshotObject: () => ({settingsNavigationCollapsedGroups: {appearance: true, modules: false}, modules: {}, colors: {accent: '#fff'}}),
   activeProfile: '', profiles: {}, customThemes: {},
-  config: {settingsNavigationCollapsedGroups: {appearance: true, modules: false}}
+  config: {settingsNavigationCollapsedGroups: {appearance: true, modules: false}, settingsLastActivePageId: 'weather'}
 };
 const payload = persistence.payloadObject(payloadOwner, payloadOwner.config);
 assert.deepStrictEqual(JSON.parse(JSON.stringify(payload.settingsNavigationCollapsedGroups)), {appearance: true, modules: false});
 assert(!Object.prototype.hasOwnProperty.call(payload.profileOverrides, 'settingsNavigationCollapsedGroups'));
 assert(payload.managedKeys.includes('settingsNavigationCollapsedGroups'));
+assert.strictEqual(payload.settingsLastActivePageId, 'weather', 'last selected page persists as root-level UI state');
+assert(!Object.prototype.hasOwnProperty.call(payload.profileOverrides, 'settingsLastActivePageId'), 'last active page remains outside profiles');
 
 // CPU/RAM page scope includes all four nested Top Apps colors for Save/Reset.
 const specs = navigation.match(/"cpuRam":\s*\[([\s\S]*?)\n\s*\],/);
@@ -80,18 +82,55 @@ for (const file of [
   'components/settings/primitives/SettingsCheckBox.qml'
 ]) assert(read(file).includes('opacity: root.enabled ? 1 : 0.55'), `${file} retains shared disabled-state appearance`);
 
+// Shared Save/Reset primitives must remain connected to page and nested scopes.
+const pageHost = read('components/settings/SettingsPageHost.qml');
+const saveButton = read('components/settings/primitives/SettingsSaveButton.qml');
+const resetButton = read('components/settings/primitives/SettingsResetButton.qml');
+const modulesSection = read('components/settings/sections/SettingsModulesSection.qml');
+const themesSection = read('components/settings/sections/SettingsColorsSection.qml');
+assert(saveButton.includes('property string iconText: "\\uf0c7"'));
+assert(saveButton.includes('iconText: root.iconText'));
+assert(saveButton.includes('SettingsButton {'));
+assert(pageHost.includes('SettingsSaveButton {') && pageHost.includes('SettingsResetButton {'));
+assert(pageHost.includes('root.host.profileController.saveScope(root.host.currentPageSaveScope)'));
+assert(pageHost.includes('root.host.resetCurrentSettingsPage()'));
+assert(pageHost.includes('profileController.canResetScope(root.host.currentPageSaveScope)'));
+assert(resetButton.includes('visible: enabled && actionAvailable'));
+assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'));
+assert(themesSection.includes('host.profileController.saveScope("colors", modelData.colors)'));
+
+// Navigation-order editor uses a single settingsWindow page-level dirty/save/reset scope.
+const settingsWindow = read('components/settings/sections/SettingsWindowSection.qml');
+assert(settingsWindow.includes('hasResetChanges("keys", ({ keys: ["settingsNavigationOrder", "settingsTabLabels"] }))'));
+assert(navigation.includes('"settingsWindow": [') && navigation.includes('"settingsNavigationOrder", "settingsTabLabels"'));
+
+// Search counters and match explanations stay consistent between wide and compact navigation.
+const tabBase = read('components/settings/primitives/SettingsTabBase.qml');
+const navigationView = read('components/settings/SettingsNavigation.qml');
+assert(tabBase.includes('Config.settingsUiSize(Config.settingsSearchMatchCountFontSize)'));
+assert(tabBase.includes('ToolTip.text: root.settingsSearchMatched && root.settingsSearchMatchHint.length > 0'));
+assert(navigationView.includes('root.compactNavigation') && navigationView.includes('Math.max(7, Config.settingsSearchMatchCountFontSize - 1)'));
+assert(search.includes('SettingsSearch.explainMatch(entry, root.settingsSearchQuery)'));
+
 // Keep the key regression suites registered exactly once in the release gate.
 const check = read('CHECK.sh');
 for (const name of [
   'test_settings_navigation_collapsed_persistence.sh',
+  'test_settings_last_active_page_persistence.sh',
   'test_top_apps_bar_reset_scope.sh',
   'test_settings_unified_page_metadata.sh',
   'test_settings_search_synonyms.sh',
   'test_settings_dependent_controls_consistency.sh',
+  'test_settings_save_button_primitive.sh',
+  'test_settings_reset_button_primitive.sh',
+  'test_profile_management_guardrails.sh',
+  'test_settings_theme_editor_morph_batch.sh',
+  'test_settings_ui_snapshot_preserves_unknown_fields.sh',
+  'test_settings_focus_restore_page_transitions.sh',
   'test_theme_independent_colors_are_not_palette_state.sh'
 ]) {
   const matches = check.match(new RegExp(`tests/${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'g')) || [];
   assert.strictEqual(matches.length, 1, `${name} is registered exactly once`);
 }
-console.log('Settings final integration: 5 groups, 22 pages, 65 subtabs, navigation UI state, search, Top Apps reset, dependent controls and theme/profile ownership: OK');
+console.log('Settings final integration: 5 groups, 22 pages, 65 subtabs, navigation, focus/search, shared Save/Reset, profile/theme ownership and persistence: OK');
 JS

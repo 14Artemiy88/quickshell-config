@@ -14,7 +14,7 @@ Rectangle {
     border.width: controller.hoverBorderWidth(rowMouse.containsMouse)
     border.color: controller.hoverBorderColor(rowMouse.containsMouse)
 
-    readonly property int actionWidth: (Config.mopidyShowMoveUpIcon || Config.mopidyShowMoveDownIcon) ? 42 : 0
+    readonly property int actionWidth: 32
     readonly property real numberWidth: trackNumberSlot.width
     readonly property int durationWidth: 38
 
@@ -138,42 +138,25 @@ Rectangle {
         verticalAlignment: Text.AlignVCenter
     }
 
-    Primitives.MoveArrowButton {
-        id: queueMoveUpIconButton
+    Primitives.DragReorderHandle {
+        id: queueReorderHandle
+        visible: controller.tracks.length > 1
         z: 4
-        width: 22
-        height: 22
-        x: trackRow.width - trackRow.durationWidth - 27 + Config.mopidyMoveUpIconX
-        y: Math.round((trackRow.height - height) / 2) + Config.mopidyMoveUpIconY
-        iconText: itemData.queueIndex > 0 ? Config.mopidyMoveUpIcon : ""
-        iconSize: Config.mopidyMoveUpIconSize
-        requestedVisible: itemData.queueIndex > 0 && Config.mopidyShowMoveUpIcon
-        hideWhenDisabled: false
-        morphVisibility: true
-        baseColor: Config.textMuted
-        hoverMode: Config.mopidyHoverMode
-        hoverColor: Config.mopidyHoverColor
-        interactionEnabled: requestedVisible && !controller.queueBusy
-        onClicked: controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex - 1)
-    }
-
-    Primitives.MoveArrowButton {
-        id: queueMoveDownIconButton
-        z: 4
-        width: 22
-        height: 22
-        x: trackRow.width - trackRow.durationWidth - 5 + Config.mopidyMoveDownIconX
-        y: Math.round((trackRow.height - height) / 2) + Config.mopidyMoveDownIconY
-        iconText: itemData.queueIndex < controller.tracks.length - 1 ? Config.mopidyMoveDownIcon : ""
-        iconSize: Config.mopidyMoveDownIconSize
-        requestedVisible: itemData.queueIndex < controller.tracks.length - 1 && Config.mopidyShowMoveDownIcon
-        hideWhenDisabled: false
-        morphVisibility: true
-        baseColor: Config.textMuted
-        hoverMode: Config.mopidyHoverMode
-        hoverColor: Config.mopidyHoverColor
-        interactionEnabled: requestedVisible && !controller.queueBusy
-        onClicked: controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex + 1)
+        width: 26
+        height: 26
+        x: trackRow.width - trackRow.durationWidth - 31
+        y: Math.round((trackRow.height - height) / 2)
+        reorderAdapter: controller.queueReorderAdapter
+        itemIndex: Number(itemData.queueIndex)
+        dropIndicatorHost: controller.queueReorderHost
+        interactionEnabled: controller.queueReorderEnabled
+            && (!controller.queueReorderDragging || controller.queueActiveDragHandle === queueReorderHandle)
+        accessibleLabel: itemData.track.name || "трек в очереди"
+        onDraggingChanged: controller.setQueueReorderDragging(dragging, queueReorderHandle)
+        onDragPositionChanged: function(sceneX, sceneY) { controller.updateQueueDragPosition(sceneX, sceneY) }
+        onReorderRequested: function(fromIndex, toIndex) {
+            controller.moveTrack(Number(itemData.track.tlid), toIndex)
+        }
     }
 
     MouseArea {

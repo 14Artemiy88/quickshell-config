@@ -57,7 +57,9 @@ assert.match(defaults, /dashboardCardOrder: \["today", "system", "network", "wea
 assert.match(pageSection, /heading: "Карточки Dashboard"/);
 assert.match(pageSection, /независимо от включения соответствующих модулей/);
 assert.match(pageSection, /DashboardCards\.move\(Config\.dashboardCardOrder, id, direction\)/, 'settings expose independent card reordering');
-assert.match(pageSection, /MoveArrowButton/, 'card rows expose up/down ordering controls');
+assert.match(pageSection, /DragReorderHandle/, 'card rows expose a shared drag-reorder handle');
+assert.match(pageSection, /listRepeater: dashboardSettingsCardsRepeater/, 'dashboard settings rows use the repeated card delegates as drop targets');
+assert.match(pageSection, /moveCardToIndex\(cardSettings\.cardId, toIndex\)/, 'dashboard settings commit exact drag destinations');
 assert.strictEqual((pageSection.match(/onToggled: root\.setCardEnabled\(/g) || []).length, 1, 'one repeated checkbox delegate controls independent card visibility');
 assert.match(pageSection, /root\.settings\.save\(\)/, 'visibility and order are saved');
 assert.match(dashboard, /property var orderedCards: DashboardCards\.orderedVisible\(Config\.dashboardCardOrder, Config\.dashboardVisibleCards\)/, 'Dashboard card model uses saved order and independent visibility');
@@ -155,8 +157,8 @@ assert.match(persistenceSource, /dashboardVisibleCards: normalizeDashboardCards\
 assert.match(persistenceSource, /dashboardCardOrder: normalizeDashboardCardOrder\(config\.dashboardCardOrder\)/);
 assert.match(applySource, /Config\.dashboardVisibleCards = normalizeDashboardCards\(o\.dashboardVisibleCards, o\.dashboardCardOrder\)/);
 assert.match(applySource, /Config\.dashboardCardOrder = normalizeDashboardCardOrder\(o\.dashboardCardOrder\)/);
-assert.match(resetSource, /function resetDashboardSettings\(owner, config\)/);
-console.log('Dashboard independent cards/order, defaults, Settings routing, profile scope, and shared-data architecture: OK');
+assert.match(resetSource, /function resetDashboardSettings\(owner, config, includeModule\)/);
+console.log('Dashboard independent cards/order, defaults, Settings separation, profile scope, and shared-data architecture: OK');
 NODE
 
 echo 'dashboard independent cards: OK'

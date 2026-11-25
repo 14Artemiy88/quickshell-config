@@ -24,11 +24,11 @@ checks = {
         'summaryTopOffset + measuredSummaryHeight + (measuredSummaryHeight > 0 ? 3 : 0)',
     ],
     "empty-summary cards use a shorter minimum height": [
-        'const minimumCardHeight = hasAvatar ? 64 : (measuredSummaryHeight > 0 ? 68 : 52)',
+        'const minimumCardHeight = hasLeadingVisual\n            ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2\n            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight + root.notificationCardPadding : appNameBottomOffset + root.notificationCardPadding)',
         'return Math.max(minimumCardHeight, Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace))',
     ],
     "card height uses summary height after checking summary presence": [
-        'root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)',
+        'root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)',
     ],
 }
 for description, fragments in checks.items():

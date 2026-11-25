@@ -1,6 +1,7 @@
 import QtQuick
 import "../.." // Import Config/Settings singletons in this component's own QML scope.
 import "../../js/settings/SettingsPageRegistry.js" as SettingsPageRegistry
+import "../../js/utils/DragReorder.js" as DragReorder
 
 // Owns stable page routing, sidebar order/labels, subtab metadata, dirty markers and reset dispatch.
 // SettingsWidget remains the composition root and exposes this API to page/search/profile UI.
@@ -10,7 +11,7 @@ Item {
 
     property var host: null
     property var settings: Settings
-    property string currentPageId: "modules"
+    property string currentPageId: "general"
     property int currentPageSubTabIndex: 0
 
     // Stable page IDs, labels and non-core routes are owned by a dedicated
@@ -29,33 +30,22 @@ Item {
         return label || root.defaultSettingsTabLabel(id)
     }
 
-    function settingsTabOrderNormalized() {
-        var result = []
-        var seen = ({})
-        var saved = Config.settingsTabOrder
-        if (saved instanceof Array) {
-            for (var i = 0; i < saved.length; ++i) {
-                // Runtime guard mirrors the loader normalization in case a
-                // damaged settings object is assigned before normalization.
-                if (typeof saved[i] !== "string") continue
-                var id = saved[i]
-                var known = false
-                for (var d = 0; d < root.settingsTabDefinitions.length; ++d)
-                    if (root.settingsTabDefinitions[d].id === id) { known = true; break }
-                if (known && !seen[id]) { seen[id] = true; result.push(id) }
-            }
-        }
-        for (var j = 0; j < root.settingsTabDefinitions.length; ++j) {
-            var fallbackId = root.settingsTabDefinitions[j].id
-            if (!seen[fallbackId]) result.push(fallbackId)
-        }
-        // Keep group order fixed while preserving each group's user-defined
-        // page order. The flattened result is also used by the tab-order editor.
-        return SettingsPageRegistry.groupedTabOrder(result)
+    function settingsNavigationOrderNormalized() {
+        // The hierarchical object is the only runtime representation. Legacy
+        // flat arrays are accepted once by the settings-file migration layer.
+        return SettingsPageRegistry.normalizeNavigationOrder(Config.settingsNavigationOrder)
+    }
+
+    function settingsNavigationGroupOrderNormalized() {
+        return settingsNavigationOrderNormalized().groupOrder.slice()
+    }
+
+    function settingsNavigationPageIdsNormalized() {
+        return SettingsPageRegistry.flattenNavigationOrder(settingsNavigationOrderNormalized())
     }
 
     readonly property var settingsNavigationItems: SettingsPageRegistry.navigationItemsForOrder(
-        root.settingsTabOrderNormalized(), Config.settingsTabLabels || ({}))
+        root.settingsNavigationPageIdsNormalized(), Config.settingsTabLabels || ({}))
 
     function isSettingsTabSelected(id) {
         return root.currentPageId === String(id)
@@ -110,7 +100,7 @@ Item {
             "network": [
                 { keys: ["systemMonitorInterval"] },
                 { prefixes: ["network"], keys: ["networksAlwaysVisible"] },
-                { keys: ["animationNetworkMorphDuration", "animationNetworkMorphProfile"] }
+                { keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"] }
             ],
             "volume": [
                 { keys: ["volumeIcon", "volumeMutedIcon"] },
@@ -129,12 +119,12 @@ Item {
             "settingsWindow": [
                 { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize"] },
                 { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
-                { keys: ["settingsTabOrder", "settingsTabLabels"] }
+                { keys: ["settingsNavigationOrder", "settingsTabLabels"] }
             ],
             "mopidy": [
                 { keys: ["mopidyAlbumBold", "mopidyAlbumSeparator", "mopidyBackground", "mopidyGroupAlbums", "mopidyHoverColor", "mopidyHoverMode", "mopidyShowTrackNumbers", "mopidyShowVolumePercent", "mopidyToggleWithPlayerRightClick", "mopidyVolumeStep"] },
                 { prefixes: ["mopidyTrack", "mopidyArtist", "mopidyAlbum", "mopidyDuration", "mopidyQueueDuration"], keys: ["mopidyShowAlbumRemaining", "mopidyShowQueueTotalDuration", "mopidyShowTrackRemaining"] },
-                { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyMoveDownIcon", "mopidyMoveUpIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
+                { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
                 { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] },
                 { keys: ["animationMopidyVisibilityStyle", "animationMopidyMorphDuration", "animationMopidyMorphProfile"] }
             ],
@@ -162,7 +152,7 @@ Item {
             ],
             "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout"] },
-                { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
+                { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
                 { keys: ["notificationsVerticalAnchor"] },
                 { keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] }
             ]
@@ -227,7 +217,9 @@ Item {
         var pageId = String(id || "")
         if (pageId !== "modules" && pageId !== "themes" && !SettingsPageRegistry.hasOtherPageId(pageId))
             return
-        if (root.host) root.host.clearSettingsFocus()
+        // The invoking navigation control already owns active focus (mouse,
+        // keyboard or accessibility activation). Keep it there across the page
+        // switch instead of sending focus to the invisible SettingsWidget root.
         root.currentPageId = pageId
     }
 
@@ -265,39 +257,107 @@ Item {
         root.settings.save()
     }
 
+    // Page ordering is explicitly scoped to one canonical navigation frame.
+    // The legacy page-only wrappers remain for existing callers, but editor
+    // controls use the group-scoped API so a page can never cross a frame.
+    function settingsTabCanMoveWithinGroup(groupId, id, delta) {
+        var pageId = String(id)
+        var targetGroupId = String(groupId)
+        var step = Number(delta)
+        if (step !== -1 && step !== 1)
+            return false
+        if (SettingsPageRegistry.navigationGroupIdForTabId(pageId) !== targetGroupId)
+            return false
+        var order = root.settingsNavigationOrderNormalized()
+        var pageOrder = order.pagesByGroup[targetGroupId] || []
+        var from = pageOrder.indexOf(pageId)
+        var to = from + step
+        return from >= 0 && to >= 0 && to < pageOrder.length && to !== from
+    }
+
     function settingsTabCanMove(id, delta) {
         var pageId = String(id)
-        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
-        var groupOrder = []
-        var order = root.settingsTabOrderNormalized()
-        for (var i = 0; i < order.length; ++i) {
-            if (SettingsPageRegistry.navigationGroupIdForTabId(order[i]) === groupId)
-                groupOrder.push(order[i])
-        }
-        var from = groupOrder.indexOf(pageId)
-        var to = from + Number(delta)
-        return from >= 0 && to >= 0 && to < groupOrder.length && to !== from
+        return root.settingsTabCanMoveWithinGroup(
+            SettingsPageRegistry.navigationGroupIdForTabId(pageId), pageId, delta)
+    }
+
+    function moveSettingsTabWithinGroupTo(groupId, id, toIndex) {
+        var pageId = String(id)
+        var targetGroupId = String(groupId)
+        if (SettingsPageRegistry.navigationGroupIdForTabId(pageId) !== targetGroupId)
+            return false
+        var order = root.settingsNavigationOrderNormalized()
+        var pageOrder = (order.pagesByGroup[targetGroupId] || []).slice()
+        var fromIndex = pageOrder.indexOf(pageId)
+        var destination = Number(toIndex)
+        if (fromIndex < 0 || !isFinite(destination) || Math.floor(destination) !== destination
+                || destination < 0 || destination >= pageOrder.length || fromIndex === destination)
+            return false
+        order.pagesByGroup[targetGroupId] = DragReorder.move(pageOrder, fromIndex, destination)
+        Config.settingsNavigationOrder = SettingsPageRegistry.normalizeNavigationOrder(order)
+        root.settings.save()
+        return true
+    }
+
+    function moveSettingsTabWithinGroup(groupId, id, delta) {
+        var pageId = String(id)
+        var targetGroupId = String(groupId)
+        if (!root.settingsTabCanMoveWithinGroup(targetGroupId, pageId, delta)) return false
+        var order = root.settingsNavigationOrderNormalized()
+        var pageOrder = (order.pagesByGroup[targetGroupId] || []).slice()
+        var from = pageOrder.indexOf(pageId)
+        var destination = from + Number(delta)
+        if (from < 0 || destination < 0 || destination >= pageOrder.length || destination === from)
+            return false
+        order.pagesByGroup[targetGroupId] = DragReorder.move(pageOrder, from, destination)
+        Config.settingsNavigationOrder = SettingsPageRegistry.normalizeNavigationOrder(order)
+        root.settings.save()
+        return true
     }
 
     function moveSettingsTab(id, delta) {
-        if (!root.settingsTabCanMove(id, delta)) return
         var pageId = String(id)
-        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
-        var order = root.settingsTabOrderNormalized()
-        var groupOrder = []
-        for (var i = 0; i < order.length; ++i) {
-            if (SettingsPageRegistry.navigationGroupIdForTabId(order[i]) === groupId)
-                groupOrder.push(order[i])
-        }
-        var from = groupOrder.indexOf(pageId)
-        var neighborId = groupOrder[from + Number(delta)]
-        var pageIndex = order.indexOf(pageId)
-        var neighborIndex = order.indexOf(neighborId)
-        var temporary = order[pageIndex]
-        order[pageIndex] = order[neighborIndex]
-        order[neighborIndex] = temporary
-        Config.settingsTabOrder = order
+        root.moveSettingsTabWithinGroup(
+            SettingsPageRegistry.navigationGroupIdForTabId(pageId), pageId, delta)
+    }
+
+    function settingsNavigationGroupCanMove(id, delta) {
+        var step = Number(delta)
+        if (step !== -1 && step !== 1)
+            return false
+        var groupOrder = root.settingsNavigationGroupOrderNormalized()
+        var from = groupOrder.indexOf(String(id))
+        var to = from + step
+        return from >= 0 && to >= 0 && to < groupOrder.length && to !== from
+    }
+
+    function moveSettingsNavigationGroupTo(id, toIndex) {
+        var groupId = String(id)
+        var order = root.settingsNavigationOrderNormalized()
+        var groupOrder = order.groupOrder.slice()
+        var fromIndex = groupOrder.indexOf(groupId)
+        var destination = Number(toIndex)
+        if (fromIndex < 0 || !isFinite(destination) || Math.floor(destination) !== destination
+                || destination < 0 || destination >= groupOrder.length || fromIndex === destination)
+            return false
+        order.groupOrder = DragReorder.move(groupOrder, fromIndex, destination)
+        Config.settingsNavigationOrder = SettingsPageRegistry.normalizeNavigationOrder(order)
         root.settings.save()
+        return true
+    }
+
+    function moveSettingsNavigationGroup(id, delta) {
+        if (!root.settingsNavigationGroupCanMove(id, delta)) return false
+        var order = root.settingsNavigationOrderNormalized()
+        var groupOrder = order.groupOrder.slice()
+        var from = groupOrder.indexOf(String(id))
+        var destination = from + Number(delta)
+        if (from < 0 || destination < 0 || destination >= groupOrder.length || destination === from)
+            return false
+        order.groupOrder = DragReorder.move(groupOrder, from, destination)
+        Config.settingsNavigationOrder = SettingsPageRegistry.normalizeNavigationOrder(order)
+        root.settings.save()
+        return true
     }
 
     readonly property string currentPageTitle: {

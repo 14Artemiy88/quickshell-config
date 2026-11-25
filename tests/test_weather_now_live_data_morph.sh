@@ -7,8 +7,8 @@ fail() { echo "Weather Now live data MorphGeometry: FAIL: $*" >&2; exit 1; }
 grep -Fq 'import "primitives" as Primitives' "$QML" || fail "shared primitive import missing"
 for token in \
     'id: weatherIconMorph' \
-    'progress: root.hasData && Config.weatherIconPlacement !== "off" ? 1 : 0' \
-    'visible: (root.hasData && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001' \
+    'progress: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? 1 : 0' \
+    'visible: (root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001' \
     'id: weatherWindMorph' \
     'progress: root.hasData ? 1 : 0' \
     'visible: root.hasData || normalizedProgress > 0.001' \
@@ -63,6 +63,10 @@ assert 'fromGeometry: Qt.rect(' in icon and 'toGeometry: Qt.rect(' in icon
 assert icon.count('Config.weatherIconSize') >= 4
 assert 'Image {' in icon and 'anchors.fill: parent' in icon
 assert 'opacity: weatherIconMorph.normalizedProgress' in icon
+assert 'root.normalizedIconCode !== ""' in icon
+assert 'weatherNowIconImage.status !== Image.Ready' in icon
+assert 'text: "☁"' in icon
+assert 'DashboardCards.normalizeWeatherIconCode(root.weather && root.weather.icon)' in qml
 assert 'clip: true' not in icon, 'icon transition must not clip its image'
 assert 'fromGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)' in wind
 assert 'toGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)' in wind

@@ -24,7 +24,7 @@ const definitions = Array.from(registry.tabDefinitions());
 const otherPages = Array.from(registry.otherPageDefinitions());
 const ids = definitions.map(page => page.id);
 assert(widget.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes the controller-owned stable page ID');
-assert(navigation.includes('property string currentPageId: "modules"'), 'navigation controller owns one stable primary page ID');
+assert(navigation.includes('property string currentPageId: "general"'), 'navigation controller owns one stable primary page ID with General as the first-run fallback');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widget), 'numeric main/other page route state is removed');
 assert(!/currentPageId\s*===\s*\d+/.test(widget), 'page comparisons never use numeric indices');
 assert(searchController.includes('root.host.currentPageId = entry.pageId'), 'search navigation opens the result page by ID through the host');

@@ -15,7 +15,7 @@ checks = {
         'visible: root.notificationHasBody(card.notification)',
     ],
     "height calculation receives body presence and summary layout": [
-        'root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)',
+        'root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)',
     ],
     "empty cards use compact minimum height": [
         'const actionMinimum = hasActions ? 76 : 52',

@@ -371,4 +371,84 @@ settingsSearchSubTabIndex: 1
             }
         }
     }
+
+    SettingsGroup {
+        visible: root.host && root.host.currentPageId === "network"
+            && root.host.currentPageSubTabIndex === 2 && !Config.networksAlwaysVisible
+        width: root.width
+        showFrame: true
+        heading: "Появление модуля"
+        changeKeys: ({ keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration"] })
+        padding: 8
+        contentSpacing: 6
+
+        SettingsRow {
+            label: "Стиль"
+            labelWidth: 210
+            width: parent.width
+            height: 30
+            spacing: 8
+
+            SettingsComboBox {
+                id: networkVisibilityStyleBox
+                width: 180
+                height: 30
+                property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                currentIndex: Math.max(0, values.indexOf(Config.animationNetworkVisibilityStyle))
+                onItemChosen: function(index) {
+                    if (index < 0 || index >= values.length) return
+                    Config.animationNetworkVisibilityStyle = values[index]
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onAnimationNetworkVisibilityStyleChanged() {
+                        networkVisibilityStyleBox.currentIndex = Math.max(0, networkVisibilityStyleBox.values.indexOf(Config.animationNetworkVisibilityStyle))
+                    }
+                }
+                background: Rectangle {
+                    color: Config.settingsBackground
+                    border.color: (networkVisibilityStyleBox.activeFocus || networkVisibilityStyleBox.pointerHovered) ? Config.accent : Config.baseColor
+                    border.width: 1
+                    radius: 4
+                }
+                contentItem: Text {
+                    text: networkVisibilityStyleBox.currentText
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(11)
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: 8
+                }
+            }
+        }
+
+        SettingsRow {
+            label: "Длительность (мс)"
+            labelWidth: 210
+            width: parent.width
+            height: 30
+            spacing: 8
+
+            SettingsNumberField {
+                width: 100
+                height: 30
+                value: Config.animationNetworkVisibilityDuration
+                minimum: 0
+                maximum: 5000
+                step: 50
+                wheelStep: 50
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "animationNetworkVisibilityDuration"
+                settingsObject: root.settings
+                saveOnEdit: true
+            }
+        }
+    }
 }

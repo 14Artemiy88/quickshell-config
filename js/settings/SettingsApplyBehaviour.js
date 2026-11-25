@@ -8,6 +8,7 @@ function apply(Config, o) {
         var animationStyleKeys = [
             "animationCalendarVisibilityStyle",
             "animationMopidyVisibilityStyle",
+            "animationNetworkVisibilityStyle",
             "animationTimerVisibilityStyle",
             "animationTimerOptionsVisibilityStyle",
             "animationSettingsVisibilityStyle",
@@ -162,6 +163,7 @@ function apply(Config, o) {
         }
         var animationNumberFields = [
             ["animationTimerOptionsDuration", 0, 5000],
+            ["animationNetworkVisibilityDuration", 0, 5000],
             ["animationCalendarSlideDuration", 0, 5000],
             ["animationCalendarFadeDuration", 0, 5000],
             ["volumeStreamsAnimationDuration", 0, 5000]

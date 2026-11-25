@@ -23,8 +23,17 @@ if grep -Fq 'Text.RichText' "$TRACK"; then
     echo 'Mopidy queue title uses RichText, which disables eliding' >&2
     exit 1
 fi
-grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex - 1)' "$TRACK"
-grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), itemData.queueIndex + 1)' "$TRACK"
+grep -Fq 'Primitives.DragReorderHandle {' "$TRACK"
+grep -Fq 'reorderAdapter: controller.queueReorderAdapter' "$TRACK"
+grep -Fq 'itemIndex: Number(itemData.queueIndex)' "$TRACK"
+grep -Fq 'dropIndicatorHost: controller.queueReorderHost' "$TRACK"
+grep -Fq 'controller.setQueueReorderDragging(dragging, queueReorderHandle)' "$TRACK"
+grep -Fq 'controller.updateQueueDragPosition(sceneX, sceneY)' "$TRACK"
+grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), toIndex)' "$TRACK"
+if grep -Fq 'Primitives.MoveArrowButton {' "$TRACK"; then
+    echo 'Mopidy queue still uses the legacy up/down arrows' >&2
+    exit 1
+fi
 grep -Fq 'controller.removeTrack(Number(itemData.track.tlid))' "$TRACK"
 grep -Fq 'controller.playTrack(Number(itemData.track.tlid))' "$TRACK"
 if grep -Eq '\broot\.|queueView\.' "$ALBUM" "$TRACK"; then

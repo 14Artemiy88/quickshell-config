@@ -7,16 +7,18 @@ from pathlib import Path
 import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
-    "messaging clients are identified separately from ordinary image notifications": "function notificationIsMessenger(notification)" in source and "telegram|discord|signal|whatsapp|element|matrix|slack|mattermost" in source,
-    "validated notification image is promoted to a dedicated avatar": "readonly property bool hasMessengerAvatar:" in source and "visible: card.hasMessengerAvatar" in source,
-    "avatar is positioned on the left and cropped consistently": "id: messengerAvatarFrame" in source and "width: 48\n                        height: 48" in source and "fillMode: Image.PreserveAspectCrop" in source,
-    "messenger text column reserves space beside the avatar": "hasMessengerAvatar ? 84 : 24" in source and "card.hasMessengerAvatar ? 72 : 12" in source,
-    "messenger avatar does not also render as a wide image below the body": "!hasMessengerAvatar" in source and "visible: card.hasNotificationImage && status === Image.Ready" in source,
-    "ordinary application icons remain visible when there is no messenger avatar": "!card.hasMessengerAvatar" in source and "Config.notificationsShowAppIcon" in source,
-    "avatar receives enough room in compact cards": "Math.max(hasAvatar ? 64 : actionMinimum" in source and "hasAvatar ? 64 : (measuredSummaryHeight > 0 ? 68 : 52)" in source,
+    "messaging clients remain recognized for image-data avatars": "function notificationIsMessenger(notification)" in source and "telegram|discord|signal|whatsapp|element|matrix|slack|mattermost" in source,
+    "any application image-path is promoted to the common leading visual": "function notificationHasImagePath(notification)" in source and "root.notificationHasImagePath(notification) || root.notificationIsMessenger(notification)" in source,
+    "leading image and app icon share one frame": "id: notificationVisualFrame" in source and "visible: card.hasLeadingVisual" in source,
+    "leading image frame uses the configured square size": "width: root.notificationLeadingVisualSize\n                        height: root.notificationLeadingVisualSize" in source,
+    "messenger avatars are cropped consistently": "root.notificationIsMessenger(card.notification)\n                                ? Image.PreserveAspectCrop : Image.PreserveAspectFit" in source,
+    "all leading visuals reserve the configured text column": "hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 3 : root.notificationCardPadding * 2" in source and "card.textColumnLeftMargin" in source,
+    "leading images are not also rendered as wide body previews": "&& !hasLeadingImage" in source and "visible: card.hasNotificationImage && status === Image.Ready" in source,
+    "failed leading images fall back to the application icon": "if (card.hasLeadingImage && status === Image.Error)" in source and "card.appIconSource" in source,
+    "non-messenger image-data remains available as a body preview": "&& !hasLeadingImage" in source and "property bool hasNotificationImage" in source,
     "avatar and body-image source continue through existing validation": "source: card.imageSource" in source and "onImageHintsSnapshotChanged: resolveNotificationImageSource()" in source,
 }
 for description, ok in checks.items():
     assert ok, f"{description}: failed"
-print("notifications messenger avatar layout: OK")
+print("notifications common leading image and messenger avatar layout: OK")
 PYCODE

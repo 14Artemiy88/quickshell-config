@@ -1,5 +1,6 @@
 import QtQuick
 import "primitives" as Primitives
+import "../js/player/PlayerImage.js" as PlayerImage
 import ".."
 import QtQuick.Controls
 import Quickshell
@@ -12,32 +13,9 @@ Primitives.ModuleFrame {
     property var player: ({})
     property string imagePath: root.player.image || ""
 
-    // QML Image expects a properly encoded URL. Raw local paths can contain
-    // spaces, Cyrillic characters, #, ?, and %, all of which must not be
-    // interpreted as URL syntax when building a file:// source.
+    // Share the exact local-path/URL normalization used by Dashboard artwork.
     function imageSourceForPath(value) {
-        var path = String(value || "")
-        if (path === "" || path === Quickshell.shellDir + "/assets/1px.png")
-            return ""
-
-        // Preserve non-file image URLs and Qt resource/image-provider URLs.
-        if (/^(https?:|data:|qrc:|image:)/i.test(path))
-            return path
-
-        var localPath = path
-        if (path.startsWith("file://")) {
-            localPath = path.substring(7)
-            if (localPath.startsWith("localhost/"))
-                localPath = localPath.substring("localhost".length)
-            // Existing file URLs may already contain percent-encoding. Decode
-            // first so they can be normalized once rather than double-encoded.
-            try { localPath = decodeURIComponent(localPath) } catch (e) {}
-        } else if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(path)) {
-            return path
-        }
-
-        var encodedPath = encodeURIComponent(localPath).replace(/%2F/gi, "/")
-        return "file://" + encodedPath
+        return PlayerImage.imageSourceForPath(value, Quickshell.shellDir)
     }
 
     Process {

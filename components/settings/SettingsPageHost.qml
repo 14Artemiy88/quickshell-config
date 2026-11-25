@@ -60,29 +60,16 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                 }
 
-                SettingsButton {
-                    width: 30
-                    height: 30
-                    visible: root.host && root.host.quickSaveProfileAvailable
-                    enabled: visible
-                    text: ""
+                SettingsSaveButton {
+                    actionAvailable: root.host && root.host.quickSaveProfileAvailable
                     iconText: "󰆔"
-                    fontSize: 11
                     tooltip: "Сохранить всё в активный профиль"
-                    backgroundColor: Config.settingsBackground
                     onClicked: root.host.profileController.saveAll()
                 }
 
-                SettingsButton {
-                    width: 30
-                    height: 30
-                    visible: root.host && root.host.quickSavePageAvailable
-                    enabled: visible
-                    text: ""
-                    iconText: "\uf0c7"
-                    fontSize: 11
+                SettingsSaveButton {
+                    actionAvailable: root.host && root.host.quickSavePageAvailable
                     tooltip: "Сохранить изменения этого раздела в активный профиль"
-                    backgroundColor: Config.settingsBackground
                     onClicked: root.host.profileController.saveScope(root.host.currentPageSaveScope)
                 }
 
@@ -120,7 +107,9 @@ Item {
                         text: modelData
                         onClicked: {
                             if (!root.host) return
-                            root.host.clearSettingsFocus()
+                            // SettingsSubTab has already received focus from the
+                            // mouse or keyboard activation; retain it while the
+                            // selected subtab's content is replaced.
                             root.host.currentPageSubTabIndex = index
                             root.resetScroll()
                         }

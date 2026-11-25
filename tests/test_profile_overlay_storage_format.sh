@@ -25,7 +25,17 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const defaults = {
   font:'JetBrainsMono Nerd Font', fontSize:12, activeTheme:'14 Theme',
   modules:{time:true,calendar:true}, geometry:{time:[1,2,300,60]},
-  colors:{accent:'#00cccc',text:'#ffffff'}
+  colors:{accent:'#00cccc',text:'#ffffff'},
+  settingsNavigationOrder:{
+    groupOrder:['appearance','modules','dashboard','launcher','general'],
+    pagesByGroup:{
+      appearance:['themes','settingsWindow'],
+      modules:['modules','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'],
+      dashboard:['dashboard'],
+      launcher:['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],
+      general:['general']
+    }
+  }
 };
 const savedWork = {...clone(defaults), fontSize:15, modules:{time:true,calendar:false}, geometry:{time:[20,30,300,60]}};
 const current = {...clone(savedWork), fontSize:17, modules:{time:false,calendar:false}, weatherToken:'global-token'};

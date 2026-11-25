@@ -8,6 +8,7 @@ root = Path(sys.argv[1])
 widget = (root / 'components/settings/SettingsWidget.qml').read_text(encoding='utf-8')
 navigation = (root / 'components/settings/SettingsNavigationController.qml').read_text(encoding='utf-8')
 host = (root / 'components/settings/SettingsPageHost.qml').read_text(encoding='utf-8')
+save_button = (root / 'components/settings/primitives/SettingsSaveButton.qml').read_text(encoding='utf-8')
 navigation_view = (root / 'components/settings/SettingsNavigation.qml').read_text(encoding='utf-8')
 tab_base = (root / 'components/settings/primitives/SettingsTabBase.qml').read_text(encoding='utf-8')
 modules = (root / 'components/settings/sections/SettingsModulesSection.qml').read_text(encoding='utf-8')
@@ -40,7 +41,10 @@ double_save = chr(0xF0194)
 assert f'iconText: "{double_save}"' in host, 'Save All in the common settings header should use the paired-diskette icon'
 assert f'iconText: "{double_save}"' in modules, 'Save All in Modules should use the paired-diskette icon'
 assert f'iconText: "{double_save}"' in colors, 'Save All in Themes should use the paired-diskette icon'
-assert 'iconText: "\\uf0c7"' in host and 'iconText: "\\uf0c7"' in modules and 'iconText: "\\uf0c7"' in colors, 'section-scoped save buttons should retain the single-floppy icon'
+assert 'property string iconText: "\\uf0c7"' in save_button, 'shared Save primitive should provide the single-floppy default'
+assert 'iconText: root.iconText' in save_button, 'shared Save primitive should forward its default icon'
+for source, name in [(host, 'SettingsPageHost'), (modules, 'Modules'), (colors, 'Themes')]:
+    assert 'SettingsSaveButton {' in source, f'{name} should use the shared Save primitive'
 
 print('Settings tab dirty markers use cached profile overrides; Save All uses paired-diskette icon: OK')
 PY

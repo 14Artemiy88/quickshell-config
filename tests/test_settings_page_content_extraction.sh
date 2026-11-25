@@ -36,7 +36,7 @@ for (const page of ['modules','themes','calendar','weather','general','player','
 }
 const navigation = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 assert(widget.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'stable page ID is exposed by SettingsWidget');
-assert(navigation.includes('property string currentPageId: "modules"'), 'stable page ID state is owned by navigation controller');
+assert(navigation.includes('property string currentPageId: "general"'), 'stable page ID state is owned by navigation controller with General as the fallback');
 assert(content.includes('host: root.host'), 'page sections receive the settings controller explicitly');
 assert(content.includes('root.host.currentPageId'), 'page declarations route through stable controller IDs');
 assert(registry.includes('function tabDefinitions'), 'page registry remains the source of page metadata');

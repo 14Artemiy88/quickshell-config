@@ -1,6 +1,7 @@
 import QtQuick
 import "primitives" as Primitives
 import ".."
+import "../js/dashboard/DashboardCards.js" as DashboardCards
 import Quickshell
 
 Primitives.ModuleFrame {
@@ -12,10 +13,30 @@ Primitives.ModuleFrame {
     property var weatherService: null
     property bool hasData: weather && Object.keys(weather).length > 0
     property string statusMessage: weatherService ? weatherService.nowStatusMessage : "Погода недоступна"
+    readonly property string normalizedIconCode: DashboardCards.normalizeWeatherIconCode(root.weather && root.weather.icon)
+    readonly property string normalizedWindSpeed: {
+        var wind = root.weather && root.weather.wind ? root.weather.wind : null
+        var speed = wind && wind.speed ? wind.speed.m_s : null
+        return DashboardCards.normalizeWeatherWindSpeed(speed)
+    }
+    readonly property string normalizedPressure: {
+        var pressure = root.weather && root.weather.pressure ? root.weather.pressure.mm_hg_atm : null
+        return DashboardCards.normalizeWeatherPressure(pressure)
+    }
+    readonly property string normalizedAirTemperature: {
+        var temperature = root.weather && root.weather.temperature ? root.weather.temperature.air : null
+        var value = temperature ? temperature.C : null
+        return DashboardCards.normalizeWeatherTemperature(value)
+    }
+    readonly property string normalizedComfortTemperature: {
+        var temperature = root.weather && root.weather.temperature ? root.weather.temperature.comfort : null
+        var value = temperature ? temperature.C : null
+        return DashboardCards.normalizeWeatherTemperature(value)
+    }
     signal settingsRequested()
 
     function windDirectionKey(scale) {
-        const n = Math.round(Number(scale || 0))
+        const n = DashboardCards.normalizeWeatherWindScale(scale)
         switch (n) {
         case 1: return "N"
         case 2: return "NE"
@@ -25,16 +46,19 @@ Primitives.ModuleFrame {
         case 6: return "SW"
         case 7: return "W"
         case 8: return "NW"
-        default: return "Calm"
+        case 0: return "Calm"
+        default: return ""
         }
     }
 
     function windIcon(scale) {
-        return Config["weatherWind" + windDirectionKey(scale) + "Icon"] || ""
+        const key = windDirectionKey(scale)
+        return key !== "" ? (Config["weatherWind" + key + "Icon"] || "") : ""
     }
 
     function windFont(scale) {
-        return Config["weatherWind" + windDirectionKey(scale) + "Font"] || Config.font
+        const key = windDirectionKey(scale)
+        return key !== "" ? (Config["weatherWind" + key + "Font"] || Config.font) : Config.font
     }
 
     function textAlignment(value) {
@@ -61,7 +85,8 @@ Primitives.ModuleFrame {
             y: Config.weatherTempOffsetY
             width: Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX)
             height: 55
-            text: root.weather.temperature?.air?.C ?? ""
+            text: root.normalizedAirTemperature
+            visible: root.normalizedAirTemperature !== ""
             color: Config.currentWeather
             font.family: Config.ledFont
             font.pixelSize: Config.weatherTempFontSize
@@ -94,8 +119,14 @@ Primitives.ModuleFrame {
             Item {
                 id: weatherComfortLabel
                 anchors.fill: parent
-                property string comfortValue: root.weather.temperature?.comfort?.C !== root.weather.temperature?.air?.C
-                                              ? String(root.weather.temperature?.comfort?.C ?? "") : ""
+                property string comfortValue: {
+                    var comfort = root.normalizedComfortTemperature
+                    if (comfort === "") return ""
+                    var air = root.normalizedAirTemperature
+                    if (air === "") return comfort
+                    return Number(comfort.replace(",", ".")) !== Number(air.replace(",", "."))
+                            ? comfort : ""
+                }
                 readonly property bool shouldShow: Config.weatherShowComfort && comfortValue !== ""
                 // QtQuick Text.Outline exposes a color but not a stroke width. Build a
                 // smoother outline from evenly spaced fractional offsets behind the fill.
@@ -166,12 +197,12 @@ Primitives.ModuleFrame {
             Config.weatherIconY,
             Config.weatherIconSize,
             Config.weatherIconSize)
-        progress: root.hasData && Config.weatherIconPlacement !== "off" ? 1 : 0
-        visible: (root.hasData && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001
+        progress: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? 1 : 0
+        visible: (root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001
         animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
         animationProfile: Config.animationWeatherMorphProfile
-        animationPhase: root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit"
-        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
+        animationPhase: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
 
         Item {
             anchors.fill: parent
@@ -180,11 +211,24 @@ Primitives.ModuleFrame {
             transformOrigin: Item.Center
 
             Image {
+                id: weatherNowIconImage
                 anchors.fill: parent
+                visible: root.normalizedIconCode !== ""
                 fillMode: Image.PreserveAspectFit
-                source: root.weather.icon
-                        ? (Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.weather.icon + ".png")
+                source: root.normalizedIconCode !== ""
+                        ? (Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.normalizedIconCode + ".png")
                         : ""
+            }
+
+            Text {
+                anchors.fill: parent
+                visible: root.normalizedIconCode !== "" && weatherNowIconImage.status !== Image.Ready
+                text: "☁"
+                color: Config.accent
+                font.family: Config.settingsFont
+                font.pixelSize: Math.max(18, Math.round(Config.weatherIconSize * 0.48))
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
             }
         }
     }
@@ -217,6 +261,7 @@ Primitives.ModuleFrame {
                     x: windSpeed.x - width + Config.weatherWindArrowGap
                     y: Config.weatherArrowYOffset
                     text: root.windIcon(root.weather.wind?.direction?.scale_8)
+                    visible: root.windDirectionKey(root.weather.wind?.direction?.scale_8) !== ""
                     color: Config.text
                     font.family: root.windFont(root.weather.wind?.direction?.scale_8)
                     font.pixelSize: Config.weatherArrowSize
@@ -230,7 +275,8 @@ Primitives.ModuleFrame {
                     y: Config.weatherWindSpeedY
                     width: Config.weatherWindSpeedWidth
                     height: 25
-                    text: root.weather.wind?.speed?.m_s ?? ""
+                    text: root.normalizedWindSpeed
+                    visible: root.normalizedWindSpeed !== ""
                     color: Config.text
                     font.family: Config.ledFont
                     font.pixelSize: Config.weatherWindSpeedFontSize
@@ -244,6 +290,7 @@ Primitives.ModuleFrame {
                     width: Config.weatherWindUnitWidth
                     height: 18
                     text: "м/с"
+                    visible: root.normalizedWindSpeed !== ""
                     color: Config.text
                     font.family: Config.ledFont
                     font.pixelSize: Config.weatherWindUnitFontSize
@@ -263,7 +310,8 @@ Primitives.ModuleFrame {
                     y: 0
                     width: Config.weatherPressureValueWidth
                     height: 20
-                    text: root.weather.pressure?.mm_hg_atm ?? ""
+                    text: root.normalizedPressure
+                    visible: root.normalizedPressure !== ""
                     color: Config.text
                     font.family: Config.ledFont
                     font.pixelSize: Config.weatherPressureFontSize
@@ -277,6 +325,7 @@ Primitives.ModuleFrame {
                     width: Math.max(1, Config.weatherWindColumnWidth - Config.weatherPressureUnitX)
                     height: 12
                     text: "MM.PT.CT"
+                    visible: root.normalizedPressure !== ""
                     color: Config.text
                     font.family: Config.ledFont
                     font.pixelSize: Config.weatherPressureUnitFontSize

@@ -62,6 +62,7 @@ for (const file of walk(sectionsRoot)) {
     const reason =
       /\bid\s*:\s*storagePathsGroup\b/.test(block.text) ? 'app storage paths are not profile settings' :
       /\bid\s*:\s*projectSettingsCard\b/.test(block.text) ? 'launcherProjects array is tracked at its parent frame' :
+      /\bsettingsSearchSubTabIndex\s*:\s*2\b/.test(block.text) ? 'navigation hierarchy editor has one parent-page dirty indicator and Save/Reset scope instead of per-frame markers' :
       /heading\s*:\s*"Токен Gismeteo"/.test(block.text) ? 'weather token is intentionally excluded from profile markers' :
       /heading\s*:\s*"Что управляется"/.test(block.text) ? 'informational animation panel has no editable settings' :
       /text\s*:\s*"Сбросить все настройки"/.test(block.text) ? 'profile action panel is not a setting group' : null;

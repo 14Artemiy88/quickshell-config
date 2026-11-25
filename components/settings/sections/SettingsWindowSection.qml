@@ -2,9 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import "../../.."
 import "../primitives"
+import "../../primitives"
 
 Column {
     id: settingsWindowColumn
+
+    property string pendingDeleteProfileName: ""
 
     function syncProfileComboToActiveProfile() {
         var idx = host && host.profileController
@@ -14,8 +17,22 @@ Column {
 
     Connections {
         target: settings
-        function onProfilesRevisionChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }
+        function onProfilesRevisionChanged() {
+            Qt.callLater(function() {
+                settingsWindowColumn.syncProfileComboToActiveProfile()
+                if (settingsWindowColumn.pendingDeleteProfileName.length > 0
+                        && host && host.profileController
+                        && host.profileController.indexOfProfile(settingsWindowColumn.pendingDeleteProfileName) < 0)
+                    settingsWindowColumn.pendingDeleteProfileName = ""
+            })
+        }
         function onActiveProfileChanged() { Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile) }
+    }
+
+    Connections {
+        target: settingsWindowColumn.host
+        function onCurrentPageIdChanged() { settingsWindowColumn.pendingDeleteProfileName = "" }
+        function onCurrentPageSubTabIndexChanged() { settingsWindowColumn.pendingDeleteProfileName = "" }
     }
 
     Component.onCompleted: Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile)
@@ -461,18 +478,18 @@ settingsSearchSubTabIndex: 1
         }
     }
     SettingsGroup {
-                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
-settingsSearchSubTabIndex: 2
+        id: settingsNavigationGroupOrderFrame
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+        settingsSearchSubTabIndex: 2
         width: parent.width
         showFrame: true
-        heading: "Вкладки панели настроек"
-        changeKeys: ({ keys: ["settingsTabOrder", "settingsTabLabels"] })
+        heading: "Порядок рамок"
         padding: 8
         contentSpacing: 6
 
         Text {
             width: parent.width
-            text: "Изменяйте названия страниц и их порядок внутри групп. Сами группы имеют фиксированный порядок. Изменения сохраняются автоматически."
+            text: "Перетаскивайте целые разделы панели настроек за маркер ⠿. Dashboard и Общие тоже можно переставлять. Порядок страниц внутри разделов не меняется. С клавиатуры: Alt + ↑/↓."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)
@@ -480,21 +497,36 @@ settingsSearchSubTabIndex: 2
         }
 
         Column {
+            id: settingsNavigationGroupsOrderColumn
             width: parent.width
             spacing: 5
 
             Repeater {
-                model: host ? host.settingsNavigationItems : []
+                id: settingsNavigationGroupsOrderRepeater
+                model: host ? host.settingsNavigationGroups : []
 
                 delegate: Row {
+                    id: settingsGroupOrderRow
+                    required property var modelData
+                    required property int index
+                    property Item reorderTargetItem: settingsGroupOrderRow
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Config.animationDuration(160, "appearance")
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                     width: parent.width
                     height: 30
-                    spacing: 5
+                    readonly property int orderSpacing: 5
+                    readonly property int indexWidth: width < 220 ? 14 : 19
+                    readonly property int handleWidth: width < 220 ? 24 : 26
+                    spacing: orderSpacing
 
                     Text {
-                        width: 19
+                        width: settingsGroupOrderRow.indexWidth
                         height: 30
-                        text: String(index + 1)
+                        text: String(settingsGroupOrderRow.index + 1)
                         color: Config.textMuted
                         font.family: Config.settingsFont
                         font.pixelSize: Config.settingsUiSize(10)
@@ -502,48 +534,166 @@ settingsSearchSubTabIndex: 2
                         verticalAlignment: Text.AlignVCenter
                     }
 
-                    SettingsTextField {
-                        width: Math.max(80, parent.width - 19 - 28 - 28 - 15)
+                    Text {
+                        width: Math.max(42, parent.width - settingsGroupOrderRow.indexWidth
+                            - settingsGroupOrderRow.handleWidth - settingsGroupOrderRow.spacing * 2)
                         height: 30
-                        text: modelData.label
-                        maximumLength: 32
-                        selectByMouse: true
+                        text: settingsGroupOrderRow.modelData.items.length === 1
+                            ? settingsGroupOrderRow.modelData.items[0].label : settingsGroupOrderRow.modelData.label
                         color: Config.text
-                        selectionColor: Config.accent
-                        selectedTextColor: Config.black
                         font.family: Config.settingsFont
-                        font.pixelSize: Config.settingsUiSize(10)
-                        placeholderText: host.defaultSettingsTabLabel(modelData.id)
-                        onEditingFinished: {
-                            if (host) host.setSettingsTabLabel(modelData.id, text)
-                        }
+                        font.pixelSize: Config.settingsUiSize(11)
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        HoverHandler { id: settingsGroupOrderLabelHover }
+                        ToolTip.visible: settingsGroupOrderLabelHover.hovered && implicitWidth > width + 1
+                        ToolTip.text: settingsGroupOrderRow.modelData.items.length === 1
+                            ? settingsGroupOrderRow.modelData.items[0].label : settingsGroupOrderRow.modelData.label
                     }
 
-                    Item {
-                        width: 28
-                        height: 30
-                        SettingsButton {
-                            anchors.fill: parent
-                            visible: host && host.settingsTabCanMove(modelData.id, -1)
-                            enabled: visible
-                            iconText: "↑"
-                            fontSize: 10
-                            tooltip: "Переместить выше"
-                            onClicked: if (host) host.moveSettingsTab(modelData.id, -1)
+                    DragReorderHandle {
+                        width: settingsGroupOrderRow.handleWidth
+                        height: 26
+                        listRepeater: settingsNavigationGroupsOrderRepeater
+                        dropIndicatorHost: settingsNavigationGroupOrderFrame
+                        itemIndex: settingsGroupOrderRow.index
+                        accessibleLabel: settingsGroupOrderRow.modelData.items.length === 1
+                            ? settingsGroupOrderRow.modelData.items[0].label : settingsGroupOrderRow.modelData.label
+                        onReorderRequested: function(fromIndex, toIndex) {
+                            if (settingsWindowColumn.host)
+                                settingsWindowColumn.host.moveSettingsNavigationGroupTo(
+                                    settingsGroupOrderRow.modelData.id, toIndex)
                         }
                     }
+                }
+            }
+        }
+    }
 
-                    Item {
-                        width: 28
+    Row {
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+        width: parent.width
+        height: 18
+        spacing: 6
+
+        Text {
+            width: parent.width - 14
+            height: parent.height
+            text: "Вкладки панели настроек"
+            color: Config.settingsSubheading
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(11)
+            verticalAlignment: Text.AlignVCenter
+        }
+
+        Rectangle {
+            width: 6
+            height: 6
+            radius: 3
+            anchors.verticalCenter: parent.verticalCenter
+            visible: settingsWindowColumn.settings.hasResetChanges("keys", ({ keys: ["settingsNavigationOrder", "settingsTabLabels"] }))
+            color: Config.accent
+            border.width: 0
+        }
+    }
+
+    Text {
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+        width: parent.width
+        text: "Каждый раздел показан отдельной рамкой. Переименовывайте страницы и перетаскивайте их за маркер ⠿, меняя порядок только внутри своей рамки. Порядок самих рамок настраивается отдельно выше. С клавиатуры: Alt + ↑/↓."
+        color: Config.textMuted
+        font.family: Config.settingsFont
+        font.pixelSize: Config.settingsUiSize(10)
+        wrapMode: Text.WordWrap
+    }
+
+    Column {
+        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+        width: parent.width
+        spacing: 8
+
+        Repeater {
+            model: host ? host.settingsNavigationGroups : []
+
+            delegate: SettingsGroup {
+                id: settingsNavigationPageGroup
+                required property var modelData
+                property var groupData: modelData
+
+                visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+                width: parent.width
+                showFrame: true
+                heading: groupData.label
+                settingsSearchSubTabIndex: 2
+                padding: 8
+                contentSpacing: 5
+
+                Repeater {
+                    id: settingsNavigationPagesOrderRepeater
+                    model: settingsNavigationPageGroup.groupData.items
+
+                    delegate: Row {
+                        id: settingsNavigationPageOrderRow
+                        required property var modelData
+                        required property int index
+                        property Item reorderTargetItem: settingsNavigationPageOrderRow
+                        Behavior on y {
+                            NumberAnimation {
+                                duration: Config.animationDuration(160, "appearance")
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                        width: parent.width
                         height: 30
-                        SettingsButton {
-                            anchors.fill: parent
-                            visible: host && host.settingsTabCanMove(modelData.id, 1)
-                            enabled: visible
-                            iconText: "↓"
-                            fontSize: 10
-                            tooltip: "Переместить ниже"
-                            onClicked: if (host) host.moveSettingsTab(modelData.id, 1)
+                        readonly property int orderSpacing: width < 220 ? 3 : 5
+                        readonly property int indexWidth: width < 220 ? 14 : 19
+                        readonly property int handleWidth: width < 220 ? 24 : 26
+                        spacing: orderSpacing
+
+                        Text {
+                            width: settingsNavigationPageOrderRow.indexWidth
+                            height: 30
+                            text: String(index + 1)
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        SettingsTextField {
+                            width: Math.max(42, parent.width - settingsNavigationPageOrderRow.indexWidth
+                                - settingsNavigationPageOrderRow.handleWidth - settingsNavigationPageOrderRow.spacing * 2)
+                            height: 30
+                            text: modelData.label
+                            maximumLength: 32
+                            selectByMouse: true
+                            color: Config.text
+                            selectionColor: Config.accent
+                            selectedTextColor: Config.black
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            placeholderText: host.defaultSettingsTabLabel(modelData.id)
+                            Accessible.name: "Название вкладки «" + host.defaultSettingsTabLabel(modelData.id) + "»"
+                            Accessible.description: "Изменяет подпись страницы в рамке «" + settingsNavigationPageGroup.groupData.label + "»."
+                            onEditingFinished: {
+                                if (host) host.setSettingsTabLabel(modelData.id, text)
+                            }
+                        }
+
+                        DragReorderHandle {
+                            width: settingsNavigationPageOrderRow.handleWidth
+                            height: 26
+                            listRepeater: settingsNavigationPagesOrderRepeater
+                            dropIndicatorHost: settingsNavigationPageGroup
+                            itemIndex: settingsNavigationPageOrderRow.index
+                            accessibleLabel: settingsNavigationPageOrderRow.modelData.label
+                            onReorderRequested: function(fromIndex, toIndex) {
+                                if (settingsWindowColumn.host)
+                                    settingsWindowColumn.host.moveSettingsTabWithinGroupTo(
+                                        settingsNavigationPageGroup.groupData.id,
+                                        settingsNavigationPageOrderRow.modelData.id, toIndex)
+                            }
                         }
                     }
                 }
@@ -626,8 +776,14 @@ settingsSearchSubTabIndex: 1
                                     }
 
                                     onAccepted: {
-                                        if (host.profileController.saveProfile(text))
+                                        if (host.profileController.saveProfile(text)) {
+                                            profileNameField.text = settings.activeProfile
                                             profileNameSavedFeedback.restart()
+                                        } else {
+                                            var validationError = host.profileController.profileNameError(text)
+                                            profileActionFeedback.showMessage(validationError.length > 0
+                                                ? validationError : "Не удалось сохранить профиль", true)
+                                        }
                                         host.clearSettingsFocus()
                                     }
                                 }
@@ -688,6 +844,8 @@ settingsSearchSubTabIndex: 1
                                     currentIndex: -1
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(11)
+                                    onItemChosen: settingsWindowColumn.pendingDeleteProfileName = ""
+                                    onActivated: settingsWindowColumn.pendingDeleteProfileName = ""
                                 }
 
                                 SettingsButton {
@@ -715,8 +873,61 @@ settingsSearchSubTabIndex: 1
                                     emphasizedHoverColor: "#aa0000"
                                     enabled: profileCombo.currentIndex >= 0 && profileCombo.currentText.length > 0
                                     onClicked: {
-                                        if (host.profileController.deleteProfile(profileCombo.currentText))
-                                            profileActionFeedback.showMessage("✓ профиль удалён")
+                                        settingsWindowColumn.pendingDeleteProfileName = profileCombo.currentText
+                                    }
+                                }
+                            }
+
+                            Column {
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                    && settingsWindowColumn.pendingDeleteProfileName.length > 0
+                                width: parent.width
+                                spacing: 4
+
+                                Text {
+                                    width: parent.width
+                                    text: "Удалить профиль «" + settingsWindowColumn.pendingDeleteProfileName + "»?"
+                                    color: Config.textMuted
+                                    font.family: Config.settingsFont
+                                    font.pixelSize: Config.settingsUiSize(10)
+                                    wrapMode: Text.WordWrap
+                                }
+
+                                Row {
+                                    width: parent.width
+                                    height: 28
+                                    spacing: 8
+
+                                    SettingsButton {
+                                        width: 70
+                                        height: 28
+                                        text: "Удалить"
+                                        fontSize: 10
+                                        emphasized: true
+                                        accentColor: "#aa0000"
+                                        outlineColor: "#aa0000"
+                                        textColor: "#ff9999"
+                                        fillOnHover: true
+                                        hoverBackgroundColor: "#aa0000"
+                                        hoverTextColor: Config.black
+                                        tooltip: "Подтвердить удаление профиля"
+                                        onClicked: {
+                                            var deletingName = settingsWindowColumn.pendingDeleteProfileName
+                                            settingsWindowColumn.pendingDeleteProfileName = ""
+                                            if (host.profileController.deleteProfile(deletingName))
+                                                profileActionFeedback.showMessage("✓ профиль удалён")
+                                            else
+                                                profileActionFeedback.showMessage("Профиль уже недоступен", true)
+                                        }
+                                    }
+
+                                    SettingsButton {
+                                        width: 64
+                                        height: 28
+                                        text: "Отмена"
+                                        fontSize: 10
+                                        tooltip: "Отменить удаление профиля"
+                                        onClicked: settingsWindowColumn.pendingDeleteProfileName = ""
                                     }
                                 }
                             }
@@ -728,9 +939,11 @@ settingsSearchSubTabIndex: 1
                                 height: 22
 
                                 property string message: ""
+                                property bool isError: false
 
-                                function showMessage(value) {
+                                function showMessage(value, error) {
                                     message = value
+                                    isError = !!error
                                     feedbackAnimation.restart()
                                 }
 
@@ -738,7 +951,7 @@ settingsSearchSubTabIndex: 1
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: parent.message
-                                    color: Config.accent
+                                    color: parent.isError ? "#ff9999" : Config.accent
                                     opacity: parent.message.length > 0 ? 1 : 0
                                     font.family: Config.settingsFont
                                     font.pixelSize: Config.settingsUiSize(9)

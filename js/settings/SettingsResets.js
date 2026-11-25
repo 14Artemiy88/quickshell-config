@@ -127,7 +127,9 @@ function resetConfigKeys(owner, config, names) {
 }
 
 function activeProfileData(owner) {
-    if (owner.activeProfile && owner.profiles && owner.profiles[owner.activeProfile]) {
+    if (owner.activeProfile && owner.profiles
+            && Object.prototype.hasOwnProperty.call(owner.profiles, owner.activeProfile)
+            && owner.profiles[owner.activeProfile]) {
         if (owner.expandedProfileData)
             return owner.expandedProfileData(owner.activeProfile)
         return owner.profiles[owner.activeProfile]
@@ -184,7 +186,13 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsTabOrder", "settingsTabLabels"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels"])
+    if (profile.settingsNavigationOrder !== undefined)
+        config.settingsNavigationOrder = owner && typeof owner.normalizeSettingsNavigationOrder === "function"
+            ? owner.normalizeSettingsNavigationOrder(profile.settingsNavigationOrder) : profile.settingsNavigationOrder
+    else if (profile.settingsTabOrder !== undefined)
+        config.settingsNavigationOrder = owner && typeof owner.settingsNavigationOrderFromLegacyTabOrder === "function"
+            ? owner.settingsNavigationOrderFromLegacyTabOrder(profile.settingsTabOrder) : config.settingsNavigationOrder
     if (profile.settingsSearchHighlightColor === undefined)
         config.settingsSearchHighlightColor = owner.defaultConfig.settingsSearchHighlightColor
     if (profile.settingsSearchHighlightBorderWidth === undefined)
@@ -283,7 +291,7 @@ function resetModule(owner, config, moduleName) {
             "networkIconLeftPadding", "networkFont"
         ])
         if (moduleName === "networks")
-            applyConfigKeysFromProfile(owner, config, profile, ["animationNetworkMorphDuration", "animationNetworkMorphProfile"])
+            applyConfigKeysFromProfile(owner, config, profile, ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"])
     } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "animationWeatherMorphEnabled", "animationWeatherMorphDuration", "animationWeatherHourlyDuration", "animationWeatherMorphProfile",
@@ -352,8 +360,8 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "notifications") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
-            "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress",
+            "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
+            "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress",
             "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
         ])
         // Geometry is authoritative for module placement. Keep its width and the
@@ -441,7 +449,7 @@ function resetCpuSettings(owner, config) {
 
 function resetNetworkSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont", "animationNetworkMorphDuration", "animationNetworkMorphProfile"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont", "animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"]); owner.save()
 }
 
 function resetVolumeSettings(owner, config) {
@@ -509,19 +517,24 @@ function resetNotificationsSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
     applyConfigKeysFromProfile(owner, config, profile, [
-        "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsVerticalAnchor", "notificationsCardSpacing",
-        "notificationsImageHeight", "notificationsShowAppIcon", "notificationsShowBodyImages",
+        "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsVerticalAnchor", "notificationsCardSpacing",
+        "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages",
         "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
     ])
     owner.save()
 }
 
-function resetDashboardSettings(owner, config) {
+function resetDashboardSettings(owner, config, includeModule) {
     var profile = activeProfileData(owner)
     if (!profile) return
     // Keep the raw profile order for legacy detection: an absent order means
     // the profile predates Today, even though the normalized reset value will
     // use the current five-card default below.
+    if (includeModule) {
+        var profileModules = profile.modules || {}
+        owner.dashboard = profileModules.dashboard !== undefined
+            ? !!profileModules.dashboard : !!(owner.defaultModules || {}).dashboard
+    }
     var profileCardOrder = profile.dashboardCardOrder
     config.dashboardVisibleCards = normalizeDashboardCards(
         profile.dashboardVisibleCards === undefined ? owner.defaultConfig.dashboardVisibleCards : profile.dashboardVisibleCards,

@@ -24,12 +24,42 @@ Item {
     property string settingsSearchMatchHint: ""
     property int settingsSearchMatchCount: 0
     property color modifiedColor: Config.accent
+    property bool settingsNavigationFocusTarget: false
+    property string settingsNavigationPageId: ""
+    property var settingsNavigationHost: null
+
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Button
+    Accessible.name: root.text
+    Accessible.description: {
+        var details = root.selected ? "Текущая выбранная страница. " : "Открыть страницу настроек. "
+        if (root.modified) details += "Есть несохранённые изменения. "
+        if (root.settingsSearchMatchCount > 0)
+            details += "Совпадений поиска: " + String(root.settingsSearchMatchCount) + ". "
+        return details
+    }
+    Accessible.onPressAction: root.clicked()
 
     signal clicked()
 
-    ToolTip.visible: root.settingsSearchMatched
-        && root.settingsSearchMatchHint.length > 0 && root.hovered
-    ToolTip.text: root.settingsSearchMatchHint
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            root.clicked()
+            event.accepted = true
+        } else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
+            if (root.settingsNavigationFocusTarget && root.settingsNavigationHost
+                    && root.settingsNavigationHost.focusAdjacentSettingsNavigationItem) {
+                root.settingsNavigationHost.focusAdjacentSettingsNavigationItem(root, event.key === Qt.Key_Down)
+                event.accepted = true
+            }
+        }
+    }
+
+    ToolTip.visible: root.hovered && (
+        (root.settingsSearchMatched && root.settingsSearchMatchHint.length > 0)
+        || tabLabel.implicitWidth > tabLabel.width + 1)
+    ToolTip.text: root.settingsSearchMatched && root.settingsSearchMatchHint.length > 0
+        ? root.settingsSearchMatchHint : root.text
     ToolTip.delay: 450
 
 
@@ -37,12 +67,15 @@ Item {
         anchors.fill: parent
         radius: root.cornerRadius
         color: root.selected ? root.selectedBackground : root.normalBackground
-        border.color: root.hovered ? root.hoverBorderColor
-            : (root.settingsSearchMatched ? Config.settingsSearchHighlightColor : root.normalBorderColor)
-        border.width: root.settingsSearchMatched ? Config.settingsSearchHighlightBorderWidth : 1
+        border.color: root.activeFocus ? Config.accent
+            : (root.hovered ? root.hoverBorderColor
+                : (root.settingsSearchMatched ? Config.settingsSearchHighlightColor : root.normalBorderColor))
+        border.width: root.activeFocus ? 2
+            : (root.settingsSearchMatched ? Config.settingsSearchHighlightBorderWidth : 1)
         antialiasing: true
 
         Text {
+            id: tabLabel
             anchors.fill: parent
             anchors.leftMargin: root.horizontalPadding
             anchors.rightMargin: root.horizontalPadding
@@ -55,6 +88,7 @@ Item {
             font.bold: root.selected && root.boldWhenSelected
             horizontalAlignment: root.leftAligned ? Text.AlignLeft : Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.NoWrap
             elide: Text.ElideRight
         }
 
@@ -92,7 +126,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: root.clicked()
+            onClicked: {
+                root.forceActiveFocus(Qt.MouseFocusReason)
+                root.clicked()
+            }
         }
     }
 }

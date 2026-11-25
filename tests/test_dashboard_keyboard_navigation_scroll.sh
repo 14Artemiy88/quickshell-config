@@ -16,9 +16,10 @@ for key in ('Qt.Key_Left', 'Qt.Key_Right', 'Qt.Key_Up', 'Qt.Key_Down'):
 assert 'root.moveKeyboardFocus(event.key)' in qml
 assert 'root.moveKeyboardPage(event.key)' in qml
 assert 'root.moveKeyboardToEdge(event.key)' in qml
-assert 'activeFocusOnTab: enabled' in qml, 'cards and quick actions must remain reachable by Tab'
+assert 'activeFocusOnTab: true' in qml, 'passive cards and explicit header controls must remain reachable by Tab'
 assert 'activeFocusOnTab: true' in qml, 'the close action must remain reachable by Tab'
 assert 'Accessible.role: Accessible.Button' in qml
+assert 'Accessible.role: Accessible.Grouping' in qml, 'informational cards are not exposed as buttons'
 assert 'Accessible.name: infoCard.title' in qml
 assert 'Accessible.description: infoCard.accessibleDetails()' in qml
 assert 'event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space' in qml

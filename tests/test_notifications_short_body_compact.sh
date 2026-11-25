@@ -8,10 +8,10 @@ import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
     "short-body height uses measured rich-text height": "Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace)",
-    "short-body minimum remains compact with a lower floor when summary is empty": "const minimumCardHeight = hasAvatar ? 64 : (measuredSummaryHeight > 0 ? 68 : 52)",
+    "short-body minimum follows configured leading visual size while remaining compact without one": "const minimumCardHeight = hasLeadingVisual\n            ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2\n            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight + root.notificationCardPadding : appNameBottomOffset + root.notificationCardPadding)",
     "measured body height determines the final card height": "return Math.max(minimumCardHeight, Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace))",
     "text is measured independently of card geometry": "width: card.textColumnWidth",
-    "actions reserve bottom space when present": "const bottomSpace = hasActions ? 42 : 14",
+    "actions reserve bottom space when present": "const bottomSpace = root.notificationCardPadding + (hasActions ? 28 : 0)",
     "empty bodies keep their separate compact layout": "const actionMinimum = hasActions ? 76 : 52",
 }
 for description, needle in checks.items():

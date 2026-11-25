@@ -6,21 +6,14 @@ QUEUE="$ROOT/components/mopidy/MopidyQueueTrackRow.qml"
 PLAYLIST="$ROOT/components/mopidy/MopidyPlaylistContents.qml"
 for file in "$MOVE" "$QUEUE" "$PLAYLIST"; do test -f "$file"; done
 
-# The shared arrow primitive is opt-in: settings/launcher arrows keep their legacy behavior.
+# Mopidy runtime queue and playlist order now share the same drag-reorder primitive.
+[[ $(grep -Fc 'Primitives.DragReorderHandle {' "$QUEUE") -eq 1 ]]
+[[ $(grep -Fc 'Primitives.DragReorderHandle {' "$PLAYLIST") -eq 1 ]]
+! grep -Fq 'Primitives.MoveArrowButton {' "$QUEUE"
+! grep -Fq 'Primitives.MoveArrowButton {' "$PLAYLIST"
 grep -Fq 'property bool morphVisibility: false' "$MOVE"
 grep -Fq 'visible: root.morphVisibility || root.requestedVisible' "$MOVE"
-grep -Fq 'enabled: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)' "$MOVE"
 grep -Fq 'Primitives.MorphGeometry {' "$MOVE"
-grep -Fq 'progress: root.morphVisibility ? root.morphVisibilityProgress : 1' "$MOVE"
-grep -Fq 'animationDuration: root.morphVisibility ? Config.animationDuration(180, "appearance") : 0' "$MOVE"
-grep -Fq 'opacity: root.morphVisibility ? visibilityMorph.normalizedProgress : 1' "$MOVE"
-grep -Fq 'interactionEnabled: root.interactionEnabled' "$MOVE"
-
-# Only the runtime Mopidy queue and playlist controls opt into the transition.
-[[ $(grep -Fc 'morphVisibility: true' "$QUEUE") -eq 2 ]]
-[[ $(grep -Fc 'morphVisibility: true' "$PLAYLIST") -eq 2 ]]
-[[ $(grep -Fc 'Primitives.MoveArrowButton {' "$QUEUE") -eq 2 ]]
-[[ $(grep -Fc 'Primitives.MoveArrowButton {' "$PLAYLIST") -eq 2 ]]
 
 # The queue track-number slot changes width on the shared progress value, so its text area reflows smoothly.
 grep -Fq 'readonly property real numberWidth: trackNumberSlot.width' "$QUEUE"
@@ -70,4 +63,4 @@ for name in sys.argv[1:]:
 print('Mopidy optional-control morph QML delimiters: OK')
 PYCODE
 
-echo 'Mopidy optional queue numbers and boundary arrows use independent morph transitions: OK'
+echo 'Mopidy queue and playlist use shared drag reorder; queue number morph remains intact: OK'

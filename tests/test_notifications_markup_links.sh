@@ -20,7 +20,7 @@ checks = {
     "link attributes are escaped before writing rich text": "escapeNotificationAttribute(href)",
     "link activation still has a handler": "onLinkActivated: function(link)",
     "only web and mail links are opened externally": "if (/^(https?:|mailto:)/i.test(url))",
-    "height uses actual Text layout": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)",
+    "height uses actual Text layout": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
 }
 for description, needle in checks.items():
     assert needle in source, f"{description}: missing {needle!r}"

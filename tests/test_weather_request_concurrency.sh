@@ -17,6 +17,8 @@ export PATH="$TMP/bin:$PATH"
 
 cat > "$TMP/bin/curl" <<'MOCK_CURL'
 #!/bin/bash
+IFS= read -r request_header || exit 90
+[[ "$request_header" == 'X-Gismeteo-Token: '* ]] || exit 91
 printf 'call\n' >> "$CURL_CALL_LOG"
 sleep 0.4
 if [[ "${CURL_MODE:-fail}" == "ok" ]]; then

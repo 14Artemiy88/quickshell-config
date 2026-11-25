@@ -19,7 +19,7 @@ checks = {
     "image is bounded to a compact preview height": "readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))" in source,
     "image decode uses the GUI thread to avoid pixmap-reader thread warnings": "asynchronous: false" in source[source.index("id: bodyImage"):source.index("Rectangle {\n                        id: progressTrack")],
     "failed image loads stop reserving blank preview space": "if (status === Image.Error)" in source and "card.imageLoadFailed = true" in source,
-    "card height accounts for optional image preview": "hasProgress, hasImage, hasAvatar)" in source and "const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0" in source,
+    "card height accounts for optional image preview": "hasProgress, hasImage, hasLeadingVisual)" in source and "const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0" in source,
     "image preview anchors below body, summary, or app label": "id: bodyImage" in source and "anchors.top: root.notificationHasBody(card.notification)" in source,
     "progress bar is laid out below a body image when present": "anchors.top: card.hasNotificationImage\n                            ? bodyImage.bottom" in source[source.index("id: progressTrack"):],
     "body image does not anchor to itself": "anchors.top: card.hasNotificationImage" not in source[source.index("id: bodyImage"):source.index("id: progressTrack")],

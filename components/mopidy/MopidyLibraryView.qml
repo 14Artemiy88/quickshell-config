@@ -35,7 +35,7 @@ Column {
             hoverMode: Config.mopidyHoverMode
             hoverColor: Config.mopidyHoverColor
             cornerRadius: 4
-            enabled: !controller.browseBusy
+            enabled: !controller.browseBusy && !controller.reorderInteractionLocked
             onClicked: controller.showBrowse()
         }
 
@@ -52,7 +52,7 @@ Column {
             hoverMode: Config.mopidyHoverMode
             hoverColor: Config.mopidyHoverColor
             cornerRadius: 4
-            enabled: !controller.playlistsBusy
+            enabled: !controller.playlistsBusy && !controller.reorderInteractionLocked
             onClicked: controller.showPlaylists()
         }
 
@@ -69,7 +69,7 @@ Column {
             hoverMode: Config.mopidyHoverMode
             hoverColor: Config.mopidyHoverColor
             cornerRadius: 4
-            enabled: true
+            enabled: !controller.reorderInteractionLocked
             onClicked: controller.showSearch()
         }
 
@@ -83,6 +83,7 @@ Column {
             iconSize: 22
             baseColor: (controller.browseBusy || controller.playlistsBusy) ? Config.textDisabled : Config.mopidyControlIconColor
             enabledState: !controller.browseBusy && !controller.playlistsBusy
+                && !controller.reorderInteractionLocked
             onClicked: controller.libraryMode === "playlistItems" ? controller.backToPlaylists() : controller.browseBack()
         }
     }
@@ -148,7 +149,7 @@ Column {
                 iconText: "+"
                 iconSize: Config.mopidyAddIconSize
                 baseColor: Config.mopidyControlIconColor
-                enabledState: !controller.playlistsBusy
+                enabledState: !controller.playlistsBusy && !controller.reorderInteractionLocked
                 onClicked: controller.openCreatePlaylistDialog()
             }
         }
@@ -211,6 +212,7 @@ Column {
                     hoverBorderEnabled: Config.mopidyHoverMode === "frame"
                     hoverBorderColor: Config.mopidyHoverColor
                     hoverBorderWidth: 1
+                    interactionEnabled: !controller.reorderInteractionLocked
                     onClicked: controller.openDeletePlaylistFromListDialog(modelData.uri, modelData.name)
 
                     Text {
@@ -241,6 +243,7 @@ Column {
                     hoverBorderEnabled: Config.mopidyHoverMode === "frame"
                     hoverBorderColor: Config.mopidyHoverColor
                     hoverBorderWidth: 1
+                    interactionEnabled: !controller.reorderInteractionLocked
                     onClicked: controller.switchPlaylist(modelData.uri, modelData.name)
 
                     Text {
@@ -271,6 +274,7 @@ Column {
                     hoverBorderEnabled: Config.mopidyHoverMode === "frame"
                     hoverBorderColor: Config.mopidyHoverColor
                     hoverBorderWidth: 1
+                    interactionEnabled: !controller.reorderInteractionLocked
                     onClicked: controller.addPlaylist(modelData.uri, modelData.name)
 
                     Text {
@@ -295,6 +299,7 @@ Column {
                     height: parent.height
                     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                     hoverEnabled: true
+                    enabled: !controller.reorderInteractionLocked && !controller.playlistsBusy
                     cursorShape: Qt.PointingHandCursor
                     onClicked: function(mouse) {
                         if (mouse.button === Qt.MiddleButton)

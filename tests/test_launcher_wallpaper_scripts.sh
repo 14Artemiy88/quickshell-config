@@ -95,8 +95,18 @@ if grep -Fq 'plasma-all|' "$TMP/backend.log"; then
 fi
 
 # Niri/swww receives the exact output selector, not a global all-output request.
+# Simulate a KDE process still visible from the login session and stale KDE
+# variables inherited by a Niri session. Explicit XDG_CURRENT_DESKTOP wins.
+mkdir -p "$TMP/plasma-visible-bin"
+cat > "$TMP/plasma-visible-bin/pgrep" <<'SH'
+#!/usr/bin/env bash
+[[ "${1-}" == "-x" && "${2-}" == "plasmashell" ]]
+SH
+chmod +x "$TMP/plasma-visible-bin/pgrep"
 : > "$TMP/backend.log"
-WALLPAPER_TEST_LOG="$TMP/backend.log" XDG_CURRENT_DESKTOP=niri PATH="$TMP/bin:/usr/bin:/bin" \
+WALLPAPER_TEST_LOG="$TMP/backend.log" XDG_CURRENT_DESKTOP=niri XDG_SESSION_DESKTOP=plasma \
+    KDE_FULL_SESSION=true KDE_SESSION_VERSION=6 \
+    PATH="$TMP/plasma-visible-bin:$TMP/bin:/usr/bin:/bin" \
     bash "$SET" "$TMP/image with spaces.jpg" HDMI-A-1 1
  grep -Fq "swww|img --outputs HDMI-A-1 $TMP/image with spaces.jpg" "$TMP/backend.log"
 
@@ -107,7 +117,8 @@ tricky_image="$tricky_parent/selected.png"
 touch "$tricky_image"
 rm -f "$TMP/selected.png"
 : > "$TMP/backend.log"
-WALLPAPER_TEST_LOG="$TMP/backend.log" XDG_CURRENT_DESKTOP=niri PATH="$TMP/bin:/usr/bin:/bin" \
+WALLPAPER_TEST_LOG="$TMP/backend.log" XDG_CURRENT_DESKTOP=niri XDG_SESSION_DESKTOP=niri \
+    KDE_FULL_SESSION=false KDE_SESSION_VERSION= PATH="$TMP/bin:/usr/bin:/bin" \
     bash "$SET" "$tricky_image" HDMI-A-1 1
 grep -Fq "swww|img --outputs HDMI-A-1 $tricky_image" "$TMP/backend.log"
 [[ ! -e "$TMP/selected.png" ]]
@@ -130,7 +141,8 @@ fi
 
 # Missing per-monitor backends must be reported explicitly.
 set +e
-PATH="$TMP/empty-bin" XDG_CURRENT_DESKTOP=niri /bin/bash "$SET" "$TMP/image with spaces.jpg" HDMI-A-1 1 2> "$TMP/no-backend.err"
+PATH="$TMP/empty-bin" XDG_CURRENT_DESKTOP=niri XDG_SESSION_DESKTOP=niri \
+    KDE_FULL_SESSION=false KDE_SESSION_VERSION= /bin/bash "$SET" "$TMP/image with spaces.jpg" HDMI-A-1 1 2> "$TMP/no-backend.err"
 status=$?
 set -e
 [[ "$status" -eq 127 ]]

@@ -135,20 +135,103 @@ remove_track() {
 }
 
 move_track() {
-    local tlid="$1"
-    local position="$2"
-    [[ "$tlid" =~ ^[0-9]+$ ]] || exit 2
-    [[ "$position" =~ ^[0-9]+$ ]] || exit 2
-
-    local index_response index move_response
-    index_response="$(rpc 'core.tracklist.index' "$(jq -cn --argjson tlid "$tlid" '{tlid:$tlid}')" || true)"
-    index="$(jq -r '.result // empty' <<< "$index_response")"
-    [[ "$index" =~ ^[0-9]+$ ]] || exit 1
-
-    move_response="$(rpc 'core.tracklist.move' "$(jq -cn --argjson start "$index" --argjson end "$((index + 1))" --argjson to_position "$position" '{start:$start,end:$end,to_position:$to_position}')" || true)"
-    if jq -e '.error != null' >/dev/null 2>&1 <<< "$move_response"; then
-        exit 1
+    local tlid="${1:-}" position="${2:-}" expected_version="${3:-}"
+    if [[ ! "$tlid" =~ ^[0-9]+$ || ! "$position" =~ ^[0-9]+$ || ! "$expected_version" =~ ^[0-9]+$ ]]; then
+        printf '{"ok":false,"error":"invalid_argument"}\n'
+        return 0
     fi
+
+    local version_response current_version index_response index length_response length
+    local move_response verify_response actual_tlid
+
+    version_response="$(rpc 'core.tracklist.get_version')" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    current_version="$(jq -r '.result // empty' <<< "$version_response" 2>/dev/null || true)"
+    if [[ ! "$current_version" =~ ^[0-9]+$ ]] || jq -e '.error != null' >/dev/null 2>&1 <<< "$version_response"; then
+        printf '{"ok":false,"error":"queue_version_unavailable"}\n'
+        return 0
+    fi
+    if [[ "$current_version" != "$expected_version" ]]; then
+        printf '{"ok":false,"error":"queue_changed"}\n'
+        return 0
+    fi
+
+    length_response="$(rpc 'core.tracklist.get_length')" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    length="$(jq -r '.result // empty' <<< "$length_response" 2>/dev/null || true)"
+    if [[ ! "$length" =~ ^[0-9]+$ ]] || jq -e '.error != null' >/dev/null 2>&1 <<< "$length_response"; then
+        printf '{"ok":false,"error":"queue_unavailable"}\n'
+        return 0
+    fi
+    if (( position >= length )); then
+        printf '{"ok":false,"error":"invalid_position"}\n'
+        return 0
+    fi
+
+    index_response="$(rpc 'core.tracklist.index' "$(jq -cn --argjson tlid "$tlid" '{tlid:$tlid}')")" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    if jq -e '.error != null' >/dev/null 2>&1 <<< "$index_response"; then
+        printf '{"ok":false,"error":"track_not_found"}\n'
+        return 0
+    fi
+    index="$(jq -r '.result // empty' <<< "$index_response" 2>/dev/null || true)"
+    if [[ ! "$index" =~ ^[0-9]+$ ]] || (( index >= length )); then
+        printf '{"ok":false,"error":"track_not_found"}\n'
+        return 0
+    fi
+    if (( index == position )); then
+        jq -cn --argjson tlid "$tlid" --argjson position "$position" '{ok:true,unchanged:true,tlid:$tlid,position:$position}'
+        return 0
+    fi
+
+    # Re-check the version immediately before mutating the tracklist. Mopidy's
+    # move API removes [start:end] first and inserts at to_position in the
+    # resulting list, so the final UI index is passed unchanged.
+    version_response="$(rpc 'core.tracklist.get_version')" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    current_version="$(jq -r '.result // empty' <<< "$version_response" 2>/dev/null || true)"
+    if [[ ! "$current_version" =~ ^[0-9]+$ ]] || jq -e '.error != null' >/dev/null 2>&1 <<< "$version_response"; then
+        printf '{"ok":false,"error":"queue_version_unavailable"}\n'
+        return 0
+    fi
+    if [[ "$current_version" != "$expected_version" ]]; then
+        printf '{"ok":false,"error":"queue_changed"}\n'
+        return 0
+    fi
+
+    move_response="$(rpc 'core.tracklist.move' "$(jq -cn --argjson start "$index" --argjson end "$((index + 1))" --argjson to_position "$position" '{start:$start,end:$end,to_position:$to_position}')")" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    if jq -e '.error != null' >/dev/null 2>&1 <<< "$move_response"; then
+        printf '{"ok":false,"error":"move_rejected"}\n'
+        return 0
+    fi
+
+    # The JSON-RPC method returns null on success. Confirm the authoritative
+    # order before the UI is allowed to treat the move as complete.
+    verify_response="$(rpc 'core.tracklist.get_tl_tracks')" || {
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    }
+    if jq -e '.error != null or (.result | type != "array")' >/dev/null 2>&1 <<< "$verify_response"; then
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    fi
+    actual_tlid="$(jq -r --argjson position "$position" '.result[$position].tlid // empty' <<< "$verify_response" 2>/dev/null || true)"
+    if [[ "$actual_tlid" != "$tlid" ]]; then
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    fi
+    jq -cn --argjson tlid "$tlid" --argjson from "$index" --argjson to "$position" '{ok:true,tlid:$tlid,from:$from,to:$to}'
 }
 
 clear_queue() {
@@ -187,7 +270,7 @@ case "${1:-get}" in
         remove_track "${2:-}"
         ;;
     move)
-        move_track "${2:-}" "${3:-}"
+        move_track "${2:-}" "${3:-}" "${4:-}"
         ;;
     clear)
         clear_queue

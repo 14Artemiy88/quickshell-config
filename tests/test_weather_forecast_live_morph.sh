@@ -49,8 +49,10 @@ while i < len(s):
 assert not stack, "unclosed QML delimiter"
 assert s.count("MorphGeometry {") == 2, "only high/low temperatures should use MorphGeometry"
 assert s.count("Image {") == 1, "forecast icon must remain a single direct Image"
-assert s.count("Text {") == 3, "day/high/low text nodes must remain separate"
-assert 'source: Quickshell.shellDir + "/assets/gismeteo/new_png/" + (root.entry.icon || "") + ".png"' in s, "original forecast icon source binding must be preserved"
+assert s.count("Text {") == 4, "day, icon fallback, high and low text nodes must remain separate"
+assert 'DashboardCards.normalizeWeatherIconCode(root.entry && root.entry.icon)' in s, "forecast icon code must be normalized before building the local image path"
+assert 'source: root.iconCode !== ""' in s and 'root.iconCode + ".png"' in s, "forecast image source must use only the normalized code"
+assert 'forecastIconImage.status !== Image.Ready' in s and 'text: "☁"' in s, "forecast image keeps its cloud fallback while loading or failed"
 assert 'width: root.hourly ? Config.weatherHourlyIconWidth : Config.weatherDailyIconWidth' in s, "original icon width binding missing"
 assert 'height: root.hourly ? Config.weatherHourlyIconHeight : Config.weatherDailyIconHeight' in s, "original icon height binding missing"
 for name in ("weatherHourlyIconY", "weatherDailyIconY", "weatherHourlyTempY", "weatherDailyHighTempY", "weatherDailyLowTempY"):

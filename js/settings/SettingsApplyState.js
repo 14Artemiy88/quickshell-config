@@ -180,7 +180,7 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                     }
                     if (missingProfileColor) needsColorPinning = true
                     var expandedProfile = Profiles.expandProfile(owner, storedProfile)
-                    pinnedProfiles[sparseProfileName] = Profiles.sparseProfile(owner, expandedProfile)
+                    Profiles.setOwn(pinnedProfiles, sparseProfileName, Profiles.sparseProfile(owner, expandedProfile))
                 }
                 if (needsColorPinning || needsLegacyNavigationCleanup) {
                     owner.profiles = pinnedProfiles
@@ -206,7 +206,7 @@ function apply(owner, Config, o, moduleNames, defaultModuleFrames, defaultModule
                                 ? completedLegacyProfile.animationTimerVisibilityStyle
                                 : (Config.animationTimerOptionsVisibilityStyle || "fade"))
                     }
-                    completedLegacyProfiles[legacyProfileName] = completedLegacyProfile
+                    Profiles.setOwn(completedLegacyProfiles, legacyProfileName, completedLegacyProfile)
                 }
                 owner.profiles = Profiles.sparsifyProfiles(owner, completedLegacyProfiles)
                 owner.profileStorageFormat = Profiles.SPARSE_FORMAT

@@ -12,7 +12,9 @@ grep -Fq 'import "../.."' "$NAV" || {
   echo 'SettingsNavigationController must import the root module for Config/Settings singletons' >&2
   exit 1
 }
-grep -Fq 'var saved = Config.settingsTabOrder' "$NAV"
+grep -Fq 'SettingsPageRegistry.normalizeNavigationOrder(Config.settingsNavigationOrder)' "$NAV"
+grep -Fq 'function settingsNavigationGroupOrderNormalized()' "$NAV"
+grep -Fq 'function moveSettingsNavigationGroup(id, delta)' "$NAV"
 grep -Fq 'var labels = Config.settingsTabLabels' "$NAV"
 grep -Fq 'settings: root.settings' "$WIDGET"
 grep -Fq 'navigationGroups: root.settingsNavigationGroups' "$WIDGET"
@@ -34,3 +36,7 @@ console.log('Settings navigation registry: 22 unique tabs');
 NODE
 
 echo 'SettingsNavigationController singleton import scope: OK'
+
+! grep -Fq 'Config.settingsTabOrder' "$NAV"
+! grep -Fq 'settingsTabOrderNormalized' "$NAV"
+grep -Fq 'SettingsPageRegistry.normalizeNavigationOrder(Config.settingsNavigationOrder)' "$NAV"

@@ -12,7 +12,7 @@ checks = {
     "progress parser rejects values outside 0..100": 'value < 0 || value > 100',
     "progress parser accepts only integral percentages": 'Math.floor(value) !== value',
     "each card binds its progress value from notification hints": 'property int progressValue: root.notificationProgressValue(notification)',
-    "card height reserves space only when progress is present": 'card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)',
+    "card height reserves space only when progress is present": 'card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)',
     "progress track appears only for valid values": 'visible: Config.notificationsShowProgress && card.progressValue >= 0',
     "progress fill maps percentage to available bar width": 'width: parent.width * card.progressValue / 100',
     "progress fill uses the accent color": 'color: Config.accent',

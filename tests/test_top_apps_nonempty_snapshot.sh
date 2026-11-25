@@ -20,13 +20,25 @@ trap cleanup EXIT
 first="$(get_top_apps 1 1)" || fail 'first snapshot failed'
 jq -e '.mem | length > 0' <<< "$first" >/dev/null || fail "RAM list unexpectedly empty: $first"
 
-# Let the burner accrue CPU ticks, then sample again. This catches cases where
-# a collector silently drops all /proc process rows and leaves both panels empty.
-sleep 0.3
+# Let the burner accrue CPU ticks, then inspect the raw snapshot. The process
+# must be observed with measurable CPU use, but it is not required to rank in
+# the UI's top-four named groups: a busy desktop can legitimately have other
+# processes above it. Retry briefly because centisecond /proc counters and
+# heavily loaded or CPU-throttled machines may need more than one sample.
+observed_burner=0
+for attempt in {1..20}; do
+    raw_snapshot="$(get_process_snapshot 1)" || fail "raw process snapshot failed on attempt $attempt"
+    if awk -F '\t' '$1 == "yes" && $2 ~ /^[0-9]+([.][0-9]+)?$/ && $2 > 0 { found=1 } END { exit !found }' <<< "$raw_snapshot"; then
+        observed_burner=1
+        break
+    fi
+    sleep 0.15
+done
+[[ "$observed_burner" == "1" ]] || fail 'CPU sampler never recorded measurable CPU time for the active yes burner'
+
 second="$(get_top_apps 1 1)" || fail 'second snapshot failed'
 jq -e '.mem | length > 0' <<< "$second" >/dev/null || fail "RAM list unexpectedly empty after second sample: $second"
 jq -e '.cpu | length > 0' <<< "$second" >/dev/null || fail "CPU list unexpectedly empty under active CPU load: $second"
-jq -e '.cpu | any(.[]; .name == "yes")' <<< "$second" >/dev/null || fail "CPU load process is missing from CPU list: $second"
 
 # Verify the same non-empty arrays survive the actual System Monitor JSON path.
 sleep 0.1

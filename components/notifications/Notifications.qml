@@ -8,6 +8,7 @@ import Quickshell.Io
 import "../.."
 import "../../js/NotificationsGeometry.js" as NotificationsGeometry
 import "../../js/notifications/NotificationAnimation.js" as NotificationAnimation
+import "../../js/notifications/NotificationTimeout.js" as NotificationTimeout
 
 Item {
     id: root
@@ -385,6 +386,12 @@ Item {
         return String(notification.image || "").trim()
     }
 
+    function notificationHasImagePath(notification) {
+        if (!notification) return false
+        const hints = notification.hints || ({})
+        return String(hints["image-path"] || hints["image_path"] || "").trim().length > 0
+    }
+
     function notificationLocalImagePath(notification) {
         if (!notification) return ""
         const hints = notification.hints || ({})
@@ -483,6 +490,12 @@ Item {
     readonly property int notificationMaxHeight: Math.max(0, Math.min(10000,
         Math.round(Number(Settings.geometry && Settings.geometry.notifications && Settings.geometry.notifications[3]) || 0)))
     readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))
+    readonly property int notificationLeadingVisualSize: Math.max(24, Math.min(72, Number(Config.notificationsLeadingVisualSize) || 48))
+    readonly property int notificationLeadingVisualRadius: Math.max(0, Math.min(notificationLeadingVisualSize / 2, Number(Config.notificationsLeadingVisualRadius)))
+    readonly property int notificationCardPadding: Math.max(0, Math.min(32, Number(Config.notificationsCardPadding)))
+    readonly property int notificationSummaryFontSize: Math.max(8, Math.min(32, Number(Config.notificationsSummaryFontSize) || 14))
+    readonly property int notificationAppNameFontSize: Math.max(8, Math.min(24, Number(Config.notificationsAppNameFontSize) || 11))
+    readonly property int notificationBodyFontSize: Math.max(8, Math.min(32, Number(Config.notificationsBodyFontSize) || 12))
     readonly property int notificationTransitionDuration: Config.animationDurationForProfile(
         true, Config.animationNotificationsMorphProfile, Config.animationNotificationsMorphDuration, "appearance")
     // Card entrance/exit direction is independent from queue reflow. A disabled
@@ -496,20 +509,22 @@ Item {
     readonly property int progressBarHeight: 5
     readonly property int progressBarGap: 8
 
-    function notificationCardHeight(summaryHeight, bodyHeight, hasActions, hasBody, hasProgress, hasImage, hasAvatar) {
+    function notificationCardHeight(summaryHeight, bodyHeight, hasActions, hasBody, hasProgress, hasImage, hasLeadingVisual) {
         // Summary/body text and the optional image preview are measured or capped
         // independently from the delegate geometry, avoiding height-binding loops.
         const measuredSummaryHeight = Math.max(0, Number(summaryHeight) || 0)
-        const summaryTopOffset = 24
+        const appNameBottomOffset = root.notificationCardPadding + root.notificationAppNameFontSize + 2
+        const summaryTopOffset = appNameBottomOffset + 3
         const progressSpace = hasProgress ? progressBarGap + progressBarHeight : 0
         const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0
 
         if (!hasBody && !hasImage) {
             // Keep a small bottom inset for a summary-only card. When action
             // buttons exist, reserve their full row below even a multi-line title.
-            const summaryBottomSpace = hasActions ? 34 : 10
+            const summaryBottomSpace = hasActions ? 34 : root.notificationCardPadding
             const actionMinimum = hasActions ? 76 : 52
-            return Math.max(hasAvatar ? 64 : actionMinimum, Math.ceil(summaryTopOffset + measuredSummaryHeight + summaryBottomSpace + progressSpace))
+            const leadingVisualMinimum = hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2 : 0
+            return Math.max(leadingVisualMinimum, actionMinimum, Math.ceil(summaryTopOffset + measuredSummaryHeight + summaryBottomSpace + progressSpace))
         }
 
         const measuredBodyHeight = Math.max(0, Number(bodyHeight) || 0)
@@ -518,11 +533,13 @@ Item {
         const bodyTopOffset = summaryTopOffset + measuredSummaryHeight + (measuredSummaryHeight > 0 ? 3 : 0)
         const contentBottomOffset = hasBody
             ? bodyTopOffset + measuredBodyHeight
-            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight : 21)
-        const bottomSpace = hasActions ? 42 : 14
+            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight : appNameBottomOffset)
+        const bottomSpace = root.notificationCardPadding + (hasActions ? 28 : 0)
         // Reserve image height only when an image hint is present and successfully
         // loadable. Long bodies still grow according to their independent Text measure.
-        const minimumCardHeight = hasAvatar ? 64 : (measuredSummaryHeight > 0 ? 68 : 52)
+        const minimumCardHeight = hasLeadingVisual
+            ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2
+            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight + root.notificationCardPadding : appNameBottomOffset + root.notificationCardPadding)
         return Math.max(minimumCardHeight, Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace))
     }
 
@@ -594,8 +611,13 @@ Item {
         // The transparent PanelWindow surface lets the compositor blur the area
         // behind the cards without changing their own text or imagery.
         BackgroundEffect.blurRegion: Region {
+            // Never leave an inactive preview as the blur target. The preview
+            // item is invisible outside layout-edit mode, but Region can still
+            // retain its geometry; use null when the queue and editor are idle.
             item: Settings.moduleBlurEnabled.notifications === true
-                ? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0 ? notificationList : layoutEditPreview)
+                ? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0
+                    ? notificationList
+                    : (root.layoutEditMode ? layoutEditPreview : null))
                 : null
             radius: Math.max(0, Config.backgroundBlurRadius)
         }
@@ -632,7 +654,10 @@ Item {
                 displaced: Transition {
                     NumberAnimation {
                         property: "y"
-                        duration: root.notificationTransitionDuration
+                        // Queue reflow is part of notification visibility motion.
+                        // Use the effective card duration so selecting the per-card
+                        // "none" style also disables this otherwise independent slide.
+                        duration: root.notificationCardVisibilityDuration
                         easing.type: Config.animationEasingType(Config.animationNotificationsMorphProfile, "enter")
                     }
                 }
@@ -725,8 +750,22 @@ Item {
                             + "\u001f" + String(notification.image || "")
                     }
                     property bool imageLoadFailed: false
-                    readonly property bool hasMessengerAvatar: root.notificationIsMessenger(notification) && imageSource.length > 0 && !imageLoadFailed
-                    readonly property bool hasNotificationImage: Config.notificationsShowBodyImages && root.notificationImageHeight > 0 && imageSource.length > 0 && !imageLoadFailed && !hasMessengerAvatar
+                    // Any explicit image-path is treated as the notification's leading
+                    // visual, regardless of the sending application. Some clients (for
+                    // example GitLab) use image-path for a sender/project icon rather
+                    // than a wide body attachment. image-data from known messengers
+                    // retains the existing avatar behavior; other image-data remains a
+                    // body preview so genuine inline attachments are not moved.
+                    readonly property bool hasLeadingImage: imageSource.length > 0
+                        && !imageLoadFailed
+                        && (root.notificationHasImagePath(notification) || root.notificationIsMessenger(notification))
+                    readonly property string appIconSource: notification ? root.notificationIconSource(notification) : ""
+                    readonly property bool hasAppIcon: Config.notificationsShowAppIcon
+                        && appIconSource.length > 0 && !hasLeadingImage
+                    readonly property bool hasLeadingVisual: hasLeadingImage || hasAppIcon
+                    readonly property bool hasNotificationImage: Config.notificationsShowBodyImages
+                        && root.notificationImageHeight > 0 && imageSource.length > 0
+                        && !imageLoadFailed && !hasLeadingImage
 
                     function startNotificationEntry() {
                         if (entryAnimationStarted || removalPending || notification === null)
@@ -851,13 +890,21 @@ Item {
                         return viewportPosition.y + card.height > 0 && viewportPosition.y < notificationList.height
                     }
                     property real visibleTimeoutElapsed: 0
+                    property real visibleTimeoutLastTick: 0
                     property bool removalPending: false
                     property bool timeoutExpirationRequested: false
                     property real effectiveTimeout: root.notificationTimeout(notification)
+                    readonly property real remainingTimeoutFraction: NotificationTimeout.remainingFraction(visibleTimeoutElapsed, effectiveTimeout)
+                    readonly property bool pointerHovered: cardHoverHandler.hovered
                     property real measuredSummaryHeight: root.notificationHasSummary(notification) ? summaryMeasure.implicitHeight : 0
-                    readonly property int textColumnWidth: Math.max(0, root.notificationCardWidth - (hasMessengerAvatar ? 84 : 24))
+                    readonly property int textColumnLeftMargin: hasLeadingVisual
+                        ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2
+                        : root.notificationCardPadding
+                    readonly property int textColumnWidth: Math.max(0, root.notificationCardWidth
+                        - (hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 3 : root.notificationCardPadding * 2))
                     onNotificationChanged: {
                         visibleTimeoutElapsed = 0
+                        visibleTimeoutLastTick = 0
                         removalPending = false
                         timeoutExpirationRequested = false
                     }
@@ -890,9 +937,9 @@ Item {
                     // Measure body text in a separate, unconstrained Text item. Measuring
                     // bodyText itself while the card height is derived from that measurement
                     // can form a QML height-binding cycle with RichText layout.
-                    height: notification !== null ? root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar) : 0
+                    height: notification !== null ? root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual) : 0
                     radius: Config.frameRadius
-                    color: Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent
+                    color: Settings.moduleBackgrounds.notifications !== false ? Config.notificationsBackgroundColor : Config.transparent
                     border.width: Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0
                     border.color: card.notification && card.notification.urgency === NotificationUrgency.Critical ? "#e05b64" : Config.baseColor
                     transform: Translate {
@@ -923,6 +970,13 @@ Item {
                     // notification body. Keep this MouseArea behind the content so
                     // links, the close control, and explicit action buttons retain
                     // their own click behavior.
+                    // Hovering anywhere over the card pauses visible-time accumulation.
+                    // The elapsed value is kept, so the countdown resumes from the same point.
+                    HoverHandler {
+                        id: cardHoverHandler
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    }
+
                     MouseArea {
                         id: cardBodyMouseArea
                         anchors.fill: parent
@@ -934,19 +988,46 @@ Item {
                         }
                     }
 
+                    // A secondary click dismisses only this notification. Keep the
+                    // handler separate from the freedesktop default action so a
+                    // right-click never invokes an application action. It sits
+                    // behind card content and explicit controls, which continue to
+                    // own their normal left-click behavior.
+                    MouseArea {
+                        id: cardContextMouseArea
+                        anchors.fill: parent
+                        enabled: !root.layoutEditMode && card.notification !== null && !card.removalPending
+                        acceptedButtons: Qt.RightButton
+                        onClicked: function(mouse) {
+                            if (mouse.button === Qt.RightButton && card.notification && !card.removalPending)
+                                card.notification.dismiss()
+                        }
+                    }
+
                     Timer {
                         id: expirationTimer
-                        // Count only time spent inside the visible viewport. Stopping this
-                        // repeating timer pauses the accumulated visible time instead of
-                        // restarting a full timeout or allowing off-screen cards to expire.
-                        interval: 100
-                        running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && card.effectiveTimeout > 0
+                        // Count only time spent inside the visible viewport. When the
+                        // optional indicator is enabled, tick at display cadence for a
+                        // smooth strip; otherwise keep the lightweight 100 ms expiry tick.
+                        // Accumulate measured elapsed time rather than `interval`, because
+                        // Qt Quick timers may be delayed by event-loop/rendering workload.
+                        interval: Config.notificationsShowTimeoutIndicator ? 16 : 100
+                        running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && !card.pointerHovered && card.effectiveTimeout > 0
                         repeat: true
+                        onRunningChanged: {
+                            // Reset the tick origin on pause/resume so hover and viewport
+                            // transitions never count time spent outside the active state.
+                            card.visibleTimeoutLastTick = running ? Date.now() : 0
+                        }
                         onTriggered: {
                             if (!card.notification) return
                             const timeout = card.effectiveTimeout
                             if (timeout <= 0) return
-                            card.visibleTimeoutElapsed += interval
+                            const tickNow = Date.now()
+                            const tickElapsed = NotificationTimeout.elapsedDelta(card.visibleTimeoutLastTick, tickNow)
+                            card.visibleTimeoutLastTick = tickNow
+                            if (tickElapsed <= 0) return
+                            card.visibleTimeoutElapsed += tickElapsed
                             if (card.visibleTimeoutElapsed >= timeout && !card.timeoutExpirationRequested) {
                                 card.timeoutExpirationRequested = true
                                 card.notification.expire()
@@ -954,67 +1035,91 @@ Item {
                         }
                     }
 
-                    Image {
-                        id: appIconImage
+                    // Optional countdown strip. It follows the same visible-time
+                    // accumulator as expiration, so it pauses exactly when the card
+                    // is hovered or scrolled outside the ListView viewport.
+                    Item {
+                        id: timeoutIndicatorTrack
                         anchors.left: parent.left
-                        anchors.leftMargin: 10
-                        anchors.top: parent.top
-                        anchors.topMargin: 6
-                        width: 22
-                        height: 22
-                        source: card.notification ? root.notificationIconSource(card.notification) : ""
-                        visible: Config.notificationsShowAppIcon && String(source).length > 0 && !card.hasMessengerAvatar
-                        fillMode: Image.PreserveAspectFit
-                        sourceSize: Qt.size(44, 44)
-                        smooth: true
-                        // Avoid Qt's background pixmap reader for theme SVG icons. Some
-                        // SVG handlers create GUI-owned QObjects during async decoding,
-                        // causing cross-thread QObject/event-filter warnings.
-                        asynchronous: false
+                        anchors.leftMargin: root.notificationCardPadding
+                        anchors.right: parent.right
+                        anchors.rightMargin: root.notificationCardPadding
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 3
+                        height: 3
+                        visible: Config.notificationsShowTimeoutIndicator && card.notification !== null
+                            && !card.removalPending && card.effectiveTimeout > 0
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: Config.baseColor
+                            opacity: 0.35
+                        }
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.bottom: parent.bottom
+                            width: parent.width * card.remainingTimeoutFraction
+                            radius: height / 2
+                            color: Config.accent
+                        }
                     }
 
                     Rectangle {
-                        id: messengerAvatarFrame
+                        id: notificationVisualFrame
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: root.notificationCardPadding
                         anchors.top: parent.top
-                        anchors.topMargin: 8
-                        width: 48
-                        height: 48
-                        radius: 10
+                        anchors.topMargin: root.notificationCardPadding
+                        width: root.notificationLeadingVisualSize
+                        height: root.notificationLeadingVisualSize
+                        radius: root.notificationLeadingVisualRadius
                         color: Config.baseColor
                         clip: true
-                        visible: card.hasMessengerAvatar
+                        visible: card.hasLeadingVisual
 
                         Image {
-                            anchors.fill: parent
-                            source: card.imageSource
-                            sourceSize: Qt.size(96, 96)
-                            fillMode: Image.PreserveAspectCrop
+                            id: notificationVisualImage
+                            anchors.centerIn: parent
+                            width: card.hasLeadingImage ? parent.width : Math.round(root.notificationLeadingVisualSize * 7 / 12)
+                            height: card.hasLeadingImage ? parent.height : Math.round(root.notificationLeadingVisualSize * 7 / 12)
+                            source: card.hasLeadingImage ? card.imageSource : card.appIconSource
+                            sourceSize: card.hasLeadingImage
+                                ? Qt.size(root.notificationLeadingVisualSize * 2, root.notificationLeadingVisualSize * 2)
+                                : Qt.size(Math.round(root.notificationLeadingVisualSize * 7 / 6), Math.round(root.notificationLeadingVisualSize * 7 / 6))
+                            fillMode: card.hasLeadingImage && root.notificationIsMessenger(card.notification)
+                                ? Image.PreserveAspectCrop : Image.PreserveAspectFit
                             smooth: true
                             asynchronous: false
+                            onStatusChanged: {
+                                if (card.hasLeadingImage && status === Image.Error)
+                                    card.imageLoadFailed = true
+                            }
                         }
                     }
 
                     Text {
                         id: appLabel
                         anchors.left: parent.left
-                        anchors.leftMargin: card.hasMessengerAvatar ? 72 : (appIconImage.visible ? 38 : 12)
+                        anchors.leftMargin: card.textColumnLeftMargin
                         anchors.top: parent.top
-                        anchors.topMargin: 8
+                        anchors.topMargin: root.notificationCardPadding
                         anchors.right: closeButton.left
                         text: card.notification ? String(card.notification.appName || "Уведомление") : ""
-                        color: Config.text
-                        font.pixelSize: 11
+                        color: Config.notificationsAppNameColor || Config.text
+                        font.family: Config.notificationsAppNameFont
+                        font.pixelSize: root.notificationAppNameFontSize
+                        font.bold: Config.notificationsAppNameBold
                         elide: Text.ElideRight
                     }
 
                     Text {
                         id: closeButton
                         anchors.right: parent.right
-                        anchors.rightMargin: 10
+                        anchors.rightMargin: root.notificationCardPadding
                         anchors.top: parent.top
-                        anchors.topMargin: 5
+                        anchors.topMargin: Math.max(0, root.notificationCardPadding - 7)
                         width: 24
                         height: 24
                         text: "×"
@@ -1038,7 +1143,8 @@ Item {
                         // displayed summary, independently of card/delegate geometry.
                         width: card.textColumnWidth
                         text: card.notification ? String(card.notification.summary || "") : ""
-                        font.pixelSize: 14
+                        font.family: Config.notificationsSummaryFont
+                        font.pixelSize: root.notificationSummaryFontSize
                         font.bold: true
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
@@ -1047,15 +1153,16 @@ Item {
                     Text {
                         id: summaryText
                         anchors.left: parent.left
-                        anchors.leftMargin: card.hasMessengerAvatar ? 72 : 12
+                        anchors.leftMargin: card.textColumnLeftMargin
                         anchors.right: parent.right
-                        anchors.rightMargin: 12
+                        anchors.rightMargin: root.notificationCardPadding
                         anchors.top: appLabel.bottom
                         anchors.topMargin: 3
                         text: card.notification ? String(card.notification.summary || "") : ""
                         visible: root.notificationHasSummary(card.notification)
-                        color: Config.text
-                        font.pixelSize: 14
+                        color: Config.notificationsSummaryColor || Config.text
+                        font.family: Config.notificationsSummaryFont
+                        font.pixelSize: root.notificationSummaryFontSize
                         font.bold: true
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
@@ -1068,8 +1175,8 @@ Item {
                         // geometry, so implicitHeight cannot form a card-height loop.
                         width: card.textColumnWidth
                         text: card.formattedBody
-                        color: Config.text
-                        font.pixelSize: 12
+                        color: Config.notificationsBodyColor || Config.text
+                        font.pixelSize: root.notificationBodyFontSize
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
                     }
@@ -1077,15 +1184,15 @@ Item {
                     Text {
                         id: bodyText
                         anchors.left: parent.left
-                        anchors.leftMargin: card.hasMessengerAvatar ? 72 : 12
+                        anchors.leftMargin: card.textColumnLeftMargin
                         anchors.right: parent.right
-                        anchors.rightMargin: 12
+                        anchors.rightMargin: root.notificationCardPadding
                         anchors.top: root.notificationHasSummary(card.notification) ? summaryText.bottom : appLabel.bottom
                         anchors.topMargin: 3
                         text: card.formattedBody
                         visible: root.notificationHasBody(card.notification)
-                        color: Config.text
-                        font.pixelSize: 12
+                        color: Config.notificationsBodyColor || Config.text
+                        font.pixelSize: root.notificationBodyFontSize
                         wrapMode: Text.Wrap
                         // Its implicit height is measured from the wrapped rich text;
                         // the card grows to fit instead of constraining and clipping it.
@@ -1100,17 +1207,19 @@ Item {
                     Image {
                         id: bodyImage
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: root.notificationCardPadding
                         anchors.right: parent.right
-                        anchors.rightMargin: 12
+                        anchors.rightMargin: root.notificationCardPadding
                         anchors.top: root.notificationHasBody(card.notification)
                             ? bodyText.bottom
                             : (root.notificationHasSummary(card.notification) ? summaryText.bottom : appLabel.bottom)
                         anchors.topMargin: root.notificationHasBody(card.notification) || root.notificationHasSummary(card.notification)
-                            ? root.notificationImageGap : 8
+                            ? root.notificationImageGap : root.notificationCardPadding
                         height: root.notificationImageHeight
                         source: card.imageSource
-                        sourceSize: Qt.size(root.notificationCardWidth - 24, root.notificationImageHeight)
+                        sourceSize: Qt.size(
+                            Math.max(1, root.notificationCardWidth - root.notificationCardPadding * 2),
+                            root.notificationImageHeight)
                         fillMode: Image.PreserveAspectFit
                         smooth: true
                         asynchronous: false
@@ -1124,9 +1233,9 @@ Item {
                     Rectangle {
                         id: progressTrack
                         anchors.left: parent.left
-                        anchors.leftMargin: 12
+                        anchors.leftMargin: root.notificationCardPadding
                         anchors.right: parent.right
-                        anchors.rightMargin: 12
+                        anchors.rightMargin: root.notificationCardPadding
                         anchors.top: card.hasNotificationImage
                             ? bodyImage.bottom
                             : (root.notificationHasBody(card.notification)

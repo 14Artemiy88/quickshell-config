@@ -17,14 +17,22 @@ fi
 
 # Confirm the runner prints progress, failure details, and a final duration summary.
 grep -Fq '%sPASS%s %s\n' "$CHECK"
-grep -Fq '%sFAIL%s %s (exit %s)\n' "$CHECK"
+grep -Fq '%sFAIL%s %s (exit %s) — continuing\n' "$CHECK"
 grep -Fq 'cat "$CHECK_LOG" >&2' "$CHECK"
 grep -Fq 'CHECK COMPLETE%s:' "$CHECK"
 grep -Fq 'CHECK FAILED%s:' "$CHECK"
+grep -Fq 'Failed tests:' "$CHECK"
+grep -Fq 'Failed steps:' "$CHECK"
+grep -Fq 'steps %s/%s passed, %s failed' "$CHECK"
 grep -Fq 'CHECK INTERRUPTED%s:' "$CHECK"
 grep -Fq "trap 'exit 130' INT" "$CHECK"
 grep -Fq "trap 'exit 143' TERM" "$CHECK"
 grep -Fq 'CHECK_STARTED=$SECONDS' "$CHECK"
+grep -Fq 'CHECK_TIMINGS_FILE="$(mktemp)"' "$CHECK"
+grep -Fq 'check_now_us() {' "$CHECK"
+grep -Fq 'EPOCHREALTIME' "$CHECK"
+grep -Fq 'Slowest tests (top 10 of %s):' "$CHECK"
+grep -Fq 'sort -nr "$CHECK_TIMINGS_FILE"' "$CHECK"
 
 # Avoid restoring the previous verbose QML file dump / per-test heading stream.
 if grep -Eq '^echo "==' "$CHECK"; then

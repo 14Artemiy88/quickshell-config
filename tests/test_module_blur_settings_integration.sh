@@ -43,7 +43,8 @@ assert 'moduleName: "settings"' in shell, 'the settings window must use its own 
 assert 'Settings.moduleBlurEnabled[root.moduleName] === true' in widget_window
 assert 'radius: Math.max(0, root.backgroundBlurRadius)' in widget_window
 notifications = (root / "components/notifications/Notifications.qml").read_text(encoding="utf-8")
-assert 'Settings.moduleBlurEnabled.notifications === true' in notifications and 'notificationList : layoutEditPreview' in notifications
+assert 'item: Settings.moduleBlurEnabled.notifications === true' in notifications
+assert '? notificationList' in notifications and 'root.layoutEditMode ? layoutEditPreview : null' in notifications, 'notification blur must follow the visible list or edit preview'
 assert 'radius: Math.max(0, Config.backgroundBlurRadius)' in notifications
 assert 'Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent' in notifications
 assert 'Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0' in notifications

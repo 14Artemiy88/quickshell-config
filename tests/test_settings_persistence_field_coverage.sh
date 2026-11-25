@@ -18,6 +18,10 @@ color_match = re.search(r"var colorNames\s*=\s*\[(.*?)\]", metadata, re.S)
 assert color_match, "SettingsMetadata.colorNames not found"
 color_names = set(re.findall(r'[\"\']([A-Za-z_]\w*)[\"\']', color_match.group(1)))
 
+config_source = (root / "Config.qml").read_text()
+defaults_source = (root / "js/settings/SettingsDefaults.js").read_text()
+assert "property var settingsTabOrder:" not in config_source, "obsolete flat order remains a Config runtime property"
+assert "settingsTabOrder:" not in defaults_source, "obsolete flat order remains in new profile defaults"
 settings_ui = "\n".join(p.read_text(errors="ignore") for p in (root / "components/settings").rglob("*.qml"))
 mutated = set(re.findall(r"\bConfig\.([A-Za-z_]\w*)\s*=", settings_ui))
 
@@ -41,13 +45,18 @@ legacy_animation_compatibility = {
     "animationMopidyMorphEnabled", "animationPlayerMorphEnabled",
     "animationWeatherMorphEnabled", "animationTimerMorphEnabled"
 }
-not_saved = sorted(mutated - persisted - standalone_persisted - color_names - legacy_animation_compatibility)
+# settingsTabOrder is a migration-only input from old settings files. It is
+# deliberately absent from Config/defaults/runtime snapshots and is pruned on write.
+legacy_navigation_compatibility = {"settingsTabOrder"}
+not_saved = sorted(mutated - persisted - standalone_persisted - color_names - legacy_animation_compatibility - legacy_navigation_compatibility)
 not_loaded = sorted(mutated - loadable - color_names)
 persisted_not_loaded = sorted(persisted - loadable - color_names)
 for key in legacy_animation_compatibility:
     assert f"{key}: config.{key}" not in snapshot_body, f"legacy-only key unexpectedly returned to snapshots: {key}"
 assert "settingsNavigationCollapsedGroups" in standalone_persisted, "navigation expansion is not persisted as standalone UI state"
 assert "settingsNavigationCollapsedGroups" not in persisted, "navigation expansion leaked back into profile snapshots"
+assert "settingsNavigationOrder" in persisted, "hierarchical navigation order is missing from profile snapshots"
+assert "settingsTabOrder" not in persisted, "legacy flat navigation order leaked into profile snapshots"
 assert not not_saved, "Settings UI fields missing from snapshots, standalone persistence or color map: " + ", ".join(not_saved)
 assert not not_loaded, "Settings UI fields missing load handling: " + ", ".join(not_loaded)
 assert not persisted_not_loaded, "Persisted settings without detected loader handling: " + ", ".join(persisted_not_loaded)

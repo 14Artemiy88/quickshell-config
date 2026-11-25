@@ -93,6 +93,142 @@ function navigationGroupDefinitions() {
     return NAVIGATION_GROUPS.slice()
 }
 
+// Build sidebar groups in the user's configured frame order. Page membership
+// remains fixed by canonical metadata; only the top-level presentation order
+// is customizable here.
+function navigationGroupsForOrder(source, labels) {
+    var normalized = normalizeNavigationOrder(source)
+    var items = navigationItemsForOrder(flattenNavigationOrder(normalized), labels)
+    var result = []
+    for (var orderIndex = 0; orderIndex < normalized.groupOrder.length; ++orderIndex) {
+        var groupId = normalized.groupOrder[orderIndex]
+        var definition = null
+        for (var definitionIndex = 0; definitionIndex < NAVIGATION_GROUPS.length; ++definitionIndex) {
+            if (NAVIGATION_GROUPS[definitionIndex].id === groupId) {
+                definition = NAVIGATION_GROUPS[definitionIndex]
+                break
+            }
+        }
+        if (!definition) continue
+        var groupItems = []
+        for (var itemIndex = 0; itemIndex < items.length; ++itemIndex) {
+            if (items[itemIndex].groupId === groupId)
+                groupItems.push(items[itemIndex])
+        }
+        result.push({
+            id: definition.id,
+            label: definition.label,
+            symbol: definition.symbol,
+            description: definition.description,
+            items: groupItems
+        })
+    }
+    return result
+}
+
+// Hierarchical navigation order. Folder/frame order is independent from the
+// page order inside each frame. Page membership remains canonical in
+// TAB_DEFINITIONS; cross-frame page moves are intentionally not supported yet.
+function defaultNavigationOrder() {
+    var groupOrder = []
+    var pagesByGroup = {}
+    for (var groupIndex = 0; groupIndex < NAVIGATION_GROUPS.length; ++groupIndex) {
+        var groupId = NAVIGATION_GROUPS[groupIndex].id
+        groupOrder.push(groupId)
+        pagesByGroup[groupId] = []
+    }
+    for (var pageIndex = 0; pageIndex < TAB_DEFINITIONS.length; ++pageIndex) {
+        var page = TAB_DEFINITIONS[pageIndex]
+        if (pagesByGroup[page.groupId])
+            pagesByGroup[page.groupId].push(page.id)
+    }
+    return { groupOrder: groupOrder, pagesByGroup: pagesByGroup }
+}
+
+function normalizeNavigationOrder(source) {
+    var defaults = defaultNavigationOrder()
+    var input = source && typeof source === "object" && !Array.isArray(source) ? source : {}
+    var result = { groupOrder: [], pagesByGroup: {} }
+    var seenGroups = {}
+    var savedGroupOrder = Array.isArray(input.groupOrder) ? input.groupOrder : []
+    for (var groupIndex = 0; groupIndex < savedGroupOrder.length; ++groupIndex) {
+        var groupId = savedGroupOrder[groupIndex]
+        if (typeof groupId !== "string" || !Object.prototype.hasOwnProperty.call(defaults.pagesByGroup, groupId) || seenGroups[groupId])
+            continue
+        seenGroups[groupId] = true
+        result.groupOrder.push(groupId)
+    }
+    for (var defaultGroupIndex = 0; defaultGroupIndex < defaults.groupOrder.length; ++defaultGroupIndex) {
+        var fallbackGroupId = defaults.groupOrder[defaultGroupIndex]
+        if (!seenGroups[fallbackGroupId]) result.groupOrder.push(fallbackGroupId)
+    }
+
+    var savedPages = input.pagesByGroup && typeof input.pagesByGroup === "object" && !Array.isArray(input.pagesByGroup)
+        ? input.pagesByGroup : {}
+    for (var pageGroupIndex = 0; pageGroupIndex < defaults.groupOrder.length; ++pageGroupIndex) {
+        var pageGroupId = defaults.groupOrder[pageGroupIndex]
+        var allowed = defaults.pagesByGroup[pageGroupId]
+        var pages = []
+        var seenPages = {}
+        var candidatePages = Array.isArray(savedPages[pageGroupId]) ? savedPages[pageGroupId] : []
+        for (var candidateIndex = 0; candidateIndex < candidatePages.length; ++candidateIndex) {
+            var pageId = candidatePages[candidateIndex]
+            if (typeof pageId !== "string" || allowed.indexOf(pageId) < 0 || seenPages[pageId])
+                continue
+            seenPages[pageId] = true
+            pages.push(pageId)
+        }
+        for (var allowedIndex = 0; allowedIndex < allowed.length; ++allowedIndex) {
+            var fallbackPageId = allowed[allowedIndex]
+            if (!seenPages[fallbackPageId]) pages.push(fallbackPageId)
+        }
+        result.pagesByGroup[pageGroupId] = pages
+    }
+    return result
+}
+
+// Convert the former flat order into the new object. Legacy ordering only
+// represented per-page order because frame order was fixed, so frame order
+// starts with the historic default and page order is retained within groups.
+function navigationOrderFromLegacyTabOrder(source) {
+    var defaults = defaultNavigationOrder()
+    var result = { groupOrder: defaults.groupOrder.slice(), pagesByGroup: {} }
+    var seen = {}
+    for (var groupIndex = 0; groupIndex < defaults.groupOrder.length; ++groupIndex)
+        result.pagesByGroup[defaults.groupOrder[groupIndex]] = []
+
+    var candidateIds = Array.isArray(source) ? source : []
+    for (var candidateIndex = 0; candidateIndex < candidateIds.length; ++candidateIndex) {
+        var pageId = candidateIds[candidateIndex]
+        if (typeof pageId !== "string" || seen[pageId]) continue
+        var groupId = navigationGroupIdForTabId(pageId)
+        if (!result.pagesByGroup[groupId]) continue
+        seen[pageId] = true
+        result.pagesByGroup[groupId].push(pageId)
+    }
+    for (var fallbackGroupIndex = 0; fallbackGroupIndex < defaults.groupOrder.length; ++fallbackGroupIndex) {
+        var fallbackGroupId = defaults.groupOrder[fallbackGroupIndex]
+        var allowed = defaults.pagesByGroup[fallbackGroupId]
+        for (var fallbackIndex = 0; fallbackIndex < allowed.length; ++fallbackIndex) {
+            var fallbackPageId = allowed[fallbackIndex]
+            if (!seen[fallbackPageId]) result.pagesByGroup[fallbackGroupId].push(fallbackPageId)
+        }
+    }
+    return normalizeNavigationOrder(result)
+}
+
+function flattenNavigationOrder(source) {
+    var normalized = normalizeNavigationOrder(source)
+    var result = []
+    for (var groupIndex = 0; groupIndex < normalized.groupOrder.length; ++groupIndex) {
+        var groupId = normalized.groupOrder[groupIndex]
+        var pages = normalized.pagesByGroup[groupId] || []
+        for (var pageIndex = 0; pageIndex < pages.length; ++pageIndex)
+            result.push(pages[pageIndex])
+    }
+    return result
+}
+
 function navigationGroupIdForTabId(id) {
     var pageId = String(id === undefined || id === null ? "" : id)
     for (var i = 0; i < TAB_DEFINITIONS.length; ++i) {

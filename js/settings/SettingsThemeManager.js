@@ -3,6 +3,62 @@
 .import "SettingsProfiles.js" as Profiles
 
 var GENERATED_WALLPAPER_THEME_NAME = "Wallpaper Dynamic"
+var MAX_CUSTOM_THEME_NAME_LENGTH = 32
+var RESERVED_THEME_KEYS = ["__proto__", "prototype", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable"]
+
+function hasOwn(object, key) {
+    return !!object && Object.prototype.hasOwnProperty.call(object, String(key))
+}
+
+function setOwn(object, key, value) {
+    Object.defineProperty(object, String(key), {
+        value: value, enumerable: true, configurable: true, writable: true
+    })
+}
+
+function copyThemeMap(source) {
+    var result = {}
+    if (!source || typeof source !== "object" || Array.isArray(source)) return result
+    var names = Object.keys(source)
+    for (var i = 0; i < names.length; ++i)
+        setOwn(result, names[i], JSON.parse(JSON.stringify(source[names[i]])))
+    return result
+}
+
+function normalizeThemeName(value) {
+    return String(value === undefined || value === null ? "" : value).trim()
+}
+
+function validNewThemeName(value) {
+    var name = normalizeThemeName(value)
+    return name.length > 0 && name.length <= MAX_CUSTOM_THEME_NAME_LENGTH
+        && !/[\u0000-\u001f\u007f]/.test(name)
+        && RESERVED_THEME_KEYS.indexOf(name) < 0
+}
+
+function isThemeAvailable(themes, owner, name) {
+    if (themes && Array.isArray(themes.builtinThemeNames))
+        return themes.builtinThemeNames.indexOf(String(name)) >= 0 || hasOwn(owner && owner.customThemes, name)
+    // Small test adapters and older integrations may expose only palette().
+    return !!(themes && typeof themes.palette === "function")
+}
+
+function validColorValue(value) {
+    if (typeof value !== "string") return false
+    var normalized = value.trim().toLowerCase()
+    return /^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(normalized) || normalized === "transparent"
+}
+
+function copyPaletteForDraft(owner, sourcePalette, Config) {
+    var draft = JSON.parse(JSON.stringify(sourcePalette || {}))
+    var managed = managedColorNames(owner, owner && owner.colorNames ? owner.colorNames : Object.keys(draft))
+    for (var i = 0; i < managed.length; ++i) {
+        var key = String(managed[i])
+        if (!hasOwn(draft, key) && Config && Config[key] !== undefined)
+            setOwn(draft, key, String(Config[key]))
+    }
+    return draft
+}
 
 function managedColorNames(owner, fallback) {
     if (owner && Array.isArray(owner.themeManagedColorNames))
@@ -30,7 +86,7 @@ function currentThemeColors(owner, colorNames, Config) {
     var managed = managedColorNames(owner, colorNames)
     for (var i = 0; i < managed.length; ++i) {
         var key = managed[i]
-        result[key] = String(Config[key])
+        setOwn(result, key, String(Config[key]))
     }
     return result
 }
@@ -47,10 +103,15 @@ function isCurrentThemeModified(owner, themes, colorNames, Config) {
 }
 
 function saveCurrentTheme(owner, colorNames, Config, name) {
-    var n = String(name || "").trim().slice(0, 32)
-    if (!n || (n === GENERATED_WALLPAPER_THEME_NAME && owner.activeTheme !== n)) return false
-    var next = Object.assign({}, owner.customThemes || {})
-    next[n] = currentThemeColors(owner, colorNames, Config)
+    var n = normalizeThemeName(name)
+    var updatingActiveCustomTheme = owner.activeTheme === n && hasOwn(owner.customThemes, n)
+    if ((!validNewThemeName(n) && !updatingActiveCustomTheme)
+            || (owner.builtinThemeNames && owner.builtinThemeNames.indexOf(n) >= 0)
+            || (n === GENERATED_WALLPAPER_THEME_NAME && owner.activeTheme !== n)) return false
+    if (owner.customThemes && hasOwn(owner.customThemes, n) && owner.activeTheme !== n) return false
+    if (owner.activeTheme === n && !hasOwn(owner.customThemes, n)) return false
+    var next = copyThemeMap(owner.customThemes)
+    setOwn(next, n, currentThemeColors(owner, colorNames, Config))
     owner.customThemes = next
     owner.activeTheme = n
     owner.themeDraftSource = n
@@ -62,7 +123,8 @@ function saveCurrentTheme(owner, colorNames, Config, name) {
 }
 
 function applyTheme(owner, themes, Config, name) {
-    var n = String(name)
+    var n = normalizeThemeName(name)
+    if (!n || !isThemeAvailable(themes, owner, n)) return false
     var p = themes.palette(n, owner.customThemes)
     // These are user-tuned component/window colors, not part of the global
     // theme. Keep their current values when switching built-in or custom themes.
@@ -79,14 +141,15 @@ function applyTheme(owner, themes, Config, name) {
     }
     owner.activeTheme = n
     owner.themeDraftSource = n
-    owner.themeDraft = JSON.parse(JSON.stringify(p))
+    owner.themeDraft = copyPaletteForDraft(owner, p, Config)
     owner.themeDraftRevision++
     owner.themeStateRevision++
     owner.save()
+    return true
 }
 
 function applyGeneratedTheme(owner, themes, Config, colorNames, name, paletteValue) {
-    var n = String(name || "").trim().slice(0, 32)
+    var n = normalizeThemeName(name)
     if (n !== GENERATED_WALLPAPER_THEME_NAME || !paletteValue || typeof paletteValue !== "object")
         return false
 
@@ -97,14 +160,13 @@ function applyGeneratedTheme(owner, themes, Config, colorNames, name, paletteVal
         var value = paletteValue[key]
         if (typeof value !== "string") return false
         var normalized = value.trim().toLowerCase()
-        if (!(/^#[0-9a-f]{6}([0-9a-f]{2})?$/.test(normalized) || normalized === "transparent"))
-            return false
-        generated[key] = normalized
+        if (!validColorValue(value)) return false
+        setOwn(generated, key, normalized)
     }
     if (!names.length) return false
 
-    var next = Object.assign({}, owner.customThemes || {})
-    next[n] = generated
+    var next = copyThemeMap(owner.customThemes)
+    setOwn(next, n, generated)
     owner.customThemes = next
     applyTheme(owner, themes, Config, n)
     return true
@@ -119,50 +181,64 @@ function description(themes, name) {
 }
 
 function isCustomTheme(owner, name) {
-    return !!(owner.customThemes && owner.customThemes[String(name)] !== undefined)
+    return hasOwn(owner && owner.customThemes, name)
 }
 
-function beginThemeEdit(owner, themes, name) {
-    var n = String(name)
-    owner.themeDraft = JSON.parse(JSON.stringify(themes.palette(n, owner.customThemes)))
+function beginThemeEdit(owner, themes, name, Config) {
+    var n = normalizeThemeName(name)
+    if (!isThemeAvailable(themes, owner, n)) return false
+    var sourcePalette = themes.palette(n, owner.customThemes)
+    if (!sourcePalette || typeof sourcePalette !== "object") return false
+    owner.themeDraft = copyPaletteForDraft(owner, sourcePalette, Config)
     owner.themeDraftSource = n
     owner.themeDraftRevision++
+    return true
 }
 
 function themeDraftValue(owner, Config, name) {
     var n = String(name)
-    return owner.themeDraft && owner.themeDraft[n] !== undefined ? String(owner.themeDraft[n]) : String(Config[n])
+    return hasOwn(owner && owner.themeDraft, n) ? String(owner.themeDraft[n]) : String(Config[n])
 }
 
 function setThemeDraftColor(owner, name, value) {
-    var v = String(value || "").trim().toLowerCase()
-    // Only accept valid six-digit RGB or eight-digit ARGB hex values. The old
-    // {6,8} quantifier accidentally accepted invalid seven-digit colors.
-    if (!(/^#(?:[0-9a-f]{6}|[0-9a-f]{8})$/.test(v) || v === "transparent")) return false
-    var next = Object.assign({}, owner.themeDraft || {})
-    next[String(name)] = v
+    var key = String(name)
+    var v = String(value === undefined || value === null ? "" : value).trim().toLowerCase()
+    var allowed = managedColorNames(owner, owner && owner.colorNames ? owner.colorNames : Object.keys(owner && owner.themeDraft || {}))
+    if (allowed.indexOf(key) < 0 || !hasOwn(owner && owner.themeDraft, key) || !validColorValue(v)) return false
+    var next = copyThemeMap(owner.themeDraft)
+    setOwn(next, key, v)
     owner.themeDraft = next
     owner.themeDraftRevision++
     return true
 }
 
 function saveCustomTheme(owner, themes, Config, name) {
-    var n = String(name || "").trim().slice(0, 32)
-    if (!n || themes.builtinThemeNames.indexOf(n) >= 0 || !owner.themeDraft
+    var n = normalizeThemeName(name)
+    var updatingDraftSource = owner.themeDraftSource === n && hasOwn(owner.customThemes, n)
+    if ((!validNewThemeName(n) && !updatingDraftSource) || themes.builtinThemeNames.indexOf(n) >= 0 || !owner.themeDraft
             || (n === GENERATED_WALLPAPER_THEME_NAME && owner.themeDraftSource !== n)) return false
-    var next = Object.assign({}, owner.customThemes || {})
-    var savedPalette = JSON.parse(JSON.stringify(owner.themeDraft))
-    var independent = independentColorNames(owner)
-    for (var i = 0; i < independent.length; ++i) delete savedPalette[independent[i]]
-    next[n] = savedPalette
+    if (hasOwn(owner.customThemes, n) && owner.themeDraftSource !== n) return false
+    var next = copyThemeMap(owner.customThemes)
+    var savedPalette = {}
+    var managed = managedColorNames(owner, Object.keys(owner.themeDraft))
+    for (var m = 0; m < managed.length; ++m) {
+        var managedKey = String(managed[m])
+        // Some compatibility colors (for example settingsSubheading) are
+        // intentionally absent from built-in palettes and remain user-tuned.
+        if (!hasOwn(owner.themeDraft, managedKey)) continue
+        if (!validColorValue(owner.themeDraft[managedKey])) return false
+        setOwn(savedPalette, managedKey, String(owner.themeDraft[managedKey]).trim().toLowerCase())
+    }
+    if (Object.keys(savedPalette).length === 0) return false
+    setOwn(next, n, savedPalette)
     owner.customThemes = next
     owner.activeTheme = n
     owner.themeDraftSource = n
     owner.themeDraft = JSON.parse(JSON.stringify(next[n]))
     owner.themeDraftRevision++
-    var managed = managedColorNames(owner, Object.keys(next[n]))
-    for (var j = 0; j < managed.length; ++j) {
-        var key = managed[j]
+    var applyNames = managedColorNames(owner, Object.keys(next[n]))
+    for (var j = 0; j < applyNames.length; ++j) {
+        var key = applyNames[j]
         if (next[n][key] !== undefined) Config[key] = next[n][key]
     }
     owner.themeStateRevision++
@@ -171,14 +247,15 @@ function saveCustomTheme(owner, themes, Config, name) {
 }
 
 function renameCustomTheme(owner, themes, Config, oldName, newName) {
-    var oldN = String(oldName || "").trim()
-    var newN = String(newName || "").trim().slice(0, 32)
-    if (!isCustomTheme(owner, oldN) || !newN || oldN === newN) return oldN === newN && isCustomTheme(owner, oldN)
-    if (themes.builtinThemeNames.indexOf(newN) >= 0 || newN === GENERATED_WALLPAPER_THEME_NAME) return false
-    if (owner.customThemes && owner.customThemes[newN] !== undefined) return false
+    var oldN = normalizeThemeName(oldName)
+    var newN = normalizeThemeName(newName)
+    if (!isCustomTheme(owner, oldN)) return false
+    if (oldN === newN) return true
+    if (!validNewThemeName(newN) || themes.builtinThemeNames.indexOf(newN) >= 0
+            || newN === GENERATED_WALLPAPER_THEME_NAME || hasOwn(owner.customThemes, newN)) return false
 
-    var next = Object.assign({}, owner.customThemes || {})
-    next[newN] = next[oldN]
+    var next = copyThemeMap(owner.customThemes)
+    setOwn(next, newN, next[oldN])
     delete next[oldN]
     owner.customThemes = next
     // Profile snapshots keep color values even if the custom palette later
@@ -186,7 +263,7 @@ function renameCustomTheme(owner, themes, Config, oldName, newName) {
     Profiles.rewriteThemeReferences(owner, themes, oldN, newN)
     owner.activeTheme = newN
     owner.themeDraftSource = newN
-    owner.themeDraft = JSON.parse(JSON.stringify(next[newN]))
+    owner.themeDraft = copyPaletteForDraft(owner, next[newN], Config)
     owner.themeDraftRevision++
     owner.themeStateRevision++
     owner.save()
@@ -219,12 +296,12 @@ function findExactThemeForColors(owner, themes, colors) {
 }
 
 function deleteCustomTheme(owner, themes, Config, name) {
-    var n = String(name || "")
+    var n = normalizeThemeName(name)
     if (!isCustomTheme(owner, n)) return false
     var activeColors = owner.activeTheme === n
         ? currentThemeColors(owner, owner.colorNames || [], Config)
         : null
-    var next = Object.assign({}, owner.customThemes || {})
+    var next = copyThemeMap(owner.customThemes)
     delete next[n]
     owner.customThemes = next
     // The theme is global, but saved profiles also retain their palette colors.
@@ -241,7 +318,7 @@ function deleteCustomTheme(owner, themes, Config, name) {
         // saved profiles preserve them when their custom theme is deleted.
         var p = themes.palette(owner.activeTheme, owner.customThemes)
         owner.themeDraftSource = owner.activeTheme
-        owner.themeDraft = JSON.parse(JSON.stringify(p))
+        owner.themeDraft = copyPaletteForDraft(owner, p, Config)
         owner.themeDraftRevision++
     }
     owner.themeStateRevision++

@@ -11,7 +11,7 @@ const assert = require('assert');
 const modulePath = process.argv[2];
 const launcherPath = process.argv[3];
 const source = fs.readFileSync(modulePath, 'utf8').replace(/^\.pragma library\s*/, '');
-const api = vm.runInThisContext(source + '\n({ emptyData, normalizeData, parseData, serializeData, toggleFavorite, recordUsage, applyMutations, isFavorite, recentUsageForScreen, parseQuery, buildResults, emptyStateMessage, MAX_WALLPAPER_USAGE, MAX_RECENT_WALLPAPERS })');
+const api = vm.runInThisContext(source + '\n({ emptyData, normalizeData, parseData, serializeData, toggleFavorite, recordUsage, recordAppliedWallpaper, recordSuccessfulApply, appliedWallpapers, applyMutations, isFavorite, recentUsageForScreen, parseQuery, buildResults, emptyStateMessage, MAX_WALLPAPER_USAGE, MAX_RECENT_WALLPAPERS, MAX_APPLIED_WALLPAPERS })');
 const entries = [
   { path: '/wallpapers/amber.jpg', name: 'amber.jpg' },
   { path: '/wallpapers/blue.png', name: 'blue.png' },
@@ -20,7 +20,7 @@ const entries = [
   { path: '/wallpapers/sunrise.jpg', name: 'sunrise.jpg' }
 ];
 
-assert.deepStrictEqual(api.emptyData(), { version: 1, favorites: [], usage: [] }, 'new wallpaper preference data has an explicit version and empty lists');
+assert.deepStrictEqual(api.emptyData(), { version: 1, favorites: [], usage: [], applied: [] }, 'new wallpaper preference data has an explicit version and empty lists');
 assert.deepStrictEqual(api.parseData('{invalid'), api.emptyData(), 'corrupted data safely resets to an empty value');
 
 let data = api.toggleFavorite(api.emptyData(), '/wallpapers/blue.png');
@@ -56,6 +56,42 @@ assert(api.recentUsageForScreen(merged, 'DP-2').some(x => x.path === '/wallpaper
 assert.deepStrictEqual(api.parseData(api.serializeData(merged)), merged, 'data round-trips through persistent JSON');
 assert(api.parseData(JSON.stringify({ version: 1, favorites: ['/wallpapers/x.jpg', '/', 'relative.png'], usage: [{ path: '/wallpapers/y.png', screenName: 'DP-1', count: 1, lastUsed: 123 }] })).favorites.length === 1, 'legacy/corrupt paths are filtered while valid history survives');
 
+const legacyWallpaperData = api.parseData(JSON.stringify({
+  version: 1,
+  favorites: [],
+  usage: [
+    { path: '/wallpapers/old-dp1.jpg', screenName: 'DP-1', count: 2, lastUsed: 1000 },
+    { path: '/wallpapers/current-dp1.jpg', screenName: 'DP-1', count: 1, lastUsed: 2000 },
+    { path: '/wallpapers/current-hdmi.jpg', screenName: 'HDMI-A-1', count: 1, lastUsed: 3000 }
+  ]
+}));
+assert.deepStrictEqual(api.appliedWallpapers(legacyWallpaperData), [
+  { path: '/wallpapers/current-hdmi.jpg', screenName: 'HDMI-A-1', lastApplied: 3000 },
+  { path: '/wallpapers/current-dp1.jpg', screenName: 'DP-1', lastApplied: 2000 }
+], 'v1411 usage history migrates to the last applied wallpaper per screen');
+let appliedData = api.recordSuccessfulApply(api.emptyData(), '/wallpapers/new.jpg', 'DP-1', 9000);
+assert.deepStrictEqual(api.appliedWallpapers(appliedData), [
+  { path: '/wallpapers/new.jpg', screenName: 'DP-1', lastApplied: 9000 }
+], 'successful apply stores a persistent per-screen restore target');
+appliedData = api.recordSuccessfulApply(appliedData, '/wallpapers/other.jpg', 'HDMI-A-1', 10000);
+appliedData = api.recordSuccessfulApply(appliedData, '/wallpapers/replacement.jpg', 'dp-1', 11000);
+assert.deepStrictEqual(api.appliedWallpapers(appliedData).map(x => [x.path, x.screenName]), [
+  ['/wallpapers/replacement.jpg', 'dp-1'], ['/wallpapers/other.jpg', 'HDMI-A-1']
+], 'latest apply replaces only the matching screen and keeps independent output selections');
+const restoredAfterMutation = api.applyMutations(api.emptyData(), [
+  { type: 'recordSuccessfulApply', path: '/wallpapers/queued.jpg', screenName: 'DP-2', timestamp: 12000 }
+]);
+assert.strictEqual(api.appliedWallpapers(restoredAfterMutation)[0].path, '/wallpapers/queued.jpg', 'startup mutations retain a successful apply until disk data finishes loading');
+assert(api.appliedWallpapers(api.normalizeData({
+  version: 1, favorites: [], usage: [],
+  applied: [
+    { path: '/wallpapers/valid.jpg', screenName: 'DP-1', lastApplied: 10 },
+    { path: '../invalid.jpg', screenName: 'DP-2', lastApplied: 20 },
+    { path: '/wallpapers/valid2.jpg', screenName: 'DP-1', lastApplied: 30 }
+  ]
+})).length === 1, 'applied wallpaper state filters invalid paths and deduplicates screen names');
+assert(api.appliedWallpapers(appliedData).length <= api.MAX_APPLIED_WALLPAPERS, 'per-screen restore state has a bounded size');
+
 const score = (text, query) => String(text).toLowerCase().includes(String(query).toLowerCase()) ? 100 : -1;
 const favoriteData = api.toggleFavorite(api.emptyData(), '/wallpapers/forest.webp');
 let applied = api.recordUsage(favoriteData, '/wallpapers/blue.png', 'DP-1', 2000);
@@ -87,7 +123,11 @@ const launcher = fs.readFileSync(launcherPath, 'utf8');
 assert(launcher.includes('wallpaperPickerFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-wallpaper-data.json"'), 'wallpaper state lives outside active settings profiles');
 assert(launcher.includes('loadWallpaperPickerDataFromDisk()'), 'wallpaper preferences load on launcher startup');
 assert(launcher.includes('root.wallpaperPickerData,\n                wallpaperQuery.scope,\n                root.wallpaperSelectedScreenName'), 'active scope uses the selected monitor and persistent state');
-assert(launcher.includes('root.rememberWallpaperUsage(root.wallpaperApplyPendingPath, root.wallpaperApplyPendingScreenName)'), 'usage is recorded only after wallpaper backend returns success');
+assert(launcher.includes('root.rememberWallpaperUsage(root.wallpaperApplyPendingPath, root.wallpaperApplyPendingScreenName)'), 'usage and restore target are recorded only after wallpaper backend returns success');
+assert(launcher.includes('root.scheduleWallpaperRestore()'), 'saved wallpapers are queued after persisted data loads');
+assert(launcher.includes('LauncherWallpaperPicker.appliedWallpapers(root.wallpaperPickerData)'), 'startup restore reads the latest saved wallpaper per monitor');
+assert(launcher.includes('root.wallpaperApplyIsRestore'), 'startup restore does not use interactive apply completion behavior');
+assert(launcher.includes('root.finishWallpaperRestore(exitCode)'), 'startup restores are serialized and advance after each backend result');
 assert(launcher.includes('root.toggleWallpaperFavorite(appDelegate.itemData.path)'), 'tile star toggles favorite without applying an image');
 assert(launcher.includes('>wallpaper favorites') && launcher.includes('>wallpaper recent'), 'toolbar exposes favorite and recent scopes');
 assert(launcher.includes('__LAUNCHER_WALLPAPER_DATA_REQUEST__'), 'asynchronous load carries a generation marker');
@@ -97,7 +137,7 @@ assert(launcher.includes('loadWallpaperPickerDataFromDisk()'), 'persistent wallp
 assert(launcher.includes('property string wallpaperPickerFile: Quickshell.env("HOME") + "/.cache/quickshell-launcher-wallpaper-data.json"'), 'wallpaper data is stored outside profiles');
 assert(launcher.includes('mouse.x >= width - 46 && mouse.y <= 46'), 'star hit area does not trigger the tile apply action');
 assert(launcher.includes('wallpaperQuery.scope') && launcher.includes('root.wallpaperSelectedScreenName'), 'recent scope is bound to the selected monitor');
-console.log('Wallpaper favorites, per-monitor recents, scoped queries and async persistence: OK');
+console.log('Wallpaper favorites, per-monitor recents, scoped queries, legacy applied-state migration and startup restore persistence: OK');
 JS
 
 echo 'Launcher wallpaper preferences: OK'

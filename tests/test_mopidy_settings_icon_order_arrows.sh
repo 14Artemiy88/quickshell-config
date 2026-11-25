@@ -23,21 +23,24 @@ end_match = re.search(r'(?m)^\s*SettingsButton\s*\{\s*\n\s*width:\s*125\b', s[st
 assert end_match, 'Could not locate the settings button after the icon-order repeater'
 end = start + end_match.start()
 order = s[start:end]
-assert order.count('Primitives.MoveArrowButton {') == 2, 'Mopidy icon ordering should use the shared arrow primitive for both directions'
-assert 'interactionEnabled: index > 0' in order, 'Move-up arrow must be disabled at the first position and hidden by the shared primitive'
-assert 'interactionEnabled: index < orderColumn.orderIds.length - 1' in order, 'Move-down arrow must be disabled at the last position and hidden by the shared primitive'
+assert order.count('Primitives.DragReorderHandle {') == 1, 'Mopidy icon ordering should use the shared drag-reorder primitive'
+assert 'listRepeater: mopidyTopIconOrderRepeater' in order, 'Mopidy icon rows must be used as drop targets'
 assert 'SettingsButton {' not in order, 'Mopidy icon-order arrows must not use regular SettingsButton controls'
-assert 'onClicked: orderColumn.moveItem(index, -1)' in order
-assert 'onClicked: orderColumn.moveItem(index, 1)' in order
+assert 'onReorderRequested: function(fromIndex, toIndex)' in order
+assert 'orderColumn.moveItemTo(fromIndex, toIndex)' in order
 PY
 
-# Mopidy runtime queue arrows intentionally remain visible while busy, but
-# boundary arrows are still hidden through requestedVisible.
-grep -Fq 'requestedVisible: itemData.queueIndex > 0 && Config.mopidyShowMoveUpIcon' "$QUEUE"
-grep -Fq 'requestedVisible: itemData.queueIndex < controller.tracks.length - 1 && Config.mopidyShowMoveDownIcon' "$QUEUE"
-grep -Fq 'hideWhenDisabled: false' "$QUEUE"
-grep -Fq 'requestedVisible: index > 0 && Config.mopidyShowMoveUpIcon' "$PLAYLIST"
-grep -Fq 'requestedVisible: index < controller.playlistItems.length - 1 && Config.mopidyShowMoveDownIcon' "$PLAYLIST"
-grep -Fq 'hideWhenDisabled: false' "$PLAYLIST"
+# Queue tracks and playlist entries use backend-aware drag reorder. There are
+# no runtime arrow controls left; legacy Config values remain only for old profiles.
+grep -Fq 'Primitives.DragReorderHandle {' "$QUEUE"
+grep -Fq 'controller.moveTrack(Number(itemData.track.tlid), toIndex)' "$QUEUE"
+grep -Fq 'Primitives.DragReorderHandle {' "$PLAYLIST"
+grep -Fq 'controller.movePlaylistItem(fromIndex, toIndex, modelData.name, modelData.uri)' "$PLAYLIST"
+! grep -Fq 'Primitives.MoveArrowButton {' "$QUEUE"
+! grep -Fq 'Primitives.MoveArrowButton {' "$PLAYLIST"
+grep -Fq 'Порядок треков очереди и записей плейлистов меняется перетаскиванием' "$SECTION"
+for legacy_key in mopidyMoveUpIcon mopidyMoveDownIcon mopidyShowMoveUpIcon mopidyShowMoveDownIcon; do
+    grep -Fq "$legacy_key" "$ROOT/Config.qml" || { echo "missing legacy compatibility key $legacy_key" >&2; exit 1; }
+done
 
-echo 'Mopidy settings icon-order arrows use the shared primitive and hide unavailable directions: OK'
+echo 'Mopidy queue and playlist use backend-aware shared drag reorder: OK'

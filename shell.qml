@@ -55,6 +55,14 @@ ShellRoot {
     property bool networksVisible: false
     property string pendingLauncherMode: ""
 
+    Connections {
+        target: Settings
+        function onDashboardChanged() {
+            if (!Settings.dashboard)
+                shell.dashboardVisible = false
+        }
+    }
+
     function showLauncherMode(modeName) {
         if (!Config.launcherEnabled) return
         pendingLauncherMode = String(modeName || "apps")
@@ -74,23 +82,6 @@ ShellRoot {
             return
         }
         showLauncherMode("default")
-    }
-
-    // Dashboard cards and the empty-state action link to existing Settings pages.
-    // Keep the mapping explicit so malformed IDs cannot navigate arbitrary pages.
-    function openDashboardModuleSettings(pageId) {
-        var targetPage = String(pageId || "")
-        var allowedPages = ["cpuRam", "network", "weather", "player", "calendar", "dashboard"]
-        if (allowedPages.indexOf(targetPage) < 0)
-            return
-
-        shell.dashboardVisible = false
-        shell.settingsVisible = true
-        Qt.callLater(function() {
-            if (!settingsWidget) return
-            settingsWidget.selectSettingsTab(targetPage)
-            settingsWidget.currentPageSubTabIndex = 0
-        })
     }
 
     Connections {
@@ -210,7 +201,7 @@ ShellRoot {
 
     Connections {
         target: launcherLoader.status === Loader.Ready ? launcherLoader.item : null
-        function onDashboardRequested() { shell.dashboardVisible = true }
+        function onDashboardRequested() { if (Settings.dashboard) shell.dashboardVisible = true }
     }
 
     IpcHandler {
@@ -230,24 +221,27 @@ ShellRoot {
     IpcHandler {
         target: "dashboard"
 
-        function toggle(): void { shell.dashboardVisible = !shell.dashboardVisible }
-        function show(): void { shell.dashboardVisible = true }
+        function toggle(): void {
+            if (Settings.dashboard)
+                shell.dashboardVisible = !shell.dashboardVisible
+        }
+        function show(): void {
+            if (Settings.dashboard)
+                shell.dashboardVisible = true
+        }
         function hide(): void { shell.dashboardVisible = false }
     }
 
     Dashboard {
         id: dashboardPanel
-        open: shell.dashboardVisible
+        open: Settings.dashboard && shell.dashboardVisible
         clock: clock
         cpuSource: cpuWidget
         playerSource: playerWidget
         weatherSource: weatherLoader.item
         monitorSource: monitor
         onCloseRequested: shell.dashboardVisible = false
-        onLauncherRequested: shell.toggleLauncher()
-        onCalendarRequested: if (Settings.calendar) shell.calendarVisible = !shell.calendarVisible
         onSettingsRequested: shell.settingsVisible = true
-        onModuleSettingsRequested: pageId => shell.openDashboardModuleSettings(pageId)
     }
 
     IpcHandler {
@@ -355,6 +349,8 @@ ShellRoot {
         moduleName: "weatherNow"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherNow
+        // Weather surfaces stay below normal application windows; layout editing raises them temporarily.
+        bottomLayer: true
         offsetX: Settings.geometryForLayout("weatherNow")[0]
         offsetY: Settings.geometryForLayout("weatherNow")[1]
         contentWidth: Settings.geometry.weatherNow[2]
@@ -374,6 +370,8 @@ ShellRoot {
         moduleName: "weatherHourly"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherHourly
+        // Weather surfaces stay below normal application windows; layout editing raises them temporarily.
+        bottomLayer: true
         offsetX: Settings.geometryForLayout("weatherHourly")[0]
         offsetY: Settings.geometryForLayout("weatherHourly")[1]
         contentWidth: Settings.geometry.weatherHourly[2]
@@ -390,6 +388,8 @@ ShellRoot {
         moduleName: "weatherDaily"
         layoutEditMode: shell.layoutEditMode
         visible: Settings.weatherDaily
+        // Weather surfaces stay below normal application windows; layout editing raises them temporarily.
+        bottomLayer: true
         offsetX: Settings.geometryForLayout("weatherDaily")[0]
         offsetY: Settings.geometryForLayout("weatherDaily")[1]
         contentWidth: Settings.geometry.weatherDaily[2]
@@ -828,8 +828,8 @@ ShellRoot {
             id: networksVisibility
             anchors.fill: parent
             shown: Config.networksAlwaysVisible || shell.networksVisible || shell.layoutEditMode
-            animationStyle: "fade"
-            duration: Config.animationDuration(250, "appearance")
+            animationStyle: Config.animationNetworkVisibilityStyle
+            duration: Config.animationNetworkVisibilityDuration
             Networks {
                 id: networksContent
                 anchors.fill: parent

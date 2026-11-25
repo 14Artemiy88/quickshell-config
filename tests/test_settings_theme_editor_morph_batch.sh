@@ -78,13 +78,22 @@ assert 'Keys.onReturnPressed: saveThemeFromField()' in selector
 
 rename_state = "root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified"
 rename = block_by_id("MorphGeometry", "customThemeRenameMorph")
-verify_morph(rename, rename_state, "30", "custom theme rename")
+verify_morph(rename, rename_state, "customThemeRenameContent.implicitHeight", "custom theme rename")
 assert 'id: themeRenameField' in rename
 assert 'function renameCurrentTheme()' in rename
 assert 'settings.renameCustomTheme(settings.activeTheme, name)' in rename
 assert 'id: themeDeleteButton' in rename
-assert 'settings.deleteCustomTheme(settings.activeTheme)' in rename
+assert 'root.pendingDeleteThemeName = settings.activeTheme' in rename
+assert 'settings.deleteCustomTheme(deletingName)' in rename
+assert 'Удалить пользовательскую тему «' in rename
+assert 'text: "Удалить"' in rename and 'text: "Отмена"' in rename
+assert 'Подтвердить удаление темы' in rename
 assert 'visible: root.editingColors' not in rename, "rename row must remain alive through collapse"
+assert 'function showThemeFeedback(message, isError)' in source
+assert 'settings.beginThemeEdit(settings.activeTheme)' in source
+assert 'onValueEdited: function(value) { settings.setThemeDraftColor(colorName, value) }' in source
+assert 'не более 32 символов' in source
+assert 'themeActionMessageIsError ? Config.tempHot : Config.textMuted' in source
 
 palette = block_by_id("MorphGeometry", "customThemeColorsMorph")
 palette_state = "root.editingColors"
@@ -121,7 +130,7 @@ assert 'readonly property bool showThemeCombo: !root.themesExpanded' in source
 assert 'readonly property bool showModifiedThemeName: root.editingColors && settings.currentThemeModified' in source
 # The edit toggle and the theme lifecycle connections must remain unchanged.
 assert 'id: editColorsCheck' in source and 'checked: root.editingColors' in source
-assert 'onToggled: root.editingColors = checked' in source
+assert 'root.editingColors = checked' in source and 'root.pendingDeleteThemeName = ""' in source
 assert 'function onActiveThemeChanged()' in source
 assert 'themeNameField.text = settings.activeTheme + (settings.currentThemeModified ? " (Changed)" : "")' in source
 assert 'themeRenameField.text = settings.activeTheme' in source

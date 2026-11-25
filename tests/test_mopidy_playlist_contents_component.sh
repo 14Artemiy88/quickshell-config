@@ -11,8 +11,17 @@ if grep -Fq 'controller: controller' "$LIBRARY"; then echo 'Self-referential con
 grep -Fq 'readonly property bool playlistContentMoveBusy: playlistContentMoveProcess.running' "$MAIN"
 grep -Fq 'property var controller' "$VIEW"
 grep -Fq 'model: controller.playlistItems' "$VIEW"
-grep -Fq 'controller.movePlaylistItem(index, index - 1, modelData.name)' "$VIEW"
-grep -Fq 'controller.movePlaylistItem(index, index + 1, modelData.name)' "$VIEW"
+grep -Fq 'Primitives.DragReorderHandle {' "$VIEW"
+grep -Fq 'reorderAdapter: playlistReorderAdapter' "$VIEW"
+grep -Fq 'itemIndex: index' "$VIEW"
+grep -Fq 'dropIndicatorHost: playlistItemsView' "$VIEW"
+grep -Fq 'controller.setPlaylistContentReorderDragging(dragging, playlistContentReorderHandle)' "$VIEW"
+grep -Fq 'controller.movePlaylistItem(fromIndex, toIndex, modelData.name, modelData.uri)' "$VIEW"
+grep -Fq 'refreshDropTargetForLayoutChange()' "$VIEW"
+if grep -Fq 'Primitives.MoveArrowButton {' "$VIEW"; then
+    echo 'Mopidy playlist rows still use the legacy up/down arrows' >&2
+    exit 1
+fi
 grep -Fq 'controller.removePlaylistItem(index, modelData.name)' "$VIEW"
 grep -Fq 'controller.addPlaylistItem(modelData.uri, modelData.name)' "$VIEW"
 grep -Fq '!controller.playlistContentMoveBusy' "$VIEW"

@@ -46,7 +46,7 @@ const qml = fs.readFileSync(path.join(root, 'components/settings/sections/mopidy
 const expected = [
   'stopIconField', 'refreshIconField', 'openAddIconField', 'addIconField',
   'shuffleIconField', 'repeatIconField', 'switchPlaylistIconField',
-  'playlistDeleteIconField', 'moveUpIconField', 'moveDownIconField',
+  'playlistDeleteIconField',
   'volumeIconField', 'mutedIconField', 'clearIconField'
 ];
 const entries = [];
@@ -76,7 +76,7 @@ if (matches.length !== expected.length)
   throw new Error(`search for Иконки matched ${matches.length}/${expected.length} icon-column fields`);
 if (matches.some(item => item.subTabIndex !== 2))
   throw new Error('icon-column result is not routed to Mopidy → Icons subtab');
-console.log('Mopidy icon-column search coverage: 13/13');
+console.log('Mopidy icon-column search coverage: 11/11');
 NODE
 
 # Verify setting snapshot/apply/profile legacy fallback.

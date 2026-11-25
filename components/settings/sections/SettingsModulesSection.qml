@@ -175,28 +175,15 @@ Item {
                             font.pixelSize: Config.settingsUiSize(15)
                             verticalAlignment: Text.AlignVCenter
                         }
-                        SettingsButton {
-                            width: 30
-                            height: 30
-                            visible: host && host.profileController.canSaveScope("all")
-                            enabled: visible
-                            text: ""
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("all")
                             iconText: "󰆔"
-                            fontSize: 11
                             tooltip: "Сохранить всё в активный профиль"
-                            backgroundColor: Config.settingsBackground
                             onClicked: host.profileController.saveAll()
                         }
-                        SettingsButton {
-                            width: 30
-                            height: 30
-                            visible: host && host.profileController.canSaveScope("modules")
-                            enabled: visible
-                            text: ""
-                            iconText: "\uf0c7"
-                            fontSize: 11
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("modules")
                             tooltip: "Сохранить расположение и параметры модулей"
-                            backgroundColor: Config.settingsBackground
                             onClicked: host.profileController.saveScope("modules")
                         }
                         SettingsResetButton {
@@ -236,7 +223,7 @@ Item {
                     }
 
                     Repeater {
-                        model: settings.moduleNames
+                        model: settings.moduleNames.filter(function(name) { return name !== "dashboard" })
 
                         delegate: Row {
                             id: moduleRow
@@ -358,16 +345,9 @@ Item {
                                 onToggled: settings.setModuleBlurEnabled(moduleRow.moduleName, checked)
                             }
 
-                            SettingsButton {
-                                width: 30
-                                height: 30
-                                visible: host && host.profileController.canSaveScope("module", moduleRow.moduleName)
-                                enabled: visible
-                                text: ""
-                                iconText: "\uf0c7"
-                                fontSize: 11
+                            SettingsSaveButton {
+                                actionAvailable: host && host.profileController.canSaveScope("module", moduleRow.moduleName)
                                 tooltip: "Сохранить настройки модуля: " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
-                                backgroundColor: Config.settingsBackground
                                 onClicked: host.profileController.saveScope("module", moduleRow.moduleName)
                             }
                             SettingsResetButton {
@@ -378,6 +358,62 @@ Item {
                                 tooltip: "Сбросить настройки модуля"
                                 onClicked: settings.resetModule(moduleRow.moduleName)
                             }
+                        }
+                    }
+
+                    // Dashboard is a full-screen overlay rather than a movable module
+                    // window. It gets a dedicated enable row without fake geometry or
+                    // the frame/background/blur controls used by regular modules.
+                    Row {
+                        id: dashboardModuleRow
+                        width: parent.width
+                        height: 30
+                        spacing: 6
+
+                        SettingsCheckBox {
+                            id: dashboardEnabledBox
+                            width: 96
+                            height: 30
+                            text: "Dashboard"
+                            checked: settings.dashboard
+                            settingsSearchId: "module.dashboard.enabled"
+                            settingsSearchLabel: "Dashboard · Включён"
+                            settingsSearchKeywords: "обзор обзорная панель включение выключение"
+                            onToggled: {
+                                settings.dashboard = checked
+                                settings.save()
+                            }
+                            Connections {
+                                target: settings
+                                function onDashboardChanged() {
+                                    dashboardEnabledBox.checked = settings.dashboard
+                                }
+                            }
+                        }
+
+                        Text {
+                            width: Math.max(0, dashboardModuleRow.width - 96 - 60 - 18)
+                            height: 30
+                            text: "Полноэкранная обзорная панель"
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: Config.settingsUiSize(10)
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("dashboardModule")
+                            tooltip: "Сохранить настройки модуля: Dashboard"
+                            onClicked: host.profileController.saveScope("dashboardModule")
+                        }
+                        SettingsResetButton {
+                            width: 30
+                            height: 30
+                            enabled: host && host.profileController.hasActiveProfile
+                            actionAvailable: host.profileController.canResetScope("dashboardModule")
+                            tooltip: "Сбросить настройки Dashboard"
+                            onClicked: settings.resetDashboardModule()
                         }
                     }
 
@@ -533,16 +569,9 @@ Item {
                             onToggled: settings.setModuleBlurEnabled("launcher", checked)
                         }
 
-                        SettingsButton {
-                            width: 30
-                            height: 30
-                            visible: host && host.profileController.canSaveScope("launcher")
-                            enabled: visible
-                            text: ""
-                            iconText: "\uf0c7"
-                            fontSize: 11
+                        SettingsSaveButton {
+                            actionAvailable: host && host.profileController.canSaveScope("launcher")
                             tooltip: "Сохранить настройки лаунчера"
-                            backgroundColor: Config.settingsBackground
                             onClicked: host.profileController.saveScope("launcher")
                         }
                         SettingsResetButton {

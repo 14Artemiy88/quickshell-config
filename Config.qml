@@ -65,6 +65,8 @@ QtObject {
     // Timeouts are milliseconds; zero means no automatic expiry.
     property int notificationsDefaultTimeout: 5000
     property int notificationsCriticalTimeout: 0
+    // Optional countdown bar; disabled by default to preserve the existing card appearance.
+    property bool notificationsShowTimeoutIndicator: false
     // Vertical edge used by the notification surface; X remains measured from the left.
     property string notificationsVerticalAnchor: "top"
     // Legacy corner placement is read only during one-time migration to module X/Y geometry.
@@ -75,6 +77,25 @@ QtObject {
     property int notificationsCardWidth: 380
     property int notificationsCardSpacing: 8
     property int notificationsImageHeight: 112
+    // Notifications use their own surface color instead of the global module background.
+    property color notificationsBackgroundColor: "#4d000000"
+    // Summary is the notification heading; empty font family keeps the system default.
+    property string notificationsSummaryFont: ""
+    property int notificationsSummaryFontSize: 14
+    property string notificationsSummaryColor: ""
+    // Application name uses an independent typographic style; empty font/color inherit.
+    property string notificationsAppNameFont: ""
+    property int notificationsAppNameFontSize: 11
+    property string notificationsAppNameColor: ""
+    property bool notificationsAppNameBold: false
+    // Leading icon/avatar frame appearance.
+    property int notificationsLeadingVisualSize: 48
+    property int notificationsLeadingVisualRadius: 10
+    // Uniform inset between notification content and the card edge.
+    property int notificationsCardPadding: 12
+    // Body text appearance; an empty color follows the active theme.
+    property int notificationsBodyFontSize: 12
+    property string notificationsBodyColor: ""
     property bool notificationsShowAppIcon: true
     property bool notificationsShowBodyImages: true
     property bool notificationsShowProgress: true
@@ -84,7 +105,17 @@ QtObject {
     property string animationNotificationsVisibilityStyle: "fade"
 
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
-    property var settingsTabOrder: ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
+    // Hierarchical navigation order: independent frame order and per-frame page order.
+    property var settingsNavigationOrder: ({
+        groupOrder: ["appearance", "modules", "dashboard", "launcher", "general"],
+        pagesByGroup: ({
+            appearance: ["themes", "settingsWindow"],
+            modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+            dashboard: ["dashboard"],
+            launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+            general: ["general"]
+        })
+    })
     property var settingsTabLabels: ({
         modules: "Модули", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
@@ -93,6 +124,8 @@ QtObject {
     })
     // Remember expanded/collapsed state for the multi-page sidebar groups.
     property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false })
+    // Last selected Settings page is a standalone UI preference, not a profile setting.
+    property string settingsLastActivePageId: "general"
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
 
@@ -187,6 +220,8 @@ QtObject {
     property bool animationTimerMorphEnabled: true
     property int animationTimerMorphDuration: 220
     property string animationTimerMorphProfile: "expressive"
+    property string animationNetworkVisibilityStyle: "fade"
+    property int animationNetworkVisibilityDuration: 250
     property int animationNetworkMorphDuration: 220
     property string animationNetworkMorphProfile: "expressive"
     property int animationCavaMorphDuration: 180

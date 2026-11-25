@@ -160,17 +160,28 @@ rename_playlist() {
 
 
 move_playlist_item() {
-    local uri="${1:-}" index="${2:-}" new_index="${3:-}"
-    [[ -n "$uri" && "$index" =~ ^[0-9]+$ && "$new_index" =~ ^[0-9]+$ ]] || { printf '{"ok":false,"error":"missing_argument"}\n'; return 0; }
+    local uri="${1:-}" index="${2:-}" new_index="${3:-}" expected_uri="${4:-}" expected_order_json="${5:-}"
+    [[ -n "$uri" && "$index" =~ ^[0-9]+$ && "$new_index" =~ ^[0-9]+$ && -n "$expected_uri" && -n "$expected_order_json" ]] || {
+        printf '{"ok":false,"error":"missing_argument"}\n'
+        return 0
+    }
+    if ! jq -e 'type == "array" and all(.[]; type == "string")' >/dev/null 2>&1 <<< "$expected_order_json"; then
+        printf '{"ok":false,"error":"invalid_snapshot"}\n'
+        return 0
+    fi
 
-    local lookup model count saved
+    local lookup model count actual_uri expected_after saved verify
     lookup="$(rpc 'core.playlists.lookup' "$(jq -cn --arg uri "$uri" '{uri:$uri}')")" || {
         printf '{"ok":false,"error":"offline"}\n'
         return 0
     }
+    if jq -e '.error != null or .result == null' >/dev/null 2>&1 <<< "$lookup"; then
+        printf '{"ok":false,"error":"playlist_unavailable"}\n'
+        return 0
+    fi
 
     count=$(jq -r '(.result.tracks // []) | length' <<< "$lookup")
-    if [[ "$count" -eq 0 ]]; then
+    if [[ ! "$count" =~ ^[0-9]+$ ]] || (( count == 0 )); then
         printf '{"ok":false,"error":"playlist_empty"}\n'
         return 0
     fi
@@ -178,11 +189,39 @@ move_playlist_item() {
         printf '{"ok":false,"error":"item_not_found"}\n'
         return 0
     fi
+
+    if ! jq -e --argjson expected "$expected_order_json" \
+            '([.result.tracks[]?.uri // ""] == $expected)' >/dev/null 2>&1 <<< "$lookup"; then
+        printf '{"ok":false,"error":"playlist_changed"}\n'
+        return 0
+    fi
+    actual_uri="$(jq -r --argjson index "$index" '.result.tracks[$index].uri // empty' <<< "$lookup")"
+    if [[ "$actual_uri" != "$expected_uri" ]]; then
+        printf '{"ok":false,"error":"playlist_changed"}\n'
+        return 0
+    fi
     if (( index == new_index )); then
-        printf '{"ok":true}\n'
+        jq -cn --argjson index "$index" '{ok:true,unchanged:true,index:$index}'
         return 0
     fi
 
+    # Re-read immediately before save to reject edits made while the new
+    # playlist model is being prepared. Mopidy's playlist API has no CAS token,
+    # but this narrows the race window and avoids overwriting most concurrent changes.
+    verify="$(rpc 'core.playlists.lookup' "$(jq -cn --arg uri "$uri" '{uri:$uri}')")" || {
+        printf '{"ok":false,"error":"offline"}\n'
+        return 0
+    }
+    if jq -e '.error != null or .result == null' >/dev/null 2>&1 <<< "$verify" \
+            || ! jq -e --argjson expected "$expected_order_json" \
+                '([.result.tracks[]?.uri // ""] == $expected)' >/dev/null 2>&1 <<< "$verify"; then
+        printf '{"ok":false,"error":"playlist_changed"}\n'
+        return 0
+    fi
+
+    # Use the freshly re-read playlist model so metadata changes that do not
+    # alter track order are not overwritten by the earlier snapshot.
+    lookup="$verify"
     model="$(jq -c --argjson index "$index" --argjson new_index "$new_index" '
         .result as $playlist
         | if $playlist == null then empty
@@ -198,17 +237,37 @@ move_playlist_item() {
           end
     ' <<< "$lookup")"
     [[ -n "$model" ]] || { printf '{"ok":false,"error":"playlist_not_found"}\n'; return 0; }
+    expected_after="$(jq -c --argjson index "$index" --argjson new_index "$new_index" '
+        . as $items | $items[$index] as $moved
+        | [ $items | to_entries[] | select(.key != $index) | .value ] as $rest
+        | ($rest[:$new_index] + [$moved] + $rest[$new_index:])
+    ' <<< "$expected_order_json")"
 
     saved="$(rpc 'core.playlists.save' "$(jq -cn --argjson playlist "$model" '{playlist:$playlist}')")" || {
         printf '{"ok":false,"error":"offline"}\n'
         return 0
     }
-    if jq -e '.error != null or .result == null' >/dev/null 2>&1 <<< "$saved"; then
-        jq -c '{ok:false,error:(.error.message // "playlist_save_failed")}' <<< "$saved"
+    if jq -e '.error != null' >/dev/null 2>&1 <<< "$saved"; then
+        jq -c '{ok:false,error:"playlist_save_failed",detail:(.error.message // null)}' <<< "$saved"
         return 0
     fi
 
-    jq -cn '{ok:true}'
+    # Some providers return an empty result for a successful save. Re-read the
+    # playlist and confirm the final order before the UI treats the move as done.
+    verify="$(rpc 'core.playlists.lookup' "$(jq -cn --arg uri "$uri" '{uri:$uri}')")" || {
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    }
+    if jq -e '.error != null or .result == null' >/dev/null 2>&1 <<< "$verify"; then
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    fi
+    if ! jq -e --argjson expected "$expected_after" \
+            '([.result.tracks[]?.uri // ""] == $expected)' >/dev/null 2>&1 <<< "$verify"; then
+        printf '{"ok":false,"error":"move_unconfirmed"}\n'
+        return 0
+    fi
+    jq -cn --argjson from "$index" --argjson to "$new_index" '{ok:true,from:$from,to:$to}'
 }
 
 delete_playlist() {
@@ -395,7 +454,7 @@ case "${1:-list}" in
         remove_playlist_item "${2:-}" "${3:-}"
         ;;
     move_item)
-        move_playlist_item "${2:-}" "${3:-}" "${4:-}"
+        move_playlist_item "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}"
         ;;
     lookup)
         lookup_playlist "${2:-}"

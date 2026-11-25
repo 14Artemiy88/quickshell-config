@@ -72,3 +72,15 @@ function move(source, index, delta) {
     result.splice(to, 0, item);
     return result;
 }
+function moveTo(source, fromIndex, toIndex) {
+    var result = normalize(source);
+    var from = Number(fromIndex);
+    var to = Number(toIndex);
+    if (!isFinite(from) || Math.floor(from) !== from || from < 0 || from >= result.length
+            || !isFinite(to) || Math.floor(to) !== to || to < 0 || to >= result.length || from === to)
+        return result;
+    var item = result.splice(from, 1)[0];
+    result.splice(to, 0, item);
+    return result;
+}
+

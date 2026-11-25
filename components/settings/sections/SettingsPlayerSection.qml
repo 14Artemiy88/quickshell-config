@@ -84,10 +84,14 @@ Column {
     }
 
     function movePlayerPriority(index, delta) {
-        var target = index + delta
-        if (index < 0 || index >= playerPriorityModel.count || target < 0 || target >= playerPriorityModel.count)
+        root.movePlayerPriorityTo(index, index + Number(delta))
+    }
+
+    function movePlayerPriorityTo(fromIndex, toIndex) {
+        if (fromIndex < 0 || fromIndex >= playerPriorityModel.count
+                || toIndex < 0 || toIndex >= playerPriorityModel.count || fromIndex === toIndex)
             return
-        playerPriorityModel.move(index, target, 1)
+        playerPriorityModel.move(fromIndex, toIndex, 1)
         root.savePlayerPriority()
     }
 
@@ -249,6 +253,7 @@ settingsSearchSubTabIndex: 1
             }
     }
     SettingsGroup {
+        id: playerPrioritySettingsGroup
                 visible: host && host.currentPageId === "player" && host.currentPageSubTabIndex === 0
 settingsSearchSubTabIndex: 0
         width: parent.width
@@ -279,9 +284,13 @@ settingsSearchSubTabIndex: 0
                 spacing: 5
 
                 Repeater {
+                    id: playerPriorityRepeater
                     model: playerPriorityModel
 
                     delegate: Row {
+                        id: playerPriorityRow
+                        Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                        property Item reorderTargetItem: playerPriorityRow
                         width: parent ? parent.width : 0
                         height: 30
                         spacing: 6
@@ -316,32 +325,18 @@ settingsSearchSubTabIndex: 0
                             elide: Text.ElideRight
                         }
 
-                        Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 18 - 56); height: 30 }
+                        Item { width: Math.max(0, parent.width - 24 - 28 - 170 - 24 - 26); height: 30 }
 
-                        MoveArrowButton {
+                        DragReorderHandle {
                             width: 26
                             height: 26
-                            iconText: "↑"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index > 0
-                            toolTipText: "Поднять выше"
-                            onClicked: root.movePlayerPriority(index, -1)
-                        }
-
-                        MoveArrowButton {
-                            width: 26
-                            height: 26
-                            iconText: "↓"
-                            iconSize: Config.settingsUiSize(12)
-                            baseColor: Config.text
-                            hoverMode: "frame"
-                            hoverColor: Config.accent
-                            interactionEnabled: index < playerPriorityModel.count - 1
-                            toolTipText: "Опустить ниже"
-                            onClicked: root.movePlayerPriority(index, 1)
+                            listRepeater: playerPriorityRepeater
+                            dropIndicatorHost: playerPrioritySettingsGroup
+                            itemIndex: index
+                            accessibleLabel: model.label
+                            onReorderRequested: function(fromIndex, toIndex) {
+                                root.movePlayerPriorityTo(fromIndex, toIndex)
+                            }
                         }
                     }
                 }

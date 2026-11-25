@@ -15,12 +15,12 @@ export WEATHER_CACHE_TTL=600
 # A warm cache for each supported endpoint proves the inline key assembly
 # preserves the exact established filenames, including the empty-param key.
 printf '%s\n' '{"temperature":19,"summary":"now"}' > "$TMP/cache/weather/now_.json"
-printf '%s\n' '{"temperature":20,"summary":"day"}' > "$TMP/cache/weather/day__days_2.json"
-printf '%s\n' '{"temperature":21,"summary":"week"}' > "$TMP/cache/weather/week__days_5.json"
+printf '%s\n' '[{"temperature":20,"summary":"day"}]' > "$TMP/cache/weather/day__days_2.json"
+printf '%s\n' '[{"temperature":21,"summary":"week"}]' > "$TMP/cache/weather/week__days_5.json"
 for key in now day week; do touch "$TMP/cache/weather/${key}"*.json; done
 [[ "$("$SCRIPT" now)" == '{"temperature":19,"summary":"now"}' ]]
-[[ "$("$SCRIPT" day)" == '{"temperature":20,"summary":"day"}' ]]
-[[ "$("$SCRIPT" week)" == '{"temperature":21,"summary":"week"}' ]]
+[[ "$("$SCRIPT" day)" == '[{"temperature":20,"summary":"day"}]' ]]
+[[ "$("$SCRIPT" week)" == '[{"temperature":21,"summary":"week"}]' ]]
 
 python3 - "$SCRIPT" <<'PY'
 from pathlib import Path

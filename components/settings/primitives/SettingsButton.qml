@@ -31,7 +31,20 @@ Item {
     property string tooltip: ""
     property int tooltipDelay: 500
 
+    activeFocusOnTab: root.enabled
+    Accessible.role: Accessible.Button
+    Accessible.name: root.text.length > 0 ? root.text : (root.tooltip.length > 0 ? root.tooltip : "Действие")
+    Accessible.description: root.tooltip
+    Accessible.onPressAction: root.clicked()
+
     signal clicked()
+
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            root.clicked()
+            event.accepted = true
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -43,10 +56,10 @@ Item {
                 : root.backgroundColor)
         border.color: !root.enabled
             ? root.disabledBorderColor
-            : (root.emphasized || (root.borderOnHover && mouse.containsMouse)
+            : (root.activeFocus || root.emphasized || (root.borderOnHover && mouse.containsMouse)
                 ? root.accentColor
                 : root.outlineColor)
-        border.width: root.borderWidth
+        border.width: root.activeFocus ? Math.max(2, root.borderWidth) : root.borderWidth
 
         Text {
             anchors.fill: parent
@@ -100,7 +113,10 @@ Item {
         enabled: root.enabled
         hoverEnabled: true
         cursorShape: root.cursorShape
-        onClicked: root.clicked()
+        onClicked: {
+            root.forceActiveFocus(Qt.MouseFocusReason)
+            root.clicked()
+        }
     }
 
     ToolTip.visible: root.tooltip.length > 0 && mouse.containsMouse

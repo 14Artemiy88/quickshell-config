@@ -10,5 +10,5 @@ grep -Fq 'if (root.searchOpen && root.libraryMode === "browse" && root.browseSta
 grep -Fq 'if (root.searchOpen && root.libraryMode === "playlists")' "$FILE"
 grep -Fq 'if (root.searchOpen && root.libraryMode === "search")' "$FILE"
 grep -Fq 'if (root.searchOpen && root.libraryMode === "playlistItems")' "$FILE"
-grep -A15 'text: "Поиск"' "$LIBRARY" | grep -Fq 'enabled: true'
+grep -A15 'text: "Поиск"' "$LIBRARY" | grep -Fq 'enabled: !controller.reorderInteractionLocked'
 echo 'Mopidy tab click-to-queue: OK'

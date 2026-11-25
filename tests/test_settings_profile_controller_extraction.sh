@@ -32,7 +32,7 @@ grep -Fq 'model: host && host.profileController ? host.profileController.profile
 grep -Fq 'host.profileController.indexOfProfile' "$WINDOW"
 grep -Fq 'host.profileController.saveProfile(text)' "$WINDOW"
 grep -Fq 'host.profileController.loadProfile(profileCombo.currentText)' "$WINDOW"
-grep -Fq 'host.profileController.deleteProfile(profileCombo.currentText)' "$WINDOW"
+grep -Fq 'host.profileController.deleteProfile(deletingName)' "$WINDOW"
 grep -Fq 'host.profileController.saveScope("modules")' "$MODULES"
 grep -Fq 'host.profileController.saveScope("module", moduleRow.moduleName)' "$MODULES"
 grep -Fq 'host.profileController.saveScope("themes")' "$COLORS"

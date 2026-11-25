@@ -18,11 +18,21 @@ if [[ ! "$screen_index" =~ ^[0-9]+$ ]]; then
     exit 2
 fi
 
-current_desktop="${XDG_CURRENT_DESKTOP:-} ${XDG_SESSION_DESKTOP:-}"
-current_desktop="${current_desktop,,}"
+# An explicit XDG desktop identifier is authoritative. KDE processes or
+# inherited KDE session variables can remain visible when another desktop is
+# launched from the same login/session environment, so they are only fallback
+# signals when neither XDG desktop variable identifies the session.
+desktop_hint="${XDG_CURRENT_DESKTOP:-}"
+if [[ -z "$desktop_hint" ]]; then
+    desktop_hint="${XDG_SESSION_DESKTOP:-}"
+fi
+desktop_hint="${desktop_hint,,}"
 is_plasma_session=false
-if [[ "$current_desktop" == *kde* || "$current_desktop" == *plasma* \
-        || "${KDE_FULL_SESSION:-}" == "true" || "${KDE_SESSION_VERSION:-}" =~ ^[0-9]+$ ]]; then
+if [[ -n "$desktop_hint" ]]; then
+    if [[ "$desktop_hint" == *kde* || "$desktop_hint" == *plasma* ]]; then
+        is_plasma_session=true
+    fi
+elif [[ "${KDE_FULL_SESSION:-}" == "true" || "${KDE_SESSION_VERSION:-}" =~ ^[0-9]+$ ]]; then
     is_plasma_session=true
 elif command -v pgrep >/dev/null 2>&1 && pgrep -x plasmashell >/dev/null 2>&1; then
     is_plasma_session=true

@@ -9,7 +9,7 @@ checks = {
     "components/WeatherNow.qml": [
         ('animationProfile: Config.animationWeatherMorphProfile', 3),
         ('animationPhase: weatherComfortLabel.shouldShow ? "enter" : "exit"', 1),
-        ('animationPhase: root.hasData && Config.weatherIconPlacement !== "off" ? "enter" : "exit"', 1),
+        ('animationPhase: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit"', 1),
         ('animationPhase: root.hasData ? "enter" : "exit"', 1),
     ],
     "components/TimerWidget.qml": [

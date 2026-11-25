@@ -10,11 +10,12 @@ read = lambda p: (r / p).read_text(encoding="utf-8")
 # Quick-save control is adjacent to reset and operates on the currently active profile.
 widget = read("components/settings/SettingsWidget.qml")
 host = read("components/settings/SettingsPageHost.qml")
+save_button = read("components/settings/primitives/SettingsSaveButton.qml")
 registry = read("js/settings/SettingsPageRegistry.js")
 modules = read("components/settings/sections/SettingsModulesSection.qml")
 assert 'readonly property bool quickSaveProfileAvailable:' in widget
 assert 'profileController.canSaveScope("all")' in widget
-assert 'iconText: "\\uf0c7"' in host
+assert 'property string iconText: "\\uf0c7"' in save_button and 'iconText: root.iconText' in save_button
 assert 'tooltip: "Сохранить всё в активный профиль"' in host
 assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in host
 assert 'root.host.profileController.saveScope(root.host.currentPageSaveScope)' in host

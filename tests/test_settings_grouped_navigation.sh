@@ -19,7 +19,10 @@ grep -Fq 'root.host.settingsNavigationGroupHasCurrentPage(modelData.id)' "$NAV"
 grep -Fq 'if (modelData.items.length === 1)' "$NAV"
 grep -Fq 'visible: navigationGroupDelegate.modelData.items.length > 1' "$NAV"
 grep -Fq 'function settingsTabCanMove(id, delta)' "$CONTROLLER"
-grep -Fq 'host.settingsTabCanMove(modelData.id, -1)' "$WINDOW"
+grep -Fq 'function settingsTabCanMoveWithinGroup(groupId, id, delta)' "$CONTROLLER"
+grep -Fq 'function moveSettingsTabWithinGroup(groupId, id, delta)' "$CONTROLLER"
+grep -Fq 'listRepeater: settingsNavigationPagesOrderRepeater' "$WINDOW"
+grep -Fq 'host.moveSettingsTabWithinGroupTo(' "$WINDOW"
 
 node - "$REGISTRY" <<'NODE'
 const fs = require('fs');

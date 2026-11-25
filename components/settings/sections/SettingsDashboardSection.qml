@@ -43,6 +43,19 @@ Column {
         root.settings.save()
     }
 
+    function moveCardToIndex(id, destination) {
+        var nextOrder = DashboardCards.normalizeOrder(Config.dashboardCardOrder)
+        var index = nextOrder.indexOf(String(id))
+        var target = Number(destination)
+        if (index < 0 || !isFinite(target) || Math.floor(target) !== target
+                || target < 0 || target >= nextOrder.length || target === index)
+            return
+        var item = nextOrder.splice(index, 1)[0]
+        nextOrder.splice(target, 0, item)
+        Config.dashboardCardOrder = nextOrder
+        root.settings.save()
+    }
+
     function setCardSize(id, mode) {
         var nextSizes = DashboardCards.setCardSize(Config.dashboardCardSizes, id, mode)
         if (JSON.stringify(nextSizes) === JSON.stringify(DashboardCards.normalizeCardSizes(Config.dashboardCardSizes))) return
@@ -51,6 +64,7 @@ Column {
     }
 
     SettingsGroup {
+        id: dashboardCardsSettingsGroup
         width: parent.width
         showFrame: true
         heading: "Карточки Dashboard"
@@ -96,13 +110,18 @@ Column {
         }
 
         Repeater {
+            id: dashboardSettingsCardsRepeater
             model: DashboardCards.orderedVisible(Config.dashboardCardOrder, null)
 
             delegate: Column {
                 id: cardSettings
+                Behavior on y { NumberAnimation { duration: Config.animationDuration(190, "appearance"); easing.type: Easing.OutCubic } }
+                property Item reorderTargetItem: cardSettings
                 required property var modelData
+                required property int index
                 property string cardId: modelData.id
                 width: parent.width
+                height: implicitHeight
                 spacing: 2
 
                 Row {
@@ -112,7 +131,7 @@ Column {
                     spacing: 4
 
                     SettingsCheckBox {
-                        width: Math.max(80, parent.width - 52)
+                        width: Math.max(80, parent.width - 30)
                         height: 30
                         text: cardSettings.modelData.settingsLabel
                         checked: root.cardEnabled(cardSettings.cardId)
@@ -123,30 +142,16 @@ Column {
                         onToggled: root.setCardEnabled(cardSettings.cardId, checked)
                     }
 
-                    MoveArrowButton {
-                        width: 22
-                        height: 22
-                        iconText: "↑"
-                        iconSize: Config.settingsUiSize(12)
-                        baseColor: Config.text
-                        hoverMode: "frame"
-                        hoverColor: Config.accent
-                        interactionEnabled: root.cardOrderIndex(cardSettings.cardId) > 0
-                        toolTipText: "Поднять карточку выше"
-                        onClicked: root.moveCard(cardSettings.cardId, -1)
-                    }
-
-                    MoveArrowButton {
-                        width: 22
-                        height: 22
-                        iconText: "↓"
-                        iconSize: Config.settingsUiSize(12)
-                        baseColor: Config.text
-                        hoverMode: "frame"
-                        hoverColor: Config.accent
-                        interactionEnabled: root.cardOrderIndex(cardSettings.cardId) < DashboardCards.DEFAULT_IDS.length - 1
-                        toolTipText: "Опустить карточку ниже"
-                        onClicked: root.moveCard(cardSettings.cardId, 1)
+                    DragReorderHandle {
+                        width: 26
+                        height: 26
+                        listRepeater: dashboardSettingsCardsRepeater
+                        dropIndicatorHost: dashboardCardsSettingsGroup
+                        itemIndex: cardSettings.index
+                        accessibleLabel: cardSettings.modelData.settingsLabel
+                        onReorderRequested: function(fromIndex, toIndex) {
+                            root.moveCardToIndex(cardSettings.cardId, toIndex)
+                        }
                     }
                 }
 

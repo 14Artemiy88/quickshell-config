@@ -17,7 +17,7 @@ node - "$ACTIONS" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '');
-const api = vm.runInThisContext(source + '\n({ normalize, add, update, remove, move })');
+const api = vm.runInThisContext(source + '\n({ normalize, add, update, remove, move, moveTo })');
 const assert = require('assert');
 assert.deepStrictEqual(JSON.parse(JSON.stringify(api.normalize(undefined))), []);
 const clean = api.normalize([
@@ -42,6 +42,7 @@ assert.strictEqual(api.update(added, 3, 'enabled', false)[3].enabled, false);
 assert.strictEqual(api.update(added, 3, 'command', 'foot -- nvim ~/WORK\n').at(-1).command, 'foot -- nvim ~/WORK');
 assert.strictEqual(api.update(added, 3, 'id', 'overwritten')[3].id, added[3].id, 'ID is immutable through field editing');
 assert.strictEqual(api.move(added, 0, 1)[0].id, added[1].id);
+assert.strictEqual(api.moveTo(added, 0, 2)[2].id, added[0].id, 'drag reorder moves a record to an exact destination');
 assert.strictEqual(api.remove(added, 1).length, 3);
 JS
 
@@ -57,6 +58,7 @@ grep -Fq 'function updateLauncherCustomAction(index, field, value)' "$SETTINGS"
 grep -Fq 'function addLauncherCustomAction()' "$SETTINGS"
 grep -Fq 'function removeLauncherCustomAction(index)' "$SETTINGS"
 grep -Fq 'function moveLauncherCustomAction(index, delta)' "$SETTINGS"
+grep -Fq 'function moveLauncherCustomActionTo(fromIndex, toIndex)' "$SETTINGS"
 
 # User actions are edited in their own launcher subtab and appear in the : catalog only when complete and enabled.
 grep -Fq '{ id: "launcherActions", saveScope: "launcher", subTabs: ["Переходы", "Инструменты", "Пользовательские"] }' "$REGISTRY"

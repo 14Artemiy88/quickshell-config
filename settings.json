@@ -121,13 +121,12 @@
     }
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
-  "profileOverrides": {
-    "settingsSearchVisible": true
-  },
+  "profileOverrides": {},
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
-    "appearance": false,
-    "modules": true,
+    "appearance": true,
+    "modules": false,
     "launcher": true
-  }
+  },
+  "settingsLastActivePageId": "weather"
 }

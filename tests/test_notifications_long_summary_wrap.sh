@@ -13,7 +13,7 @@ checks = {
     "summary measurement treats notification summary as plain text": "textFormat: Text.PlainText",
     "visible summary wraps rather than eliding to one line": "wrapMode: Text.Wrap",
     "summary no longer has one-line maximum": "maximumLineCount: 1",
-    "card height includes measured summary and body": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasMessengerAvatar)",
+    "card height includes measured summary and body": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
     "summary-only cards include measured title height": "summaryTopOffset + measuredSummaryHeight + summaryBottomSpace",
     "body begins after measured summary height": "summaryTopOffset + measuredSummaryHeight + (measuredSummaryHeight > 0 ? 3 : 0)",
 }

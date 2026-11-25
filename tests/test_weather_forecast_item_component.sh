@@ -63,8 +63,12 @@ parent=Path(sys.argv[1]).read_text(encoding='utf-8')
 item=Path(sys.argv[2]).read_text(encoding='utf-8')
 if 'function tempColor(' in parent or 'function highText(' in parent or 'function lowText(' in parent:
     raise SystemExit('WeatherList still duplicates forecast formatting logic')
-if item.count('Text {') != 3 or item.count('Image {') != 1:
-    raise SystemExit('WeatherForecastItem must own day, high/low temperature and icon display')
+if item.count('Text {') != 4 or item.count('Image {') != 1:
+    raise SystemExit('WeatherForecastItem must own day, high/low temperature, icon and icon fallback display')
+if 'DashboardCards.normalizeWeatherIconCode(root.entry && root.entry.icon)' not in item:
+    raise SystemExit('WeatherForecastItem must validate icon codes before building a local path')
+if 'forecastIconImage.status !== Image.Ready' not in item or 'text: "☁"' not in item:
+    raise SystemExit('WeatherForecastItem must show a cloud fallback while its icon is loading or failed')
 for name in ('weatherHourlyDayY','weatherDailyDayY','weatherHourlyIconWidth','weatherDailyIconWidth','weatherHourlyTempY','weatherDailyHighTempY','weatherDailyLowTempY'):
     if name not in item: raise SystemExit(f'WeatherForecastItem missing layout binding {name}')
 print('Weather forecast delegate extracted; hourly/daily layout and formatting bindings preserved: OK')
