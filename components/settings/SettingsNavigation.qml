@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../.."
 import "primitives"
+import "../../js/settings/SettingsNavigationVisualState.js" as SettingsNavigationVisualState
 
 // Owns the complete left navigation surface: search, match status, grouped
 // pages, counters, collapse state and the in-place navigation affordances.
@@ -149,210 +150,75 @@ Column {
                 delegate: Column {
                     id: navigationGroupDelegate
                     required property var modelData
+                    // Only collapsed multi-page folders may show a current-page hint.
                     readonly property bool collapsedWithCurrentPage:
-                        root.host.settingsNavigationGroupCollapsed(modelData.id)
-                        && root.host.settingsNavigationGroupHasCurrentPage(modelData.id)
+                        modelData.items.length > 1 && SettingsNavigationVisualState.shouldShowCollapsedPageHint(
+                            modelData, root.host.settingsNavigationGroupCollapsed(modelData.id), root.host.currentPageId)
                     width: mainSettingsGroupsColumn.width
                     spacing: 3
 
-                    Rectangle {
-                        id: navigationGroupHeader
-                        property bool settingsNavigationFocusTarget: true
-                        property string settingsNavigationPageId: modelData.items.length === 1 ? String(modelData.items[0].id) : ""
-                        activeFocusOnTab: true
-                        Accessible.role: Accessible.Button
-                        Accessible.name: modelData.items.length === 1
-                            ? modelData.items[0].label : modelData.label
-                        Accessible.description: {
-                            if (modelData.items.length === 1)
-                                return "Открыть страницу «" + modelData.items[0].label + "»."
-                            var state = root.host.settingsNavigationGroupCollapsed(modelData.id) ? "свёрнут" : "развёрнут"
-                            var active = root.host.settingsNavigationGroupHasCurrentPage(modelData.id)
-                                ? " Активная страница: " + root.host.settingsNavigationGroupCurrentPageLabel(modelData.id) + "."
-                                : ""
-                            return "Раздел " + state + ". Enter — переключить. Стрелки влево и вправо — свернуть или раскрыть." + active
-                        }
-                        Accessible.onPressAction: navigationGroupHeader.activateGroupHeader()
-                        function activateGroupHeader() {
-                            if (modelData.items.length === 1)
-                                root.host.selectSettingsTab(modelData.items[0].id)
-                            else
-                                root.host.toggleSettingsNavigationGroup(modelData.id)
-                        }
+                    SettingsSubTab {
+                        id: navigationGroupStandaloneTab
+                        visible: modelData.items.length === 1
                         width: parent.width
-                        height: navigationGroupDelegate.collapsedWithCurrentPage ? 42 : 30
-                        radius: 4
-                        color: root.host.settingsNavigationGroupCollapsed(modelData.id)
-                            ? Config.settingsBackground
-                            : Qt.darker(Config.settingsBackground, 1.04)
-                        border.width: navigationGroupHeader.activeFocus ? 2
-                            : (root.host.settingsSearchNavigationGroupHasMatches(modelData.id)
-                                ? Config.settingsSearchHighlightBorderWidth : 1)
-                        border.color: navigationGroupHeader.activeFocus ? Config.accent
-                            : (root.host.settingsSearchNavigationGroupHasMatches(modelData.id)
-                                ? Config.settingsSearchHighlightColor
-                                : (root.host.settingsNavigationGroupHasCurrentPage(modelData.id)
-                                    ? Config.accent : Config.baseColor))
-
-                        Row {
-                            anchors.fill: parent
-                            anchors.leftMargin: root.compactNavigation ? 5 : 8
-                            anchors.rightMargin: root.compactNavigation ? 5 : 8
-                            anchors.bottomMargin: navigationGroupDelegate.collapsedWithCurrentPage ? 14 : 0
-                            spacing: root.compactNavigation ? 4 : 7
-
-                            Text {
-                                width: root.compactNavigation ? 12 : 15
-                                height: parent.height
-                                text: modelData.symbol
-                                color: Config.accent
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 10 : 12)
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            Text {
-                                id: navigationGroupLabelText
-                                width: Math.max(18, parent.width
-                                    - (root.compactNavigation ? 12 : 15)
-                                    - (root.host.settingsSearchNavigationGroupMatchCount(modelData.id) > 0 ? (root.compactNavigation ? 22 : 28) : 0)
-                                    - (modelData.items.length > 1 ? (root.compactNavigation ? 14 : 18) : 0)
-                                    - (root.compactNavigation ? 4 : 7) * (1
-                                        + (root.host.settingsSearchNavigationGroupMatchCount(modelData.id) > 0 ? 1 : 0)
-                                        + (modelData.items.length > 1 ? 1 : 0)))
-                                height: parent.height
-                                text: modelData.items.length === 1
-                                    ? modelData.items[0].label : modelData.label
-                                color: root.host.settingsNavigationGroupCollapsed(modelData.id)
-                                    ? Config.textMuted : Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 9 : 10)
-                                font.bold: true
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                visible: root.host.settingsSearchNavigationGroupMatchCount(modelData.id) > 0
-                                width: visible ? (root.compactNavigation ? 22 : 28) : 0
-                                height: parent.height
-                                text: {
-                                    var count = root.host.settingsSearchNavigationGroupMatchCount(modelData.id)
-                                    return count > 99 ? "99+" : String(count)
-                                }
-                                color: Config.settingsSearchHighlightColor
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(root.compactNavigation
-                                    ? Math.max(7, Config.settingsSearchMatchCountFontSize - 1)
-                                    : Config.settingsSearchMatchCountFontSize)
-                                font.bold: true
-                                horizontalAlignment: Text.AlignRight
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            Text {
-                                visible: modelData.items.length > 1
-                                width: visible ? (root.compactNavigation ? 14 : 18) : 0
-                                height: parent.height
-                                text: root.host.settingsNavigationGroupCollapsed(modelData.id) ? "⌄" : "⌃"
-                                color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 10 : 12)
-                                horizontalAlignment: Text.AlignRight
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
-
-                        Text {
-                            id: navigationGroupActivePageText
-                            visible: navigationGroupDelegate.collapsedWithCurrentPage
-                            anchors.left: parent.left
-                            anchors.leftMargin: 30
-                            anchors.right: parent.right
-                            anchors.rightMargin: 8
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 3
-                            height: 12
-                            text: "Активно: " + root.host.settingsNavigationGroupCurrentPageLabel(modelData.id)
-                            color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(8)
-                            elide: Text.ElideRight
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        HoverHandler {
-                            id: navigationGroupSearchHover
-                            enabled: true
-                        }
-
-                        ToolTip.visible: navigationGroupSearchHover.hovered
-                            && (root.host.settingsSearchNavigationGroupMatchHint(modelData.id).length > 0
-                                || navigationGroupLabelText.implicitWidth > navigationGroupLabelText.width + 1
-                                || (navigationGroupActivePageText.visible
-                                    && navigationGroupActivePageText.implicitWidth > navigationGroupActivePageText.width + 1))
-                        ToolTip.text: {
-                            var matchHint = root.host.settingsSearchNavigationGroupMatchHint(modelData.id)
-                            if (matchHint.length > 0) return matchHint
-                            var groupLabel = modelData.items.length === 1 ? modelData.items[0].label : modelData.label
-                            if (navigationGroupActivePageText.visible)
-                                return groupLabel + "\nАктивная страница: " + root.host.settingsNavigationGroupCurrentPageLabel(modelData.id)
-                            return groupLabel
-                        }
-                        ToolTip.delay: 450
-
-                        Keys.onPressed: function(event) {
-                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                                navigationGroupHeader.activateGroupHeader()
-                                event.accepted = true
-                            } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
-                                if (modelData.items.length > 1) {
-                                    var collapsed = root.host.settingsNavigationGroupCollapsed(modelData.id)
-                                    if ((event.key === Qt.Key_Left && !collapsed)
-                                            || (event.key === Qt.Key_Right && collapsed))
-                                        root.host.toggleSettingsNavigationGroup(modelData.id)
-                                    event.accepted = true
-                                }
-                            } else if (event.key === Qt.Key_Up || event.key === Qt.Key_Down) {
-                                root.host.focusAdjacentSettingsNavigationItem(navigationGroupHeader, event.key === Qt.Key_Down)
-                                event.accepted = true
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                navigationGroupHeader.forceActiveFocus(Qt.MouseFocusReason)
-                                navigationGroupHeader.activateGroupHeader()
-                            }
+                        height: root.compactNavigation ? 36 : 34
+                        settingsNavigationFocusTarget: true
+                        settingsNavigationPageId: visible ? String(modelData.items[0].id) : ""
+                        settingsNavigationHost: root.host
+                        selected: visible && root.host.isSettingsTabSelected(modelData.items[0].id)
+                        normalBackground: Config.transparent
+                        normalBorderColor: Config.transparent
+                        modified: visible && root.host.settingsTabHasChanges(modelData.items[0].id)
+                        settingsSearchMatched: visible && root.host.settingsSearchPageHasMatches(modelData.items[0].id)
+                        settingsSearchMatchHint: visible
+                            ? root.host.settingsSearchPageMatchHint(modelData.items[0].id) : ""
+                        settingsSearchMatchCount: visible
+                            ? root.host.settingsSearchPageMatchCount(modelData.items[0].id) : 0
+                        text: visible ? (modelData.symbol + "  " + modelData.items[0].label) : ""
+                        leftAligned: true
+                        horizontalPadding: root.compactNavigation ? 5 : 8
+                        fontPixelSize: root.compactNavigation ? 9 : 10
+                        onClicked: {
+                            if (visible)
+                                root.host.selectSettingsTab(modelData.items[0].id)
                         }
                     }
 
-                    Column {
-                        id: navigationGroupItems
-                        width: parent.width
-                        spacing: 3
+                    SettingsNavigationFolder {
+                        id: navigationGroupFolder
                         visible: navigationGroupDelegate.modelData.items.length > 1
-                            && !root.host.settingsNavigationGroupCollapsed(navigationGroupDelegate.modelData.id)
-                        height: visible ? implicitHeight : 0
+                        width: parent.width
+                        groupId: navigationGroupDelegate.modelData.id
+                        groupLabel: navigationGroupDelegate.modelData.label
+                        groupSymbol: navigationGroupDelegate.modelData.symbol
+                        collapsed: root.host.settingsNavigationGroupCollapsed(groupId)
+                        compactNavigation: root.compactNavigation
+                        collapsedWithCurrentPage: navigationGroupDelegate.collapsedWithCurrentPage
+                        currentPageLabel: collapsedWithCurrentPage
+                            ? root.host.settingsNavigationGroupCurrentPageLabel(groupId) : ""
+                        searchMatchCount: root.host.settingsSearchNavigationGroupMatchCount(groupId)
+                        searchMatchHint: root.host.settingsSearchNavigationGroupMatchHint(groupId)
+                        navigationHost: root.host
+                        onToggleRequested: root.host.toggleSettingsNavigationGroup(groupId)
 
                         Repeater {
                             model: navigationGroupDelegate.modelData.items
 
                             delegate: Item {
                                 required property var modelData
-                                width: navigationGroupItems.width
+                                width: navigationGroupFolder.expandedContentWidth
                                 height: root.compactNavigation ? 36 : 34
 
                                 SettingsSubTab {
                                     anchors.left: parent.left
-                                    anchors.leftMargin: 8
-                                    width: parent.width - 8
+                                    anchors.leftMargin: 6
+                                    width: parent.width - navigationGroupFolder.childContentInset
                                     height: root.compactNavigation ? 36 : 34
                                     settingsNavigationFocusTarget: true
                                     settingsNavigationPageId: String(parent.modelData.id)
                                     settingsNavigationHost: root.host
+                                    normalBackground: Config.transparent
+                                    normalBorderColor: Config.transparent
                                     selected: root.host.isSettingsTabSelected(parent.modelData.id)
                                     modified: root.host.settingsTabHasChanges(parent.modelData.id)
                                     settingsSearchMatched: root.host.settingsSearchPageHasMatches(parent.modelData.id)

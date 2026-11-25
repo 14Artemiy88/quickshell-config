@@ -25,7 +25,7 @@ const persistence = read(persistPath);
 
 const pages = registry.tabDefinitions();
 const groups = registry.navigationGroupDefinitions();
-assert.strictEqual(pages.length, 22, 'audit baseline must include all 22 stable settings pages');
+assert.strictEqual(pages.length, 23, 'audit baseline must include all 23 stable settings pages');
 assert.strictEqual(groups.length, 5, 'audit baseline must include all 5 navigation groups');
 assert.strictEqual(new Set(pages.map(page => page.id)).size, pages.length, 'page IDs must remain unique');
 assert(pages.every(page => groups.some(group => group.id === page.groupId)), 'every page must have a canonical group');
@@ -114,5 +114,5 @@ assert(pageMoveBody.includes('navigationGroupIdForTabId(pageId) !== targetGroupI
 const groupMoveBody = functionBody(controller, 'moveSettingsNavigationGroupTo');
 assert(groupMoveBody.includes('order.groupOrder = DragReorder.move(groupOrder, fromIndex, destination)'),
   'top-level groups must be independently reorderable');
-console.log('settings navigation audit: 22 pages, 5 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
+console.log('settings navigation audit: 23 pages, 5 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
 NODE

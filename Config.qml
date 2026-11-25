@@ -67,6 +67,9 @@ QtObject {
     property int notificationsCriticalTimeout: 0
     // Optional countdown bar; disabled by default to preserve the existing card appearance.
     property bool notificationsShowTimeoutIndicator: false
+    property string notificationsTimeoutIndicatorColor: ""
+    property string notificationsTimeoutIndicatorStyle: "bar"
+    property string notificationsTimeoutIndicatorDirection: "clockwise"
     // Vertical edge used by the notification surface; X remains measured from the left.
     property string notificationsVerticalAnchor: "top"
     // Legacy corner placement is read only during one-time migration to module X/Y geometry.
@@ -93,7 +96,8 @@ QtObject {
     property int notificationsLeadingVisualRadius: 10
     // Uniform inset between notification content and the card edge.
     property int notificationsCardPadding: 12
-    // Body text appearance; an empty color follows the active theme.
+    // Body text appearance; empty font/color keep the system font and active theme defaults.
+    property string notificationsBodyFont: ""
     property int notificationsBodyFontSize: 12
     property string notificationsBodyColor: ""
     property bool notificationsShowAppIcon: true
@@ -110,14 +114,14 @@ QtObject {
         groupOrder: ["appearance", "modules", "dashboard", "launcher", "general"],
         pagesByGroup: ({
             appearance: ["themes", "settingsWindow"],
-            modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+            modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
             dashboard: ["dashboard"],
             launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
             general: ["general"]
         })
     })
     property var settingsTabLabels: ({
-        modules: "Модули", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
+        modules: "Модули", time: "Часы", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
         launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", settingsWindow: "Окно настроек"
@@ -205,6 +209,10 @@ QtObject {
     // Per-module appearance/disappearance styles. Legacy MorphEnabled flags
     // remain only as compatibility inputs for profiles created before the
     // "none" curve profile replaced the separate checkbox.
+    // Dashboard defaults to the nearest horizontal edge so its drawer enters
+    // from the side where it is placed on the selected monitor.
+    property string animationDashboardVisibilityStyle: "auto"
+    property int animationDashboardVisibilityDuration: 300
     property string animationCalendarVisibilityStyle: "fade"
     property string animationMopidyVisibilityStyle: "fade"
     property bool animationMopidyMorphEnabled: true
@@ -382,6 +390,8 @@ QtObject {
     property int volumeMainIconWidth: 25
     property string volumeIcon: "󰕾"
     property string volumeMutedIcon: "󰖁"
+    // Empty inherits the system/application font used before this override existed.
+    property string volumeStreamLabelFont: ""
     property int volumeStreamLabelFontSize: 12
     property int volumeTrackRadius: 4
 
@@ -442,6 +452,9 @@ QtObject {
     property int mopidyMoveDownIconY: 0
     property bool mopidyShowMoveDownIcon: true
     property bool mopidyGroupAlbums: true
+    // Directory-row cover previews are lazy: selected/hovered by default, or all visible rows.
+    property string mopidyBrowseCoverMode: "selected"
+    property bool mopidyBrowseCoverKeepSelectedVisible: false
     property string mopidyAlbumFont: "JetBrainsMono Nerd Font"
     property int mopidyAlbumFontSize: 10
     property string mopidyTrackFont: "JetBrainsMono Nerd Font"
@@ -452,6 +465,7 @@ QtObject {
     property bool mopidyArtistBold: false
     property bool mopidyArtistItalic: false
     property string mopidyTrackArtistDisplayMode: "two-lines" // "two-lines" or "one-line"
+    property int mopidyTrackArtistGap: 0
     property string mopidyTrackArtistSeparator: " · "
     property string mopidyDurationFont: "Ubuntu Mono Nerd Font"
     property int mopidyDurationFontSize: 11
@@ -540,6 +554,8 @@ QtObject {
     property int mopidyStatusWidth: 280
 
     // Weather tuning
+    // Empty weatherFont inherits the shared LED font unless the weather module overrides it.
+    property string weatherFont: ""
     property int weatherIconSize: 55
     property int weatherIconX: 113
     property int weatherArrowSize: 22
@@ -678,6 +694,12 @@ QtObject {
     property int settingsPadding: 10
     property int settingsSpacing: 8
     property string ledFont: "LED"
+    // Empty clockFont inherits the shared LED font; clock typography can be overridden independently.
+    property string clockFont: ""
+    property int clockFontSize: 55
+    property int clockDateFontSize: 25
+    property string clockWeekdayFont: "Ubuntu"
+    property int clockWeekdayFontSize: 15
     property string playerFont: "HARDBOR"
     property string playerMetaFont: "Ubuntu Mono Nerd Font"
     property string playerSilenceText: "silence"

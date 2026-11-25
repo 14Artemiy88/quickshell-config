@@ -397,6 +397,7 @@ Primitives.ModuleFrame {
                         Text {
                             text: modelData.name
                             color: Config.text
+                            font.family: Config.volumeStreamLabelFont.trim() === "" ? Qt.application.font.family : Config.volumeStreamLabelFont
                             font.pixelSize: Config.uiFontSize(Config.volumeStreamLabelFontSize)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter

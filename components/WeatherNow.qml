@@ -88,7 +88,7 @@ Primitives.ModuleFrame {
             text: root.normalizedAirTemperature
             visible: root.normalizedAirTemperature !== ""
             color: Config.currentWeather
-            font.family: Config.ledFont
+            font.family: Config.weatherFont || Config.ledFont
             font.pixelSize: Config.weatherTempFontSize
             lineHeight: 55
             lineHeightMode: Text.FixedHeight
@@ -156,7 +156,7 @@ Primitives.ModuleFrame {
                         height: weatherComfortLabel.height
                         text: weatherComfortLabel.comfortValue
                         color: Config.weatherComfortOutlineColor
-                        font.family: Config.ledFont
+                        font.family: Config.weatherFont || Config.ledFont
                         font.pixelSize: Config.weatherComfortFontSize
                         lineHeight: Config.weatherComfortHeight
                         lineHeightMode: Text.FixedHeight
@@ -170,7 +170,7 @@ Primitives.ModuleFrame {
                     anchors.fill: parent
                     text: weatherComfortLabel.comfortValue
                     color: Config.textMuted
-                    font.family: Config.ledFont
+                    font.family: Config.weatherFont || Config.ledFont
                     font.pixelSize: Config.weatherComfortFontSize
                     lineHeight: Config.weatherComfortHeight
                     lineHeightMode: Text.FixedHeight
@@ -278,7 +278,7 @@ Primitives.ModuleFrame {
                     text: root.normalizedWindSpeed
                     visible: root.normalizedWindSpeed !== ""
                     color: Config.text
-                    font.family: Config.ledFont
+                    font.family: Config.weatherFont || Config.ledFont
                     font.pixelSize: Config.weatherWindSpeedFontSize
                     horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                     verticalAlignment: Text.AlignTop
@@ -292,7 +292,7 @@ Primitives.ModuleFrame {
                     text: "м/с"
                     visible: root.normalizedWindSpeed !== ""
                     color: Config.text
-                    font.family: Config.ledFont
+                    font.family: Config.weatherFont || Config.ledFont
                     font.pixelSize: Config.weatherWindUnitFontSize
                     horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                     verticalAlignment: Text.AlignTop
@@ -313,7 +313,7 @@ Primitives.ModuleFrame {
                     text: root.normalizedPressure
                     visible: root.normalizedPressure !== ""
                     color: Config.text
-                    font.family: Config.ledFont
+                    font.family: Config.weatherFont || Config.ledFont
                     font.pixelSize: Config.weatherPressureFontSize
                     horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                     verticalAlignment: Text.AlignTop
@@ -327,7 +327,7 @@ Primitives.ModuleFrame {
                     text: "MM.PT.CT"
                     visible: root.normalizedPressure !== ""
                     color: Config.text
-                    font.family: Config.ledFont
+                    font.family: Config.weatherFont || Config.ledFont
                     font.pixelSize: Config.weatherPressureUnitFontSize
                     horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
                     verticalAlignment: Text.AlignTop

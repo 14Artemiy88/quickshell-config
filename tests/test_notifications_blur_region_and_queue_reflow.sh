@@ -10,7 +10,9 @@ blur_start = source.index("BackgroundEffect.blurRegion: Region {")
 blur_end = source.index("\n        }", blur_start)
 blur = source[blur_start:blur_end]
 assert "Settings.moduleBlurEnabled.notifications === true" in blur
-assert "? notificationList" in blur, "active queue and exit delegates must keep their blur region"
+assert "? notificationList" in blur, "active notifications must keep their blur region"
+assert "root.notificationBlurRegionActive" in blur, "blur should follow the active-notification lifecycle"
+assert "activeNotificationExitCount > 0" not in blur, "exit-only delegates must not retain the blur region"
 assert "root.layoutEditMode ? layoutEditPreview : null" in blur, "preview may be blurred only while layout editing"
 assert " : null" in blur, "idle Notifications must expose no blur region"
 assert " : layoutEditPreview" not in blur, "idle state must not retain the hidden layout preview as a blur target"
@@ -28,7 +30,12 @@ assert "duration: root.notificationTransitionDuration" not in displaced, (
 )
 assert "readonly property int notificationCardVisibilityDuration:" in source
 assert "NotificationAnimation.visibilityDuration(" in source
-print("notification blur region clears while idle; queue reflow follows effective visibility animation: OK")
+blur_active_start = source.index("readonly property bool notificationBlurRegionActive:")
+blur_active_end = source.index("\n    readonly property int layoutPreviewHeight", blur_active_start)
+blur_active = source[blur_active_start:blur_active_end]
+assert "trackedNotifications.values.length > 0" in blur_active
+assert "activeNotificationExitCount" not in blur_active, "exit retention must not extend blur lifetime"
+print("notification blur follows tracked model and clears when the final notification leaves; queue reflow follows effective visibility animation: OK")
 PY
 node - "$ROOT" <<'JS'
 const fs = require('fs');

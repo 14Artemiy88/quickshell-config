@@ -46,7 +46,7 @@ function body(name) {
 let order = registry.defaultNavigationOrder();
 const flat = registry.flattenNavigationOrder(order);
 const items = registry.navigationItemsForOrder(flat, {});
-assert.strictEqual(items.length, 22, 'all pages are available in the editor model');
+assert.strictEqual(items.length, 23, 'all pages are available in the editor model');
 for (const item of items) {
   assert.strictEqual(item.groupId, registry.navigationGroupIdForTabId(item.id), `${item.id} carries its canonical group ID`);
 }
@@ -78,7 +78,7 @@ assert.strictEqual(canMove('modules', 'timers', 0.5, fakeRoot, registry), false,
 
 move('modules', 'timers', -1, fakeRoot, config, registry, dragReorder);
 order = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
-assert.deepStrictEqual(Array.from(order.pagesByGroup.modules.slice(0, 3)), ['timers', 'modules', 'player'],
+assert.deepStrictEqual(Array.from(order.pagesByGroup.modules.slice(0, 3)), ['modules', 'timers', 'time'],
   "valid move changes only the selected group's page order");
 assert.deepStrictEqual(Array.from(order.pagesByGroup.appearance), ['themes', 'settingsWindow'],
   'appearance page order remains unchanged');
@@ -96,7 +96,7 @@ assert.strictEqual(saveCount, 1, 'rejected page move is not persisted');
 
 const groups = registry.navigationGroupsForOrder(order, {});
 const modules = groups.find(group => group.id === 'modules');
-assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['timers', 'modules', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
+assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
   'sidebar model reflects the customized page order inside its own group');
 assert.strictEqual(groups.find(group => group.id === 'appearance').items[0].id, 'themes',
   'other groups retain their independent order');

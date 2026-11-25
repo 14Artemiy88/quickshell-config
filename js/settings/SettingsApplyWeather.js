@@ -1,6 +1,11 @@
 .pragma library
 
 function apply(Config, o) {
+        if (o.weatherFont !== undefined) {
+            Config.weatherFont = typeof o.weatherFont === "string"
+                ? o.weatherFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
+
         // Weather tuning
         var weatherNumberFields = [
             ["weatherIconSize", 16, 128], ["weatherArrowSize", 8, 64],

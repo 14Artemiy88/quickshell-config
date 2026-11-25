@@ -72,7 +72,8 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                height: Math.max(1, parent.height - artistLineMorph.geometryHeight)
+                height: Math.max(1, artistLineMorph.geometryY
+                    - artistLineMorph.artistGap * artistLineMorph.normalizedProgress)
                 text: {
                     var trackName = itemData.track.name || "Без названия"
                     var artistName = itemData.track.artist || ""
@@ -95,8 +96,11 @@ Rectangle {
                 visible: (Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist)
                     || normalizedProgress > 0.001
                 fromGeometry: Qt.rect(0, parent.height, parent.width, 0)
-                toGeometry: Qt.rect(0, Math.round(parent.height * 0.57), parent.width,
-                    Math.max(0, parent.height - Math.round(parent.height * 0.57)))
+                readonly property real artistGap: Math.max(0, Math.min(8, Number(Config.mopidyTrackArtistGap) || 0))
+                readonly property real baseSplitY: Math.round(parent.height * 0.57)
+                readonly property real gapHalf: artistGap / 2
+                toGeometry: Qt.rect(0, baseSplitY + Math.ceil(gapHalf), parent.width,
+                    Math.max(0, parent.height - baseSplitY - Math.ceil(gapHalf)))
                 progress: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? 1 : 0
                 animationDuration: Config.animationDurationForProfile(Config.animationMopidyMorphEnabled, Config.animationMopidyMorphProfile, Config.animationMopidyMorphDuration, "appearance")
                 animationProfile: Config.animationMopidyMorphProfile

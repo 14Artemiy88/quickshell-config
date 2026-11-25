@@ -14,7 +14,8 @@ var NAVIGATION_GROUPS = [
 
 var TAB_DEFINITIONS = [
     { id: "modules", defaultLabel: "Включение модулей", groupId: "modules", description: "Включение и отключение модулей оболочки.", keywords: ["включить модуль", "отключить модуль", "компоненты оболочки", "виджеты", "список модулей"] },
-    { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard", description: "Состав, порядок, видимость и размеры карточек Dashboard.", keywords: ["панель обзора", "главный экран", "карточки панели", "виджеты панели", "обзор системы"] },
+    { id: "time", defaultLabel: "Часы", groupId: "modules", description: "Шрифт и размеры времени, даты и дня недели.", keywords: ["часы", "цифровые часы", "время на рабочем столе", "циферблат", "шрифт часов", "размер времени", "дата", "день недели", "clock"] },
+    { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard", description: "Состав, порядок, видимость, размеры и анимация панели Dashboard.", keywords: ["панель обзора", "главный экран", "карточки панели", "виджеты панели", "обзор системы", "анимация dashboard", "появление панели", "исчезновение панели"] },
     { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance", description: "Цветовые схемы, палитры, акцентные и пользовательские цвета.", keywords: ["палитра", "цветовая схема", "тема оформления", "акцентный цвет", "цвета интерфейса", "theme", "color scheme"] },
     { id: "general", defaultLabel: "Общие", groupId: "general", description: "Общие параметры интерфейса, профили и пути хранения данных.", keywords: ["общие параметры", "настройки оболочки", "профили", "пресеты", "хранилище", "пути файлов", "каталог данных"] },
     { id: "timers", defaultLabel: "Таймеры", groupId: "modules", description: "Поведение таймеров, оформление, кнопки, подписи и анимации.", keywords: ["обратный отсчет", "отсчет времени", "секундомер", "таймер обратного отсчета", "завершение таймера"] },
@@ -39,6 +40,7 @@ var TAB_DEFINITIONS = [
 
 // Page IDs are the canonical route identity. Array order is only presentation metadata.
 var OTHER_PAGE_DEFINITIONS = [
+    { id: "time", saveScope: "clock", subTabs: [] },
     { id: "dashboard", saveScope: "dashboard", subTabs: [] },
     { id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] },
     { id: "timers", saveScope: "timer", subTabs: ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"] },

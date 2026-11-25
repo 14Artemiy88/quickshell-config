@@ -22,7 +22,7 @@ assert.match(dash, /Accessible\.role: Accessible\.Grouping[\s\S]*?Accessible\.na
 assert.match(dash, /details\.push\("Карточка предназначена для просмотра\./,
   'screen readers are told that cards are informational surfaces');
 const cardStart = dash.indexOf('component InfoCard: Rectangle {');
-const cardEnd = dash.indexOf('\n    }\n}', cardStart);
+const cardEnd = dash.indexOf('\n    // In Smart Editing, the fullscreen Dashboard surface', cardStart);
 const card = dash.slice(cardStart, cardEnd);
 assert(!card.includes('MouseArea {') && !card.includes('Keys.onPressed:'),
   'pointer click and Enter/Space no longer open module settings from the card surface');

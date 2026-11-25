@@ -5,15 +5,139 @@ import Quickshell
 import Quickshell.Wayland
 import ".."
 import "../js/dashboard/DashboardCards.js" as DashboardCards
+import "../js/dashboard/DashboardAnimation.js" as DashboardAnimation
 import "../js/player/PlayerImage.js" as PlayerImage
 
 PanelWindow {
     id: root
 
     property bool open: false
+    property bool layoutEditMode: false
+    property var layoutEditor: null
+    property bool layoutDragging: false
+    property bool layoutDragHidden: false
+    property real layoutDragBaseGlobalX: 0
+    property real layoutDragBaseGlobalY: 0
+    property real layoutDragPressX: 0
+    property real layoutDragPressY: 0
+    readonly property string configuredMonitorName: String((Settings.moduleMonitors || {}).dashboard || Config.monitorName || "")
+
+    function resolveDashboardScreen() {
+        var wanted = String(root.configuredMonitorName || "").trim().toLowerCase()
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var candidate = Quickshell.screens[i]
+            if (!candidate) continue
+            if (wanted && (String(candidate.name || "").trim().toLowerCase() === wanted
+                    || String(candidate.model || "").trim().toLowerCase() === wanted
+                    || String(candidate).trim().toLowerCase() === wanted))
+                return candidate
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    function screenStorageName(screen) {
+        if (!screen) return ""
+        if (screen.name && String(screen.name).trim() !== "") return String(screen.name)
+        if (screen.model && String(screen.model).trim() !== "") return String(screen.model)
+        return ""
+    }
+
+    function findScreenForGlobalPoint(globalX, globalY) {
+        var nearest = null
+        var nearestDistance = Number.POSITIVE_INFINITY
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var candidate = Quickshell.screens[i]
+            if (!candidate) continue
+            var sx = Number(candidate.x || 0)
+            var sy = Number(candidate.y || 0)
+            var sw = Number(candidate.width || 0)
+            var sh = Number(candidate.height || 0)
+            if (globalX >= sx && globalX < sx + sw && globalY >= sy && globalY < sy + sh)
+                return candidate
+            var cx = Math.max(sx, Math.min(globalX, sx + sw))
+            var cy = Math.max(sy, Math.min(globalY, sy + sh))
+            var dx = globalX - cx
+            var dy = globalY - cy
+            var distance = dx * dx + dy * dy
+            if (distance < nearestDistance) {
+                nearestDistance = distance
+                nearest = candidate
+            }
+        }
+        return nearest || root.screen || Quickshell.screens[0] || null
+    }
+
+    function beginDashboardLayoutDrag(mouse) {
+        if (!root.layoutEditMode || root.layoutDragging || !root.layoutEditor || !drawer)
+            return
+        root.layoutDragPressX = Number(mouse.x)
+        root.layoutDragPressY = Number(mouse.y)
+        root.layoutDragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(drawer.x || 0)
+        root.layoutDragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(drawer.y || 0)
+        root.layoutDragging = true
+        root.layoutDragHidden = false
+        Settings.beginGeometryDrag("dashboard")
+        root.layoutEditor.beginProxyDrag(
+            "dashboard", root.layoutDragBaseGlobalX, root.layoutDragBaseGlobalY,
+            drawer.width, drawer.height
+        )
+        drawer.grabToImage(function(result) {
+            if (!root.layoutDragging) return
+            root.layoutDragHidden = true
+            if (root.layoutEditor) root.layoutEditor.setProxySource(result.url)
+        }, Qt.size(Math.max(1, Math.round(drawer.width)), Math.max(1, Math.round(drawer.height))))
+    }
+
+    function updateDashboardLayoutDrag(mouse) {
+        if (!root.layoutEditMode || !root.layoutDragging || !root.layoutEditor)
+            return
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
+        root.layoutEditor.updateProxyDrag(globalX, globalY, drawer.width, drawer.height)
+    }
+
+    function finishDashboardLayoutDrag(mouseX, mouseY) {
+        if (!root.layoutDragging) return
+        var globalX = root.layoutDragBaseGlobalX + Number(mouseX) - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouseY) - root.layoutDragPressY
+        var targetScreen = root.findScreenForGlobalPoint(
+            globalX + drawer.width / 2, globalY + drawer.height / 2
+        )
+        var localX = globalX - Number(targetScreen && targetScreen.x || 0)
+        var localY = globalY - Number(targetScreen && targetScreen.y || 0)
+        if (root.layoutEditor) root.layoutEditor.endProxyDrag()
+        Settings.endGeometryDrag("dashboard", root.screenStorageName(targetScreen), localX, localY)
+        root.layoutDragging = false
+        root.layoutDragHidden = false
+    }
+
+    function cancelDashboardLayoutDrag() {
+        if (!root.layoutDragging) return
+        if (root.layoutEditor) root.layoutEditor.endProxyDrag()
+        Settings.cancelGeometryDrag("dashboard")
+        root.layoutDragging = false
+        root.layoutDragHidden = false
+    }
+
+    onLayoutEditModeChanged: {
+        if (!root.layoutEditMode)
+            root.cancelDashboardLayoutDrag()
+    }
+
+    screen: root.resolveDashboardScreen()
+
+    readonly property bool dashboardFrameVisible: !Settings.loaded || Settings.moduleFrames.dashboard !== false
+    readonly property bool dashboardBackgroundVisible: !Settings.loaded || Settings.moduleBackgrounds.dashboard !== false
+    readonly property bool dashboardBlurEnabled: Settings.loaded && Settings.moduleBlurEnabled.dashboard === true
+
     // Keep the full-screen click-catcher alive only while opening/closing the
     // drawer. It must not create a transparent desktop-sized surface at startup.
     property bool keepWindowDuringClose: false
+    // Wait for the fullscreen PanelWindow and drawer geometry to settle before
+    // enabling the first opening transition. A newly shown PanelWindow can
+    // briefly report a 1x1/partial size; animating against that transient size
+    // makes a thin edge of the drawer travel across the monitor first.
+    property bool visibilityAnimationReady: false
     property var clock: null
     property var cpuSource: null
     property var playerSource: null
@@ -1410,50 +1534,71 @@ PanelWindow {
         return ""
     }
 
-    function resolveDashboardScreen() {
-        var wanted = String(Config.monitorName || "").trim().toLowerCase()
-        for (var i = 0; i < Quickshell.screens.length; ++i) {
-            var candidate = Quickshell.screens[i]
-            if (!candidate) continue
-            if (wanted && (String(candidate.name || "").trim().toLowerCase() === wanted
-                    || String(candidate.model || "").trim().toLowerCase() === wanted
-                    || String(candidate).trim().toLowerCase() === wanted))
-                return candidate
-        }
-        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-    }
-
-    screen: root.resolveDashboardScreen()
-    visible: Settings.loaded && (root.open || root.keepWindowDuringClose)
+    visible: Settings.loaded && Settings.dashboard && (root.open || root.keepWindowDuringClose || root.layoutEditMode)
     onOpenChanged: {
         if (root.open) {
             closeWindowTimer.stop()
             root.keepWindowDuringClose = true
+            if (!root.visibilityAnimationReady)
+                visibilityAnimationReadyTimer.restart()
         } else {
+            visibilityAnimationReadyTimer.stop()
             root.cardEditMode = false
             root.draggingCardId = ""
             root.cardDropTargetId = ""
             root.clearNavigationFocus()
-            if (root.keepWindowDuringClose)
+            if (root.keepWindowDuringClose && root.visibilityAnimationReady) {
                 closeWindowTimer.restart()
+            } else {
+                closeWindowTimer.stop()
+                root.keepWindowDuringClose = false
+                root.visibilityAnimationReady = false
+            }
+        }
+    }
+    Component.onCompleted: {
+        if (root.open && !root.visibilityAnimationReady) {
+            root.keepWindowDuringClose = true
+            visibilityAnimationReadyTimer.restart()
         }
     }
     color: Config.transparent
-    focusable: root.open
-    WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    focusable: root.open && !root.layoutEditMode
+    WlrLayershell.keyboardFocus: root.open && !root.layoutEditMode ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     anchors.left: true
     anchors.right: true
     anchors.top: true
     anchors.bottom: true
-    WlrLayershell.layer: WlrLayer.Overlay
-    mask: Region { item: root.open ? fullInputRegion : null }
+    WlrLayershell.layer: root.layoutEditMode ? WlrLayer.Top : WlrLayer.Overlay
+    mask: Region { item: root.layoutEditMode ? dashboardEditInputRegion : (root.open ? fullInputRegion : null) }
+
+    Timer {
+        id: visibilityAnimationReadyTimer
+        interval: 16
+        repeat: true
+        onTriggered: {
+            if (!root.open) {
+                stop()
+                return
+            }
+            if (!root.visible || !root.screen || !DashboardAnimation.geometryReady(
+                        root.width, root.height, drawer.width, drawer.height,
+                        root.screen.width, root.screen.height))
+                return
+            stop()
+            root.visibilityAnimationReady = true
+        }
+    }
 
     Timer {
         id: closeWindowTimer
-        interval: Config.animationDuration(300, "appearance") + 24
+        interval: DashboardAnimation.transitionDuration(drawer.visibilityStyle, Config.animationDashboardVisibilityDuration) + 24
         repeat: false
-        onTriggered: root.keepWindowDuringClose = false
+        onTriggered: {
+            root.keepWindowDuringClose = false
+            root.visibilityAnimationReady = false
+        }
     }
 
     Item {
@@ -1474,7 +1619,7 @@ PanelWindow {
     Item {
         id: dashboardDismissLayer
         anchors.fill: parent
-        visible: root.open
+        visible: root.open && !root.layoutEditMode
         MouseArea {
             anchors.fill: parent
             onClicked: root.closeRequested()
@@ -1483,19 +1628,36 @@ PanelWindow {
 
     Rectangle {
         id: drawer
-        readonly property real targetWidth: DashboardCards.drawerWidthForScreenWidth(parent.width)
-        readonly property real targetHeight: Math.min(
-            Math.max(1, parent.height - 32),
-            Math.min(600, Math.max(420, cards.implicitHeight + 280))
-        )
+        readonly property var configuredGeometry: (Settings.geometry || {}).dashboard || [-999999, -999999, 560, 0]
+        readonly property real targetWidth: Math.max(1, Math.min(Math.max(1, parent.width - 32),
+            Number(configuredGeometry[2]) > 0 ? Number(configuredGeometry[2]) : DashboardCards.drawerWidthForScreenWidth(parent.width)))
+        readonly property real targetHeight: Number(configuredGeometry[3]) > 0
+            ? Math.max(280, Math.min(parent.height - 32, Number(configuredGeometry[3])))
+            : Math.min(Math.max(1, parent.height - 32), Math.min(600, Math.max(420, cards.implicitHeight + 280)))
+        readonly property real targetX: Number(configuredGeometry[0]) > -10000
+            ? Math.max(0, Math.min(parent.width - width, Number(configuredGeometry[0])))
+            : Math.max(16, parent.width - width - 16)
+        readonly property real targetY: Number(configuredGeometry[1]) > -10000
+            ? Math.max(0, Math.min(parent.height - height, Number(configuredGeometry[1])))
+            : Math.max(16, (parent.height - height) / 2)
+        readonly property string visibilityStyle: DashboardAnimation.resolveVisibilityStyle(
+            Config.animationDashboardVisibilityStyle, targetX, width, parent.width)
+        readonly property int visibilityDuration: DashboardAnimation.transitionDuration(visibilityStyle, Config.animationDashboardVisibilityDuration)
+        readonly property real hiddenX: DashboardAnimation.hiddenX(visibilityStyle, targetX, width, parent.width, 16)
+        readonly property real hiddenY: DashboardAnimation.hiddenY(visibilityStyle, targetY, height, parent.height, 16)
         width: targetWidth
         height: targetHeight
-        y: Math.max(16, (parent.height - height) / 2)
-        x: root.open ? parent.width - width - 16 : parent.width + 16
+        y: (root.layoutEditMode || (root.open && root.visibilityAnimationReady)) ? targetY : hiddenY
+        x: (root.layoutEditMode || (root.open && root.visibilityAnimationReady)) ? targetX : hiddenX
+        opacity: root.layoutDragHidden ? 0
+            : (root.layoutEditMode ? 1
+                : (root.open
+                    ? (root.visibilityAnimationReady ? 1 : (DashboardAnimation.usesFade(visibilityStyle) ? 0 : 1))
+                    : (DashboardAnimation.usesFade(visibilityStyle) ? 0 : 1)))
         radius: Config.frameRadius + 9
-        color: Config.settingsBackground
+        color: root.dashboardBackgroundVisible ? Config.settingsBackground : Config.transparent
         border.color: Config.settingsBorder
-        border.width: Math.max(1, Config.frameBorderWidth)
+        border.width: root.dashboardFrameVisible ? Math.max(1, Config.frameBorderWidth) : 0
         clip: true
         HoverHandler {
             enabled: root.open
@@ -1529,7 +1691,19 @@ PanelWindow {
             }
         }
         Behavior on x {
-            NumberAnimation { duration: Config.animationDuration(300, "appearance"); easing.type: Easing.OutCubic }
+            enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
+            NumberAnimation { duration: drawer.visibilityDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on y {
+            enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
+            NumberAnimation { duration: drawer.visibilityDuration; easing.type: Easing.OutCubic }
+        }
+        Behavior on opacity {
+            enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
+            NumberAnimation {
+                duration: drawer.visibilityStyle === "fade" ? drawer.visibilityDuration : 0
+                easing.type: Easing.OutCubic
+            }
         }
 
         // Passive card surfaces must still absorb clicks inside the drawer so
@@ -4220,4 +4394,78 @@ PanelWindow {
             }
         }
     }
+
+    // In Smart Editing, the fullscreen Dashboard surface becomes click-through
+    // everywhere except the drawer. The proxy editor can then move the real
+    // drawer between monitors without intercepting the rest of the desktop.
+    Item {
+        id: dashboardEditInputRegion
+        x: drawer.x
+        y: drawer.y
+        width: drawer.width
+        height: drawer.height
+    }
+
+    Item {
+        id: dashboardLayoutEditOverlay
+        x: drawer.x
+        y: drawer.y
+        width: drawer.width
+        height: drawer.height
+        z: 10000
+        visible: root.layoutEditMode
+
+        Rectangle {
+            anchors.fill: parent
+            visible: !root.layoutDragHidden
+            color: "transparent"
+            border.color: Config.accent
+            border.width: Math.max(2, Config.frameBorderWidth + 1)
+            radius: Config.frameRadius + 9
+            antialiasing: true
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: 7
+            visible: !root.layoutDragHidden
+            width: dashboardEditLabel.implicitWidth + 16
+            height: dashboardEditLabel.implicitHeight + 10
+            radius: 5
+            color: Config.accent
+
+            Text {
+                id: dashboardEditLabel
+                anchors.centerIn: parent
+                text: "Dashboard · перетащите для перемещения"
+                color: Config.black
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                font.bold: true
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            preventStealing: true
+            hoverEnabled: true
+            cursorShape: root.layoutDragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+            onPressed: function(mouse) { root.beginDashboardLayoutDrag(mouse) }
+            onPositionChanged: function(mouse) {
+                if (pressed) root.updateDashboardLayoutDrag(mouse)
+            }
+            onReleased: function(mouse) { root.finishDashboardLayoutDrag(mouse.x, mouse.y) }
+            onCanceled: root.cancelDashboardLayoutDrag()
+        }
+    }
+
+    // Blur only the Dashboard drawer, not the full-screen click-catcher. The
+    // full-size PanelWindow remains necessary for outside-click dismissal.
+    BackgroundEffect.blurRegion: Region {
+        item: root.dashboardBlurEnabled ? drawer : null
+        radius: Math.max(0, Config.backgroundBlurRadius)
+    }
+
 }

@@ -223,6 +223,72 @@ Column {
         visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
+        changeKeys: ({ keys: ["mopidyBrowseCoverMode", "mopidyBrowseCoverKeepSelectedVisible"] })
+        heading: "Обложки библиотеки"
+        padding: 8
+        contentSpacing: 6
+
+        SettingsRow {
+            label: "Обложки в списке папок"
+            controlSpacing: 8
+            width: parent.width
+            height: 30
+            spacing: 8
+
+            SettingsComboBox {
+                id: browseCoverModeCombo
+                width: 190
+                height: 30
+                model: ["Выключено", "Только выбранная", "Все видимые"]
+                currentIndex: ["off", "selected", "all-visible"].indexOf(Config.mopidyBrowseCoverMode)
+                onItemChosen: function(index) {
+                    Config.mopidyBrowseCoverMode = ["off", "selected", "all-visible"][index] || "selected"
+                    settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onMopidyBrowseCoverModeChanged() {
+                        browseCoverModeCombo.currentIndex = ["off", "selected", "all-visible"].indexOf(Config.mopidyBrowseCoverMode)
+                    }
+                }
+            }
+        }
+
+        SettingsCheckBox {
+            id: browseCoverKeepSelectedCheckBox
+            width: parent.width
+            height: 30
+            visible: Config.mopidyBrowseCoverMode === "selected"
+            text: "Оставлять обложку после снятия курсора"
+            checked: Config.mopidyBrowseCoverKeepSelectedVisible
+            onClicked: {
+                Config.mopidyBrowseCoverKeepSelectedVisible = checked
+                settings.save()
+            }
+            Connections {
+                target: Config
+                function onMopidyBrowseCoverKeepSelectedVisibleChanged() {
+                    browseCoverKeepSelectedCheckBox.checked = Config.mopidyBrowseCoverKeepSelectedVisible
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: Config.mopidyBrowseCoverMode === "selected"
+                ? "В режиме «Только выбранная» обложка показывается при наведении. Можно оставить её видимой после ухода курсора. «Все видимые» загружает только папки в текущей области прокрутки. Обложка уже открытой папки в заголовке не зависит от этого параметра."
+                : "«Все видимые» загружает только папки в текущей области прокрутки. Обложка уже открытой папки в заголовке не зависит от этого параметра."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
+
+    SettingsGroup {
+        visible: host && host.currentPageId === "mopidy"
+        width: parent.width
+        showFrame: true
         changeKeys: ({ keys: ["mopidyShowVolumePercent", "mopidyVolumeStep"] })
         heading: "Громкость"
         padding: 8

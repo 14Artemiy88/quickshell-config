@@ -424,8 +424,10 @@ function moveGridIndex(currentIndex, direction, columns, count) {
     }
 
     var rowCount = Math.ceil(total / cols)
-    if (targetRow < 0 || targetRow >= rowCount)
-        return current
+    if (targetRow < 0)
+        targetRow = rowCount - 1
+    else if (targetRow >= rowCount)
+        targetRow = 0
     var itemsInTargetRow = Math.min(cols, total - targetRow * cols)
     if (targetColumn < 0 || targetColumn >= cols)
         return current

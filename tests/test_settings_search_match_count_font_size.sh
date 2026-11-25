@@ -11,7 +11,7 @@ PROFILES="$ROOT/js/settings/SettingsProfiles.js"
 RESETS="$ROOT/js/settings/SettingsResets.js"
 NAV="$ROOT/components/settings/SettingsNavigationController.qml"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
-WIDGET="$ROOT/components/settings/SettingsNavigation.qml"
+WIDGET="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 TAB="$ROOT/components/settings/primitives/SettingsTabBase.qml"
 
 for file in "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$PROFILES" "$RESETS" "$NAV" "$WINDOW" "$WIDGET" "$TAB"; do

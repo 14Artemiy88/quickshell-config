@@ -17,16 +17,33 @@ helper = (root / "js/notifications/NotificationTimeout.js").read_text(encoding="
 assert 'property bool notificationsShowTimeoutIndicator: false' in config
 assert 'notificationsShowTimeoutIndicator: false' in defaults
 assert 'notificationsShowTimeoutIndicator: config.notificationsShowTimeoutIndicator' in persistence
+assert 'notificationsTimeoutIndicatorColor: config.notificationsTimeoutIndicatorColor' in persistence
+assert 'notificationsTimeoutIndicatorStyle: config.notificationsTimeoutIndicatorStyle' in persistence
+assert 'notificationsTimeoutIndicatorDirection: config.notificationsTimeoutIndicatorDirection' in persistence
 assert 'if (o.notificationsShowTimeoutIndicator !== undefined) Config.notificationsShowTimeoutIndicator = !!o.notificationsShowTimeoutIndicator' in apply_core
+assert 'Config.notificationsTimeoutIndicatorStyle = String(o.notificationsTimeoutIndicatorStyle) === \"border\" ? \"border\" : \"bar\"' in apply_core
+assert 'Config.notificationsTimeoutIndicatorDirection' in apply_core
 assert resets.count('"notificationsShowTimeoutIndicator"') >= 2, 'module and page Reset must restore the indicator setting'
+assert resets.count('"notificationsTimeoutIndicatorColor"') >= 2
+assert resets.count('"notificationsTimeoutIndicatorStyle"') >= 2
 assert 'function remainingFraction(elapsed, timeout)' in helper
 assert 'NotificationTimeout.remainingFraction(visibleTimeoutElapsed, effectiveTimeout)' in notifications
-assert 'visible: Config.notificationsShowTimeoutIndicator && card.notification !== null' in notifications
+assert 'visible: Config.notificationsShowTimeoutIndicator' in notifications
+assert 'String(Config.notificationsTimeoutIndicatorStyle || \"bar\") !== \"border\"' in notifications
+assert 'String(Config.notificationsTimeoutIndicatorStyle || \"bar\") === \"border\"' in notifications
 assert 'width: parent.width * card.remainingTimeoutFraction' in notifications
-assert 'changeKeys: ({ keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator"] })' in settings_ui
+assert 'color: root.timeoutIndicatorResolvedColor' in notifications
+assert 'id: timeoutFrameIndicator' in notifications
+assert 'NotificationTimeout.roundedPerimeterPoints' in notifications
+assert 'progressDirection: Config.notificationsTimeoutIndicatorDirection' in notifications
+assert 'notificationsTimeoutIndicatorColor' in settings_ui and 'notificationsTimeoutIndicatorStyle' in settings_ui
+assert 'notificationsTimeoutIndicatorDirection' in settings_ui
+assert 'notificationsTimeoutIndicatorColor' in settings_ui
 assert 'text: "Показывать время до закрытия"' in settings_ui
 assert 'Config.notificationsShowTimeoutIndicator = checked' in settings_ui
-assert 'Полоса показывает оставшееся время автоматического закрытия' in settings_ui
+assert 'Индикатор показывает оставшееся время до автоматического закрытия' in settings_ui
+assert 'settingsSearchId: "notifications-timeout-indicator-color"' in settings_ui
+assert 'settingsSearchId: "notifications-timeout-indicator-style"' in settings_ui
 print("notification timeout indicator settings, persistence, Reset and rendering: OK")
 PY
 node - "$ROOT" <<'JS'

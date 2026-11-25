@@ -188,6 +188,19 @@ function normalizeProfile(profile, isSparse) {
     if (legacyVolumeAnimationStyle === "none")
         p.animationVolumeStreamsVisibilityStyle = "fade"
 
+    if (p.notificationsTimeoutIndicatorDirection !== undefined) {
+        var timeoutIndicatorDirection = String(p.notificationsTimeoutIndicatorDirection)
+        if (timeoutIndicatorDirection === "clockwise" || timeoutIndicatorDirection === "counterclockwise")
+            p.notificationsTimeoutIndicatorDirection = timeoutIndicatorDirection
+        else if (isSparse)
+            delete p.notificationsTimeoutIndicatorDirection
+        else
+            p.notificationsTimeoutIndicatorDirection = "clockwise"
+    } else if (!isSparse) {
+        // Legacy profiles predate the direction control; preserve the original clockwise path.
+        p.notificationsTimeoutIndicatorDirection = "clockwise"
+    }
+
     if (p.notificationsBackgroundColor !== undefined)
         p.notificationsBackgroundColor = normalizeSavedColor(p.notificationsBackgroundColor, "#4d000000")
     else if (!isSparse)
@@ -266,6 +279,13 @@ function normalizeProfile(profile, isSparse) {
         else delete p.notificationsCardPadding
     } else if (!isSparse) p.notificationsCardPadding = 12
 
+    if (p.notificationsBodyFont !== undefined) {
+        if (typeof p.notificationsBodyFont === "string")
+            p.notificationsBodyFont = p.notificationsBodyFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128)
+        else if (isSparse) delete p.notificationsBodyFont
+        else p.notificationsBodyFont = ""
+    } else if (!isSparse) p.notificationsBodyFont = ""
+
     if (p.notificationsBodyFontSize !== undefined) {
         var notificationBodyFontSize = Number(p.notificationsBodyFontSize)
         if (isFinite(notificationBodyFontSize)) p.notificationsBodyFontSize = Math.max(8, Math.min(32, Math.round(notificationBodyFontSize)))
@@ -288,6 +308,20 @@ function normalizeProfile(profile, isSparse) {
     delete p.notificationsOffsetX
     delete p.notificationsOffsetY
     delete p.notificationsMargin
+
+    if (p.mopidyBrowseCoverKeepSelectedVisible !== undefined) {
+        if (typeof p.mopidyBrowseCoverKeepSelectedVisible !== "boolean") {
+            if (isSparse) delete p.mopidyBrowseCoverKeepSelectedVisible
+            else p.mopidyBrowseCoverKeepSelectedVisible = false
+        }
+    } else if (!isSparse) p.mopidyBrowseCoverKeepSelectedVisible = false
+
+    if (p.mopidyTrackArtistGap !== undefined) {
+        var mopidyTrackArtistGap = Number(p.mopidyTrackArtistGap)
+        if (isFinite(mopidyTrackArtistGap)) p.mopidyTrackArtistGap = Math.max(0, Math.min(8, Math.round(mopidyTrackArtistGap)))
+        else if (isSparse) delete p.mopidyTrackArtistGap
+        else p.mopidyTrackArtistGap = 0
+    } else if (!isSparse) p.mopidyTrackArtistGap = 0
 
     if (!isSparse && p.mopidyAlbumBold === undefined) p.mopidyAlbumBold = true
     if (p.weatherToken !== undefined) p.weatherToken = String(p.weatherToken).trim()

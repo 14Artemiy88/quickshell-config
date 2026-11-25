@@ -1,8 +1,8 @@
 .pragma library
 
 .import "SettingsSchema.js" as Schema
-var SETTINGS_TAB_IDS = ["modules", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
-var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"})
+var SETTINGS_TAB_IDS = ["modules", "time", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
+var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"})
 
 function normalizeSettingsLastActivePageId(value) {
     var pageId = typeof value === "string" ? value.trim() : ""
@@ -13,7 +13,7 @@ function fallbackNavigationOrder(source) {
     var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
     var defaults = {
         appearance: ["themes", "settingsWindow"],
-        modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
         general: ["general"]
@@ -169,6 +169,19 @@ function apply(owner, Config, o) {
             if (isFinite(criticalNotificationTimeout)) Config.notificationsCriticalTimeout = Math.max(0, Math.min(120000, Math.round(criticalNotificationTimeout)))
         }
         if (o.notificationsShowTimeoutIndicator !== undefined) Config.notificationsShowTimeoutIndicator = !!o.notificationsShowTimeoutIndicator
+        if (o.notificationsTimeoutIndicatorColor !== undefined) {
+            var timeoutIndicatorColor = typeof o.notificationsTimeoutIndicatorColor === "string"
+                ? o.notificationsTimeoutIndicatorColor.trim() : ""
+            Config.notificationsTimeoutIndicatorColor = timeoutIndicatorColor === ""
+                ? "" : Schema.normalizeSavedColor(timeoutIndicatorColor, "")
+        }
+        if (o.notificationsTimeoutIndicatorStyle !== undefined) {
+            Config.notificationsTimeoutIndicatorStyle = String(o.notificationsTimeoutIndicatorStyle) === "border" ? "border" : "bar"
+        }
+        if (o.notificationsTimeoutIndicatorDirection !== undefined) {
+            Config.notificationsTimeoutIndicatorDirection = String(o.notificationsTimeoutIndicatorDirection) === "counterclockwise"
+                ? "counterclockwise" : "clockwise"
+        }
         // One-time compatibility inputs for older corner/offset placement.
         // Notifications.qml converts them to absolute module geometry once a target screen is known.
         if (o.notificationsPosition !== undefined) {
@@ -239,6 +252,10 @@ function apply(owner, Config, o) {
             var notificationCardPadding = Number(o.notificationsCardPadding)
             if (isFinite(notificationCardPadding)) Config.notificationsCardPadding = Math.max(0, Math.min(32, Math.round(notificationCardPadding)))
         }
+        if (o.notificationsBodyFont !== undefined) {
+            Config.notificationsBodyFont = typeof o.notificationsBodyFont === "string"
+                ? o.notificationsBodyFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
         if (o.notificationsBodyFontSize !== undefined) {
             var notificationBodyFontSize = Number(o.notificationsBodyFontSize)
             if (isFinite(notificationBodyFontSize)) Config.notificationsBodyFontSize = Math.max(8, Math.min(32, Math.round(notificationBodyFontSize)))
@@ -251,6 +268,17 @@ function apply(owner, Config, o) {
         if (o.notificationsShowBodyImages !== undefined) Config.notificationsShowBodyImages = !!o.notificationsShowBodyImages
         if (o.notificationsShowProgress !== undefined) Config.notificationsShowProgress = !!o.notificationsShowProgress
         if (o.ledFont !== undefined) Config.ledFont = String(o.ledFont)
+        if (o.clockFont !== undefined) {
+            Config.clockFont = typeof o.clockFont === "string"
+                ? o.clockFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
+        if (o.clockFontSize !== undefined) { var clockFontSize = Number(o.clockFontSize); if (isFinite(clockFontSize)) Config.clockFontSize = Math.max(24, Math.min(72, Math.round(clockFontSize))) }
+        if (o.clockDateFontSize !== undefined) { var clockDateFontSize = Number(o.clockDateFontSize); if (isFinite(clockDateFontSize)) Config.clockDateFontSize = Math.max(12, Math.min(36, Math.round(clockDateFontSize))) }
+        if (o.clockWeekdayFont !== undefined) {
+            Config.clockWeekdayFont = typeof o.clockWeekdayFont === "string"
+                ? o.clockWeekdayFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : "Ubuntu"
+        }
+        if (o.clockWeekdayFontSize !== undefined) { var clockWeekdayFontSize = Number(o.clockWeekdayFontSize); if (isFinite(clockWeekdayFontSize)) Config.clockWeekdayFontSize = Math.max(8, Math.min(24, Math.round(clockWeekdayFontSize))) }
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
         if (o.playerSilenceText !== undefined) Config.playerSilenceText = String(o.playerSilenceText)

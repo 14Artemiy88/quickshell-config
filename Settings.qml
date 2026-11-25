@@ -45,10 +45,10 @@ QtObject {
     property bool notifications: true
     property bool calendar: true
     property bool dashboard: true
-    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
+    property var moduleFrames: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, dashboard:true, launcher:true})
     property var moduleMonitors: ({})
-    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, launcher:true})
-    property var moduleBlurEnabled: ({time:false, calendar:false, cpu:false, cpuGraph:false, topAppsCpu:false, topAppsRam:false, networkStat:false, weatherNow:false, weatherHourly:false, weatherDaily:false, timer:false, volumes:false, player:false, mopidy:false, cava:false, networks:false, notifications:false, launcher:false, settings:false})
+    property var moduleBackgrounds: ({time:true, calendar:true, cpu:true, cpuGraph:true, topAppsCpu:true, topAppsRam:true, networkStat:true, weatherNow:true, weatherHourly:true, weatherDaily:true, timer:true, volumes:true, player:true, mopidy:false, cava:true, networks:true, notifications:true, dashboard:true, launcher:true})
+    property var moduleBlurEnabled: ({time:false, calendar:false, cpu:false, cpuGraph:false, topAppsCpu:false, topAppsRam:false, networkStat:false, weatherNow:false, weatherHourly:false, weatherDaily:false, timer:false, volumes:false, player:false, mopidy:false, cava:false, networks:false, notifications:false, dashboard:false, launcher:false, settings:false})
     // Temporary geometry used while dragging modules in layout-edit mode.
     // It is never persisted until the mouse button is released.
     property var layoutEditGeometry: ({})
@@ -60,7 +60,7 @@ QtObject {
         topAppsCpu: [5,322,315,96], topAppsRam: [5,423,315,96], networkStat: [5,526,313,55], weatherNow: [3,585,315,80],
         weatherHourly: [3,665,335,125], weatherDaily: [3,795,325,125], timer: [3,930,315,145],
         timerOptions: [325,888,90,95], calendar: [5,65,315,285], volumes: [331,72,275,210],
-        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180], notifications: [-999999,16,380,0], launcher: [-999999,-999999,720,640]
+        player: [330,405,300,320], mopidy: [330,865,300,150], cava: [325,578,300,80], networks: [331,675,300,180], notifications: [-999999,16,380,0], dashboard: [-999999,-999999,560,0], launcher: [-999999,-999999,720,640]
     })
     // Geometry of the settings window itself: X, Y, Width, Height.
     property var settingsGeometry: [640, 40, 560, 850]
@@ -480,9 +480,7 @@ QtObject {
                 topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
                 weatherNow: ["weather", "animationWeather"], weatherHourly: ["weather", "animationWeather"], weatherDaily: ["weather", "animationWeather"], timer: ["timer"],
                 volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications", "animationNotifications"],
-                // The clock module has no clock-prefixed configuration keys;
-                // "time" would also match "timer..." and show a false reset action.
-                time: []
+                time: ["clock"]
             }[moduleName] || [moduleName]
             // The individual CPU row resets shared graph geometry but not the
             // graph mode itself; that belongs to the CPU Graph row's reset.
@@ -490,10 +488,11 @@ QtObject {
             return hasPrefixed(prefixes, excludedKeys)
         }
         if (scope === "dashboard")
-            return hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"])
+            return hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes", "animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"])
         if (scope === "dashboardModule")
-            return hasNested("modules", "dashboard")
-                || hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"])
+            return ["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"]
+                .some(function(key) { return hasNested(key, "dashboard") })
+                || hasAny(["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes", "animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"])
         if (scope === "launcher")
             return hasResetChanges("module", "launcher") || hasPrefixed(["launcher"])
         if (scope === "themes") {
@@ -504,7 +503,7 @@ QtObject {
         if (scope === "all") {
             // A theme can change its identity while producing the same effective
             // palette, so activeTheme must be considered in addition to colors.
-            return hasAny(["activeTheme"]) || ["general", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "dashboard", "notifications", "modules"].some(function(item) {
+            return hasAny(["activeTheme"]) || ["general", "clock", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "dashboard", "notifications", "modules"].some(function(item) {
                 return hasResetChanges(item)
             }) || hasResetChanges("colors", colorNames)
         }
@@ -526,7 +525,8 @@ QtObject {
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
             dashboard: ["dashboard"],
             settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsNavigationOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
-            notifications: ["notifications", "animationNotifications"]
+            notifications: ["notifications", "animationNotifications"],
+            clock: ["clock"]
         }
         if (scope === "settingsWindow") {
             if (hasNested("moduleBlurEnabled", "settings")) return true
@@ -570,6 +570,8 @@ QtObject {
 
     function resetCalendarSettings() { SettingsResets.resetCalendarSettings(root, Config) }
 
+    function resetClockSettings() { SettingsResets.resetClockSettings(root, Config) }
+
     function resetCavaSettings() { SettingsResets.resetCavaSettings(root, Config) }
 
     function resetGeneralSettings() { SettingsResets.resetGeneralSettings(root, Config) }
@@ -578,7 +580,7 @@ QtObject {
     function resetSettingsWindow() { SettingsResets.resetSettingsWindow(root, Config) }
 
     function resetDashboardSettings() { SettingsResets.resetDashboardSettings(root, Config) }
-    function resetDashboardModule() { SettingsResets.resetDashboardSettings(root, Config, true) }
+    function resetDashboardModule() { SettingsResets.resetDashboardModule(root, Config) }
     function resetLauncherSettings() { SettingsResets.resetLauncherSettings(root, Config) }
     function resetNotificationsSettings() { SettingsResets.resetNotificationsSettings(root, Config) }
 

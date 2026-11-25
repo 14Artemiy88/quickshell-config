@@ -58,6 +58,7 @@ assert.strictEqual(cards.cardDropTargetScore({ x: 300, y: 333 }, targetRect, 88,
   'points well below the card cannot become drop targets');
 
 const qml = read('components/Dashboard.qml');
+const shell = read('shell.qml');
 const header = qml.slice(qml.indexOf('id: cardEditButton'), qml.indexOf('id: closeButton'));
 assert(header.includes('root.toggleDashboardCardEditMode()')
   && qml.includes('function toggleDashboardCardEditMode()'),
@@ -106,8 +107,11 @@ assert(qml.includes('Accessible.role: Accessible.Button'),
 
 const moduleSection = read('components/settings/sections/SettingsModulesSection.qml');
 assert(moduleSection.includes('onClicked: host.layoutEditRequested()'),
-  'the existing desktop smart editor remains separate and unchanged');
-assert(!moduleSection.includes('SettingsNumberField') || moduleSection.includes('Dashboard is a full-screen overlay'),
-  'Dashboard does not acquire fake X/Y/Width/Height geometry');
+  'the existing desktop smart editor remains the single entry point');
+assert(moduleSection.includes('включая Dashboard'),
+  'the Smart Editing description explicitly includes Dashboard');
+assert(shell.includes('layoutEditMode: Settings.dashboard && shell.layoutEditMode')
+  && shell.includes('layoutEditor: moduleLayoutEditorWindow'),
+  'the Dashboard overlay receives the shared ModuleLayoutEditorWindow');
 console.log('Dashboard in-panel editing, bidirectional drag/drop, pointer/keyboard focus separation and add/remove animations: OK');
 JS

@@ -65,13 +65,21 @@ for (const file of walk(sectionsRoot)) {
       /\bsettingsSearchSubTabIndex\s*:\s*2\b/.test(block.text) ? 'navigation hierarchy editor has one parent-page dirty indicator and Save/Reset scope instead of per-frame markers' :
       /heading\s*:\s*"Токен Gismeteo"/.test(block.text) ? 'weather token is intentionally excluded from profile markers' :
       /heading\s*:\s*"Что управляется"/.test(block.text) ? 'informational animation panel has no editable settings' :
-      /text\s*:\s*"Сбросить все настройки"/.test(block.text) ? 'profile action panel is not a setting group' : null;
+      /text\s*:\s*"Сбросить все настройки"/.test(block.text) ? 'profile action panel is not a setting group' :
+      (file.endsWith('SettingsColorsSection.qml') && /SettingsPageHeading\s*\{[\s\S]*?saveScope\s*:\s*"themes"/.test(source)) ? 'Themes page uses a page-level heading and profile scope instead of a per-frame marker' :
+      (file.endsWith('SettingsModulesSection.qml') && /SettingsPageHeading\s*\{[\s\S]*?saveScope\s*:\s*"modules"/.test(source)) ? 'Modules page uses a page-level heading and profile scope instead of a per-frame marker' : null;
     assert(reason, `${path.relative(root, file)} has a framed SettingsGroup without changeKeys: ${block.text.slice(0,180).replace(/\s+/g,' ')}`);
     exceptions.push({file:path.relative(root,file), reason});
   }
 }
 assert(totalFrames >= 70, `expected broad frame coverage, got ${totalFrames}`);
 assert(selectedFrames >= 70, `too few framed groups have selectors: ${selectedFrames}/${totalFrames}`);
+const pageHeading = fs.readFileSync(path.join(root,'components/settings/primitives/SettingsPageHeading.qml'),'utf8');
+assert(pageHeading.includes('root.host.profileController.saveScope(root.resolvedSaveScope)'), 'custom page heading saves its page-level scope');
+const modulesSection = fs.readFileSync(path.join(sectionsRoot,'SettingsModulesSection.qml'),'utf8');
+const themesSection = fs.readFileSync(path.join(sectionsRoot,'SettingsColorsSection.qml'),'utf8');
+assert(/SettingsPageHeading\s*\{[\s\S]*?saveScope\s*:\s*"modules"/.test(modulesSection), 'Modules has a shared page heading with a modules save scope');
+assert(/SettingsPageHeading\s*\{[\s\S]*?saveScope\s*:\s*"themes"/.test(themesSection), 'Themes has a shared page heading with a themes save scope');
 const group = fs.readFileSync(path.join(root,'components/settings/primitives/SettingsGroup.qml'),'utf8');
 assert.strictEqual((group.match(/visible: root\.hasHeading && root\.modified/g)||[]).length, 1, 'exactly one marker beside headings');
 assert(group.includes('visible: root.showFrame && root.modified && !root.hasHeading'), 'frames without an adoptable heading still show a marker');

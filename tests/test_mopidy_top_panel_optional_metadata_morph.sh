@@ -21,10 +21,12 @@ def require(token: str, message: str) -> None:
 # unclipped inner item; the Text itself retains its complete width and is not faded.
 for token, message in [
     ('id: queueDurationSlot', 'queue duration fixed slot missing'),
-    ('x: topPanelRow.queueDurationRightEdge - 60', 'queue duration slot must stay 6px left of the icon cluster'),
+    ('x: QueueDurationGeometry.slotX(Config.mopidyQueueDurationAlignment,', 'queue duration slot must use the selected edge anchor'),
     ('width: 60', 'queue duration outer slot width changed'),
     ('visible: topPanelRow.queueDurationTargetVisible || queueDurationMorph.normalizedProgress > 0.001', 'queue duration slot must remain visible during exit morph'),
     ('readonly property real queueDurationRightEdge: topIconStartX - (totalIconWidth() > 0 ? 6 : 0)', 'queue duration right edge must follow icon cluster'),
+    ('import \"../../js/mopidy/QueueDurationGeometry.js\" as QueueDurationGeometry', 'queue duration anchor helper import missing'),
+    ('x: 0', 'queue duration text must use the slot origin, not a second X offset'),
     ('id: queueDurationMorph', 'queue duration MorphGeometry missing'),
     ('fromGeometry: Config.mopidyQueueDurationAlignment === "left"', 'queue duration start geometry must follow text alignment'),
     ('? Qt.rect(-4, 0, 56, parent.height)', 'left-aligned queue duration must enter from its left offset'),

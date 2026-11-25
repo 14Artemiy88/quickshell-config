@@ -2,6 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import "../.."
 import "../primitives" as Primitives
+import "../../js/player/PlayerImage.js" as PlayerImage
+import "../../js/mopidy/BrowseCoverMode.js" as BrowseCoverMode
+import Quickshell
 
 Item {
     id: fileBrowser
@@ -43,15 +46,35 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        Text {
+        Row {
             width: parent.width
-            height: 22
-            text: controller.browseBusy ? "Загрузка…" : controller.browseTitle
-            color: Config.accent
-            font.family: Config.mopidyAlbumFont
-            font.pixelSize: Config.mopidyAlbumFontSize
-            font.bold: Config.mopidyAlbumBold
-            elide: Text.ElideRight
+            height: controller.browseFolderCover ? 38 : 22
+            spacing: controller.browseFolderCover ? 8 : 0
+
+            Image {
+                id: folderCoverImage
+                width: controller.browseFolderCover ? 38 : 0
+                height: 38
+                visible: status === Image.Ready
+                source: PlayerImage.imageSourceForPath(controller.browseFolderCover, Quickshell.shellDir)
+                asynchronous: true
+                cache: true
+                fillMode: Image.PreserveAspectCrop
+                sourceSize.width: 76
+                sourceSize.height: 76
+            }
+
+            Text {
+                width: Math.max(0, parent.width - folderCoverImage.width - parent.spacing)
+                height: parent.height
+                text: controller.browseBusy ? "Загрузка…" : controller.browseTitle
+                color: Config.accent
+                font.family: Config.mopidyAlbumFont
+                font.pixelSize: Config.mopidyAlbumFontSize
+                font.bold: Config.mopidyAlbumBold
+                elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
+            }
         }
 
         // Keep the title-to-list spacing fixed; the filter slot owns its own
@@ -134,12 +157,25 @@ Item {
             clip: true
             spacing: 2
             model: controller.filteredBrowseDisplayEntries
+            cacheBuffer: 0
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             delegate: Rectangle {
+                id: browseRow
                 width: parent ? parent.width : 0
                 height: Config.mopidyTrackRowHeight
                 radius: 4
+                property bool rowInViewport: y + height > browseListView.contentY && y < browseListView.contentY + browseListView.height
+                property bool coverWanted: fileBrowser.visible && !controller.browseBusy
+                    && BrowseCoverMode.shouldLoad(Config.mopidyBrowseCoverMode, modelData.type, rowInViewport, browseMouse.containsMouse)
+                property string rowCoverPath: controller.browseEntryCoverPath(modelData.uri)
+                function syncCoverRequest() {
+                    if (coverWanted) controller.requestBrowseEntryCover(modelData.uri)
+                    else controller.releaseBrowseEntryCover(modelData.uri)
+                }
+                onCoverWantedChanged: syncCoverRequest()
+                Component.onCompleted: syncCoverRequest()
+                Component.onDestruction: controller.releaseBrowseEntryCover(modelData.uri)
                 property bool addButtonVisible: Config.mopidyShowAddIcon && (modelData.type === "directory" || modelData.type === "track")
                 property bool rowHovered: browseMouse.containsMouse
                 color: Config.transparent
@@ -157,9 +193,25 @@ Item {
                     z: 0
                 }
 
+                Image {
+                    id: browseFolderCoverThumb
+                    z: 1
+                    x: 34
+                    width: 28
+                    height: 28
+                    visible: BrowseCoverMode.shouldDisplay(Config.mopidyBrowseCoverMode, modelData.type, browseRow.rowInViewport, browseRow.rowHovered, Config.mopidyBrowseCoverKeepSelectedVisible, !!browseRow.rowCoverPath) && status === Image.Ready
+                    source: PlayerImage.imageSourceForPath(browseRow.rowCoverPath, Quickshell.shellDir)
+                    asynchronous: true
+                    cache: true
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize.width: 56
+                    sourceSize.height: 56
+                }
+
                 Text {
                     id: browseIcon
                     z: 1
+                    visible: !browseFolderCoverThumb.visible
                     x: 34
                     width: 28
                     height: parent.height

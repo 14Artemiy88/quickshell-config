@@ -49,7 +49,7 @@ const expanded = profiles.expandStoredSettings(owner, {
 });
 assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.groupOrder), Array.from(defaults.groupOrder),
   'flat legacy order cannot invent frame ordering, so canonical frame order is applied');
-assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['weather','modules','timers'],
+assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['weather','modules','time'],
   'legacy profile order is preserved within the canonical Modules frame when it is the active base');
 assert.strictEqual('settingsTabOrder' in expanded, false, 'expanded settings never recreate the old flat field');
 assert.strictEqual('settingsTabOrder' in expanded.profiles.Work, false, 'migrated profiles no longer store flat order');

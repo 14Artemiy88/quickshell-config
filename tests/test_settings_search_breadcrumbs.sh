@@ -13,8 +13,10 @@ for contract in \
     grep -Fq "$contract" "$CONTROLLER" || fail "missing breadcrumb contract: $contract"
 done
 
-grep -Fq 'root.host.settingsSearchNavigationGroupMatchHint(modelData.id)' "$ROOT/components/settings/SettingsNavigation.qml" \
-    || fail 'navigation group search tooltip is no longer connected'
+grep -Fq 'searchMatchHint: root.host.settingsSearchNavigationGroupMatchHint(groupId)' "$ROOT/components/settings/SettingsNavigation.qml" \
+    || fail 'navigation group search tooltip is no longer passed to the folder primitive'
+grep -Fq 'root.searchMatchHint' "$ROOT/components/settings/primitives/SettingsNavigationFolder.qml" \
+    || fail 'folder primitive no longer exposes the group search tooltip'
 grep -Fq 'root.host.settingsSearchPageMatchHint(parent.modelData.id)' "$ROOT/components/settings/SettingsNavigation.qml" \
     || fail 'page search tooltip is no longer connected'
 grep -Fq 'settingsSearchSubTabMatchHint(root.host.currentPageId, index)' "$ROOT/components/settings/SettingsPageHost.qml" \

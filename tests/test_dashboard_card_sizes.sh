@@ -485,8 +485,10 @@ const defaults = read('js/settings/SettingsDefaults.js');
 const page = read('components/settings/sections/SettingsDashboardSection.qml');
 const dashboard = read('components/Dashboard.qml');
 const settings = read('Settings.qml');
-assert.match(dashboard, /targetWidth: DashboardCards\.drawerWidthForScreenWidth\(parent\.width\)/,
-  'Dashboard drawer width depends only on the screen and never expands for wide-lead Bento');
+assert.match(dashboard, /readonly property real targetWidth: Math\.max\(1, Math\.min\(Math\.max\(1, parent\.width - 32\),\s*Number\(configuredGeometry\[2\]\) > 0 \? Number\(configuredGeometry\[2\]\) : DashboardCards\.drawerWidthForScreenWidth\(parent\.width\)\)\)/,
+  'Dashboard drawer width honors configured module width and otherwise uses the established screen-based width');
+assert.match(dashboard, /readonly property real targetHeight: Number\(configuredGeometry\[3\]\) > 0/,
+  'Dashboard drawer height honors the configured module height while retaining automatic height at zero');
 assert.match(config, /property var dashboardCardSizes: \(\{ today: "compact", system: "compact", network: "compact", weather: "compact", media: "compact" \}\)/);
 assert.match(defaults, /dashboardCardSizes: \(\{ today: "compact", system: "compact", network: "compact", weather: "compact", media: "compact" \}\)/);
 assert.match(page, /model: \["Компактный", "Расширенный"\]/);

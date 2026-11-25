@@ -8,7 +8,7 @@ import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
     "messaging clients remain recognized for image-data avatars": "function notificationIsMessenger(notification)" in source and "telegram|discord|signal|whatsapp|element|matrix|slack|mattermost" in source,
-    "any application image-path is promoted to the common leading visual": "function notificationHasImagePath(notification)" in source and "root.notificationHasImagePath(notification) || root.notificationIsMessenger(notification)" in source,
+    "any application image-path is promoted to the common leading visual": "function notificationHasImagePath(notification)" in source and "root.notificationHasImagePath(notification)" in source and "root.notificationIsMessenger(notification)" in source and "imageDataLooksLikeLeadingIcon" in source,
     "leading image and app icon share one frame": "id: notificationVisualFrame" in source and "visible: card.hasLeadingVisual" in source,
     "leading image frame uses the configured square size": "width: root.notificationLeadingVisualSize\n                        height: root.notificationLeadingVisualSize" in source,
     "messenger avatars are cropped consistently": "root.notificationIsMessenger(card.notification)\n                                ? Image.PreserveAspectCrop : Image.PreserveAspectFit" in source,

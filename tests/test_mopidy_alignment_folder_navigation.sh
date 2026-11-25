@@ -8,6 +8,8 @@ grep -Fq 'mopidyQueueDurationAlignment: config.mopidyQueueDurationAlignment' "$R
 grep -Fq 'queueDurationAlignment === "left" || queueDurationAlignment === "right"' "$ROOT/js/settings/SettingsApplyTimerPlayer.js"
 grep -Fq '"mopidyQueueDurationAlignment"' "$ROOT/js/settings/SettingsResets.js"
 grep -Fq 'horizontalAlignment: Config.mopidyQueueDurationAlignment === "left" ? Text.AlignLeft : Text.AlignRight' "$ROOT/components/mopidy/MopidyTopPanel.qml"
+grep -Fq 'QueueDurationGeometry.slotX(Config.mopidyQueueDurationAlignment' "$ROOT/components/mopidy/MopidyTopPanel.qml"
+grep -Fq 'if (Config.mopidyQueueDurationAlignment === "left" && Config.mopidyQueueDurationX < 0)' "$ROOT/js/settings/SettingsApplyTimerPlayer.js"
 grep -Fq 'enabled: !controller.browseBusy' "$ROOT/components/mopidy/MopidyLibraryView.qml"
 grep -Fq 'font.bold: false' "$ROOT/components/mopidy/MopidyFileBrowser.qml"
 echo 'Mopidy duration alignment and folder navigation: OK'

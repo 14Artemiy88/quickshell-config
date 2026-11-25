@@ -254,6 +254,52 @@ settingsSearchSubTabIndex: 1
                         }
     }
     SettingsGroup {
+        visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
+        settingsSearchSubTabIndex: 1
+        width: parent.width
+        showFrame: true
+        heading: "Шрифт текущей погоды"
+        changeKeys: ({ keys: ["weatherFont"] })
+        padding: 8
+        contentSpacing: 6
+
+        Text {
+            width: parent.width
+            text: "Используется для температуры, ощущаемой температуры, скорости ветра и давления. Пустое поле наследует общий LED-шрифт."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(10)
+            wrapMode: Text.WordWrap
+        }
+
+        SettingsRow {
+            width: parent.width
+            height: 34
+            spacing: 8
+            label: "Семейство шрифта"
+            labelWidth: 210
+
+            SettingsFontField {
+                width: parent.width
+                height: 30
+                compact: true
+                fieldWidth: 160
+                fieldFontSize: 11
+                value: Config.weatherFont
+                placeholderText: "Общий LED-шрифт"
+                resetTooltip: "Использовать общий LED-шрифт"
+                targetObject: Config
+                targetProperty: "weatherFont"
+                settingsObject: weatherSection.settings
+                saveOnEdit: true
+                settingsSearchId: "weather-font"
+                settingsSearchLabel: "Шрифт текущей погоды"
+                settingsSearchKeywords: "погода температура ветер давление ощущения font weather typography led"
+            }
+        }
+    }
+
+    SettingsGroup {
                 visible: host && host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
 settingsSearchSubTabIndex: 1
         width: parent.width

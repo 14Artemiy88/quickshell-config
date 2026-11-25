@@ -41,10 +41,16 @@ Flickable {
         width: root.width - 12
         spacing: 10
 
+        SettingsPageHeading {
+            width: parent.width
+            host: root.host
+            saveScope: "themes"
+        }
+
     SettingsGroup {
         visible: host && host.currentPageId === "themes"
         width: parent.width
-        showFrame: false
+        showFrame: true
         padding: 8
         contentSpacing: 6
 
@@ -52,32 +58,7 @@ Flickable {
                     width: parent.width
                     spacing: 7
 
-                    Row {
-                        width: parent.width
-                        height: 30
-                        Text {
-                            width: parent.width
-                                - (host && host.profileController.canSaveScope("all") ? 38 : 0)
-                                - (host && host.profileController.canSaveScope("themes") ? 38 : 0)
-                            text: "Темы"
-                            color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(15)
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        SettingsSaveButton {
-                            actionAvailable: host && host.profileController.canSaveScope("all")
-                            iconText: "󰆔"
-                            tooltip: "Сохранить всё в активный профиль"
-                            onClicked: host.profileController.saveAll()
-                        }
-                        SettingsSaveButton {
-                            actionAvailable: host && host.profileController.canSaveScope("themes")
-                            tooltip: "Сохранить тему в активный профиль"
-                            onClicked: host.profileController.saveScope("themes")
-                        }
-                    }
-
+                    
                     Text {
                         text: "Тема" + (settings.currentThemeModified ? " (Changed)" : "")
                         color: settings.currentThemeModified ? Config.tempWarm : Config.text

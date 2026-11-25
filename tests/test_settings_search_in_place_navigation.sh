@@ -4,13 +4,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONTROLLER="$ROOT/components/settings/SettingsSearchController.qml"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
 NAV="$ROOT/components/settings/SettingsNavigation.qml"
+FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 PAGE_HOST="$ROOT/components/settings/SettingsPageHost.qml"
 GROUP="$ROOT/components/settings/primitives/SettingsGroup.qml"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 fail() { echo "Settings search in-place navigation: FAIL: $*" >&2; exit 1; }
 
 # Search highlights the entire path and leaves the query active while navigating.
-grep -Fq 'root.host.settingsSearchNavigationGroupHasMatches(modelData.id)' "$NAV" || fail 'navigation group matching outline is missing'
+grep -Fq 'searchMatchCount: root.host.settingsSearchNavigationGroupMatchCount(groupId)' "$NAV" || fail 'navigation group search count is not passed to its primitive'
+grep -Fq 'root.searchMatchCount > 0' "$FOLDER" || fail 'navigation group matching outline is missing'
 grep -Fq 'settingsSearchMatched: root.host.settingsSearchPageHasMatches(parent.modelData.id)' "$NAV" || fail 'page matching outline is missing'
 grep -Fq 'settingsSearchMatched: root.host && root.host.settingsSearchSubTabHasMatches(root.host.currentPageId, index)' "$PAGE_HOST" || fail 'subtab matching outline is missing'
 grep -Fq 'root.settingsSearchQuery = String(query === undefined || query === null ? "" : query)' "$CONTROLLER" || fail 'query state is not retained'
@@ -51,7 +53,7 @@ for primitive in SettingsInputField SettingsComboBox SettingsTabBase; do
     grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$ROOT/components/settings/primitives/$primitive.qml" || fail "$primitive does not use the configurable search border width"
 done
 grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$ROOT/components/settings/primitives/SettingsSearchHighlight.qml" || fail 'shared search outline ignores the configurable border width'
-grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$NAV" || fail 'navigation group outlines do not use configurable border width'
+grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$FOLDER" || fail 'navigation group outlines do not use configurable border width'
 
 MOPIDY_ICONS="$ROOT/components/settings/sections/mopidy/SettingsMopidyIconsSection.qml"
 grep -Fq 'property int settingsSearchSubTabIndex: 2' "$MOPIDY_ICONS" || fail 'Mopidy Icons section has no subtab search index'

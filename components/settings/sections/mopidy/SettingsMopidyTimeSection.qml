@@ -86,7 +86,7 @@ Column {
                 width: parent.width; height: 30; spacing: 8
 
                 Text { width: 46; height: 30; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-                SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationX; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "mopidyQueueDurationX"; settingsObject: root.settings; saveOnEdit: true }
+                SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationX; minimum: Config.mopidyQueueDurationAlignment === "left" ? 0 : -2000; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "mopidyQueueDurationX"; settingsObject: root.settings; saveOnEdit: true }
                 Text { width: 46; height: 30; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
                 SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyQueueDurationY"; settingsObject: root.settings; saveOnEdit: true }
             }
@@ -103,6 +103,8 @@ Column {
                     currentIndex: Config.mopidyQueueDurationAlignment === "left" ? 1 : 0
                     onItemChosen: function(index) {
                         Config.mopidyQueueDurationAlignment = index === 1 ? "left" : "right"
+                        if (Config.mopidyQueueDurationAlignment === "left" && Config.mopidyQueueDurationX < 0)
+                            Config.mopidyQueueDurationX = 0
                         settings.save()
                     }
                     Connections {
@@ -112,6 +114,17 @@ Column {
                         }
                     }
                 }
+            }
+
+            Text {
+                width: parent.width
+                text: Config.mopidyQueueDurationAlignment === "left"
+                    ? "X — отступ от левого края панели (0 — у самого края)."
+                    : "X — горизонтальное смещение относительно блока кнопок."
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(9)
+                wrapMode: Text.WordWrap
             }
     }
 
@@ -149,7 +162,7 @@ Column {
         visible: host && host.currentPageId === "mopidy"
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistSeparator", "mopidyTrackRowHeight"] })
+        changeKeys: ({ keys: ["mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistGap", "mopidyTrackArtistSeparator", "mopidyTrackRowHeight"] })
         heading: "Название и исполнитель"
         padding: 8
         contentSpacing: 6
@@ -179,6 +192,30 @@ Column {
                             trackArtistDisplayModeCombo.currentIndex = Config.mopidyTrackArtistDisplayMode === "one-line" ? 1 : 0
                         }
                     }
+                }
+            }
+
+            SettingsRow {
+                visible: Config.mopidyTrackArtistDisplayMode === "two-lines"
+                label: "Отступ между названием и исполнителем"
+                controlSpacing: 8
+                width: parent.width; height: 30; spacing: 8
+
+                SettingsNumberField {
+                    width: 72; height: 30
+                    value: Config.mopidyTrackArtistGap
+                    minimum: 0; maximum: 8; step: 1; wheelStep: 1; decimals: 0
+                    compact: true; fieldWidth: 72; fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config; targetProperty: "mopidyTrackArtistGap"
+                    settingsObject: root.settings; saveOnEdit: true
+                }
+                Text {
+                    text: "px"
+                    color: Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: Config.settingsUiSize(10)
+                    verticalAlignment: Text.AlignVCenter
                 }
             }
 

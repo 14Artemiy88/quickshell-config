@@ -28,8 +28,8 @@ assert.strictEqual(groups.length, 5, 'Settings should keep five top-level naviga
 assert.strictEqual(JSON.stringify(groups.map(item => item.id)), JSON.stringify([
   'appearance', 'modules', 'dashboard', 'launcher', 'general'
 ]), 'top-level group IDs/order are stable');
-assert.strictEqual(tabs.length, 22, 'all 22 settings pages are registered');
-assert.strictEqual(otherPages.length, 20, '20 pages use the shared SettingsPageHost registry');
+assert.strictEqual(tabs.length, 23, 'all 23 settings pages are registered');
+assert.strictEqual(otherPages.length, 21, '21 pages use the shared SettingsPageHost registry');
 
 const groupIds = new Set(groups.map(item => item.id));
 assert.strictEqual(groupIds.size, groups.length, 'navigation group IDs are unique');
@@ -38,7 +38,7 @@ assert.strictEqual(tabIds.size, tabs.length, 'settings page IDs are unique');
 
 const expectedGroupPages = {
   appearance: ['themes', 'settingsWindow'],
-  modules: ['modules', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
+  modules: ['modules', 'time', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
   dashboard: ['dashboard'],
   launcher: ['launcher', 'launcherSearch', 'launcherTabs', 'launcherProjects', 'launcherActions', 'launcherAnimation', 'launcherApplications'],
   general: ['general']
@@ -75,7 +75,7 @@ assert.ok(content.includes('settings-search-page:themes'), 'Themes special page 
 assert.strictEqual(registry.saveScopeForPageId('general', 1), '',
   'General profile/storage subtabs do not expose a scoped save/reset action');
 
-console.log('settings page registry: 5 groups, 22 pages, 20 shared page routes, 65 subtabs: OK');
+console.log('settings page registry: 5 groups, 23 pages, 21 shared page routes, 65 subtabs: OK');
 NODE
 
 echo 'settings page registry catalogue: OK'

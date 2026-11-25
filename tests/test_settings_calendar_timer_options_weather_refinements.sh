@@ -13,18 +13,19 @@ host = read("components/settings/SettingsPageHost.qml")
 save_button = read("components/settings/primitives/SettingsSaveButton.qml")
 registry = read("js/settings/SettingsPageRegistry.js")
 modules = read("components/settings/sections/SettingsModulesSection.qml")
+page_heading = read("components/settings/primitives/SettingsPageHeading.qml")
 assert 'readonly property bool quickSaveProfileAvailable:' in widget
 assert 'profileController.canSaveScope("all")' in widget
 assert 'property string iconText: "\\uf0c7"' in save_button and 'iconText: root.iconText' in save_button
-assert 'tooltip: "Сохранить всё в активный профиль"' in host
-assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in host
-assert 'root.host.profileController.saveScope(root.host.currentPageSaveScope)' in host
-assert 'root.host.profileController.saveAll()' in host
-assert host.index('tooltip: "Сохранить всё в активный профиль"') < host.index('tooltip: "Сбросить текущую вкладку"')
-assert 'onClicked: host.profileController.saveAll()' in modules
-assert 'onClicked: host.profileController.saveScope("modules")' in modules
-assert 'onClicked: host.profileController.saveScope("module", moduleRow.moduleName)' in modules
-assert modules.index('onClicked: host.profileController.saveAll()') < modules.index('actionAvailable: host.profileController.canResetScope("modules")')
+assert 'tooltip: "Сохранить всё в активный профиль"' in page_heading
+assert 'tooltip: "Сохранить изменения этого раздела в активный профиль"' in page_heading
+assert 'root.host.profileController.saveScope(root.resolvedSaveScope)' in page_heading
+assert 'root.host.profileController.saveAll()' in page_heading
+assert page_heading.index('tooltip: "Сохранить всё в активный профиль"') < page_heading.index('tooltip: root.resetTooltip')
+assert 'saveScope: "modules"' in modules
+assert 'onClicked: root.host.profileController.saveAll()' in page_heading
+assert 'onClicked: host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)' in modules
+assert 'showResetButton: true' in modules and 'onResetRequested: modulesSection.settings.resetModules()' in modules
 
 # Calendar always-visible option is stored and participates in runtime visibility/input-mask state.
 config = read("Config.qml")

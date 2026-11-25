@@ -44,44 +44,11 @@ Item {
             width: otherFlick.width - 12
             spacing: 10
 
-            Row {
+            SettingsPageHeading {
                 width: parent.width
-                height: 30
-
-                Text {
-                    width: parent.width
-                        - (root.host && root.host.quickSaveProfileAvailable ? 38 : 0)
-                        - (root.host && root.host.quickSavePageAvailable ? 38 : 0)
-                        - (root.host && root.host.currentPageResetAvailable ? 38 : 0)
-                    text: root.host ? root.host.currentPageTitle : ""
-                    color: Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: Config.settingsUiSize(15)
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                SettingsSaveButton {
-                    actionAvailable: root.host && root.host.quickSaveProfileAvailable
-                    iconText: "󰆔"
-                    tooltip: "Сохранить всё в активный профиль"
-                    onClicked: root.host.profileController.saveAll()
-                }
-
-                SettingsSaveButton {
-                    actionAvailable: root.host && root.host.quickSavePageAvailable
-                    tooltip: "Сохранить изменения этого раздела в активный профиль"
-                    onClicked: root.host.profileController.saveScope(root.host.currentPageSaveScope)
-                }
-
-                SettingsResetButton {
-                    enabled: root.host && root.host.profileController.hasActiveProfile
-                    visible: root.host && root.host.currentPageResetAvailable
-                    actionAvailable: root.host
-                        && root.host.currentPageSaveScope !== ""
-                        && root.host.profileController.canResetScope(root.host.currentPageSaveScope)
-                    tooltip: "Сбросить текущую вкладку"
-                    onClicked: if (root.host) root.host.resetCurrentSettingsPage()
-                }
+                host: root.host
+                showResetButton: root.host && root.host.currentPageResetAvailable
+                onResetRequested: if (root.host) root.host.resetCurrentSettingsPage()
             }
 
             Row {

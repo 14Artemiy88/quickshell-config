@@ -20,8 +20,8 @@ const defaultOrder = registry.defaultNavigationOrder();
 assert.deepStrictEqual(Array.from(defaultOrder.groupOrder), ['appearance','modules','dashboard','launcher','general']);
 assert.deepStrictEqual(Object.keys(defaultOrder.pagesByGroup).sort(), ['appearance','dashboard','general','launcher','modules']);
 const allPages = Object.values(defaultOrder.pagesByGroup).flat();
-assert.strictEqual(allPages.length, 22);
-assert.strictEqual(new Set(allPages).size, 22, 'every stable page appears exactly once in the hierarchical default');
+assert.strictEqual(allPages.length, 23);
+assert.strictEqual(new Set(allPages).size, 23, 'every stable page appears exactly once in the hierarchical default');
 assert.deepStrictEqual(Array.from(defaultOrder.pagesByGroup.dashboard), ['dashboard'], 'Dashboard remains a movable singleton frame');
 assert.deepStrictEqual(Array.from(defaultOrder.pagesByGroup.general), ['general'], 'General remains a movable singleton frame');
 
@@ -34,7 +34,7 @@ assert.deepStrictEqual(Array.from(migrated.pagesByGroup.modules.slice(0, 4)), ['
 assert.deepStrictEqual(Array.from(migrated.pagesByGroup.appearance), ['settingsWindow','themes']);
 assert.deepStrictEqual(Array.from(migrated.pagesByGroup.launcher.slice(0, 2)), ['launcherSearch','launcher']);
 assert.deepStrictEqual(Array.from(registry.flattenNavigationOrder(migrated)), [
-  'settingsWindow','themes','weather','modules','calendar','notifications','timers','player','mopidy','cava','cpuRam','network','volume',
+  'settingsWindow','themes','weather','modules','calendar','notifications','time','timers','player','mopidy','cava','cpuRam','network','volume',
   'dashboard','launcherSearch','launcher','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','general'
 ]);
 
@@ -51,8 +51,8 @@ const malformed = registry.normalizeNavigationOrder({
 assert.deepStrictEqual(Array.from(malformed.groupOrder), ['general','modules','appearance','dashboard','launcher']);
 assert.deepStrictEqual(Array.from(malformed.pagesByGroup.appearance), ['settingsWindow','themes']);
 assert.deepStrictEqual(Array.from(malformed.pagesByGroup.modules.slice(0, 2)), ['weather','calendar']);
-assert.strictEqual(Object.values(malformed.pagesByGroup).flat().length, 22);
-assert.strictEqual(new Set(Object.values(malformed.pagesByGroup).flat()).size, 22);
+assert.strictEqual(Object.values(malformed.pagesByGroup).flat().length, 23);
+assert.strictEqual(new Set(Object.values(malformed.pagesByGroup).flat()).size, 23);
 
 // Exercise the actual QML controller method bodies with a tiny host stub.
 const controller = read('components/settings/SettingsNavigationController.qml');
@@ -91,7 +91,7 @@ assert.strictEqual(saveCount, 1, 'moving a frame persists the hierarchical order
 navState = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
 const movePage = new Function('groupId','id','delta','root','Config','SettingsPageRegistry','DragReorder', body('moveSettingsTabWithinGroup'));
 movePage('modules', 'timers', 1, fakeRoot, config, registry, dragReorder);
-assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['modules','player','timers']);
+assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['modules','time','player']);
 assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.appearance.includes('weather'), false, 'pages cannot move between groups');
 assert.strictEqual(saveCount, 2, 'moving a page persists the page order');
 
@@ -103,7 +103,7 @@ assert.strictEqual(moveGroupTo('general', 0, fakeRoot, config, registry, dragReo
 assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.groupOrder), ['general','appearance','dashboard','modules','launcher']);
 assert.strictEqual(movePageTo('modules', 'notifications', 1, fakeRoot, config, registry, dragReorder), true,
   'drag can move a page to an arbitrary final index within its frame');
-assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['modules','notifications','player'],
+assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['modules','notifications','time'],
   'destination index is the final zero-based position in the page list');
 const exactBeforeInvalid = JSON.stringify(config.settingsNavigationOrder);
 assert.strictEqual(movePageTo('appearance', 'notifications', 0, fakeRoot, config, registry, dragReorder), false,

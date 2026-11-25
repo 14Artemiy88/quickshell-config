@@ -16,18 +16,19 @@ readme = Path(sys.argv[3]).read_text()
 
 required_dashboard = [
     'PanelWindow {',
-    'WlrLayershell.layer: WlrLayer.Overlay',
-    'visible: Settings.loaded && (root.open || root.keepWindowDuringClose)',
+    'WlrLayershell.layer: root.layoutEditMode ? WlrLayer.Top : WlrLayer.Overlay',
+    'visible: Settings.loaded && Settings.dashboard && (root.open || root.keepWindowDuringClose || root.layoutEditMode)',
     'property bool keepWindowDuringClose: false',
     'id: closeWindowTimer',
-    'interval: Config.animationDuration(300, "appearance") + 24',
-    'onTriggered: root.keepWindowDuringClose = false',
+    'interval: DashboardAnimation.transitionDuration(drawer.visibilityStyle, Config.animationDashboardVisibilityDuration) + 24',
+    'root.keepWindowDuringClose = false',
+    'root.visibilityAnimationReady = false',
     'readonly property real targetHeight:',
     'Math.min(600, Math.max(420, cards.implicitHeight + 280))',
     'exclusionMode: ExclusionMode.Ignore',
-    'mask: Region { item: root.open ? fullInputRegion : null }',
-    'focusable: root.open',
-    'WlrLayershell.keyboardFocus: root.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None',
+    'mask: Region { item: root.layoutEditMode ? dashboardEditInputRegion : (root.open ? fullInputRegion : null) }',
+    'focusable: root.open && !root.layoutEditMode',
+    'WlrLayershell.keyboardFocus: root.open && !root.layoutEditMode ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None',
     'sequence: "Esc"',
     'root.clock.time',
     'root.cpuSource.stats.cpu',
@@ -183,11 +184,11 @@ connection_text_end = dash.index('            // Weather keeps the current sampl
 connection_text_block = dash[connection_text_start:connection_text_end]
 assert 'wrapMode: Text.WrapAtWordBoundaryOrAnywhere' in connection_text_block and 'maximumLineCount: 2' in connection_text_block, 'active connection names must wrap at word boundaries or within long unbroken names before eliding'
 assert 'textFormat: Text.PlainText' in connection_text_block, 'connection names must not be interpreted as rich text'
-assert 'visible: Settings.loaded\n' not in dash, 'Dashboard must not keep a fullscreen window visible while closed'
+assert 'visible: Settings.loaded\n' not in dash, 'Dashboard must not keep a fullscreen window visible while closed outside Smart Editing'
 
 # The overview must consume shared models rather than creating parallel polling.
 assert 'Process {' not in dash, 'Dashboard starts its own external polling process'
-assert dash.count('Timer {') == 2 and 'id: closeWindowTimer' in dash and 'id: dashboardCardRemovalTimer' in dash and dash.count('repeat: false') >= 2, 'Dashboard may only have its close-transition and card-removal timers'
+assert dash.count('Timer {') == 3 and 'id: visibilityAnimationReadyTimer' in dash and 'id: closeWindowTimer' in dash and 'id: dashboardCardRemovalTimer' in dash and dash.count('repeat: false') >= 2, 'Dashboard must keep only its geometry-readiness, close-transition and card-removal timers'
 dashboard_code = '\n'.join(line.split('//', 1)[0] for line in dash.splitlines())
 assert 'cpu_stats_once' not in dashboard_code and 'scripts/player' not in dashboard_code and 'scripts/weather' not in dashboard_code, 'Dashboard bypasses an existing shared source'
 

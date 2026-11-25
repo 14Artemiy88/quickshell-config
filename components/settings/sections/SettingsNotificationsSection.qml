@@ -19,7 +19,7 @@ settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator"] })
+        changeKeys: ({ keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection"] })
         heading: "Тайм-ауты"
         padding: 8
         contentSpacing: 6
@@ -118,7 +118,88 @@ settingsSearchSubTabIndex: 0
         }
         Text {
             width: parent.width
-            text: "Полоса показывает оставшееся время автоматического закрытия. При наведении на карточку отсчёт приостанавливается."
+            text: "Индикатор показывает оставшееся время до автоматического закрытия. При наведении на карточку отсчёт приостанавливается."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            label: "Вид индикатора"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+            SettingsComboBox {
+                id: notificationsTimeoutIndicatorStyleCombo
+                width: 140
+                height: 30
+                model: ["Полоса", "Рамка"]
+                currentIndex: Config.notificationsTimeoutIndicatorStyle === "border" ? 1 : 0
+                settingsSearchId: "notifications-timeout-indicator-style"
+                settingsSearchLabel: "Вид индикатора оставшегося времени"
+                settingsSearchKeywords: "уведомления таймер обратный отсчёт полоса рамка периметр border outline style"
+                onItemChosen: index => {
+                    Config.notificationsTimeoutIndicatorStyle = index === 1 ? "border" : "bar"
+                    root.settings.save()
+                }
+            }
+        }
+        Connections {
+            target: Config
+            function onNotificationsTimeoutIndicatorStyleChanged() {
+                notificationsTimeoutIndicatorStyleCombo.currentIndex = Config.notificationsTimeoutIndicatorStyle === "border" ? 1 : 0
+            }
+        }
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            visible: Config.notificationsTimeoutIndicatorStyle === "border"
+            label: "Направление рамки"
+            labelWidth: 220
+            labelElide: Text.ElideRight
+            SettingsComboBox {
+                id: notificationsTimeoutIndicatorDirectionCombo
+                width: 180
+                height: 30
+                model: ["По часовой стрелке", "Против часовой стрелки"]
+                currentIndex: Config.notificationsTimeoutIndicatorDirection === "counterclockwise" ? 1 : 0
+                settingsSearchId: "notifications-timeout-indicator-direction"
+                settingsSearchLabel: "Направление исчезновения рамки уведомления"
+                settingsSearchKeywords: "уведомления таймер рамка направление по часовой против часовой clockwise counterclockwise reverse обратное периметр"
+                onItemChosen: index => {
+                    Config.notificationsTimeoutIndicatorDirection = index === 1 ? "counterclockwise" : "clockwise"
+                    root.settings.save()
+                }
+            }
+        }
+        Connections {
+            target: Config
+            function onNotificationsTimeoutIndicatorDirectionChanged() {
+                notificationsTimeoutIndicatorDirectionCombo.currentIndex = Config.notificationsTimeoutIndicatorDirection === "counterclockwise" ? 1 : 0
+            }
+        }
+        SettingsColorField {
+            width: parent.width
+            label: "Цвет индикатора"
+            value: String(Config.notificationsTimeoutIndicatorColor || Config.accent)
+            targetObject: Config
+            targetProperty: "notificationsTimeoutIndicatorColor"
+            settingsObject: root.settings
+            saveOnEdit: true
+            allowAlpha: false
+            allowTransparent: false
+            labelWidth: 220
+            fieldWidth: 120
+            settingsSearchId: "notifications-timeout-indicator-color"
+            settingsSearchLabel: "Цвет полосы или рамки оставшегося времени уведомления"
+            settingsSearchKeywords: "уведомления countdown таймер цвет полоска рамка progress accent"
+        }
+        Text {
+            width: parent.width
+            text: "Пустое значение использует основной цвет темы. Цвет применяется и к полосе, и к рамке. Для рамки можно выбрать направление обхода."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(9)
@@ -437,10 +518,26 @@ settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsBodyFontSize", "notificationsBodyColor"] })
+        changeKeys: ({ keys: ["notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor"] })
         heading: "Основной текст уведомления"
         padding: 8
         contentSpacing: 6
+        SettingsFontField {
+            width: parent.width
+            height: 30
+            label: "Шрифт основного текста"
+            value: Config.notificationsBodyFont
+            targetObject: Config
+            targetProperty: "notificationsBodyFont"
+            settingsObject: root.settings
+            saveOnEdit: true
+            labelWidth: 220
+            fieldWidth: 150
+            placeholderText: "Системный шрифт"
+            settingsSearchId: "notifications-body-font"
+            settingsSearchLabel: "Шрифт основного текста уведомления"
+            settingsSearchKeywords: "основной текст тело сообщения уведомления шрифт family body font"
+        }
         SettingsRow {
             width: parent.width; height: 30
             label: "Размер текста"; labelWidth: 220; labelElide: Text.ElideRight

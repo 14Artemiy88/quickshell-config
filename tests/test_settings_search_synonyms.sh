@@ -23,7 +23,7 @@ const Registry = require(process.argv[2]);
 const Search = require(process.argv[3]);
 const controller = fs.readFileSync(process.argv[4], 'utf8');
 const pages = Registry.pageMetadataCatalog();
-assert.strictEqual(pages.length, 22, 'all pages participate in synonym search');
+assert.strictEqual(pages.length, 23, 'all pages participate in synonym search');
 
 const entries = [];
 let subtabCount = 0;

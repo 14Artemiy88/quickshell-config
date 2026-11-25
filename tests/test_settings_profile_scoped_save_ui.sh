@@ -9,6 +9,7 @@ widget = (root / 'components/settings/SettingsWidget.qml').read_text(encoding='u
 controller = (root / 'components/settings/SettingsProfileController.qml').read_text(encoding='utf-8')
 modules = (root / 'components/settings/sections/SettingsModulesSection.qml').read_text(encoding='utf-8')
 host = (root / 'components/settings/SettingsPageHost.qml').read_text(encoding='utf-8')
+heading = (root / 'components/settings/primitives/SettingsPageHeading.qml').read_text(encoding='utf-8')
 colors = (root / 'components/settings/sections/SettingsColorsSection.qml').read_text(encoding='utf-8')
 settings = (root / 'Settings.qml').read_text(encoding='utf-8')
 profiles = (root / 'js/settings/SettingsProfiles.js').read_text(encoding='utf-8')
@@ -24,17 +25,17 @@ assert 'function saveScope(scope, argument)' in controller
 assert 'function saveAll()' in controller
 assert 'function loadProfile(name)' in controller
 assert 'function deleteProfile(name)' in controller
-assert 'root.host.profileController.saveScope(root.host.currentPageSaveScope)' in host
-assert 'Сохранить всё в активный профиль' in host
+assert 'root.host.profileController.saveScope(root.resolvedSaveScope)' in heading
+assert 'Сохранить всё в активный профиль' in heading
 assert 'text: "Всё"' not in widget
-assert 'SettingsSaveButton {' in host and 'iconText: "󰆔"' in host, 'Save All should use the shared compact icon-only save primitive'
-assert 'Сохранить изменения этого раздела в активный профиль' in host
-assert 'host.profileController.saveScope("modules")' in modules
-assert 'host.profileController.saveScope("module", moduleRow.moduleName)' in modules
+assert 'SettingsPageHeading {' in host and 'SettingsSaveButton {' in heading and 'iconText: "󰆔"' in heading, 'all pages should use the shared compact page-heading/save primitive'
+assert 'Сохранить изменения этого раздела в активный профиль' in heading
+assert 'saveScope: "modules"' in modules
+assert 'host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)' in modules
 assert 'host.profileController.saveScope("launcher")' in modules
-assert 'host.profileController.saveScope("themes")' in colors
+assert 'saveScope: "themes"' in colors
 assert 'text: "Всё"' not in colors
-assert 'SettingsSaveButton {' in colors and 'iconText: "󰆔"' in colors, 'Themes Save All should use the shared compact icon-only save primitive'
+assert 'SettingsPageHeading {' in colors, 'Themes should use the shared page heading and save primitive'
 assert 'host.profileController.saveScope("colors", modelData.colors)' in colors
 assert 'function profileSavePathMatches(owner, scope, argument, path)' in profiles
 print('Scoped profile save controls and scope-aware visibility wiring: OK')

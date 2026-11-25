@@ -5,6 +5,16 @@ function apply(Config, o) {
         var allowedVisibilityStyles = ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
         var legacyAnimationStyle = o.animationVisibilityStyle !== undefined ? String(o.animationVisibilityStyle) : ""
         if (allowedVisibilityStyles.indexOf(legacyAnimationStyle) < 0) legacyAnimationStyle = ""
+        var allowedDashboardVisibilityStyles = ["auto", "none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+        if (o.animationDashboardVisibilityStyle !== undefined) {
+            var dashboardVisibilityStyle = String(o.animationDashboardVisibilityStyle)
+            if (allowedDashboardVisibilityStyles.indexOf(dashboardVisibilityStyle) >= 0)
+                Config.animationDashboardVisibilityStyle = dashboardVisibilityStyle
+        }
+        var dashboardVisibilityDuration = Number(o.animationDashboardVisibilityDuration)
+        if (o.animationDashboardVisibilityDuration !== undefined && isFinite(dashboardVisibilityDuration))
+            Config.animationDashboardVisibilityDuration = Math.max(0, Math.min(5000, Math.round(dashboardVisibilityDuration)))
+
         var animationStyleKeys = [
             "animationCalendarVisibilityStyle",
             "animationMopidyVisibilityStyle",

@@ -33,7 +33,7 @@ assert(qml.includes('migrateLegacyNotificationCoordinates'), 'legacy position mi
 const modules = read('components/settings/sections/SettingsModulesSection.qml');
 assert(modules.includes('notificationsGeometryValue(index)') && modules.includes('writeNotificationsGeometry(index, n)'), 'Modules page edits notification X/Y and dimensions through the shared row');
 assert(!modules.includes('Привязка к углу') && !modules.includes('Отступ по горизонтали') && !modules.includes('notificationsPositionCombo'), 'legacy four-corner controls are not duplicated in Modules');
-assert(modules.includes('model: settings.moduleNames.filter(function(name) { return name !== \"dashboard\" })') && modules.includes('modulesSection.writeNotificationsGeometry(index, n)'), 'notification fields share the common module row');
+assert(modules.includes('model: settings.moduleNames') && modules.includes('modulesSection.writeNotificationsGeometry(index, n)'), 'notification fields share the common module row');
 assert(modules.includes('? (index === 2 ? 280 : (index === 3 ? 0 : -10000))') && modules.includes('? (index === 2 ? 600 : (index === 3 ? 10000 : 10000))'), 'notification X/Y and size bounds are preserved in common fields');
 
 console.log('Notifications X/vertical-edge placement, legacy conversion and module-screen placement: OK');

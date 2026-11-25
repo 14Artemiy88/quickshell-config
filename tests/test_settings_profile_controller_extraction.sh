@@ -8,6 +8,7 @@ CONTENT="$ROOT/components/settings/SettingsPageContent.qml"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 MODULES="$ROOT/components/settings/sections/SettingsModulesSection.qml"
 COLORS="$ROOT/components/settings/sections/SettingsColorsSection.qml"
+HEADING="$ROOT/components/settings/primitives/SettingsPageHeading.qml"
 PROFILES="$ROOT/js/settings/SettingsProfiles.js"
 SETTINGS="$ROOT/Settings.qml"
 
@@ -26,16 +27,17 @@ grep -Fq 'function deleteProfile(name)' "$CONTROLLER"
 grep -Fq 'onProfilesRevisionChanged() { root.refreshProfileModel() }' "$CONTROLLER"
 ! grep -Fq 'id: profileModel' "$WIDGET"
 ! grep -Fq 'function refreshProfileModel()' "$WIDGET"
-grep -Fq 'root.host.profileController.saveAll()' "$HOST"
-grep -Fq 'root.host.profileController.saveScope(root.host.currentPageSaveScope)' "$HOST"
+grep -Fq 'SettingsPageHeading {' "$HOST"
+grep -Fq 'root.host.profileController.saveAll()' "$HEADING"
+grep -Fq 'root.host.profileController.saveScope(root.resolvedSaveScope)' "$HEADING"
 grep -Fq 'model: host && host.profileController ? host.profileController.profileModel : []' "$WINDOW"
 grep -Fq 'host.profileController.indexOfProfile' "$WINDOW"
 grep -Fq 'host.profileController.saveProfile(text)' "$WINDOW"
 grep -Fq 'host.profileController.loadProfile(profileCombo.currentText)' "$WINDOW"
 grep -Fq 'host.profileController.deleteProfile(deletingName)' "$WINDOW"
-grep -Fq 'host.profileController.saveScope("modules")' "$MODULES"
-grep -Fq 'host.profileController.saveScope("module", moduleRow.moduleName)' "$MODULES"
-grep -Fq 'host.profileController.saveScope("themes")' "$COLORS"
+grep -Fq 'saveScope: "modules"' "$MODULES"
+grep -Fq 'host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)' "$MODULES"
+grep -Fq 'saveScope: "themes"' "$COLORS"
 grep -Fq 'host.profileController.saveScope("colors", modelData.colors)' "$COLORS"
 # Sparse-profile storage and mutation remain in the existing backend; the UI
 # controller is only an adapter and must not duplicate the persistence format.
@@ -45,7 +47,7 @@ grep -Fq 'return SettingsProfiles.saveProfile(root, name)' "$SETTINGS"
 grep -Fq 'function saveProfileScope(name, scope, argument)' "$SETTINGS"
 grep -Fq 'return SettingsProfiles.saveProfileScope(root, name, scope, argument)' "$SETTINGS"
 
-node - "$WIDGET" "$CONTROLLER" "$HOST" "$WINDOW" "$MODULES" "$COLORS" <<'NODE'
+node - "$WIDGET" "$CONTROLLER" "$HOST" "$WINDOW" "$MODULES" "$COLORS" "$HEADING" <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 for (const file of process.argv.slice(2)) {

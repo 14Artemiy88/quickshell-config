@@ -4,6 +4,7 @@ import Quickshell
 import "../../.."
 import "../primitives"
 import "../../../js/NotificationsGeometry.js" as NotificationsGeometry
+import "../../../js/dashboard/DashboardCards.js" as DashboardCards
 
 Item {
     id: modulesSection
@@ -42,6 +43,71 @@ Item {
         if (index < 2 && (!isFinite(value) || value < -10000))
             return launcherDefaultCoordinate(index)
         return isFinite(value) ? value : 0
+    }
+
+
+    function geometryTooltip(moduleName, index) {
+        if (moduleName === "notifications" && index === 1)
+            return "Y — отступ от " + (Config.notificationsVerticalAnchor === "bottom" ? "нижнего" : "верхнего") + " края"
+        if (moduleName === "notifications" && index === 2) return "Ширина окна уведомлений (280–600)"
+        if (moduleName === "notifications" && index === 3) return "Максимальная высота окна; 0 — автоматически по содержимому"
+        if (moduleName === "dashboard" && index === 0) return "X — отступ слева; по умолчанию панель справа"
+        if (moduleName === "dashboard" && index === 1) return "Y — отступ сверху; по умолчанию по центру"
+        if (moduleName === "dashboard" && index === 2) return "Ширина панели Dashboard"
+        if (moduleName === "dashboard" && index === 3) return "Высота панели; 0 — автоматически"
+        return ["X", "Y", "Width", "Height"][index]
+    }
+
+    function dashboardTargetScreen() {
+        var wanted = String((settings.moduleMonitors || {}).dashboard || Config.monitorName || "").trim().toLowerCase()
+        for (var i = 0; i < Quickshell.screens.length; ++i) {
+            var screen = Quickshell.screens[i]
+            if (!screen) continue
+            if (wanted && (String(screen.name || "").trim().toLowerCase() === wanted
+                    || String(screen.model || "").trim().toLowerCase() === wanted
+                    || String(screen).trim().toLowerCase() === wanted))
+                return screen
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    }
+
+    function dashboardGeometryValue(index) {
+        var geometry = settings.geometry || ({})
+        var a = geometry.dashboard || [-999999, -999999, 560, 0]
+        var screen = dashboardTargetScreen()
+        var screenWidth = screen ? Number(screen.width) : 1920
+        var screenHeight = screen ? Number(screen.height) : 1080
+        var width = Math.max(1, Math.min(Math.max(1, screenWidth - 32),
+            Number(a[2]) > 0 ? Number(a[2]) : DashboardCards.drawerWidthForScreenWidth(screenWidth)))
+        var height = Number(a[3]) > 0 ? Math.max(280, Math.min(screenHeight - 32, Number(a[3]))) : 0
+        if (index === 0) return Number(a[0]) > -10000 ? Number(a[0]) : Math.max(16, screenWidth - width - 16)
+        if (index === 1) return Number(a[1]) > -10000 ? Number(a[1]) : (height > 0 ? Math.max(0, (screenHeight - height) / 2) : Math.max(16, (screenHeight - 600) / 2))
+        if (index === 2) return Math.round(width)
+        return Math.round(height)
+    }
+
+    function writeDashboardGeometry(index, value) {
+        var next = Number(value)
+        if (!isFinite(next)) return
+        var current = dashboardGeometryValue(index)
+        var geometry = Object.assign({}, settings.geometry || ({}))
+        var a = (geometry.dashboard || [-999999, -999999, 560, 0]).slice()
+        if (index < 2) {
+            next = Math.round(next)
+            if (next === current) return
+            a[index] = next
+        } else if (index === 2) {
+            next = Math.max(320, Math.min(1600, Math.round(next / 10) * 10))
+            if (next === current) return
+            a[2] = next
+        } else {
+            next = Math.max(0, Math.min(10000, Math.round(next)))
+            if (next === current) return
+            a[3] = next
+        }
+        geometry.dashboard = a
+        settings.geometry = geometry
+        settings.save()
     }
 
     function notificationsTargetScreen() {
@@ -154,46 +220,23 @@ Item {
             width: modulesFlick.width - 12
             spacing: 10
 
+            SettingsPageHeading {
+                width: parent.width
+                host: modulesSection.host
+                saveScope: "modules"
+                showResetButton: true
+                resetTooltip: "Сбросить модули"
+                onResetRequested: modulesSection.settings.resetModules()
+            }
+
     SettingsGroup {
         visible: host && host.currentPageId === "modules"
         width: parent.width
-        showFrame: false
+        showFrame: true
         padding: 8
         contentSpacing: 6
 
-                    Row {
-                        width: parent.width
-                        height: 32
-                        Text {
-                            width: parent.width
-                                - (host && host.profileController.canSaveScope("all") ? 38 : 0)
-                                - (host && host.profileController.canSaveScope("modules") ? 38 : 0)
-                                - (host && host.profileController.canSaveScope("modules") ? 38 : 0)
-                            text: "Модули и их расположение"
-                            color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(15)
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        SettingsSaveButton {
-                            actionAvailable: host && host.profileController.canSaveScope("all")
-                            iconText: "󰆔"
-                            tooltip: "Сохранить всё в активный профиль"
-                            onClicked: host.profileController.saveAll()
-                        }
-                        SettingsSaveButton {
-                            actionAvailable: host && host.profileController.canSaveScope("modules")
-                            tooltip: "Сохранить расположение и параметры модулей"
-                            onClicked: host.profileController.saveScope("modules")
-                        }
-                        SettingsResetButton {
-                            enabled: host && host.profileController.hasActiveProfile
-                            actionAvailable: host.profileController.canResetScope("modules")
-                            tooltip: "Сбросить модули"
-                            onClicked: settings.resetModules()
-                        }
-                    }
-
+                    
                     Row {
                         width: parent.width
                         height: 18
@@ -223,7 +266,7 @@ Item {
                     }
 
                     Repeater {
-                        model: settings.moduleNames.filter(function(name) { return name !== "dashboard" })
+                        model: settings.moduleNames
 
                         delegate: Row {
                             id: moduleRow
@@ -253,13 +296,17 @@ Item {
                                     height: 30
                                     value: moduleRow.moduleName === "notifications"
                                         ? modulesSection.notificationsGeometryValue(index)
-                                        : Number(settings.geometry[moduleRow.moduleName][index])
+                                        : (moduleRow.moduleName === "dashboard"
+                                            ? modulesSection.dashboardGeometryValue(index)
+                                            : Number(settings.geometry[moduleRow.moduleName][index]))
                                     minimum: moduleRow.moduleName === "notifications"
                                         ? (index === 2 ? 280 : (index === 3 ? 0 : -10000))
-                                        : (index >= 2 ? 1 : -Infinity)
+                                        : (moduleRow.moduleName === "dashboard"
+                                            ? (index === 2 ? 320 : (index === 3 ? 0 : -10000))
+                                            : (index >= 2 ? 1 : -Infinity))
                                     maximum: moduleRow.moduleName === "notifications"
                                         ? (index === 2 ? 600 : (index === 3 ? 10000 : 10000))
-                                        : Infinity
+                                        : (moduleRow.moduleName === "dashboard" ? (index >= 2 ? 1600 : 10000) : Infinity)
                                     step: 1
                                     wheelStep: 1
                                     compact: true
@@ -274,6 +321,10 @@ Item {
                                             modulesSection.writeNotificationsGeometry(index, n)
                                             return
                                         }
+                                        if (moduleRow.moduleName === "dashboard") {
+                                            modulesSection.writeDashboardGeometry(index, n)
+                                            return
+                                        }
                                         var g = Object.assign({}, settings.geometry)
                                         var a = (g[moduleRow.moduleName] || [0, 0, 100, 100]).slice()
                                         a[index] = n
@@ -282,13 +333,7 @@ Item {
                                         settings.save()
                                     }
                                     ToolTip.visible: geometryField.pointerHovered
-                                    ToolTip.text: moduleRow.moduleName === "notifications" && index === 1
-                                        ? "Y — отступ от " + (Config.notificationsVerticalAnchor === "bottom" ? "нижнего" : "верхнего") + " края"
-                                        : (moduleRow.moduleName === "notifications" && index === 2
-                                            ? "Ширина окна уведомлений (280–600)"
-                                            : (moduleRow.moduleName === "notifications" && index === 3
-                                                ? "Максимальная высота окна; 0 — автоматически по содержимому"
-                                                : ["X", "Y", "Width", "Height"][index]))
+                                    ToolTip.text: modulesSection.geometryTooltip(moduleRow.moduleName, index)
                                     ToolTip.delay: 500
                                 }
                             }
@@ -346,80 +391,24 @@ Item {
                             }
 
                             SettingsSaveButton {
-                                actionAvailable: host && host.profileController.canSaveScope("module", moduleRow.moduleName)
+                                actionAvailable: host && host.profileController.canSaveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)
                                 tooltip: "Сохранить настройки модуля: " + (settings.moduleLabels[moduleRow.moduleName] || moduleRow.moduleName)
-                                onClicked: host.profileController.saveScope("module", moduleRow.moduleName)
+                                onClicked: host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)
                             }
                             SettingsResetButton {
                                 width: 30
                                 height: 30
                                 enabled: host && host.profileController.hasActiveProfile
-                                actionAvailable: host.profileController.canResetScope("module", moduleRow.moduleName)
+                                actionAvailable: host.profileController.canResetScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)
                                 tooltip: "Сбросить настройки модуля"
-                                onClicked: settings.resetModule(moduleRow.moduleName)
+                                onClicked: moduleRow.moduleName === "dashboard" ? settings.resetDashboardModule() : settings.resetModule(moduleRow.moduleName)
                             }
                         }
                     }
 
-                    // Dashboard is a full-screen overlay rather than a movable module
-                    // window. It gets a dedicated enable row without fake geometry or
-                    // the frame/background/blur controls used by regular modules.
-                    Row {
-                        id: dashboardModuleRow
-                        width: parent.width
-                        height: 30
-                        spacing: 6
-
-                        SettingsCheckBox {
-                            id: dashboardEnabledBox
-                            width: 96
-                            height: 30
-                            text: "Dashboard"
-                            checked: settings.dashboard
-                            settingsSearchId: "module.dashboard.enabled"
-                            settingsSearchLabel: "Dashboard · Включён"
-                            settingsSearchKeywords: "обзор обзорная панель включение выключение"
-                            onToggled: {
-                                settings.dashboard = checked
-                                settings.save()
-                            }
-                            Connections {
-                                target: settings
-                                function onDashboardChanged() {
-                                    dashboardEnabledBox.checked = settings.dashboard
-                                }
-                            }
-                        }
-
-                        Text {
-                            width: Math.max(0, dashboardModuleRow.width - 96 - 60 - 18)
-                            height: 30
-                            text: "Полноэкранная обзорная панель"
-                            color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: Config.settingsUiSize(10)
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                        }
-
-                        SettingsSaveButton {
-                            actionAvailable: host && host.profileController.canSaveScope("dashboardModule")
-                            tooltip: "Сохранить настройки модуля: Dashboard"
-                            onClicked: host.profileController.saveScope("dashboardModule")
-                        }
-                        SettingsResetButton {
-                            width: 30
-                            height: 30
-                            enabled: host && host.profileController.hasActiveProfile
-                            actionAvailable: host.profileController.canResetScope("dashboardModule")
-                            tooltip: "Сбросить настройки Dashboard"
-                            onClicked: settings.resetDashboardModule()
-                        }
-                    }
-
-                    // The launcher is still a separate window, but its position now uses
-                    // the shared module geometry and Smart Editing workflow. Detailed
-                    // appearance/tab/project settings remain on the dedicated Launcher tab.
+                    // Launcher remains a separate, non-repeater row because its size and
+                    // appearance have dedicated controls. Its position participates in
+                    // the shared Smart Editing workflow alongside Dashboard and widgets.
                     Row {
                         id: launcherModuleRow
                         width: parent.width
@@ -622,7 +611,7 @@ Item {
                         Text {
                             width: parent.width - 280
                             height: 46
-                            text: "Скрывает окно настроек и позволяет перетаскивать видимые блоки мышью.\nEsc — завершить редактирование и вернуться сюда."
+                            text: "Скрывает окно настроек и позволяет перетаскивать видимые модули, включая Dashboard, мышью.\nEsc — завершить редактирование и вернуться сюда."
                             color: Config.textMuted
                             font.family: Config.settingsFont
                             font.pixelSize: Config.settingsUiSize(10)

@@ -34,10 +34,10 @@ assert 'label: "Фон окна лаунчера"' in launcher
 assert 'onClicked: settings.resetLauncherSettings()' in modules
 # Notifications now participates in the same module row as all other modules.
 assert 'var moduleNames = ["time"' in meta and '"networks","notifications","dashboard"]' in meta
-assert 'model: settings.moduleNames.filter(function(name) { return name !== \"dashboard\" })' in modules
+assert 'model: settings.moduleNames' in modules
 assert 'moduleRow.moduleName === "notifications"' in modules
 assert 'modulesSection.writeNotificationsGeometry(index, n)' in modules
-repeater_end = modules.index('model: settings.moduleNames.filter(function(name) { return name !== \"dashboard\" })')
+repeater_end = modules.index('model: settings.moduleNames')
 launcher_row = modules.index('id: launcherModuleRow')
 assert launcher_row > repeater_end
 # Keep the dedicated Launcher tab and its original three subtabs intact.

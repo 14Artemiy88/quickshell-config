@@ -123,7 +123,7 @@ function fallbackNavigationOrder(source) {
     var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
     var defaults = {
         appearance: ["themes", "settingsWindow"],
-        modules: ["modules", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
         general: ["general"]
@@ -511,6 +511,7 @@ function modulePathMatches(path, moduleName) {
 
     var prefixes = {
         calendar: ["calendar", "animationCalendar"],
+        time: ["clock"],
         cpu: ["cpu", "animationCpu"],
         cpuGraph: ["cpuGraph"],
         topAppsCpu: ["topApps"], topAppsRam: ["topApps"],
@@ -543,10 +544,15 @@ function profileSavePathMatches(owner, scope, argument, path) {
         return false
     }
     if (scope === "module") return modulePathMatches(path, argument)
-    if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
+    if (scope === "clock") return startsWithAny(root, ["clock"])
+    if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes" || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityDuration"
     if (scope === "dashboardModule") {
-        if (root === "modules") return path.length > 1 && child === "dashboard"
-        return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
+        if (root === "modules" || root === "moduleFrames" || root === "moduleBackgrounds"
+                || root === "moduleBlurEnabled" || root === "moduleMonitors" || root === "geometry")
+            return path.length > 1 && child === "dashboard"
+        return root === "dashboardVisibleCards" || root === "dashboardCardOrder"
+            || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
+            || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityDuration"
     }
     if (scope === "launcher") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
@@ -613,9 +619,9 @@ function expandRootReplacementPaths(owner, scope, argument, path, current, outpu
         return
     }
     if (mapRoots.indexOf(root) >= 0) {
-        if (scope === "dashboardModule" && root === "modules" && currentMap
+        if (scope === "dashboardModule" && currentMap
                 && Object.prototype.hasOwnProperty.call(currentMap, "dashboard")) {
-            output.push(["modules", "dashboard"])
+            output.push([root, "dashboard"])
             return
         }
         if (scope === "module" && currentMap && Object.prototype.hasOwnProperty.call(currentMap, String(argument))) {

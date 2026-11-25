@@ -292,7 +292,7 @@ settingsSearchSubTabIndex: 2
 settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["volumeMainIconWidth", "volumeShowStreams", "volumeStreamLabelFontSize", "volumeStreamTrackOffsetY", "volumeTrackRadius"] })
+        changeKeys: ({ keys: ["volumeMainIconWidth", "volumeShowStreams", "volumeStreamLabelFont", "volumeStreamLabelFontSize", "volumeStreamTrackOffsetY", "volumeTrackRadius"] })
         padding: 8
         contentSpacing: 6
 
@@ -374,29 +374,53 @@ settingsSearchSubTabIndex: 3
             animationDuration: Config.animationDuration(180, "appearance")
             animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")
 
-            SettingsRow {
+            Column {
                 id: volumeStreamLabelFontContent
-                label: "Размер текста потоков"
-                labelWidth: 210
                 width: parent.width
-                height: 30
-                spacing: 8
-                
-                SettingsNumberField {
-                    id: volumeStreamLabelFontField
-                    label: ""
-                    value: Config.volumeStreamLabelFontSize
-                    minimum: 8
-                    maximum: 32
-                    step: 1
-                    wheelStep: 1
-                    labelWidth: 0
-                    fieldWidth: 100
-                    compact: true
+                spacing: 6
+
+                SettingsFontField {
+                    width: parent.width
+                    height: 30
+                    label: "Шрифт названий потоков"
+                    labelWidth: 210
+                    fieldWidth: 150
+                    fieldFontSize: 11
+                    value: Config.volumeStreamLabelFont
+                    placeholderText: "Системный шрифт"
+                    settingsSearchId: "volume-stream-font"
+                    settingsSearchLabel: "Шрифт названий потоков"
+                    settingsSearchKeywords: "громкость аудио приложения потоки семейство типографика"
                     targetObject: Config
-                    targetProperty: "volumeStreamLabelFontSize"
+                    targetProperty: "volumeStreamLabelFont"
                     settingsObject: settings
                     saveOnEdit: true
+                }
+
+                SettingsRow {
+                    id: volumeStreamLabelFontSizeContent
+                    label: "Размер текста потоков"
+                    labelWidth: 210
+                    width: parent.width
+                    height: 30
+                    spacing: 8
+
+                    SettingsNumberField {
+                        id: volumeStreamLabelFontField
+                        label: ""
+                        value: Config.volumeStreamLabelFontSize
+                        minimum: 8
+                        maximum: 32
+                        step: 1
+                        wheelStep: 1
+                        labelWidth: 0
+                        fieldWidth: 100
+                        compact: true
+                        targetObject: Config
+                        targetProperty: "volumeStreamLabelFontSize"
+                        settingsObject: settings
+                        saveOnEdit: true
+                    }
                 }
             }
         }

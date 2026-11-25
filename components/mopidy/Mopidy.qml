@@ -75,6 +75,13 @@ Primitives.ModuleFrame {
     property bool browseBusy: false
     property string browseUri: ""
     property string browseTitle: "Музыка"
+    property string browseFolderCover: ""
+    // Album-folder previews are requested lazily by visible delegates through one serialized worker.
+    property var browseEntryCoverStates: ({})
+    property var browseEntryCoverQueue: []
+    property string browseEntryCoverActiveUri: ""
+    property int browseEntryCoverGeneration: 0
+    property int browseEntryCoverActiveGeneration: -1
     property var browseStack: []
     property var browseEntries: []
     property bool playlistsBusy: false
@@ -723,14 +730,93 @@ Primitives.ModuleFrame {
         })
     }
 
+    function browseEntryCoverPath(uri) {
+        var entry = root.browseEntryCoverStates[String(uri || "")]
+        return entry && entry.status === "ready" ? String(entry.path || "") : ""
+    }
+
+    function requestBrowseEntryCover(uri) {
+        var key = String(uri || "")
+        if (!key || Config.mopidyBrowseCoverMode === "off" || root.browseBusy) return
+        var current = root.browseEntryCoverStates[key]
+        if (current && ["queued", "loading", "ready", "missing"].indexOf(current.status) >= 0) return
+        var states = Object.assign({}, root.browseEntryCoverStates)
+        states[key] = { status: "queued", path: "" }
+        root.browseEntryCoverStates = states
+        root.browseEntryCoverQueue = root.browseEntryCoverQueue.concat([{ uri: key, generation: root.browseEntryCoverGeneration }])
+        root.pumpBrowseEntryCoverQueue()
+    }
+
+    function releaseBrowseEntryCover(uri) {
+        var key = String(uri || "")
+        if (!key) return
+        var state = root.browseEntryCoverStates[key]
+        if (!state || state.status !== "queued") return
+        var remaining = []
+        for (var i = 0; i < root.browseEntryCoverQueue.length; ++i) {
+            var item = root.browseEntryCoverQueue[i]
+            if (item.uri !== key || item.generation !== root.browseEntryCoverGeneration)
+                remaining.push(item)
+        }
+        root.browseEntryCoverQueue = remaining
+        var states = Object.assign({}, root.browseEntryCoverStates)
+        delete states[key]
+        root.browseEntryCoverStates = states
+    }
+
+    function resetBrowseEntryCoverQueue() {
+        root.browseEntryCoverGeneration += 1
+        root.browseEntryCoverQueue = []
+        root.browseEntryCoverStates = ({})
+        // An already running request is allowed to finish into the shared disk cache.
+        // Its old generation prevents the result from being attached to the new folder.
+    }
+
+    function pumpBrowseEntryCoverQueue() {
+        if (browseEntryCoverProcess.running || root.browseEntryCoverActiveUri) return
+        while (root.browseEntryCoverQueue.length > 0) {
+            var queue = root.browseEntryCoverQueue.slice(0)
+            var next = queue.shift()
+            root.browseEntryCoverQueue = queue
+            if (!next || next.generation !== root.browseEntryCoverGeneration) continue
+            var state = root.browseEntryCoverStates[next.uri]
+            if (!state || state.status !== "queued") continue
+            var states = Object.assign({}, root.browseEntryCoverStates)
+            states[next.uri] = { status: "loading", path: "" }
+            root.browseEntryCoverStates = states
+            root.browseEntryCoverActiveUri = next.uri
+            root.browseEntryCoverActiveGeneration = next.generation
+            browseEntryCoverProcess.command = [Quickshell.shellDir + "/scripts/mopidy/library.sh", "folder_cover", next.uri]
+            browseEntryCoverProcess.running = true
+            return
+        }
+    }
+
+    function finishBrowseEntryCover(uri, generation, exitCode, output) {
+        var key = String(uri || "")
+        var resultPath = String(output || "").trim()
+        if (generation === root.browseEntryCoverGeneration && key) {
+            var states = Object.assign({}, root.browseEntryCoverStates)
+            states[key] = exitCode === 0 && resultPath
+                ? { status: "ready", path: resultPath }
+                : { status: "missing", path: "" }
+            root.browseEntryCoverStates = states
+        }
+        root.browseEntryCoverActiveUri = ""
+        root.browseEntryCoverActiveGeneration = -1
+        Qt.callLater(function() { root.pumpBrowseEntryCoverQueue() })
+    }
+
     function openBrowseRoot() {
         if (root.reorderInteractionLocked) return
+        root.resetBrowseEntryCoverQueue()
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         root.libraryMode = "browse"
         root.browseStack = []
         root.browseUri = ""
         root.browseTitle = "Музыка"
+        root.browseFolderCover = ""
         root.browseEntries = []
         root.browseBusy = true
         browseProcess.command = [Quickshell.shellDir + "/scripts/mopidy/library.sh", "browse"]
@@ -739,11 +825,13 @@ Primitives.ModuleFrame {
 
     function browseUriAt(uri, title) {
         if (root.reorderInteractionLocked || root.browseBusy) return
+        root.resetBrowseEntryCoverQueue()
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         root.browseStack = root.browseStack.concat([{uri: root.browseUri, title: root.browseTitle}])
         root.browseUri = String(uri || "")
         root.browseTitle = String(title || "Музыка")
+        root.browseFolderCover = ""
         root.browseBusy = true
         browseProcess.command = [Quickshell.shellDir + "/scripts/mopidy/library.sh", "browse", root.browseUri]
         browseProcess.running = true
@@ -751,6 +839,7 @@ Primitives.ModuleFrame {
 
     function browseBack() {
         if (root.reorderInteractionLocked || root.browseBusy || root.browseStack.length === 0) return
+        root.resetBrowseEntryCoverQueue()
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
         var stack = root.browseStack.slice(0)
@@ -758,6 +847,7 @@ Primitives.ModuleFrame {
         root.browseStack = stack
         root.browseUri = String(previous.uri || "")
         root.browseTitle = String(previous.title || "Музыка")
+        root.browseFolderCover = ""
         root.browseBusy = true
         browseProcess.command = root.browseUri
             ? [Quickshell.shellDir + "/scripts/mopidy/library.sh", "browse", root.browseUri]
@@ -767,6 +857,7 @@ Primitives.ModuleFrame {
 
     function closeLibraryBrowserToQueue() {
         if (root.reorderInteractionLocked) return
+        root.resetBrowseEntryCoverQueue()
         root.searchOpen = false
         root.fileFilterOpen = false
         root.fileFilterQuery = ""
@@ -776,6 +867,7 @@ Primitives.ModuleFrame {
         root.browseStack = []
         root.browseUri = ""
         root.browseTitle = "Музыка"
+        root.browseFolderCover = ""
         root.playlists = []
         root.playlistItems = []
         root.playlistUri = ""
@@ -1407,6 +1499,23 @@ Primitives.ModuleFrame {
     }
 
     Process {
+        id: browseEntryCoverProcess
+        command: []
+        running: false
+        stdout: StdioCollector { id: browseEntryCoverStdout }
+        stderr: StdioCollector {}
+        onExited: function(exitCode) {
+            browseEntryCoverProcess.running = false
+            root.finishBrowseEntryCover(
+                root.browseEntryCoverActiveUri,
+                root.browseEntryCoverActiveGeneration,
+                exitCode,
+                browseEntryCoverStdout.text
+            )
+        }
+    }
+
+    Process {
         id: browseProcess
         command: []
         running: false
@@ -1415,8 +1524,10 @@ Primitives.ModuleFrame {
                 try {
                     var data = JSON.parse(this.text.trim() || "{}")
                     root.browseEntries = data.ok === false ? [] : (Array.isArray(data.entries) ? data.entries : [])
+                    root.browseFolderCover = data.ok === false ? "" : String(data.folderCover || "")
                 } catch (e) {
                     root.browseEntries = []
+                    root.browseFolderCover = ""
                 }
                 root.browseBusy = false
                 browseProcess.running = false
@@ -1804,6 +1915,7 @@ Primitives.ModuleFrame {
                 root.browseStack = []
                 root.browseUri = ""
                 root.browseTitle = "Музыка"
+                root.browseFolderCover = ""
                 if (searchProcess.running) searchProcess.running = false
                 if (browseProcess.running) browseProcess.running = false
                 if (addTrackProcess.running) addTrackProcess.running = false

@@ -3,8 +3,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SECTIONS="$ROOT/components/settings/sections"
 
-# Most settings sections use the shared framed group primitive. Modules and Themes
-# are intentional exceptions: the user requested an unframed layout for those tabs.
+# Settings pages use the shared framed group primitive, including Modules and Themes.
 for file in \
     SettingsGeneralSection.qml \
     SettingsTimersSection.qml \
@@ -17,7 +16,9 @@ for file in \
     SettingsNetworkSection.qml \
     SettingsVolumeSection.qml \
     SettingsWindowSection.qml \
-    SettingsLauncherSection.qml
+    SettingsLauncherSection.qml \
+    SettingsModulesSection.qml \
+    SettingsColorsSection.qml
 do
     path="$SECTIONS/$file"
     test -f "$path"
@@ -29,19 +30,6 @@ do
         echo "Missing visible frame configuration in $file" >&2
         exit 1
     }
-done
-
-for file in SettingsModulesSection.qml SettingsColorsSection.qml; do
-    path="$SECTIONS/$file"
-    test -f "$path"
-    grep -Fq 'SettingsGroup {' "$path" || {
-        echo "Missing shared layout group in intentional frameless tab $file" >&2
-        exit 1
-    }
-    if grep -Fq 'showFrame: true' "$path"; then
-        echo "Unexpected frame in intentionally frameless tab $file" >&2
-        exit 1
-    fi
 done
 
 for file in \

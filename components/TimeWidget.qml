@@ -16,12 +16,12 @@ Primitives.ModuleFrame {
         spacing: 8
         Text {
             id: timeText
-            width: Math.min(205, Math.max(165, parent.width - 112))
+            width: Math.min(205, Math.max(165, Config.clockFontSize * 3.68))
             anchors.verticalCenter: parent.verticalCenter
             text: root.clock.time
             color: Config.text
-            font.family: Config.ledFont
-            font.pixelSize: 55
+            font.family: Config.clockFont || Config.ledFont
+            font.pixelSize: Config.clockFontSize
         }
         Column {
             width: Math.max(0, parent.width - timeText.width - parent.spacing)
@@ -34,8 +34,8 @@ Primitives.ModuleFrame {
                 rightPadding: 6
                 text: root.clock.dateText
                 color: Config.text
-                font.family: Config.ledFont
-                font.pixelSize: 25
+                font.family: Config.clockFont || Config.ledFont
+                font.pixelSize: Config.clockDateFontSize
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -51,8 +51,8 @@ Primitives.ModuleFrame {
                 rightPadding: 6
                 text: root.clock.weekday
                 color: Config.text
-                font.family: "Ubuntu"
-                font.pixelSize: 15
+                font.family: Config.clockWeekdayFont || "Ubuntu"
+                font.pixelSize: Config.clockWeekdayFontSize
             }
         }
     }

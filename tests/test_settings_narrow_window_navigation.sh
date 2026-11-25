@@ -4,15 +4,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
 NAV="$ROOT/components/settings/SettingsNavigation.qml"
 TAB="$ROOT/components/settings/primitives/SettingsTabBase.qml"
+FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 
-node - "$WIDGET" "$NAV" "$TAB" "$WINDOW" <<'NODE'
+node - "$WIDGET" "$NAV" "$TAB" "$WINDOW" "$FOLDER" <<'NODE'
 const fs = require('fs');
 const assert = require('assert');
-const [widgetPath, navPath, tabPath, windowPath] = process.argv.slice(2);
+const [widgetPath, navPath, tabPath, windowPath, folderPath] = process.argv.slice(2);
 const widget = fs.readFileSync(widgetPath, 'utf8');
 const nav = fs.readFileSync(navPath, 'utf8');
 const tab = fs.readFileSync(tabPath, 'utf8');
+const folder = fs.readFileSync(folderPath, 'utf8');
 const windowQml = fs.readFileSync(windowPath, 'utf8');
 
 assert(widget.includes('spacing: width < 440 ? 10 : 16'),
@@ -25,11 +27,11 @@ assert(nav.includes('readonly property bool compactNavigation: width < 148'),
   'navigation switches to compact typography and spacing below the sidebar breakpoint');
 assert(nav.includes('mainSettingsTabs.width - (root.compactNavigation ? 4 : 10)'),
   'compact mode reclaims outer sidebar width for navigation labels');
-assert(nav.includes('root.compactNavigation ? 5 : 8'),
+assert(folder.includes('root.compactNavigation ? 5 : 8'),
   'group header margins tighten in compact mode');
-assert(nav.includes('navigationGroupLabelText.implicitWidth > navigationGroupLabelText.width + 1'),
+assert(folder.includes('groupLabelText.implicitWidth > groupLabelText.width + 1'),
   'clipped group names expose their full label in a tooltip');
-assert(nav.includes('navigationGroupActivePageText.implicitWidth > navigationGroupActivePageText.width + 1'),
+assert(folder.includes('currentPageHint.implicitWidth > currentPageHint.width + 1'),
   'clipped active-page hints expose their full label in a tooltip');
 assert(tab.includes('tabLabel.implicitWidth > tabLabel.width + 1'),
   'clipped page labels expose their full label in a tooltip');
@@ -45,8 +47,8 @@ assert(windowQml.includes('Math.max(42, parent.width - settingsNavigationPageOrd
   'page label editor has a controlled compact minimum width');
 assert(windowQml.includes('minimum: fieldIndex === 2 ? 320'),
   'responsive navigation is tested against the existing 320px minimum Settings window width');
-assert((nav.match(/height: root\.compactNavigation \? 36 : 34/g) || []).length === 2,
-  'compact page rows and their page-tab controls use the same height');
+assert((nav.match(/height: root\.compactNavigation \? 36 : 34/g) || []).length === 3,
+  'standalone tabs, folder page rows and their page-tab controls use the same height');
 
 function layout(bodyWidth) {
   const navigationWidth = Math.min(176, Math.max(112, Math.round(bodyWidth * 0.33)));

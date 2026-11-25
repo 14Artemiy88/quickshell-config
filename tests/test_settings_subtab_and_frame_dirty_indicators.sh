@@ -12,17 +12,15 @@ const widget = fs.readFileSync(path.join(base, 'components/settings/SettingsWidg
 const navigation = fs.readFileSync(path.join(base, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const group = fs.readFileSync(path.join(base, 'components/settings/primitives/SettingsGroup.qml'), 'utf8');
 const pageHost = fs.readFileSync(path.join(base, 'components/settings/SettingsPageHost.qml'), 'utf8');
+const pageHeading = fs.readFileSync(path.join(base, 'components/settings/primitives/SettingsPageHeading.qml'), 'utf8');
 const main = fs.readFileSync(path.join(base, 'components/settings/SettingsWidget.qml'), 'utf8');
 // QML rejects duplicate methods on a single Item at load time.
 assert.strictEqual((navigation.match(/^\s*function settingsSubTabChangeSpec\(/gm) || []).length, 1, 'navigation controller has exactly one settingsSubTabChangeSpec method');
 assert.strictEqual((navigation.match(/^\s*function settingsSubTabHasChanges\(/gm) || []).length, 1, 'navigation controller has exactly one settingsSubTabHasChanges method');
 assert(widget.includes('function settingsSubTabHasChanges(pageId, sub) { return settingsNavigationController.settingsSubTabHasChanges(pageId, sub) }'), 'SettingsWidget preserves its host API as a delegate');
 
-const saveFiles = [
-  pageHost,
-  fs.readFileSync(path.join(base, 'components/settings/sections/SettingsModulesSection.qml'), 'utf8'),
-  fs.readFileSync(path.join(base, 'components/settings/sections/SettingsColorsSection.qml'), 'utf8'),
-];
+const modulesPage = fs.readFileSync(path.join(base, 'components/settings/sections/SettingsModulesSection.qml'), 'utf8');
+const themesPage = fs.readFileSync(path.join(base, 'components/settings/sections/SettingsColorsSection.qml'), 'utf8');
 
 const hs = settingsQml.indexOf('    function hasResetChanges(scope, argument) {');
 const he = settingsQml.indexOf('\n    function activeProfileData()', hs);
@@ -103,12 +101,12 @@ for (const [file, heading] of [
 }
 
 // All Save All buttons are compact and icon-only; single-save buttons retain their floppy icon.
-for (const file of saveFiles) {
-  assert(!file.includes('text: "Всё"'), 'Save All no longer renders the word Всё');
-  assert(file.includes('iconText: "󰆔"'), 'Save All keeps the paired-diskette glyph');
-}
+assert(!pageHeading.includes('text: "Всё"'), 'Save All no longer renders the word Всё');
+assert(pageHeading.includes('iconText: "󰆔"'), 'Save All keeps the paired-diskette glyph in the shared heading');
+assert(modulesPage.includes('SettingsPageHeading {') && themesPage.includes('SettingsPageHeading {'), 'Modules and Themes use the common page heading');
 assert(pageHost.includes('modified: root.host && root.host.settingsSubTabHasChanges(root.host.currentPageId, index)'), 'subtabs bind modified state to their precise scope');
-assert(pageHost.includes('SettingsSaveButton {\n                    actionAvailable: root.host && root.host.quickSaveProfileAvailable'), 'Save All uses the shared action primitive in the common header');
+assert(pageHost.includes('SettingsPageHeading {'), 'common pages use the reusable page heading');
+assert(pageHeading.includes('SettingsSaveButton {') && pageHeading.includes('actionAvailable: root.canSaveAll'), 'Save All uses the shared action primitive in the common heading');
 const savePrimitive = fs.readFileSync(path.join(base, 'components/settings/primitives/SettingsSaveButton.qml'), 'utf8');
 assert(savePrimitive.includes('width: 30\n    height: 30'), 'shared Save action keeps the compact icon-button dimensions');
 

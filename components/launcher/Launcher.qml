@@ -15,6 +15,7 @@ import "../../js/launcher/LauncherSearchScoring.js" as LauncherSearchScoring
 import "../../js/launcher/LauncherKeyboardLayout.js" as LauncherKeyboardLayout
 import "../../js/launcher/LauncherEmojiPicker.js" as LauncherEmojiPicker
 import "../../js/launcher/LauncherWallpaperPicker.js" as LauncherWallpaperPicker
+import "../../js/launcher/LauncherSelection.js" as LauncherSelection
 import "../../js/launcher/LauncherSchemePicker.js" as LauncherSchemePicker
 import "../../js/launcher/LauncherSchemeVariantPicker.js" as LauncherSchemeVariantPicker
 import "../../js/launcher/LauncherDynamicScheme.js" as LauncherDynamicScheme
@@ -7667,10 +7668,7 @@ PanelWindow {
 
             if (appList.count > 0) {
                 appList.currentIndex =
-                    Math.min(
-                        appList.currentIndex + 1,
-                        appList.count - 1
-                    )
+                    LauncherSelection.moveLinearIndex(appList.currentIndex, 1, appList.count)
 
                 appList.positionViewAtIndex(
                     appList.currentIndex,
@@ -7684,10 +7682,7 @@ PanelWindow {
 
             if (runList.count > 0) {
                 runList.currentIndex =
-                    Math.min(
-                        runList.currentIndex + 1,
-                        runList.count - 1
-                    )
+                    LauncherSelection.moveLinearIndex(runList.currentIndex, 1, runList.count)
 
                 runList.positionViewAtIndex(
                     runList.currentIndex,
@@ -7709,7 +7704,7 @@ PanelWindow {
 
             if (networkList.count > 0) {
                 networkList.currentIndex =
-                    Math.min(networkList.currentIndex + 1, networkList.count - 1)
+                    LauncherSelection.moveLinearIndex(networkList.currentIndex, 1, networkList.count)
                 networkList.positionViewAtIndex(networkList.currentIndex, ListView.Contain)
             }
 
@@ -7719,7 +7714,7 @@ PanelWindow {
 
             if (nixList.count > 0) {
                 nixList.currentIndex =
-                    Math.min(nixList.currentIndex + 1, nixList.count - 1)
+                    LauncherSelection.moveLinearIndex(nixList.currentIndex, 1, nixList.count)
                 nixList.positionViewAtIndex(nixList.currentIndex, ListView.Contain)
             }
 
@@ -7729,7 +7724,7 @@ PanelWindow {
 
             if (passList.count > 0) {
                 passList.currentIndex =
-                    Math.min(passList.currentIndex + 1, passList.count - 1)
+                    LauncherSelection.moveLinearIndex(passList.currentIndex, 1, passList.count)
                 passList.positionViewAtIndex(passList.currentIndex, ListView.Contain)
             }
 
@@ -7739,10 +7734,7 @@ PanelWindow {
 
             if (clipboardList.count > 0) {
                 clipboardList.currentIndex =
-                    Math.min(
-                        clipboardList.currentIndex + 1,
-                        clipboardList.count - 1
-                    )
+                    LauncherSelection.moveLinearIndex(clipboardList.currentIndex, 1, clipboardList.count)
 
                 clipboardList.positionViewAtIndex(
                     clipboardList.currentIndex,
@@ -7761,7 +7753,7 @@ PanelWindow {
         case root.modeProjects:
 
             if (projectList.count > 0) {
-                projectList.currentIndex = Math.min(projectList.currentIndex + 1, projectList.count - 1)
+                projectList.currentIndex = LauncherSelection.moveLinearIndex(projectList.currentIndex, 1, projectList.count)
                 projectList.positionViewAtIndex(projectList.currentIndex, ListView.Contain)
             }
 
@@ -7771,10 +7763,7 @@ PanelWindow {
 
             if (powerList.count > 0) {
                 powerList.currentIndex =
-                    Math.min(
-                        powerList.currentIndex + 1,
-                        powerList.count - 1
-                    )
+                    LauncherSelection.moveLinearIndex(powerList.currentIndex, 1, powerList.count)
 
                 powerList.positionViewAtIndex(
                     powerList.currentIndex,
@@ -7799,10 +7788,7 @@ PanelWindow {
 
             if (appList.count > 0) {
                 appList.currentIndex =
-                    Math.max(
-                        appList.currentIndex - 1,
-                        0
-                    )
+                    LauncherSelection.moveLinearIndex(appList.currentIndex, -1, appList.count)
 
                 appList.positionViewAtIndex(
                     appList.currentIndex,
@@ -7816,10 +7802,7 @@ PanelWindow {
 
             if (runList.count > 0) {
                 runList.currentIndex =
-                    Math.max(
-                        runList.currentIndex - 1,
-                        0
-                    )
+                    LauncherSelection.moveLinearIndex(runList.currentIndex, -1, runList.count)
 
                 runList.positionViewAtIndex(
                     runList.currentIndex,
@@ -7841,7 +7824,7 @@ PanelWindow {
 
             if (networkList.count > 0) {
                 networkList.currentIndex =
-                    Math.max(networkList.currentIndex - 1, 0)
+                    LauncherSelection.moveLinearIndex(networkList.currentIndex, -1, networkList.count)
                 networkList.positionViewAtIndex(
                     networkList.currentIndex,
                     ListView.Contain
@@ -7854,7 +7837,7 @@ PanelWindow {
 
             if (nixList.count > 0) {
                 nixList.currentIndex =
-                    Math.max(nixList.currentIndex - 1, 0)
+                    LauncherSelection.moveLinearIndex(nixList.currentIndex, -1, nixList.count)
                 nixList.positionViewAtIndex(
                     nixList.currentIndex,
                     ListView.Contain
@@ -7867,7 +7850,7 @@ PanelWindow {
 
             if (passList.count > 0) {
                 passList.currentIndex =
-                    Math.max(passList.currentIndex - 1, 0)
+                    LauncherSelection.moveLinearIndex(passList.currentIndex, -1, passList.count)
                 passList.positionViewAtIndex(
                     passList.currentIndex,
                     ListView.Contain
@@ -7880,10 +7863,7 @@ PanelWindow {
 
             if (clipboardList.count > 0) {
                 clipboardList.currentIndex =
-                    Math.max(
-                        clipboardList.currentIndex - 1,
-                        0
-                    )
+                    LauncherSelection.moveLinearIndex(clipboardList.currentIndex, -1, clipboardList.count)
 
                 clipboardList.positionViewAtIndex(
                     clipboardList.currentIndex,
@@ -7902,7 +7882,7 @@ PanelWindow {
         case root.modeProjects:
 
             if (projectList.count > 0) {
-                projectList.currentIndex = Math.max(projectList.currentIndex - 1, 0)
+                projectList.currentIndex = LauncherSelection.moveLinearIndex(projectList.currentIndex, -1, projectList.count)
                 projectList.positionViewAtIndex(projectList.currentIndex, ListView.Contain)
             }
 
@@ -7912,10 +7892,7 @@ PanelWindow {
 
             if (powerList.count > 0) {
                 powerList.currentIndex =
-                    Math.max(
-                        powerList.currentIndex - 1,
-                        0
-                    )
+                    LauncherSelection.moveLinearIndex(powerList.currentIndex, -1, powerList.count)
 
                 powerList.positionViewAtIndex(
                     powerList.currentIndex,
@@ -7938,15 +7915,9 @@ PanelWindow {
         if (count <= 0)
             return
 
-        let index = windowList.currentIndex
-
-        if (index < 0)
-            index = direction > 0 ? 0 : count - 1
-        else
-            index = Math.max(
-                0,
-                Math.min(count - 1, index + direction)
-            )
+        let index = LauncherSelection.moveLinearIndex(
+            windowList.currentIndex, direction, count
+        )
 
         windowList.currentIndex = index
         windowList.positionViewAtIndex(

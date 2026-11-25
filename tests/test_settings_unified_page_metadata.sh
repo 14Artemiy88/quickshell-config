@@ -20,23 +20,23 @@ const catalog = Array.from(registry.pageMetadataCatalog());
 const publicTabs = Array.from(registry.tabDefinitions());
 const groups = Array.from(registry.navigationGroupDefinitions());
 const routeDefinitions = Array.from(registry.otherPageDefinitions());
-assert.strictEqual(catalog.length, 22, 'unified catalog contains all 22 navigable pages');
-assert.strictEqual(publicTabs.length, 22, 'legacy tabDefinitions API exposes the unified catalog');
+assert.strictEqual(catalog.length, 23, 'unified catalog contains all 23 navigable pages');
+assert.strictEqual(publicTabs.length, 23, 'legacy tabDefinitions API exposes the unified catalog');
 assert.deepStrictEqual(catalog.map(page => page.id), publicTabs.map(page => page.id));
 const defaultOrder = catalog.map(page => page.id);
 const groupedOrder = Array.from(registry.groupedTabOrder(defaultOrder));
 const navigationItems = Array.from(registry.navigationItemsForOrder(groupedOrder, {}));
-assert.strictEqual(navigationItems.length, 22, 'sidebar model retains every navigable page');
-assert.strictEqual(new Set(navigationItems.map(item => item.id)).size, 22, 'sidebar rows have unique click targets');
+assert.strictEqual(navigationItems.length, 23, 'sidebar model retains every navigable page');
+assert.strictEqual(new Set(navigationItems.map(item => item.id)).size, 23, 'sidebar rows have unique click targets');
 assert(navigationItems.every(item => item.id && item.label && item.groupId), 'every sidebar row has an ID, label and group');
 const navigationCounts = Object.fromEntries(groups.map(group => [group.id, navigationItems.filter(item => item.groupId === group.id).length]));
-assert.deepStrictEqual(navigationCounts, { appearance: 2, modules: 11, dashboard: 1, launcher: 7, general: 1 },
+assert.deepStrictEqual(navigationCounts, { appearance: 2, modules: 12, dashboard: 1, launcher: 7, general: 1 },
   'sidebar pages populate all five collapsible navigation groups');
 const customRows = Array.from(registry.navigationItemsForOrder(['themes', 'modules', 'not-a-page'], { themes: 'My appearance' }));
 assert.deepStrictEqual(customRows.map(item => [item.id, item.label, item.groupId]), [
   ['themes', 'My appearance', 'appearance'], ['modules', 'Включение модулей', 'modules']
 ], 'custom labels survive and unknown page IDs are excluded from clickable rows');
-assert.strictEqual(new Set(catalog.map(page => page.id)).size, 22, 'page IDs stay unique');
+assert.strictEqual(new Set(catalog.map(page => page.id)).size, 23, 'page IDs stay unique');
 assert.strictEqual(groups.length, 5, 'navigation groups remain complete');
 assert(groups.every(group => typeof group.description === 'string' && group.description.length > 0),
   'all navigation groups have central descriptions');
@@ -74,7 +74,7 @@ for (const page of catalog) {
     subTabCount++;
   }
 }
-assert.strictEqual(routeById.size, 20, 'all 20 shared content pages remain registered');
+assert.strictEqual(routeById.size, 21, 'all 21 shared content pages remain registered');
 assert.strictEqual(subTabCount, 65, 'all existing 65 subtabs are included in the unified catalog');
 assert.strictEqual(new Set(allSubTabIds).size, allSubTabIds.length, 'subtab metadata IDs are unique');
 assert.strictEqual(registry.pageMetadataForId('not-a-page'), null, 'unknown pages return no metadata');
@@ -94,7 +94,7 @@ assert(search.includes('pageMetadata.subTabs[subTabIndex]'), 'search index resol
 assert(search.includes('subTabLabel, targetKey'), 'search includes the central subtab label');
 assert(!search.includes('activePageId, pageDescription, subTabLabel'), 'page descriptions do not create broad duplicate control matches');
 assert(search.includes('subTabMetadata.id'), 'search results retain the stable subtab metadata ID');
-console.log('settings unified metadata: 5 groups, 22 pages, 20 routes, 65 subtabs: OK');
+console.log('settings unified metadata: 5 groups, 23 pages, 21 routes, 65 subtabs: OK');
 NODE
 
 echo 'settings unified page metadata: OK'

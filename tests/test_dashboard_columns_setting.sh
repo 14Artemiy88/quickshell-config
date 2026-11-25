@@ -88,7 +88,7 @@ resets.resetDashboardSettings(resetOwner, legacyReset);
 assert.strictEqual(legacyReset.dashboardColumnsMode, 'auto', 'legacy profile reset restores auto mode');
 
 const settingsQml = read('Settings.qml');
-assert.match(settingsQml, /hasAny\(\["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"\]\)/,
+assert.match(settingsQml, /hasAny\(\["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes", "animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"\]\)/,
   'Dashboard dirty/reset indicators include column mode');
 console.log('Dashboard columns preference, responsive layout, profiles, reset and settings search: OK');
 NODE

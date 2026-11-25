@@ -64,6 +64,91 @@ Column {
     }
 
     SettingsGroup {
+        id: dashboardAnimationSettingsGroup
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        heading: "Появление Dashboard"
+        changeKeys: ({ keys: ["animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"] })
+        padding: 8
+        contentSpacing: 6
+
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            label: "Направление"
+            labelWidth: 190
+
+            SettingsComboBox {
+                id: dashboardAnimationStyleCombo
+                width: 190
+                height: 30
+                property var values: ["auto", "none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
+                model: ["Автоматически от края", "Без анимации", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
+                currentIndex: Math.max(0, values.indexOf(Config.animationDashboardVisibilityStyle))
+                settingsSearchable: true
+                settingsSearchId: "dashboard-visibility-animation-direction"
+                settingsSearchLabel: "Направление появления и исчезновения Dashboard"
+                settingsSearchKeywords: "анимация появления закрытия выезд выезжать сторона слева справа сверху снизу автоматически ближайший край dashboard animation direction slide fade none"
+                onItemChosen: function(index) {
+                    if (index < 0 || index >= values.length) return
+                    Config.animationDashboardVisibilityStyle = values[index]
+                    root.settings.save()
+                }
+                Connections {
+                    target: Config
+                    function onAnimationDashboardVisibilityStyleChanged() {
+                        dashboardAnimationStyleCombo.currentIndex = Math.max(0, dashboardAnimationStyleCombo.values.indexOf(Config.animationDashboardVisibilityStyle))
+                    }
+                }
+            }
+        }
+
+        Text {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: Config.animationDashboardVisibilityStyle === "auto"
+                ? "Автоматический режим выбирает ближайший горизонтальный край монитора: Dashboard справа появляется справа, а Dashboard слева — слева. При закрытии он уходит в ту же сторону."
+                : "Выбранное направление используется и при появлении, и при исчезновении Dashboard."
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(9)
+        }
+
+        SettingsRow {
+            width: parent.width
+            height: 30
+            spacing: 8
+            label: "Длительность (мс)"
+            labelWidth: 190
+
+            SettingsNumberField {
+                width: 100
+                height: 30
+                value: Config.animationDashboardVisibilityDuration
+                minimum: 0
+                maximum: 5000
+                step: 50
+                wheelStep: 50
+                decimals: 0
+                compact: true
+                fieldWidth: 100
+                fieldFontSize: 11
+                inputMethodHints: Qt.ImhDigitsOnly
+                targetObject: Config
+                targetProperty: "animationDashboardVisibilityDuration"
+                settingsObject: root.settings
+                saveOnEdit: true
+                settingsSearchable: true
+                settingsSearchId: "dashboard-visibility-animation-duration"
+                settingsSearchLabel: "Длительность анимации Dashboard"
+                settingsSearchKeywords: "время скорость продолжительность миллисекунды ms duration animation dashboard"
+            }
+        }
+    }
+
+    SettingsGroup {
         id: dashboardCardsSettingsGroup
         width: parent.width
         showFrame: true

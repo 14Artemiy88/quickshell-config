@@ -53,7 +53,7 @@ assert 'appDelegate.itemData.kind === "dashboardAction"' in launcher[launcher.in
 assert 'function onDashboardRequested() { if (Settings.dashboard) shell.dashboardVisible = true }' in shell
 assert 'open: Settings.dashboard && shell.dashboardVisible' in shell
 assert 'target: launcherLoader.status === Loader.Ready ? launcherLoader.item : null' in shell
-assert 'visible: Settings.loaded && (root.open || root.keepWindowDuringClose)' in dash
+assert 'visible: Settings.loaded && Settings.dashboard && (root.open || root.keepWindowDuringClose || root.layoutEditMode)' in dash
 assert 'onOpenChanged:' in dash and 'closeWindowTimer.restart()' in dash
 assert 'height: targetHeight' in dash and 'Math.min(600, Math.max(420, cards.implicitHeight + 280))' in dash
 assert 'Math.max(1, parent.width - 32)' in dash

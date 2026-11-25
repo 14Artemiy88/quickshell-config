@@ -16,13 +16,15 @@ card_end = source.index('readonly property bool hasNotificationImage:', card_sta
 leading = source[card_start:card_end]
 assert 'root.notificationHasImagePath(notification)' in leading
 assert 'root.notificationIsMessenger(notification)' in leading
+assert 'imageDataLooksLikeLeadingIcon' in leading
 assert 'imageSource.length > 0' in leading and '!imageLoadFailed' in leading
 assert 'readonly property bool hasLeadingVisual: hasLeadingImage || hasAppIcon' in source
 assert 'visible: card.hasLeadingVisual' in source
 assert 'anchors.leftMargin: card.textColumnLeftMargin' in source
 assert 'hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 3 : root.notificationCardPadding * 2' in source
 # Generic image-paths are promoted independently of the sending application's identity.
-assert 'root.notificationHasImagePath(notification) || root.notificationIsMessenger(notification)' in leading
+assert 'root.notificationHasImagePath(notification)' in leading
+assert 'imageDataLooksLikeLeadingIcon' in leading
 body_image_start = source.index('readonly property bool hasNotificationImage:')
 body_image_end = source.index('function startNotificationEntry()', body_image_start)
 assert '!hasLeadingImage' in source[body_image_start:body_image_end]

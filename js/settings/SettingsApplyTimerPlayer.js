@@ -100,6 +100,13 @@ function apply(Config, o, legacyTimerIconOrder) {
             Config.mopidyShowMoveDownIcon = !!o.mopidyShowMoveButtons
         }
         if (o.mopidyGroupAlbums !== undefined) Config.mopidyGroupAlbums = !!o.mopidyGroupAlbums
+        if (o.mopidyBrowseCoverMode !== undefined) {
+            var browseCoverMode = String(o.mopidyBrowseCoverMode)
+            if (["off", "selected", "all-visible"].indexOf(browseCoverMode) >= 0)
+                Config.mopidyBrowseCoverMode = browseCoverMode
+        }
+        if (o.mopidyBrowseCoverKeepSelectedVisible !== undefined)
+            Config.mopidyBrowseCoverKeepSelectedVisible = !!o.mopidyBrowseCoverKeepSelectedVisible
         if (o.mopidyAlbumFont !== undefined) Config.mopidyAlbumFont = String(o.mopidyAlbumFont)
         if (o.mopidyAlbumFontSize !== undefined) Config.mopidyAlbumFontSize = Math.max(6, Math.min(40, Number(o.mopidyAlbumFontSize) || Config.mopidyAlbumFontSize))
         if (o.mopidyTrackFont !== undefined) Config.mopidyTrackFont = String(o.mopidyTrackFont)
@@ -109,6 +116,7 @@ function apply(Config, o, legacyTimerIconOrder) {
         if (o.mopidyArtistFontSize !== undefined) Config.mopidyArtistFontSize = Math.max(6, Math.min(40, Number(o.mopidyArtistFontSize) || Config.mopidyArtistFontSize))
         if (o.mopidyArtistBold !== undefined) Config.mopidyArtistBold = !!o.mopidyArtistBold
         if (o.mopidyArtistItalic !== undefined) Config.mopidyArtistItalic = !!o.mopidyArtistItalic
+        if (o.mopidyTrackArtistGap !== undefined) Config.mopidyTrackArtistGap = Math.max(0, Math.min(8, Math.round(Number(o.mopidyTrackArtistGap) || 0)))
         if (o.mopidyTrackArtistSeparator !== undefined) Config.mopidyTrackArtistSeparator = String(o.mopidyTrackArtistSeparator)
         if (o.mopidyTrackArtistDisplayMode !== undefined) {
             var trackArtistMode = String(o.mopidyTrackArtistDisplayMode)
@@ -191,6 +199,11 @@ function apply(Config, o, legacyTimerIconOrder) {
             var queueDurationAlignment = String(o.mopidyQueueDurationAlignment)
             if (queueDurationAlignment === "left" || queueDurationAlignment === "right") Config.mopidyQueueDurationAlignment = queueDurationAlignment
         }
+        // The old left-alignment layout required a large negative X because the
+        // text slot remained anchored near the right-side icon cluster. With the
+        // real left anchor, negative legacy offsets should normalize to the edge.
+        if (Config.mopidyQueueDurationAlignment === "left" && Config.mopidyQueueDurationX < 0)
+            Config.mopidyQueueDurationX = 0
         if (o.mopidyShowAlbumRemaining !== undefined) Config.mopidyShowAlbumRemaining = !!o.mopidyShowAlbumRemaining
         if (o.mopidyShowTrackRemaining !== undefined) Config.mopidyShowTrackRemaining = !!o.mopidyShowTrackRemaining
         if (o.mopidyShuffleIcon !== undefined) Config.mopidyShuffleIcon = String(o.mopidyShuffleIcon)

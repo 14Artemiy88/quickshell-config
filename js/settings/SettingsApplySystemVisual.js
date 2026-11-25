@@ -289,6 +289,8 @@ function apply(Config, o) {
                 if (isFinite(vv)) Config[vname] = Math.max(volumeNumberFields[vf][1], Math.min(volumeNumberFields[vf][2], Math.round(vv)))
             }
         }
+        if (o.volumeStreamLabelFont !== undefined) Config.volumeStreamLabelFont = typeof o.volumeStreamLabelFont === "string"
+            ? o.volumeStreamLabelFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
         if (o.volumeShowStreams !== undefined) Config.volumeShowStreams = !!o.volumeShowStreams
         if (o.volumeIcon !== undefined) Config.volumeIcon = String(o.volumeIcon)
         if (o.volumeMutedIcon !== undefined) Config.volumeMutedIcon = String(o.volumeMutedIcon)

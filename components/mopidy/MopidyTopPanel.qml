@@ -3,6 +3,7 @@ import QtQuick.Controls
 import "." as Widgets
 import "../.."
 import "../primitives" as Primitives
+import "../../js/mopidy/QueueDurationGeometry.js" as QueueDurationGeometry
 
 Item {
     id: topPanelWrapper
@@ -129,14 +130,15 @@ Item {
 
             readonly property real topIconStartX: parent.width - totalIconWidth()
 
-            // Keep the outer queue-duration slot fixed and anchored to the icon row.
-            // Morph only an unclipped inner item by a few pixels; the Text retains
-            // its full 60px width and is never masked by an animated viewport.
-            // A subtle scale from the aligned edge gives the same geometric feel as
-            // other MorphGeometry elements without changing layout or icon widths.
+            // Keep one fixed-width slot, but anchor it to the selected edge:
+            // left alignment starts at the panel's true left edge; right alignment
+            // remains immediately before the icon cluster. X is an inset from that
+            // anchor, so no large negative coordinate is needed for left alignment.
             Item {
                 id: queueDurationSlot
-                x: topPanelRow.queueDurationRightEdge - 60
+                x: QueueDurationGeometry.slotX(Config.mopidyQueueDurationAlignment,
+                                               Config.mopidyQueueDurationX,
+                                               topPanelRow.queueDurationRightEdge, width)
                 width: 60
                 height: parent.height
                 visible: topPanelRow.queueDurationTargetVisible || queueDurationMorph.normalizedProgress > 0.001
@@ -158,7 +160,7 @@ Item {
                         id: queueDurationText
                         width: 60
                         height: parent.height
-                        x: Config.mopidyQueueDurationX
+                        x: 0
                         y: Config.mopidyQueueDurationY
                         scale: 0.96 + 0.04 * queueDurationMorph.normalizedProgress
                         transformOrigin: Config.mopidyQueueDurationAlignment === "left" ? Item.Left : Item.Right

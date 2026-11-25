@@ -121,12 +121,14 @@
     }
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
-  "profileOverrides": {},
+  "profileOverrides": {
+    "mopidyQueueDurationX": 0
+  },
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
     "appearance": true,
     "modules": false,
     "launcher": true
   },
-  "settingsLastActivePageId": "weather"
+  "settingsLastActivePageId": "mopidy"
 }

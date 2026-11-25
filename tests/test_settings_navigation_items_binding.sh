@@ -28,8 +28,10 @@ assert(groups.find(group => group.id === 'modules').items.some(item => item.id =
   'Modules folder must contain the CPU/RAM tab');
 assert(view.includes('onClicked: root.host.selectSettingsTab(parent.modelData.id)'),
   'page row click must route to its stable page ID');
-assert(view.includes('root.host.toggleSettingsNavigationGroup(modelData.id)'),
-  'folder click must toggle its collapsed state');
+assert(view.includes('onToggleRequested: root.host.toggleSettingsNavigationGroup(groupId)'),
+  'folder primitive routes its toggle action through the settings host');
+const folder = fs.readFileSync(path.join(root, 'components/settings/primitives/SettingsNavigationFolder.qml'), 'utf8');
+assert(folder.includes('root.toggleRequested()'), 'folder primitive exposes an explicit toggle signal');
 assert(widget.includes('function toggleSettingsNavigationGroup(id)'),
   'settings host must expose the folder toggle');
 assert(widget.includes('function selectSettingsTab(id)'),

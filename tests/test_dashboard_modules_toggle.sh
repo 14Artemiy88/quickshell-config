@@ -28,22 +28,15 @@ const modulesQml = read('components/settings/sections/SettingsModulesSection.qml
 const shell = read('shell.qml');
 const launcher = read('components/launcher/Launcher.qml');
 assert.match(settingsQml, /property bool dashboard: true/);
-assert(modulesQml.includes('model: settings.moduleNames.filter(function(name) { return name !== "dashboard" })'),
-  'regular module geometry editor excludes Dashboard, which is a full-screen overlay');
-const dashboardRowStart = modulesQml.indexOf('id: dashboardModuleRow');
-const dashboardRowEnd = modulesQml.indexOf('id: launcherModuleRow', dashboardRowStart);
-assert(dashboardRowStart >= 0 && dashboardRowEnd > dashboardRowStart, 'Dashboard has its own Modules row');
-const dashboardRow = modulesQml.slice(dashboardRowStart, dashboardRowEnd);
-assert(dashboardRow.includes('text: "Dashboard"') && dashboardRow.includes('checked: settings.dashboard'));
-assert(dashboardRow.includes('settings.dashboard = checked') && dashboardRow.includes('settings.save()'));
-assert(dashboardRow.includes('settingsSearchId: "module.dashboard.enabled"'));
-assert(dashboardRow.includes('saveScope("dashboardModule")'));
-assert(dashboardRow.includes('settings.resetDashboardModule()'));
-assert(dashboardRow.includes('canSaveScope("dashboardModule")'));
-assert(dashboardRow.includes('canResetScope("dashboardModule")'));
-assert(!dashboardRow.includes('SettingsNumberField') && !dashboardRow.includes('moduleFrames')
-  && !dashboardRow.includes('moduleBackgrounds') && !dashboardRow.includes('moduleBlurEnabled'),
-  'Dashboard does not expose fictitious geometry or regular-module surface controls');
+assert(modulesQml.includes('model: settings.moduleNames'),
+  'Dashboard now shares the common module geometry and surface controls');
+assert(modulesQml.includes('modulesSection.dashboardGeometryValue(index)'));
+assert(modulesQml.includes('modulesSection.writeDashboardGeometry(index, n)'));
+assert(modulesQml.includes('settings.moduleFrames[moduleRow.moduleName] !== false'));
+assert(modulesQml.includes('settings.moduleBackgrounds[moduleRow.moduleName] !== false'));
+assert(modulesQml.includes('settings.moduleBlurEnabled[moduleRow.moduleName] === true'));
+assert(modulesQml.includes('saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)'));
+assert(modulesQml.includes('settings.resetDashboardModule()'));
 
 const persistence = loadLibrary('js/settings/SettingsPersistence.js');
 const snapshot = persistence.snapshotObject({
@@ -82,7 +75,7 @@ assert(profiles.profileSavePathMatches({}, 'module', 'dashboard', ['modules', 'd
 assert(profiles.modulePathMatches(['modules', 'dashboard'], 'dashboard'));
 assert(profiles.profileSavePathMatches({}, 'dashboardModule', null, ['modules', 'dashboard']),
   'combined Dashboard row scope includes the enable toggle');
-for (const key of ['dashboardVisibleCards', 'dashboardCardOrder', 'dashboardColumnsMode', 'dashboardCardSizes']) {
+for (const key of ['dashboardVisibleCards', 'dashboardCardOrder', 'dashboardColumnsMode', 'dashboardCardSizes', 'animationDashboardVisibilityStyle', 'animationDashboardVisibilityDuration']) {
   assert(profiles.profileSavePathMatches({}, 'dashboardModule', null, [key]),
     `combined Dashboard row scope includes ${key}`);
 }

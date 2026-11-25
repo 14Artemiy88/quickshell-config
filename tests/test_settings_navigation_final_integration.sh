@@ -36,6 +36,7 @@ const controllerSource = read('components/settings/SettingsNavigationController.
 const widgetSource = read('components/settings/SettingsWidget.qml');
 const searchSource = read('components/settings/SettingsSearchController.qml');
 const navigationSource = read('components/settings/SettingsNavigation.qml');
+const folderSource = read('components/settings/primitives/SettingsNavigationFolder.qml');
 const windowSource = read('components/settings/sections/SettingsWindowSection.qml');
 const defaultOrder = registry.defaultNavigationOrder();
 const Config = {
@@ -113,7 +114,7 @@ assert.strictEqual(saveCount, savesBeforeInvalidFrameMove, 'invalid frame moves 
 assert(host.settingsTabCanMoveWithinGroup('modules', 'weather', -1));
 host.moveSettingsTabWithinGroup('modules', 'weather', -1);
 assert.deepStrictEqual(Array.from(Config.settingsNavigationOrder.pagesByGroup.modules.slice(3, 5)),
-  ['weather', 'mopidy']);
+  ['player', 'weather']);
 const orderBeforeCrossFrame = asPlain(Config.settingsNavigationOrder);
 const savesBeforeCrossFrame = saveCount;
 assert.strictEqual(host.settingsTabCanMoveWithinGroup('appearance', 'weather', -1), false,
@@ -128,13 +129,13 @@ const groups = host.settingsNavigationGroups;
 assert.deepStrictEqual(Array.from(groups, group => group.id),
   ['appearance', 'dashboard', 'modules', 'general', 'launcher']);
 const editorPages = groups.flatMap(group => group.items.map(item => ({ groupId: group.id, id: item.id })));
-assert.strictEqual(editorPages.length, 22);
-assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 22, 'each page occurs exactly once');
+assert.strictEqual(editorPages.length, 23);
+assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 23, 'each page occurs exactly once');
 assert(editorPages.every(item => registry.navigationGroupIdForTabId(item.id) === item.groupId),
   'sidebar/editor never assigns a page to another frame');
-assert.strictEqual(groups.find(group => group.id === 'modules').items[3].id, 'weather',
+assert.strictEqual(groups.find(group => group.id === 'modules').items[4].id, 'weather',
   'the reordered page appears at its saved position in the live group model');
-assert.strictEqual(groups.find(group => group.id === 'modules').items[3].label, 'Прогноз',
+assert.strictEqual(groups.find(group => group.id === 'modules').items[4].label, 'Прогноз',
   'custom page labels survive group/page reordering');
 assert(windowSource.includes('model: host ? host.settingsNavigationGroups : []'),
   'framed editor reads the same group model as the sidebar');
@@ -174,12 +175,12 @@ assert.strictEqual(searchRoot.settingsSearchActiveMatchId, 'topAppsCpuBarColor',
 // 6. The new frame/page controls and keyboard/accessibility paths remain discoverable.
 assert(windowSource.includes('heading: groupData.label') && windowSource.includes('text: String(index + 1)'),
   'framed editor keeps one frame per group and local page numbering');
-assert(navigationSource.includes('Accessible.name') && navigationSource.includes('activeFocus'),
-  'navigation exposes accessible labels and visible focus state');
+assert(folderSource.includes('Accessible.name') && folderSource.includes('activeFocus'),
+  'folder primitive exposes accessible labels and visible focus state');
 assert(widgetSource.includes('function focusAdjacentSettingsNavigationItem(')
   && widgetSource.includes('function focusSettingsNavigationPage('),
   'sidebar maintains keyboard traversal and search-focus routing');
-assert(registry.tabDefinitions().length === 22 && registry.navigationGroupDefinitions().length === 5);
+assert(registry.tabDefinitions().length === 23 && registry.navigationGroupDefinitions().length === 5);
 
 // 7. Registration gate guards the integration and its constituent regression tests exactly once.
 const check = read('CHECK.sh');

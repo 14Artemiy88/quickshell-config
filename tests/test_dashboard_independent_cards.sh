@@ -81,7 +81,7 @@ const navController = read('components/settings/SettingsNavigationController.qml
 assert.match(navController, /dashboard: "dashboard"/);
 assert.match(navController, /case "dashboard": settings\.resetDashboardSettings\(\); break/);
 const settingsQml = read('Settings.qml');
-assert.match(settingsQml, /if \(scope === "dashboard"\)\s+return hasAny\(\["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes"\]\)/);
+assert.match(settingsQml, /if \(scope === "dashboard"\)\s+return hasAny\(\["dashboardVisibleCards", "dashboardCardOrder", "dashboardColumnsMode", "dashboardCardSizes", "animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"\]\)/);
 assert.match(settingsQml, /function resetDashboardSettings\(\)\s*\{\s*SettingsResets\.resetDashboardSettings\(root, Config\)/);
 
 // Persistence includes its own field and profile-scoped saving only touches this field.

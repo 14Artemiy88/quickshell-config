@@ -21,7 +21,7 @@ const registry = loadLibrary('js/settings/SettingsPageRegistry.js');
 const pages = Array.from(registry.pageMetadataCatalog());
 const groups = Array.from(registry.navigationGroupDefinitions());
 const rows = Array.from(registry.navigationItemsForOrder(pages.map(page => page.id), {}));
-assert.strictEqual(pages.length, 22);
+assert.strictEqual(pages.length, 23);
 assert.strictEqual(groups.length, 5);
 assert.strictEqual(rows.length, pages.length);
 assert.strictEqual(new Set(rows.map(row => row.id)).size, pages.length);
@@ -84,6 +84,7 @@ for (const file of [
 
 // Shared Save/Reset primitives must remain connected to page and nested scopes.
 const pageHost = read('components/settings/SettingsPageHost.qml');
+const pageHeading = read('components/settings/primitives/SettingsPageHeading.qml');
 const saveButton = read('components/settings/primitives/SettingsSaveButton.qml');
 const resetButton = read('components/settings/primitives/SettingsResetButton.qml');
 const modulesSection = read('components/settings/sections/SettingsModulesSection.qml');
@@ -91,12 +92,12 @@ const themesSection = read('components/settings/sections/SettingsColorsSection.q
 assert(saveButton.includes('property string iconText: "\\uf0c7"'));
 assert(saveButton.includes('iconText: root.iconText'));
 assert(saveButton.includes('SettingsButton {'));
-assert(pageHost.includes('SettingsSaveButton {') && pageHost.includes('SettingsResetButton {'));
-assert(pageHost.includes('root.host.profileController.saveScope(root.host.currentPageSaveScope)'));
-assert(pageHost.includes('root.host.resetCurrentSettingsPage()'));
-assert(pageHost.includes('profileController.canResetScope(root.host.currentPageSaveScope)'));
+assert(pageHost.includes('SettingsPageHeading {') && pageHeading.includes('SettingsSaveButton {') && pageHeading.includes('SettingsResetButton {'));
+assert(pageHeading.includes('root.host.profileController.saveScope(root.resolvedSaveScope)'));
+assert(pageHost.includes('onResetRequested: if (root.host) root.host.resetCurrentSettingsPage()'));
+assert(pageHeading.includes('root.host.profileController.canResetScope(root.resolvedSaveScope)'));
 assert(resetButton.includes('visible: enabled && actionAvailable'));
-assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'));
+assert(modulesSection.includes('host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)'));
 assert(themesSection.includes('host.profileController.saveScope("colors", modelData.colors)'));
 
 // Navigation-order editor uses a single settingsWindow page-level dirty/save/reset scope.
@@ -107,9 +108,10 @@ assert(navigation.includes('"settingsWindow": [') && navigation.includes('"setti
 // Search counters and match explanations stay consistent between wide and compact navigation.
 const tabBase = read('components/settings/primitives/SettingsTabBase.qml');
 const navigationView = read('components/settings/SettingsNavigation.qml');
+const navigationFolder = read('components/settings/primitives/SettingsNavigationFolder.qml');
 assert(tabBase.includes('Config.settingsUiSize(Config.settingsSearchMatchCountFontSize)'));
 assert(tabBase.includes('ToolTip.text: root.settingsSearchMatched && root.settingsSearchMatchHint.length > 0'));
-assert(navigationView.includes('root.compactNavigation') && navigationView.includes('Math.max(7, Config.settingsSearchMatchCountFontSize - 1)'));
+assert(navigationFolder.includes('root.compactNavigation') && navigationFolder.includes('Math.max(7, Config.settingsSearchMatchCountFontSize - 1)'));
 assert(search.includes('SettingsSearch.explainMatch(entry, root.settingsSearchQuery)'));
 
 // Keep the key regression suites registered exactly once in the release gate.
@@ -132,5 +134,5 @@ for (const name of [
   const matches = check.match(new RegExp(`tests/${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'g')) || [];
   assert.strictEqual(matches.length, 1, `${name} is registered exactly once`);
 }
-console.log('Settings final integration: 5 groups, 22 pages, 65 subtabs, navigation, focus/search, shared Save/Reset, profile/theme ownership and persistence: OK');
+console.log('Settings final integration: 5 groups, 23 pages, 65 subtabs, navigation, focus/search, shared Save/Reset, profile/theme ownership and persistence: OK');
 JS

@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONTROLLER="$ROOT/components/settings/SettingsSearchController.qml"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
 NAV="$ROOT/components/settings/SettingsNavigation.qml"
+FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 PAGE_HOST="$ROOT/components/settings/SettingsPageHost.qml"
 TAB_BASE="$ROOT/components/settings/primitives/SettingsTabBase.qml"
 fail() { echo "Settings search match counts: FAIL: $*" >&2; exit 1; }
@@ -18,9 +19,10 @@ grep -Fq 'settingsSearchMatchCount: root.host.settingsSearchPageMatchCount(paren
 grep -Fq 'settingsSearchMatchCount: root.host' "$PAGE_HOST" || fail 'subtab match count is not bound'
 grep -Fq 'property int settingsSearchMatchCount: 0' "$TAB_BASE" || fail 'shared tab primitive has no match count property'
 grep -Fq 'Config.settingsSearchMatchCountFontSize' "$TAB_BASE" || fail 'shared tab count font does not use configured size'
-grep -Fq 'Config.settingsSearchMatchCountFontSize' "$NAV" || fail 'sidebar count font does not use configured size'
+grep -Fq 'Config.settingsSearchMatchCountFontSize' "$FOLDER" || fail 'sidebar group count font does not use configured size'
 grep -Fq 'root.settingsSearchMatchCount > 0' "$TAB_BASE" || fail 'match count is not conditionally displayed'
-grep -Fq 'root.host.settingsSearchNavigationGroupMatchCount(modelData.id)' "$NAV" || fail 'navigation group count is not rendered'
+grep -Fq 'searchMatchCount: root.host.settingsSearchNavigationGroupMatchCount(groupId)' "$NAV" || fail 'navigation group count is not passed to the folder primitive'
+grep -Fq 'root.searchMatchCount > 0' "$FOLDER" || fail 'navigation folder primitive does not render the count'
 
 node - "$ROOT" <<'NODE'
 const fs = require('fs');

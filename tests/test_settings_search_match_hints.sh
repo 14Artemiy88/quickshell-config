@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 fail() { echo "Settings search match hints: FAIL: $*" >&2; exit 1; }
 CONTROLLER="$ROOT/components/settings/SettingsSearchController.qml"
 WIDGET="$ROOT/components/settings/SettingsNavigation.qml"
+FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 PAGE_HOST="$ROOT/components/settings/SettingsPageHost.qml"
 
 # Match explanations are exposed by controls. Overlay-based controls delegate the
@@ -22,7 +23,8 @@ for primitive in SettingsInputField SettingsComboBox SettingsTabBase; do
     grep -Fq 'ToolTip.text:' "$file" || fail "$primitive does not bind a tooltip text"
 done
 grep -Fq 'ToolTip.text: root.matchHint' "$ROOT/components/settings/primitives/SettingsSearchHighlight.qml" || fail 'shared highlight does not display the explanation text'
-grep -Fq 'root.host.settingsSearchNavigationGroupMatchHint(modelData.id)' "$WIDGET" || fail 'navigation group tooltip does not describe matches'
+grep -Fq 'searchMatchHint: root.host.settingsSearchNavigationGroupMatchHint(groupId)' "$WIDGET" || fail 'navigation group tooltip hint is not passed to the folder primitive'
+grep -Fq 'root.searchMatchHint' "$FOLDER" || fail 'folder primitive does not describe search matches'
 grep -Fq 'root.host.settingsSearchPageMatchHint(parent.modelData.id)' "$WIDGET" || fail 'page tab tooltip does not describe matches'
 grep -Fq 'settingsSearchSubTabMatchHint(root.host.currentPageId, index)' "$PAGE_HOST" || fail 'subtab tooltip does not describe matches'
 grep -Fq 'SettingsSearch.explainMatch(entry, root.settingsSearchQuery)' "$CONTROLLER" || fail 'matched controls do not receive a semantic explanation'

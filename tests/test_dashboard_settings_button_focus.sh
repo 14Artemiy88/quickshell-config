@@ -15,7 +15,7 @@ assert(!button.includes('forceActiveFocus()'), 'pointer clicks do not pin the Se
 assert(button.includes('onActiveFocusChanged:'), 'keyboard focus is still tracked for the icon');
 assert(button.includes('settingsMouse.containsMouse'), 'hover remains a soft preview, separate from keyboard focus');
 const cardStart = qml.indexOf('component InfoCard: Rectangle {');
-const cardEnd = qml.indexOf('\n    }\n}', cardStart);
+const cardEnd = qml.indexOf('\n    // In Smart Editing, the fullscreen Dashboard surface', cardStart);
 const card = qml.slice(cardStart, cardEnd);
 assert(card.includes('HoverHandler {') && card.includes('id: cardHover'), 'passive cards keep a non-clickable hover handler');
 assert(!card.includes('forceActiveFocus()') && !card.includes('cardMouse'), 'pointer interaction does not force focus on a card');

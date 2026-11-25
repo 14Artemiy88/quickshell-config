@@ -23,8 +23,12 @@ const dashboard = read('components/Dashboard.qml');
 
 // The QML drawer has 16 px outer screen inset and 18 px content insets on
 // each side. Check the actual card area, not just an arbitrary helper width.
-assert.match(dashboard, /targetWidth: DashboardCards\.drawerWidthForScreenWidth\(parent\.width\)/);
-assert.match(dashboard, /x: root\.open \? parent\.width - width - 16/);
+assert.match(dashboard, /Number\(configuredGeometry\[2\]\) > 0 \? Number\(configuredGeometry\[2\]\) : DashboardCards\.drawerWidthForScreenWidth\(parent\.width\)/,
+  'automatic width retains the established responsive screen-based drawer size');
+assert.match(dashboard, /readonly property real targetX: Number\(configuredGeometry\[0\]\) > -10000/,
+  'drawer supports the configured X coordinate');
+assert.match(dashboard, /Math\.max\(16, parent\.width - width - 16\)/,
+  'default placement preserves the established 16px right screen inset');
 assert.match(dashboard, /anchors\.margins: 18/);
 const cardAreaForScreen = screenWidth => cards.drawerWidthForScreenWidth(screenWidth) - 36;
 const boundaryCases = [

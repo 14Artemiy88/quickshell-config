@@ -11,6 +11,7 @@ PROFILES="$ROOT/js/settings/SettingsProfiles.js"
 RESETS="$ROOT/js/settings/SettingsResets.js"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 MOPIDY_ICONS="$ROOT/components/settings/sections/mopidy/SettingsMopidyIconsSection.qml"
+NAV_FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 
 # The preference is wired into every visible search outline, not just section frames.
 grep -Fq 'property int settingsSearchHighlightBorderWidth: 2' "$CONFIG" || fail 'Config default is missing'
@@ -32,7 +33,7 @@ for primitive in SettingsInputField SettingsComboBox SettingsTabBase; do
     grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$ROOT/components/settings/primitives/$primitive.qml" || fail "$primitive ignores the configured border width"
 done
 grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$ROOT/components/settings/primitives/SettingsSearchHighlight.qml" || fail 'shared highlight primitive ignores the configured border width'
-grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$ROOT/components/settings/SettingsNavigation.qml" || fail 'navigation group outline ignores the configured border width'
+grep -Fq 'Config.settingsSearchHighlightBorderWidth' "$NAV_FOLDER" || fail 'navigation group outline ignores the configured border width'
 
 # Mopidy's Icons panel is subtab 2. Every icon input must carry searchable metadata,
 # rather than letting the neighbouring size/X/Y number fields stand in for it.

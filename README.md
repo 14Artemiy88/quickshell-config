@@ -8,7 +8,7 @@ Configurable desktop widgets, a dashboard, and a keyboard-driven launcher for **
 
 ### Возможности
 
-- **Виджеты рабочего стола:** часы, CPU/RAM и Top Apps, сетевой трафик и подключения, громкость и аудиопотоки, CAVA, календарь с заметками и метками, текущая погода и прогнозы, таймеры и будильники, Player, Mopidy и собственные уведомления.
+- **Виджеты рабочего стола:** часы с отдельными настройками шрифта и размеров времени, даты и дня недели, CPU/RAM и Top Apps, сетевой трафик и подключения, громкость и аудиопотоки, CAVA, календарь с заметками и метками, текущая погода и прогнозы, таймеры и будильники, Player, Mopidy и собственные уведомления.
 - **Dashboard:** карточки «Сегодня», «Система», «Сеть», «Погода» и «Медиа». Видимость, порядок и размер карточек настраиваются независимо; есть адаптивная одно- и двухколоночная раскладка и встроенный режим редактирования.
 - **Launcher:** приложения, Run, окна, буфер обмена, питание, сеть, пакеты, Pass, проекты и калькулятор. Поддерживаются пользовательские действия, поиск по нескольким источникам, избранные приложения, проекты, палитра команд и каталог эмодзи. В настройках **Настройки → Лаунчер → Действия → Переходы** можно независимо скрывать встроенные команды из палитры `>`; каталог сохранённых пользовательских действий открывается отдельным префиксом `:` и не смешивается с этой палитрой.
 - **Общие настройки:** группы «Внешний вид», «Модули», «Dashboard», «Лаунчер» и «Общие»; вложенные страницы и подразделы можно искать и упорядочивать перетаскиванием.
@@ -111,7 +111,7 @@ MIT — см. [`LICENSE`](LICENSE).
 
 ### Features
 
-- **Desktop widgets:** clock, CPU/RAM and Top Apps, network traffic and connections, audio volume and streams, CAVA, calendar notes and marks, current weather and forecasts, timers and alarms, Player, Mopidy, and desktop notifications.
+- **Desktop widgets:** clock with independent typography controls for time, date, and weekday, CPU/RAM and Top Apps, network traffic and connections, audio volume and streams, CAVA, calendar notes and marks, current weather and forecasts, timers and alarms, Player, Mopidy, and desktop notifications.
 - **Dashboard:** configurable Today, System, Network, Weather, and Media cards with independent visibility, ordering, sizing, responsive columns, and an in-panel editing mode.
 - **Launcher:** applications, Run, windows, clipboard, power, network, packages, Pass, projects, and calculator, plus custom actions and multi-source search. Built-in navigation entries can be independently hidden from the `>` palette. Saved custom actions use the separate `:` prefix (bare `:` lists all complete records), and the palette stays dedicated to built-in navigation.
 - **Settings:** grouped navigation, searchable controls, draggable page ordering, reusable controls, and module-specific pages.

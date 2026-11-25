@@ -31,11 +31,11 @@ const fields = [
   'notificationsImageHeight', 'notificationsBackgroundColor', 'notificationsSummaryFont', 'notificationsSummaryFontSize',
   'notificationsSummaryColor', 'notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor',
   'notificationsAppNameBold', 'notificationsLeadingVisualSize', 'notificationsLeadingVisualRadius', 'notificationsCardPadding',
-  'notificationsBodyFontSize', 'notificationsBodyColor', 'notificationsShowAppIcon', 'notificationsShowBodyImages', 'notificationsShowProgress'
+  'notificationsBodyFont', 'notificationsBodyFontSize', 'notificationsBodyColor', 'notificationsTimeoutIndicatorColor', 'notificationsTimeoutIndicatorStyle', 'notificationsTimeoutIndicatorDirection', 'notificationsShowAppIcon', 'notificationsShowBodyImages', 'notificationsShowProgress'
 ];
 const boolFields = ['notificationsAppNameBold','notificationsShowAppIcon','notificationsShowBodyImages','notificationsShowProgress'];
 const colorFields = ['notificationsBackgroundColor'];
-const stringFields = ['notificationsSummaryFont','notificationsSummaryColor','notificationsAppNameFont','notificationsAppNameColor','notificationsBodyColor'];
+const stringFields = ['notificationsSummaryFont','notificationsSummaryColor','notificationsAppNameFont','notificationsAppNameColor','notificationsBodyFont','notificationsBodyColor','notificationsTimeoutIndicatorColor','notificationsTimeoutIndicatorStyle','notificationsTimeoutIndicatorDirection'];
 for (const field of fields) {
   const type = boolFields.includes(field) ? 'bool' : (colorFields.includes(field) ? 'color' : (stringFields.includes(field) ? 'string' : 'int'));
   assert(config.includes(`property ${type} ${field}:`), `Config declares ${field}`);
@@ -86,9 +86,9 @@ assert(settings.includes('notifications: [-999999,16,380,0]'), 'Settings singlet
 assert(metadata.includes('"notifications":[-999999,16,380,0]'), 'profile defaults include notification absolute geometry');
 assert(modulesSection.includes('text: settings.moduleLabels[moduleRow.moduleName]') && modulesSection.includes('checked: settings[moduleRow.moduleName]'), 'Modules page exposes Notifications through the common module-enable row');
 assert(modulesSection.includes('notificationsGeometryValue(index)') && modulesSection.includes('writeNotificationsGeometry(index, n)'), 'Modules page exposes notification X/Y and size in common geometry fields');
-assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'), 'notification geometry participates in the standard module profile scope');
+assert(modulesSection.includes('host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)'), 'notification geometry participates in the standard module profile scope');
 assert(!modulesSection.includes('Привязка к углу') && !modulesSection.includes('Отступ по горизонтали') && !modulesSection.includes('notificationsPositionCombo'), 'corner and edge-margin controls are completely removed');
-assert(modulesSection.includes('host.profileController.saveScope("module", moduleRow.moduleName)'), 'notification module uses the generic scoped profile saving action');
+assert(modulesSection.includes('host.profileController.saveScope(moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module", moduleRow.moduleName)'), 'notification module uses the generic scoped profile saving action');
 assert(modulesSection.includes('settings.resetModule(moduleRow.moduleName)'), 'notification module uses the generic scoped reset action');
 assert(modulesSection.includes('text: "Фон"') && modulesSection.includes('text: "Рамка"') && modulesSection.includes('text: "Блюр"'), 'notification module exposes independent background, frame and blur checkboxes');
 assert(modulesSection.includes('settings.moduleBackgrounds[moduleRow.moduleName] !== false') && modulesSection.includes('settings.moduleFrames[moduleRow.moduleName] !== false'), 'background and frame toggles use common enabled-by-default semantics');
@@ -114,7 +114,7 @@ assert(resetsSource.includes('function resetNotificationsSettings(owner, config)
 assert(!resetsSource.includes('geometry.notifications = profile.geometry && profile.geometry.notifications'), 'Notifications content reset no longer resets module geometry');
 assert(profilesSource.includes('notifications: ["notifications", "animationNotifications"]'), 'save-profile scope includes notification preferences');
 assert(navigation.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
-assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks all notification typography and card appearance settings');
+assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks all notification typography and card appearance settings');
 assert(section.includes('heading: "Заголовок и иконка"') && section.includes('targetProperty: "notificationsSummaryFont"') && section.includes('targetProperty: "notificationsSummaryFontSize"') && section.includes('targetProperty: "notificationsSummaryColor"') && section.includes('targetProperty: "notificationsLeadingVisualSize"'), 'Appearance exposes title typography and icon sizing controls');
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');
 
@@ -137,7 +137,7 @@ apply.apply({}, loaded, {
   notificationsSummaryColor: '#7f12ab34',
   notificationsAppNameFont: '  JetBrains Mono\n', notificationsAppNameFontSize: 1, notificationsAppNameColor: '#AABBCCDD', notificationsAppNameBold: 1,
   notificationsLeadingVisualSize: 100, notificationsLeadingVisualRadius: 99, notificationsCardPadding: -5,
-  notificationsBodyFontSize: 99, notificationsBodyColor: '#DDEEFF',
+  notificationsBodyFont: '  Notice\nBody Font  ', notificationsBodyFontSize: 99, notificationsBodyColor: '#DDEEFF',
   notificationsDefaultTimeout: 135000,
   notificationsCriticalTimeout: -50,
   notificationsPosition: 'bottom-left',
@@ -172,6 +172,7 @@ assert.strictEqual(loaded.notificationsAppNameBold, true, 'application-name bold
 assert.strictEqual(loaded.notificationsLeadingVisualSize, 72, 'leading visual size is clamped');
 assert.strictEqual(loaded.notificationsLeadingVisualRadius, 36, 'leading visual radius is clamped');
 assert.strictEqual(loaded.notificationsCardPadding, 0, 'card padding is clamped');
+assert.strictEqual(loaded.notificationsBodyFont, 'Notice Body Font', 'body font family is normalized and restored');
 assert.strictEqual(loaded.notificationsBodyFontSize, 32, 'body font size is clamped');
 assert.strictEqual(loaded.notificationsBodyColor, '#ddeeff', 'body color is normalized and restored');
 assert.strictEqual(loaded.notificationsShowAppIcon, false, 'app-icon toggle is restored');
@@ -190,7 +191,7 @@ const snapshotValues = {
   notificationsSummaryFont: 'Inter', notificationsSummaryFontSize: 16, notificationsSummaryColor: '#7f12ab34',
   notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#ffaa2211', notificationsAppNameBold: true,
   notificationsLeadingVisualSize: 56, notificationsLeadingVisualRadius: 14, notificationsCardPadding: 16,
-  notificationsBodyFontSize: 15, notificationsBodyColor: '#ff112233', notificationsShowAppIcon: false, notificationsShowBodyImages: true,
+  notificationsBodyFont: 'Noto Sans', notificationsBodyFontSize: 15, notificationsBodyColor: '#ff112233', notificationsShowAppIcon: false, notificationsShowBodyImages: true,
   notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#ffaa2211', notificationsAppNameBold: true,
   notificationsLeadingVisualRadius: 14, notificationsCardPadding: 16, notificationsBodyFontSize: 15, notificationsBodyColor: '#ff112233',
   notificationsShowProgress: false
@@ -207,9 +208,9 @@ assert(!Object.prototype.hasOwnProperty.call(snapshot, 'notificationsPosition'),
 const profiles = load('js/settings/SettingsProfiles.js', 'profileSavePathMatches');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, ['notificationsCardWidth']), false, 'Notifications page scope excludes the moved module width');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, ['notificationsBackgroundColor']), true, 'Notifications page scope includes its independent background color');
-for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFontSize', 'notificationsBodyColor'])
+for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFont', 'notificationsBodyFontSize', 'notificationsBodyColor'])
   assert.strictEqual(profiles.profileSavePathMatches({}, 'notifications', null, [field]), true, `Notifications page scope includes ${field}`);
-for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFontSize', 'notificationsBodyColor'])
+for (const field of ['notificationsAppNameFont', 'notificationsAppNameFontSize', 'notificationsAppNameColor', 'notificationsAppNameBold', 'notificationsLeadingVisualRadius', 'notificationsCardPadding', 'notificationsBodyFont', 'notificationsBodyFontSize', 'notificationsBodyColor'])
   assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', [field]), true, `Notifications module scope includes ${field}`);
 assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications', ['notificationsBackgroundColor']), true, 'Notifications module scope includes its independent background color');
 assert.strictEqual(profiles.profileSavePathMatches({}, 'modules', null, ['notificationsCardWidth']), true, 'Modules scope includes the moved notification width');
@@ -219,12 +220,12 @@ assert.strictEqual(profiles.profileSavePathMatches({}, 'module', 'notifications'
 
 const resets = load('js/settings/SettingsResets.js', 'resetNotificationsSettings, resetModule');
 const profileValues = {
-  notificationsDefaultTimeout: 9000, notificationsCriticalTimeout: 2000, notificationsCardWidth: 440,
+  notificationsDefaultTimeout: 9000, notificationsCriticalTimeout: 2000, notificationsTimeoutIndicatorColor: '#123456', notificationsTimeoutIndicatorStyle: 'border', notificationsTimeoutIndicatorDirection: 'counterclockwise', notificationsCardWidth: 440,
   notificationsCardSpacing: 14, notificationsImageHeight: 160, notificationsBackgroundColor: '#aa332211',
   notificationsSummaryFont: 'Noto Sans', notificationsSummaryFontSize: 18, notificationsSummaryColor: '#ccffffff',
   notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#aa112233', notificationsAppNameBold: true,
   notificationsLeadingVisualSize: 64, notificationsLeadingVisualRadius: 18, notificationsCardPadding: 17,
-  notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', notificationsShowAppIcon: false, notificationsShowBodyImages: false,
+  notificationsBodyFont: 'Noto Sans', notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', notificationsShowAppIcon: false, notificationsShowBodyImages: false,
   notificationsShowProgress: false
 };
 const profileSettings = Object.assign({}, profileValues);
@@ -234,6 +235,7 @@ resetConfig.notificationsVerticalAnchor = 'top';
 let saveCount = 0;
 const resetOwner = {
   activeProfile: 'Work', profiles: { Work: {} },
+  defaultConfig: { notificationsTimeoutIndicatorColor: "", notificationsTimeoutIndicatorStyle: "bar", notificationsTimeoutIndicatorDirection: "clockwise" },
   expandedProfileData: () => ({ ...profileSettings, geometry: { notifications: [41, 52, 440, 0] } }),
   geometry: { notifications: [8, 9, 380, 0] }, defaultGeometry: { notifications: [-999999, 16, 380, 0] },
   save: () => { saveCount += 1; },
@@ -243,6 +245,9 @@ resets.resetNotificationsSettings(resetOwner, resetConfig);
 for (const field of fields.filter(field => field !== 'notificationsCardWidth')) assert.strictEqual(resetConfig[field], profileSettings[field], `reset restores ${field} from the active profile`);
 assert.strictEqual(resetConfig.notificationsCardWidth, 'changed', 'Notifications content reset leaves the module width untouched');
 assert.strictEqual(resetConfig.notificationsVerticalAnchor, 'bottom', 'Notifications page reset restores vertical anchoring');
+assert.strictEqual(resetConfig.notificationsTimeoutIndicatorColor, '#123456', 'Notifications page reset restores timeout indicator color');
+assert.strictEqual(resetConfig.notificationsTimeoutIndicatorStyle, 'border', 'Notifications page reset restores timeout indicator style');
+assert.strictEqual(resetConfig.notificationsTimeoutIndicatorDirection, 'counterclockwise', 'Notifications page reset restores timeout indicator direction');
 assert.strictEqual(resetConfig.notificationsBackgroundColor, '#aa332211', 'Notifications page reset restores the independent background color');
 assert.strictEqual(resetConfig.notificationsSummaryFont, 'Noto Sans', 'Notifications page reset restores summary font');
 assert.strictEqual(resetConfig.notificationsSummaryFontSize, 18, 'Notifications page reset restores summary font size');
@@ -254,19 +259,23 @@ assert.strictEqual(resetConfig.notificationsAppNameBold, true, 'Notifications pa
 assert.strictEqual(resetConfig.notificationsLeadingVisualSize, 64, 'Notifications page reset restores leading visual size');
 assert.strictEqual(resetConfig.notificationsLeadingVisualRadius, 18, 'Notifications page reset restores leading visual radius');
 assert.strictEqual(resetConfig.notificationsCardPadding, 17, 'Notifications page reset restores card padding');
+assert.strictEqual(resetConfig.notificationsBodyFont, 'Noto Sans', 'Notifications page reset restores body font family');
 assert.strictEqual(resetConfig.notificationsBodyFontSize, 16, 'Notifications page reset restores body font size');
 assert.strictEqual(resetConfig.notificationsBodyColor, '#bb223344', 'Notifications page reset restores body color');
 assert.deepStrictEqual(Array.from(resetOwner.geometry.notifications), [8, 9, 380, 0], 'notification page reset leaves module geometry untouched');
 assert.strictEqual(saveCount, 1, 'reset persists the restored notification settings once');
 
-const moduleProfile = { modules: { notifications: false }, notificationsCardWidth: 460, notificationsVerticalAnchor: 'bottom', notificationsBackgroundColor: '#aa332211', notificationsSummaryFont: 'Noto Sans', notificationsSummaryFontSize: 18, notificationsSummaryColor: '#ccffffff', notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#aa112233', notificationsAppNameBold: true, notificationsLeadingVisualSize: 64, notificationsLeadingVisualRadius: 18, notificationsCardPadding: 17, notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', geometry: { notifications: [71, 82, 440, 320] } };
+const moduleProfile = { modules: { notifications: false }, notificationsCardWidth: 460, notificationsVerticalAnchor: 'bottom', notificationsBackgroundColor: '#aa332211', notificationsSummaryFont: 'Noto Sans', notificationsSummaryFontSize: 18, notificationsSummaryColor: '#ccffffff', notificationsAppNameFont: 'Noto Sans', notificationsAppNameFontSize: 13, notificationsAppNameColor: '#aa112233', notificationsAppNameBold: true, notificationsLeadingVisualSize: 64, notificationsLeadingVisualRadius: 18, notificationsCardPadding: 17, notificationsBodyFont: 'Noto Sans', notificationsBodyFontSize: 16, notificationsBodyColor: '#bb223344', geometry: { notifications: [71, 82, 440, 320] } };
 const moduleOwner = {
-  activeProfile: 'Work', profiles: { Work: {} }, expandedProfileData: () => moduleProfile,
+  activeProfile: 'Work', profiles: { Work: {} }, defaultConfig: { notificationsTimeoutIndicatorColor: "", notificationsTimeoutIndicatorStyle: "bar", notificationsTimeoutIndicatorDirection: "clockwise" }, expandedProfileData: () => moduleProfile,
   notifications: true, geometry: {}, defaultGeometry: { notifications: [-999999, 16, 380, 0] },
   moduleFrames: {}, moduleBackgrounds: {}, moduleBlurEnabled: {}, moduleMonitors: {}, defaultModuleBlurEnabled: {}, save: () => { saveCount += 1; }
 };
-const moduleConfig = { notificationsCardWidth: 380, notificationsVerticalAnchor: 'top', notificationsBackgroundColor: '#4d000000', notificationsSummaryFont: '', notificationsSummaryFontSize: 14, notificationsSummaryColor: '#ffffff', notificationsAppNameFont: '', notificationsAppNameFontSize: 11, notificationsAppNameColor: '', notificationsAppNameBold: false, notificationsLeadingVisualSize: 48, notificationsLeadingVisualRadius: 10, notificationsCardPadding: 12, notificationsBodyFontSize: 12, notificationsBodyColor: '' };
+const moduleConfig = { notificationsCardWidth: 380, notificationsVerticalAnchor: 'top', notificationsBackgroundColor: '#4d000000', notificationsSummaryFont: '', notificationsSummaryFontSize: 14, notificationsSummaryColor: '#ffffff', notificationsAppNameFont: '', notificationsAppNameFontSize: 11, notificationsAppNameColor: '', notificationsAppNameBold: false, notificationsLeadingVisualSize: 48, notificationsLeadingVisualRadius: 10, notificationsCardPadding: 12, notificationsBodyFont: '', notificationsBodyFontSize: 12, notificationsBodyColor: '' };
 resets.resetModule(moduleOwner, moduleConfig, 'notifications');
+assert.strictEqual(moduleConfig.notificationsTimeoutIndicatorColor, '', 'legacy module profile reset falls back to inherited timeout indicator color');
+assert.strictEqual(moduleConfig.notificationsTimeoutIndicatorStyle, 'bar', 'legacy module profile reset falls back to strip style');
+assert.strictEqual(moduleConfig.notificationsTimeoutIndicatorDirection, 'clockwise', 'legacy module profile reset falls back to clockwise direction');
 assert.strictEqual(moduleOwner.notifications, false, 'module reset restores Notifications enabled/disabled state');
 assert.deepStrictEqual(Array.from(moduleOwner.geometry.notifications), [71, 82, 460, 320], 'module reset restores notification X/Y and dimensions');
 assert.strictEqual(moduleConfig.notificationsCardWidth, 460, 'module reset keeps legacy width synchronized');
@@ -282,6 +291,7 @@ assert.strictEqual(moduleConfig.notificationsAppNameColor, '#aa112233', 'module 
 assert.strictEqual(moduleConfig.notificationsAppNameBold, true, 'module reset restores application-name bold style');
 assert.strictEqual(moduleConfig.notificationsLeadingVisualRadius, 18, 'module reset restores leading visual radius');
 assert.strictEqual(moduleConfig.notificationsCardPadding, 17, 'module reset restores card padding');
+assert.strictEqual(moduleConfig.notificationsBodyFont, 'Noto Sans', 'module reset restores body font family');
 assert.strictEqual(moduleConfig.notificationsBodyFontSize, 16, 'module reset restores body font size');
 assert.strictEqual(moduleConfig.notificationsBodyColor, '#bb223344', 'module reset restores body color');
 

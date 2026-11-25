@@ -13,6 +13,8 @@ import "../../js/notifications/NotificationTimeout.js" as NotificationTimeout
 Item {
     id: root
 
+    readonly property color timeoutIndicatorResolvedColor: String(Config.notificationsTimeoutIndicatorColor || "").trim().length > 0 ? Config.notificationsTimeoutIndicatorColor : Config.accent
+
     property bool layoutEditMode: false
     property var layoutEditor: null
     property bool layoutDragging: false
@@ -30,6 +32,10 @@ Item {
     // When idle the surface is reduced to 1x1 and its content is hidden.
     readonly property bool notificationSurfaceActive: notificationServer.trackedNotifications.values.length > 0
         || activeNotificationExitCount > 0 || layoutEditMode
+    // The tracked notification model, not retained ListView exit delegates,
+    // owns the blur lifetime. delayRemove may keep an invisible delegate and
+    // the PanelWindow alive for its exit motion, but must not keep the blur alive.
+    readonly property bool notificationBlurRegionActive: notificationServer.trackedNotifications.values.length > 0
     readonly property int layoutPreviewHeight: 104
 
     function notificationTargetScreen() {
@@ -392,6 +398,17 @@ Item {
         return String(hints["image-path"] || hints["image_path"] || "").trim().length > 0
     }
 
+    function notificationImageLooksLikeLeadingIcon(width, height) {
+        const w = Number(width) || 0
+        const h = Number(height) || 0
+        const larger = Math.max(w, h)
+        const smaller = Math.min(w, h)
+        // image-data is also used for real attachments. Promote only compact,
+        // almost-square images (for example GitLab project/sender logos) to the
+        // leading visual; landscape screenshots remain below the message body.
+        return smaller >= 24 && larger <= 256 && smaller / Math.max(1, larger) >= 0.85
+    }
+
     function notificationLocalImagePath(notification) {
         if (!notification) return ""
         const hints = notification.hints || ({})
@@ -615,7 +632,7 @@ Item {
             // item is invisible outside layout-edit mode, but Region can still
             // retain its geometry; use null when the queue and editor are idle.
             item: Settings.moduleBlurEnabled.notifications === true
-                ? (notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0
+                ? (root.notificationBlurRegionActive
                     ? notificationList
                     : (root.layoutEditMode ? layoutEditPreview : null))
                 : null
@@ -750,15 +767,22 @@ Item {
                             + "\u001f" + String(notification.image || "")
                     }
                     property bool imageLoadFailed: false
-                    // Any explicit image-path is treated as the notification's leading
-                    // visual, regardless of the sending application. Some clients (for
-                    // example GitLab) use image-path for a sender/project icon rather
-                    // than a wide body attachment. image-data from known messengers
-                    // retains the existing avatar behavior; other image-data remains a
-                    // body preview so genuine inline attachments are not moved.
+                    // React to intrinsic image dimensions so compact square image-data
+                    // (for example a GitLab project logo emitted by a browser) can be
+                    // displayed beside the message instead of after the body text.
+                    // Large/landscape image-data remains an attachment preview.
+                    readonly property bool imageDataLooksLikeLeadingIcon: imageSource.length > 0
+                        && !imageLoadFailed
+                        && !root.notificationHasImagePath(notification)
+                        && !root.notificationIsMessenger(notification)
+                        && notificationImageProbe.status === Image.Ready
+                        && root.notificationImageLooksLikeLeadingIcon(
+                            notificationImageProbe.implicitWidth, notificationImageProbe.implicitHeight)
                     readonly property bool hasLeadingImage: imageSource.length > 0
                         && !imageLoadFailed
-                        && (root.notificationHasImagePath(notification) || root.notificationIsMessenger(notification))
+                        && (root.notificationHasImagePath(notification)
+                            || root.notificationIsMessenger(notification)
+                            || imageDataLooksLikeLeadingIcon)
                     readonly property string appIconSource: notification ? root.notificationIconSource(notification) : ""
                     readonly property bool hasAppIcon: Config.notificationsShowAppIcon
                         && appIconSource.length > 0 && !hasLeadingImage
@@ -870,6 +894,18 @@ Item {
                             }
                         }
                     }
+                    Image {
+                        id: notificationImageProbe
+                        visible: false
+                        source: card.imageSource
+                        asynchronous: true
+                        cache: true
+                        onStatusChanged: {
+                            if (status === Image.Error)
+                                card.imageLoadFailed = true
+                        }
+                    }
+
                     property int progressValue: root.notificationProgressValue(notification)
                     visible: notification !== null
                     opacity: animatedOpacity
@@ -1047,8 +1083,9 @@ Item {
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 3
                         height: 3
-                        visible: Config.notificationsShowTimeoutIndicator && card.notification !== null
-                            && !card.removalPending && card.effectiveTimeout > 0
+                        visible: Config.notificationsShowTimeoutIndicator
+                            && String(Config.notificationsTimeoutIndicatorStyle || "bar") !== "border"
+                            && card.notification !== null && !card.removalPending && card.effectiveTimeout > 0
 
                         Rectangle {
                             anchors.fill: parent
@@ -1062,7 +1099,55 @@ Item {
                             anchors.bottom: parent.bottom
                             width: parent.width * card.remainingTimeoutFraction
                             radius: height / 2
-                            color: Config.accent
+                            color: root.timeoutIndicatorResolvedColor
+                        }
+                    }
+
+                    Canvas {
+                        id: timeoutFrameIndicator
+                        anchors.fill: parent
+                        z: 100
+                        visible: Config.notificationsShowTimeoutIndicator
+                            && String(Config.notificationsTimeoutIndicatorStyle || "bar") === "border"
+                            && card.notification !== null && !card.removalPending && card.effectiveTimeout > 0
+                        property real countdownProgress: card.remainingTimeoutFraction
+                        property string progressDirection: Config.notificationsTimeoutIndicatorDirection || "clockwise"
+                        property color progressColor: root.timeoutIndicatorResolvedColor
+                        property color trackColor: Config.baseColor
+                        onCountdownProgressChanged: requestPaint()
+                        onProgressDirectionChanged: requestPaint()
+                        onProgressColorChanged: requestPaint()
+                        onTrackColorChanged: requestPaint()
+                        onVisibleChanged: requestPaint()
+                        onWidthChanged: requestPaint()
+                        onHeightChanged: requestPaint()
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.lineWidth = 2
+                            ctx.lineCap = "round"
+                            ctx.lineJoin = "round"
+                            var radius = Math.max(0, Number(card.radius) - 1)
+                            var trackPoints = NotificationTimeout.roundedPerimeterPoints(width, height, radius, 1, 1, progressDirection)
+                            if (trackPoints.length > 1) {
+                                ctx.beginPath()
+                                ctx.moveTo(trackPoints[0].x, trackPoints[0].y)
+                                for (var i = 1; i < trackPoints.length; ++i)
+                                    ctx.lineTo(trackPoints[i].x, trackPoints[i].y)
+                                ctx.strokeStyle = String(trackColor)
+                                ctx.globalAlpha = 0.28
+                                ctx.stroke()
+                            }
+                            var activePoints = NotificationTimeout.roundedPerimeterPoints(width, height, radius, countdownProgress, 1, progressDirection)
+                            if (activePoints.length > 1) {
+                                ctx.beginPath()
+                                ctx.moveTo(activePoints[0].x, activePoints[0].y)
+                                for (var j = 1; j < activePoints.length; ++j)
+                                    ctx.lineTo(activePoints[j].x, activePoints[j].y)
+                                ctx.strokeStyle = String(progressColor)
+                                ctx.globalAlpha = 1
+                                ctx.stroke()
+                            }
                         }
                     }
 
@@ -1176,6 +1261,7 @@ Item {
                         width: card.textColumnWidth
                         text: card.formattedBody
                         color: Config.notificationsBodyColor || Config.text
+                        font.family: Config.notificationsBodyFont
                         font.pixelSize: root.notificationBodyFontSize
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
@@ -1192,6 +1278,7 @@ Item {
                         text: card.formattedBody
                         visible: root.notificationHasBody(card.notification)
                         color: Config.notificationsBodyColor || Config.text
+                        font.family: Config.notificationsBodyFont
                         font.pixelSize: root.notificationBodyFontSize
                         wrapMode: Text.Wrap
                         // Its implicit height is measured from the wrapped rich text;

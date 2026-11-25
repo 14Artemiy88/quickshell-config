@@ -235,6 +235,8 @@ ShellRoot {
     Dashboard {
         id: dashboardPanel
         open: Settings.dashboard && shell.dashboardVisible
+        layoutEditMode: Settings.dashboard && shell.layoutEditMode
+        layoutEditor: moduleLayoutEditorWindow
         clock: clock
         cpuSource: cpuWidget
         playerSource: playerWidget

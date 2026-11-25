@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WIDGET="$ROOT/components/settings/SettingsWidget.qml"
 NAV="$ROOT/components/settings/SettingsNavigation.qml"
 SEARCH="$ROOT/components/settings/SettingsSearchController.qml"
+FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 fail() { echo "Settings navigation component extraction: FAIL: $*" >&2; exit 1; }
 
 [[ -f "$NAV" ]] || fail 'SettingsNavigation.qml is missing'
@@ -17,15 +18,18 @@ grep -Fq 'settingsSearchController.searchInput = settingsNavigation.searchInput'
 grep -Fq 'property alias searchInput: settingsSearchInput' "$NAV" || fail 'component does not expose the search input'
 grep -Fq 'signal searchQueryEdited(string query)' "$NAV" || fail 'component does not expose query edits'
 grep -Fq 'model: root.navigationGroups' "$NAV" || fail 'group rendering is not owned by the extracted component'
-grep -Fq 'root.host.settingsNavigationGroupCollapsed(modelData.id)' "$NAV" || fail 'collapse state is routed through host API'
-grep -Fq 'root.host.settingsSearchNavigationGroupMatchCount(modelData.id)' "$NAV" || fail 'group counters are not connected through host API'
+grep -Fq 'SettingsNavigationFolder {' "$NAV" || fail 'multi-page groups do not use the shared folder primitive'
+grep -Fq 'collapsed: root.host.settingsNavigationGroupCollapsed(groupId)' "$NAV" || fail 'collapse state is not bound to the folder primitive'
+grep -Fq 'searchMatchCount: root.host.settingsSearchNavigationGroupMatchCount(groupId)' "$NAV" || fail 'group counters are not passed through the host API'
+grep -Fq 'signal toggleRequested()' "$FOLDER" || fail 'folder primitive does not expose its toggle action'
+grep -Fq 'default property alias contentData: navigationItems.data' "$FOLDER" || fail 'folder primitive does not expose an inner page content slot'
 grep -Fq 'root.host.settingsSearchPageMatchCount(parent.modelData.id)' "$NAV" || fail 'page counters are not connected through host API'
 grep -Fq 'ScrollBar.vertical: SettingsScrollBar' "$NAV" || fail 'navigation scroll bar was not extracted'
 ! grep -Fq 'id: mainSettingsTabs' "$WIDGET" || fail 'old inline sidebar still remains in SettingsWidget'
 ! grep -Fq 'id: settingsSearchInput' "$WIDGET" || fail 'search input remains duplicated in SettingsWidget'
 grep -Fq 'Math.max(0, parent.width - settingsNavigation.width - settingsBody.spacing)' "$WIDGET" || fail 'page content width does not use the responsive component width'
 
-node - "$WIDGET" "$NAV" "$SEARCH" <<'NODE'
+node - "$WIDGET" "$NAV" "$SEARCH" "$FOLDER" <<'NODE'
 const assert = require('assert');
 const fs = require('fs');
 for (const file of process.argv.slice(2)) {
