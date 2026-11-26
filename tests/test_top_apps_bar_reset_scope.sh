@@ -15,6 +15,7 @@ const profilesSource = fs.readFileSync(path.join(root, 'js/settings/SettingsProf
 const sections = fs.readFileSync(path.join(root, 'components/settings/sections/SettingsCpuRamSection.qml'), 'utf8');
 const navigation = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const host = fs.readFileSync(path.join(root, 'components/settings/SettingsPageHost.qml'), 'utf8');
+const widget = fs.readFileSync(path.join(root, 'components/settings/SettingsWidget.qml'), 'utf8');
 
 // Extract and execute the real sparse-override visibility function.
 const start = settingsQml.indexOf('    function hasResetChanges(scope, argument) {');
@@ -56,8 +57,12 @@ assert.strictEqual(config.text, '#abcdef', 'CPU reset leaves unrelated palette c
 assert.strictEqual(owner.saveCount, 1, 'CPU reset queues one persistence save');
 
 // The page reset action routes through resetCpuSettings and exposes the page scope.
-assert(host.includes('root.host.profileController.canResetScope(root.host.currentPageSaveScope)'),
-  'page header Reset uses the active page scope');
+assert(widget.includes('SettingsPageRegistry.saveScopeForPageId(\n        root.currentPageId, root.currentPageSubTabIndex)'),
+  'SettingsWidget resolves the active page save scope from its stable page ID');
+assert(widget.includes('profileController.canResetScope(root.currentPageSaveScope)'),
+  'page-level Reset availability follows the active page scope');
+assert(host.includes('showResetButton: root.host && root.host.currentPageResetAvailable'),
+  'page header consumes the host-computed reset availability');
 assert(navigation.includes('case "cpuRam": settings.resetCpuSettings(); break'),
   'CPU/RAM page Reset dispatches to resetCpuSettings');
 assert(sections.includes('changeKeys: ({ nested: { colors: ["topAppsCpuBarColor"'),

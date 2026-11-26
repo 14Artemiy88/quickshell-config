@@ -49,20 +49,35 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
             if (!configuredEntry || !configuredEntry.id)
                 continue
 
-            var aliases = NotificationAppCatalog.ruleIds(configuredEntry)
-            var isAllowed = NotificationAppCatalog.matchesAnyRule(configuredEntry, allowed)
-            var isBlocked = NotificationAppCatalog.matchesAnyRule(configuredEntry, blocked)
-            if (showAll !== true && !isAllowed && !isBlocked)
+            var isAllowed = NotificationAppCatalog.matchesAnyRule(configuredEntry, allowed, source)
+            var isBlocked = NotificationAppCatalog.matchesAnyRule(configuredEntry, blocked, source)
+            var legacyAliases = NotificationAppCatalog.uniqueLegacyRuleIds(configuredEntry, source)
+            var ambiguousName = NotificationAppCatalog.isAmbiguousAppName(configuredEntry.appName, source)
+            var canonicalIds = NotificationAppCatalog.canonicalRuleIds(configuredEntry)
+            var ambiguousSavedRule = ambiguousName && !configuredEntry.desktopEntry && canonicalIds.some(function(id) {
+                var key = String(id).trim().toLowerCase()
+                return allowed.some(function(value) { return String(value).trim().toLowerCase() === key })
+                    || blocked.some(function(value) { return String(value).trim().toLowerCase() === key })
+            })
+            if (showAll !== true && !isAllowed && !isBlocked && !ambiguousSavedRule)
                 continue
 
             rows.push({
                 kind: "application",
                 id: String(configuredEntry.id),
                 name: String(configuredEntry.name || configuredEntry.id),
-                comment: String(configuredEntry.comment || configuredEntry.genericName || configuredEntry.id),
+                comment: ambiguousName
+                    ? (configuredEntry.desktopEntry
+                        ? "Идентификатор: " + String(configuredEntry.desktopEntry)
+                        : "Имя отправителя неоднозначно: desktopEntry не передан")
+                    : String(configuredEntry.comment || configuredEntry.genericName || configuredEntry.id),
                 allowed: isAllowed,
                 blocked: isBlocked,
-                ruleIds: aliases,
+                ruleIds: NotificationAppCatalog.canonicalRuleIds(configuredEntry),
+                legacyRuleIds: legacyAliases,
+                ambiguousAppName: ambiguousName,
+                unusableRule: configuredEntry.unusableRule === true
+                    || (ambiguousName && !configuredEntry.desktopEntry),
                 favoriteIndex: favorites.indexOf(String(configuredEntry.id)),
                 score: 0
             })
@@ -91,10 +106,17 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
             kind: "application",
             id: id,
             name: String(entry.name || id),
-            comment: String(entry.comment || entry.genericName || entry.appName || id),
-            allowed: NotificationAppCatalog.matchesAnyRule(entry, allowed),
-            blocked: NotificationAppCatalog.matchesAnyRule(entry, blocked),
-            ruleIds: NotificationAppCatalog.ruleIds(entry),
+            comment: NotificationAppCatalog.isAmbiguousAppName(entry.appName, source)
+                ? (entry.desktopEntry
+                    ? "Идентификатор: " + String(entry.desktopEntry)
+                    : "Имя отправителя неоднозначно: desktopEntry не передан")
+                : String(entry.comment || entry.genericName || entry.appName || id),
+            allowed: NotificationAppCatalog.matchesAnyRule(entry, allowed, source),
+            blocked: NotificationAppCatalog.matchesAnyRule(entry, blocked, source),
+            ruleIds: NotificationAppCatalog.canonicalRuleIds(entry),
+            legacyRuleIds: NotificationAppCatalog.uniqueLegacyRuleIds(entry, source),
+            ambiguousAppName: NotificationAppCatalog.isAmbiguousAppName(entry.appName, source),
+            unusableRule: NotificationAppCatalog.isAmbiguousAppName(entry.appName, source) && !entry.desktopEntry,
             favoriteIndex: favorites.indexOf(id),
             score: match.score
         })

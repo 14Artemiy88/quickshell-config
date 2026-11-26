@@ -9,7 +9,7 @@ const root = process.argv[2];
 const source = fs.readFileSync(root + '/js/notifications/NotificationAppCatalog.js', 'utf8')
   .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
 const context = vm.createContext({});
-vm.runInContext(source + '\nthis.api = { valuesOf, normalizeDndRuleIds, upsertSender, makeSenderEntry, ruleIds, matchesAnyRule, mergeConfiguredEntries };', context);
+vm.runInContext(source + '\nthis.api = { valuesOf, normalizeDndRuleIds, upsertSender, makeSenderEntry, ruleIds, canonicalRuleIds, uniqueLegacyRuleIds, uniqueRuleIds, matchesAnyRule, isUniqueAppNameForDesktopEntry, isAmbiguousAppName, legacyRuleIdsForDesktopEntry, legacyRuleIdsForAppName, migrateUniqueLegacyRules, mergeConfiguredEntries };', context);
 const api = context.api;
 assert.deepStrictEqual(Array.from(api.valuesOf('notify-send')), ['notify-send'],
   'a scalar QString sender value stays one item instead of being expanded into characters');
@@ -25,6 +25,16 @@ const desktopEntries = {
     comment: 'Browse the web', keywords: ['Internet', 'Browser'],
     categories: ['Network', 'WebBrowser'], execString: 'firefox %u',
     startupClass: 'firefox', runInTerminal: false, icon: 'firefox'
+  },
+  'org.example.mail-a': {
+    id: 'org.example.mail-a', name: 'Mail A', genericName: 'Mail Client',
+    comment: 'Mail application A', keywords: ['Email'], categories: ['Network'],
+    execString: 'mail-a', startupClass: 'mail-a', runInTerminal: false, icon: 'mail'
+  },
+  'org.example.mail-b': {
+    id: 'org.example.mail-b', name: 'Mail B', genericName: 'Mail Client',
+    comment: 'Mail application B', keywords: ['Email'], categories: ['Network'],
+    execString: 'mail-b', startupClass: 'mail-b', runInTerminal: false, icon: 'mail'
   }
 };
 const lookup = id => desktopEntries[id] || null;
@@ -56,6 +66,63 @@ catalog = api.upsertSender(catalog, {
 assert.strictEqual(catalog.length, 2, 'senders without desktopEntry are still discoverable');
 assert.strictEqual(catalog[1].id, 'Name-only sender', 'appName is a fallback identity');
 assert.strictEqual(catalog[1].name, 'Name-only sender', 'appName is readable without a desktop file');
+
+// Same desktop ID is one sender even when its appName changes. Preserve old
+// appName values as aliases, but keep the desktop ID as the editable identity.
+let renamed = api.upsertSender([], {
+  desktopEntry: 'org.example.renamed', appName: 'Old Mail Name'
+}, lookup);
+renamed = api.upsertSender(renamed, {
+  desktopEntry: 'org.example.renamed', appName: 'New Mail Name'
+}, lookup);
+assert.strictEqual(renamed.length, 1, 'same desktop ID remains one sender when appName changes');
+assert.deepStrictEqual(Array.from(api.ruleIds(renamed[0])).sort(),
+  ['New Mail Name', 'Old Mail Name', 'org.example.renamed'].sort(), 'old and current appName aliases are retained');
+assert.deepStrictEqual(Array.from(api.canonicalRuleIds(renamed[0])), ['org.example.renamed'],
+  'desktop ID remains the sole canonical rule identity');
+assert.deepStrictEqual(Array.from(api.uniqueLegacyRuleIds(renamed[0], renamed)).sort(),
+  ['New Mail Name', 'Old Mail Name'].sort(), 'unique legacy aliases remain discoverable for migration');
+assert.deepStrictEqual(Array.from(api.legacyRuleIdsForDesktopEntry('org.example.renamed', renamed)).sort(),
+  ['New Mail Name', 'Old Mail Name'].sort(), 'runtime DND can resolve historical appName aliases from the canonical desktop ID');
+assert.deepStrictEqual(Array.from(api.legacyRuleIdsForAppName('New Mail Name', renamed)).sort(),
+  ['New Mail Name', 'Old Mail Name', 'org.example.renamed'].sort(), 'name-only notifications can resolve the canonical desktop ID and aliases only through one unique sender identity');
+assert.deepStrictEqual(Array.from(api.migrateUniqueLegacyRules(renamed, ['Old Mail Name', 'other.desktop'])),
+  ['other.desktop', 'org.example.renamed'], 'unique legacy aliases are migrated to the stable desktop ID without losing unrelated rules');
+
+// An appName shared by different desktop IDs must not connect their DND rules.
+const mailA = api.upsertSender([], { desktopEntry: 'org.example.mail-a', appName: 'Mail' }, lookup);
+const mailBoth = api.upsertSender(mailA, { desktopEntry: 'org.example.mail-b', appName: 'Mail' }, lookup);
+assert.strictEqual(mailBoth.length, 2, 'different desktop IDs stay distinct when appName is identical');
+assert.strictEqual(api.matchesAnyRule(mailBoth[0], ['Mail'], mailBoth), false,
+  'ambiguous appName legacy rule does not affect the first desktop-backed sender');
+assert.strictEqual(api.matchesAnyRule(mailBoth[1], ['Mail'], mailBoth), false,
+  'ambiguous appName legacy rule does not affect the second desktop-backed sender');
+assert.strictEqual(api.matchesAnyRule(mailBoth[0], ['org.example.mail-a'], mailBoth), true,
+  'canonical desktop ID still selects only its own sender');
+assert.deepStrictEqual(Array.from(api.uniqueLegacyRuleIds(mailBoth[0], mailBoth)), [],
+  'shared appName is not offered as a per-app editable alias');
+const ambiguousRows = api.mergeConfiguredEntries(mailBoth, ['Mail'], []);
+assert.strictEqual(ambiguousRows.length, 3, 'ambiguous legacy rule remains separately manageable instead of binding to both apps');
+assert.strictEqual(ambiguousRows[2].configuredOnly, true, 'ambiguous legacy name is represented as a configured-only row');
+assert.strictEqual(ambiguousRows[2].unusableRule, true, 'ambiguous legacy rule is marked unsafe to apply');
+
+// A name-only event merges into one unambiguous desktop sender, but is kept
+// separate when two desktop identities already share the same name.
+const oneMail = api.upsertSender([], { desktopEntry: 'org.example.mail-a', appName: 'Mail' }, lookup);
+const oneMailNoDesktop = api.upsertSender(oneMail, { desktopEntry: '', appName: 'Mail' }, lookup);
+assert.strictEqual(oneMailNoDesktop.length, 1, 'name-only notification is associated when exactly one desktop identity owns the name');
+assert.strictEqual(oneMailNoDesktop[0].id, 'org.example.mail-a', 'the stronger desktop identity remains canonical');
+assert.strictEqual(oneMailNoDesktop[0].name, 'Mail A', 'name-only metadata does not overwrite a resolved desktop application name');
+assert.strictEqual(oneMailNoDesktop[0].desktopEntry, 'org.example.mail-a', 'name-only updates cannot erase an existing desktopEntry');
+const twoMailNoDesktop = api.upsertSender(mailBoth, { desktopEntry: '', appName: 'Mail' }, lookup);
+assert.strictEqual(twoMailNoDesktop.length, 3, 'ambiguous name-only notification remains separate from two desktop-backed apps');
+assert.strictEqual(api.isAmbiguousAppName('Mail', twoMailNoDesktop), true, 'ambiguous appName is detectable');
+assert.deepStrictEqual(Array.from(api.migrateUniqueLegacyRules(twoMailNoDesktop, ['Mail'])), ['Mail'],
+  'ambiguous legacy names are never guessed or migrated to one of several desktop IDs');
+const noDuplicateAmbiguous = api.mergeConfiguredEntries(twoMailNoDesktop, ['Mail'], []);
+assert.strictEqual(noDuplicateAmbiguous.length, 3, 'an observed ambiguous name-only sender is not duplicated by a second configured-only row');
+assert.strictEqual(api.isUniqueAppNameForDesktopEntry('Mail', 'org.example.mail-a', mailBoth), false,
+  'legacy appName does not resolve uniquely when multiple desktop IDs share it');
 
 const nameOnly = api.upsertSender([], { desktopEntry: '', appName: 'Promoted App' }, lookup);
 const promoted = api.upsertSender(nameOnly, { desktopEntry: 'org.example.promoted', appName: 'Promoted App' }, lookup);

@@ -12,14 +12,14 @@ helper = (root / 'js/notifications/NotificationDnd.js').read_text(encoding='utf-
 assert 'property var notificationHistory: []' in qml
 assert 'readonly property int notificationHistoryLimit: Math.max(1, Math.min(200, Number(Config.notificationsHistoryLimit) || 30))' in qml
 assert 'function recordNotificationHistory(notification, receivedAt)' in qml
-assert 'root.recordNotificationHistory(notification, Date.now())' in qml, 'all incoming notifications enter memory history'
+assert 'function acceptNotification(notification)' in qml and 'root.recordNotificationHistory(notification, Date.now())' in qml, 'accepted incoming notifications enter memory history'
 assert 'NotificationDnd.snapshot(notification, receivedAt || Date.now())' in qml
-assert 'slice(nextHistory.length - root.notificationHistoryLimit)' in qml
+assert 'NotificationHistory.upsertEntry(' in qml and 'slice(result.length - maxItems)' in (root / 'js/notifications/NotificationHistory.js').read_text(encoding='utf-8')
 assert 'id: historyWindow' not in qml and 'property bool historyOpen' not in qml, 'history is not a separate PanelWindow'
 assert 'property bool historyViewActive: false' in dash
 assert 'property var notificationHistoryModel: []' in dash
 assert 'История уведомлений' in dash and 'только в памяти' in dash
-assert 'model: root.notificationHistoryModel || []' in dash
+assert 'model: root.filteredNotificationHistoryModel' in dash and 'property var notificationHistoryModel: []' in dash, 'history list uses the searchable derived model'
 assert 'section.property: "appGroup"' in dash, 'history is grouped into app sections'
 assert 'notificationHistoryUnreadCount' in dash and 'История · ' in dash, 'Dashboard entry point displays unread count'
 assert 'непрочитанных' in dash, 'history header shows unread count'

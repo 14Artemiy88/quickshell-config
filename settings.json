@@ -121,9 +121,7 @@
     }
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
-  "profileOverrides": {
-    "notificationsTimeoutIndicatorColor": "#009999"
-  },
+  "profileOverrides": {},
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
     "appearance": true,

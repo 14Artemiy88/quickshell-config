@@ -42,17 +42,22 @@ Item {
     readonly property int notificationHistoryLimit: Math.max(1, Math.min(200, Number(Config.notificationsHistoryLimit) || 30))
     readonly property int notificationHistoryRetentionDays: Math.max(0, Math.min(365, Number(Config.notificationsHistoryRetentionDays) || 0))
     readonly property int dndSuppressedCount: dndMemoryHistory.length
+    readonly property bool notificationsModuleEnabled: Settings.notifications === true
     readonly property int visibleNotificationCount: visibleNotificationModel.values.length
+    // Notify(replacesId) updates an existing Notification object without emitting
+    // NotificationServer.notification again. Coalesce its property-change signals
+    // so history, sender metadata and DND are refreshed once per update batch.
+    property var pendingNotificationRefreshIds: ({})
     // Keep the layer-surface mapped for the lifetime of the Notifications module.
     // Mapping/unmapping PanelWindow for every toast triggers the compositor's
     // own window open/close fade, which is independent of the selected card style.
     // When idle the surface is reduced to 1x1 and its content is hidden.
-    readonly property bool notificationSurfaceActive: visibleNotificationCount > 0
-        || activeNotificationExitCount > 0 || layoutEditMode
+    readonly property bool notificationSurfaceActive: notificationsModuleEnabled
+        && (visibleNotificationCount > 0 || activeNotificationExitCount > 0 || layoutEditMode)
     // The tracked notification model, not retained ListView exit delegates,
     // owns the blur lifetime. delayRemove may keep an invisible delegate and
     // the PanelWindow alive for its exit motion, but must not keep the blur alive.
-    readonly property bool notificationBlurRegionActive: visibleNotificationCount > 0
+    readonly property bool notificationBlurRegionActive: notificationsModuleEnabled && visibleNotificationCount > 0
     readonly property int layoutPreviewHeight: 104
 
     function notificationTargetScreen() {
@@ -185,6 +190,14 @@ Item {
             root.suppressTrackedNotifications()
     })
 
+    Connections {
+        target: Settings
+        function onNotificationsChanged() {
+            if (!Settings.notifications)
+                root.dismissTrackedNotifications()
+        }
+    }
+
     function isNotificationSuppressed(notification) {
         return NotificationDnd.isSuppressed(notification, root.dndSuppressedNotificationIds)
     }
@@ -196,20 +209,96 @@ Item {
             function(desktopEntryId) { return DesktopEntries.byId(desktopEntryId) }
         )
         Config.notificationsSeenSenders = senders
+
+        // Upgrade old appName-based rules to the stable desktop ID as soon as
+        // the sender is observed and its name resolves to exactly one identity.
+        var allowed = NotificationAppCatalog.migrateUniqueLegacyRules(
+            senders, Config.notificationsDndAllowedApps)
+        var blocked = NotificationAppCatalog.migrateUniqueLegacyRules(
+            senders, Config.notificationsDndBlockedApps)
+        var nextAllowed = allowed.join(";")
+        var nextBlocked = blocked.join(";")
+        var rulesChanged = nextAllowed !== String(Config.notificationsDndAllowedApps || "")
+            || nextBlocked !== String(Config.notificationsDndBlockedApps || "")
+        if (nextAllowed !== String(Config.notificationsDndAllowedApps || ""))
+            Config.notificationsDndAllowedApps = nextAllowed
+        if (nextBlocked !== String(Config.notificationsDndBlockedApps || ""))
+            Config.notificationsDndBlockedApps = nextBlocked
+        if (rulesChanged) Settings.save()
     }
 
     function recordNotificationHistory(notification, receivedAt) {
         var snapshot = NotificationDnd.snapshot(notification, receivedAt || Date.now())
         if (!snapshot) return
         snapshot.unread = true
-        var nextHistory = (root.notificationHistory || []).filter(function(entry) {
-            return String(entry.id) !== String(snapshot.id)
-        })
-        nextHistory.push(snapshot)
-        if (nextHistory.length > root.notificationHistoryLimit)
-            nextHistory = nextHistory.slice(nextHistory.length - root.notificationHistoryLimit)
-        root.notificationHistory = nextHistory
+        root.notificationHistory = NotificationHistory.upsertEntry(
+            root.notificationHistory, snapshot, root.notificationHistoryLimit
+        )
         root.pruneNotificationHistory()
+    }
+
+    function findTrackedNotification(notificationId) {
+        var targetId = String(notificationId === undefined || notificationId === null ? "" : notificationId)
+        if (targetId === "") return null
+        var tracked = NotificationDnd.arrayLikeValues(notificationServer.trackedNotifications.values)
+        for (var i = 0; i < tracked.length; ++i) {
+            if (NotificationDnd.notificationId(tracked[i]) === targetId)
+                return tracked[i]
+        }
+        return null
+    }
+
+    function scheduleTrackedNotificationRefresh(notification) {
+        if (!root.notificationsModuleEnabled || !notification) return
+        var id = NotificationDnd.notificationId(notification)
+        if (id === "") return
+        var pending = Object.assign({}, root.pendingNotificationRefreshIds || ({}))
+        if (pending[id] === true) return
+        pending[id] = true
+        root.pendingNotificationRefreshIds = pending
+
+        Qt.callLater(function() {
+            var nextPending = Object.assign({}, root.pendingNotificationRefreshIds || ({}))
+            delete nextPending[id]
+            root.pendingNotificationRefreshIds = nextPending
+            if (!root.notificationsModuleEnabled) return
+
+            var current = root.findTrackedNotification(id)
+            if (!current || current.tracked !== true) return
+            root.recordNotificationSender(current)
+            root.recordNotificationHistory(current, Date.now())
+            root.reconcileDndNotifications()
+        })
+    }
+
+    function acceptNotification(notification) {
+        if (!root.notificationsModuleEnabled || !notification) return false
+        // lastGeneration notifications are intentionally adopted again after a
+        // Quickshell reload: this rebuilds the runtime sender catalog and the
+        // memory-only history from notifications that are still tracked. The
+        // history upsert is ID-based, so the same object never duplicates an entry.
+        root.recordNotificationSender(notification)
+        root.recordNotificationHistory(notification, Date.now())
+        if (NotificationDnd.shouldSuppress(
+                    notification, Config.notificationsDoNotDisturb,
+                    Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps,
+                    Config.notificationsSeenSenders))
+            root.suppressNotification(notification)
+        notification.tracked = true
+        return true
+    }
+
+    function dismissTrackedNotifications() {
+        var tracked = NotificationDnd.arrayLikeValues(notificationServer.trackedNotifications.values)
+        root.pendingNotificationRefreshIds = ({})
+        root.dndSuppressedNotificationIds = ({})
+        root.dndSuppressedRecords = []
+        root.dndMemoryHistory = []
+        for (var i = 0; i < tracked.length; ++i) {
+            var notification = tracked[i]
+            if (notification && notification.tracked)
+                notification.dismiss()
+        }
     }
 
     function clearNotificationHistory() {
@@ -303,7 +392,8 @@ Item {
             if (id === "") continue
             if (NotificationDnd.shouldSuppress(
                         notification, Config.notificationsDoNotDisturb,
-                        Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps)) {
+                        Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps,
+                        Config.notificationsSeenSenders)) {
                 root.suppressNotification(notification)
             } else {
                 visibleIds[id] = true
@@ -750,10 +840,13 @@ Item {
         return Math.max(minimumCardHeight, Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace))
     }
 
-    // Quickshell owns org.freedesktop.Notifications; stop Dunst before enabling
-    // this component to avoid a D-Bus name ownership conflict.
+    // Quickshell acquires org.freedesktop.Notifications when this process-wide
+    // bridge initializes; stop Dunst before launching Quickshell to avoid a
+    // D-Bus name ownership conflict. The module toggle does not release it.
     NotificationServer {
         id: notificationServer
+        // Quickshell re-emits live tracked notifications after a shell reload and
+        // sets lastGeneration=true; acceptNotification deliberately re-adopts them.
         keepOnReload: true
         bodySupported: true
         bodyMarkupSupported: true
@@ -762,17 +855,36 @@ Item {
         imageSupported: true
 
         onNotification: function(notification) {
-            // Learn the sender identity from the actual incoming notification.
-            // The catalog contains app metadata only and remains runtime-only.
-            root.recordNotificationSender(notification)
-            // Keep a bounded, memory-only history snapshot for every incoming item.
-            // DND never rejects the D-Bus notification; it only filters the toast.
-            root.recordNotificationHistory(notification, Date.now())
-            if (NotificationDnd.shouldSuppress(
-                        notification, Config.notificationsDoNotDisturb,
-                        Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps))
-                root.suppressNotification(notification)
-            notification.tracked = true
+            // When the module is disabled, leave the item untracked. Quickshell
+            // closes/discards it; no sender, history or popup state is created.
+            root.acceptNotification(notification)
+        }
+    }
+
+    // A freedesktop Notify call with replacesId updates the existing C++ object
+    // in-place. Quickshell emits property-change signals but not a second
+    // NotificationServer.notification signal for that update, so watch every
+    // tracked object (including DND-hidden notifications) independently of UI rows.
+    Instantiator {
+        model: notificationServer.trackedNotifications
+        delegate: Connections {
+            target: modelData
+            ignoreUnknownSignals: true
+            function onAppNameChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onDesktopEntryChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onAppIconChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onSummaryChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onBodyChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onUrgencyChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onExpireTimeoutChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onImageChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onActionsChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onHasActionIconsChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onResidentChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onTransientChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onHasInlineReplyChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onInlineReplyPlaceholderChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
+            function onHintsChanged() { root.scheduleTrackedNotificationRefresh(modelData) }
         }
     }
 

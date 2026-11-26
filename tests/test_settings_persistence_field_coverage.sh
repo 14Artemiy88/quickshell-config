@@ -48,8 +48,12 @@ legacy_animation_compatibility = {
 # settingsTabOrder is a migration-only input from old settings files. It is
 # deliberately absent from Config/defaults/runtime snapshots and is pruned on write.
 legacy_navigation_compatibility = {"settingsTabOrder"}
-not_saved = sorted(mutated - persisted - standalone_persisted - color_names - legacy_animation_compatibility - legacy_navigation_compatibility)
-not_loaded = sorted(mutated - loadable - color_names)
+# Runtime sender identities are learned from NotificationServer during the
+# current Quickshell process. Only DND rules persist; the observed catalog must
+# never be serialized into settings snapshots or profile payloads.
+runtime_only = {"notificationsSeenSenders"}
+not_saved = sorted(mutated - persisted - standalone_persisted - color_names - legacy_animation_compatibility - legacy_navigation_compatibility - runtime_only)
+not_loaded = sorted(mutated - loadable - color_names - runtime_only)
 persisted_not_loaded = sorted(persisted - loadable - color_names)
 for key in legacy_animation_compatibility:
     assert f"{key}: config.{key}" not in snapshot_body, f"legacy-only key unexpectedly returned to snapshots: {key}"
@@ -57,6 +61,7 @@ assert "settingsNavigationCollapsedGroups" in standalone_persisted, "navigation 
 assert "settingsNavigationCollapsedGroups" not in persisted, "navigation expansion leaked back into profile snapshots"
 assert "settingsNavigationOrder" in persisted, "hierarchical navigation order is missing from profile snapshots"
 assert "settingsTabOrder" not in persisted, "legacy flat navigation order leaked into profile snapshots"
+assert "notificationsSeenSenders" not in persisted and "notificationsSeenSenders" not in standalone_persisted, "runtime-only sender catalog leaked into persistent settings"
 assert not not_saved, "Settings UI fields missing from snapshots, standalone persistence or color map: " + ", ".join(not_saved)
 assert not not_loaded, "Settings UI fields missing load handling: " + ", ".join(not_loaded)
 assert not persisted_not_loaded, "Persisted settings without detected loader handling: " + ", ".join(persisted_not_loaded)

@@ -40,6 +40,7 @@ assert 'Config.notificationsDndBlockedApps = nextBlocked' in rule_function
 assert 'Config.notificationsDndBlockedApps =' not in rule_function.split('if (kind === "allowed")')[1].split('} else if (kind === "blocked")')[0], 'allow-rule toggle never writes blocked-rule setting'
 assert 'Config.notificationsDndAllowedApps =' not in rule_function.split('} else if (kind === "blocked")')[1].split('} else {')[0], 'block-rule toggle never writes allow-rule setting'
 assert 'NotificationDnd.shouldSuppress(' in qml
+assert 'Config.notificationsSeenSenders))' in qml, 'runtime DND matching receives the live sender catalog for appName ambiguity resolution'
 assert 'function reconcileDndNotifications()' in qml
 assert 'function onNotificationsDndAllowedAppsChanged()' in qml
 assert 'function onNotificationsDndBlockedAppsChanged()' in qml
@@ -51,8 +52,14 @@ node - "$ROOT" <<'JS'
 const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
-const source = fs.readFileSync(process.argv[2] + '/js/notifications/NotificationDnd.js', 'utf8').replace(/^\.pragma library\s*/m, '');
-const context = {};
+const root = process.argv[2];
+const catalogSource = fs.readFileSync(root + '/js/notifications/NotificationAppCatalog.js', 'utf8')
+  .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
+const catalogContext = vm.createContext({});
+vm.runInContext(catalogSource + '\nthis.api = { isUniqueAppNameForDesktopEntry, isAmbiguousAppName, legacyRuleIdsForDesktopEntry, legacyRuleIdsForAppName, migrateUniqueLegacyRules };', catalogContext);
+const source = fs.readFileSync(root + '/js/notifications/NotificationDnd.js', 'utf8')
+  .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
+const context = { NotificationAppCatalog: catalogContext.api };
 vm.createContext(context);
 vm.runInContext(source + '\nthis.api = { allowedAppTokens, isAllowed, shouldSuppress, visibleNotifications, notificationId };', context);
 const api = context.api;
@@ -67,6 +74,31 @@ assert.strictEqual(api.shouldSuppress({ desktopEntry: 'discord' }, true, allowed
 assert.strictEqual(api.shouldSuppress({ desktopEntry: 'firefox' }, true, allowed, ''), false, 'allowlisted apps bypass enabled DND');
 assert.strictEqual(api.shouldSuppress({ desktopEntry: 'discord' }, false, '', 'discord'), true, 'blocklisted apps are suppressed while DND is off');
 assert.strictEqual(api.shouldSuppress({ desktopEntry: 'firefox' }, false, '', 'discord'), false, 'other apps remain visible while DND is off');
+
+const mailCatalog = [
+  { id: 'org.example.mail-a', desktopEntry: 'org.example.mail-a', appName: 'Mail', appNameAliases: ['Mail'] },
+  { id: 'org.example.mail-b', desktopEntry: 'org.example.mail-b', appName: 'Mail', appNameAliases: ['Mail'] }
+];
+assert.strictEqual(api.isAllowed({ desktopEntry: 'org.example.mail-a', appName: 'Mail' }, 'org.example.mail-a', mailCatalog), true,
+  'canonical desktop ID allows only the selected app');
+assert.strictEqual(api.isAllowed({ desktopEntry: 'org.example.mail-b', appName: 'Mail' }, 'org.example.mail-a', mailCatalog), false,
+  'one desktop-entry rule never leaks to another app with the same appName');
+assert.strictEqual(api.isAllowed({ desktopEntry: 'org.example.mail-a', appName: 'Mail' }, 'Mail', mailCatalog), false,
+  'ambiguous legacy appName rule is not applied to either desktop-backed sender');
+assert.strictEqual(api.isAllowed({ desktopEntry: 'org.example.mail-a', appName: 'Mail' }, 'Mail', [mailCatalog[0]]), true,
+  'legacy appName rule remains compatible while that name uniquely identifies one sender');
+const renamedCatalog = [{ id: 'org.example.renamed', desktopEntry: 'org.example.renamed', appName: 'New Name', appNameAliases: ['Old Name', 'New Name'] }];
+assert.strictEqual(api.isAllowed({ desktopEntry: 'org.example.renamed', appName: 'New Name' }, 'Old Name', renamedCatalog), true,
+  'legacy appName rule survives an appName change while desktop ID stays stable');
+assert.strictEqual(api.isAllowed({ desktopEntry: '', appName: 'New Name' }, 'Old Name', renamedCatalog), true,
+  'name-only notification can resolve a historical alias when exactly one observed sender owns the current name');
+const nameOnly = { id: 'Mail', desktopEntry: '', appName: 'Mail', appNameAliases: ['Mail'] };
+assert.strictEqual(api.isAllowed({ desktopEntry: '', appName: 'Mail' }, 'Mail', [nameOnly]), true,
+  'appName remains the canonical fallback when the sender supplies no desktopEntry');
+assert.strictEqual(api.isAllowed({ desktopEntry: '', appName: 'Mail' }, 'Mail', mailCatalog.concat([nameOnly])), false,
+  'name-only sender becomes ambiguous when the same appName belongs to multiple identities');
+assert.strictEqual(api.shouldSuppress({ desktopEntry: 'org.example.mail-b', appName: 'Mail' }, true,
+  'org.example.mail-a', '', mailCatalog), true, 'DND runtime decision receives sender catalog for alias disambiguation');
 const tracked = [
   { id: 1, desktopEntry: 'org.telegram.desktop', appName: 'Telegram' },
   { id: 2, desktopEntry: 'firefox', appName: 'Firefox' },

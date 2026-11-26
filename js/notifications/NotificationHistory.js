@@ -37,6 +37,71 @@ function groupedEntries(history) {
     return result
 }
 
+// Filters the already grouped history model without changing its order or
+// appGroup labels, so ListView section headers and group-level actions keep
+// working while the search is active. Every query token must occur somewhere
+// across the sender, title or body fields.
+function applicationNames(history) {
+    var grouped = groupedEntries(history)
+    var names = []
+    var seen = Object.create(null)
+    for (var i = 0; i < grouped.length; ++i) {
+        var name = String(grouped[i] && grouped[i].appGroup || "").trim()
+        var key = name.toLowerCase()
+        if (name !== "" && !seen[key]) {
+            seen[key] = true
+            names.push(name)
+        }
+    }
+    return names
+}
+
+// Text search and an optional multi-application filter are combined with AND
+// semantics. The filter uses the same appGroup label as the visible sections.
+function filterEntries(entries, query, selectedApps) {
+    var source = Array.isArray(entries) ? entries : []
+    var normalized = String(query === undefined || query === null ? "" : query).trim().toLowerCase()
+    var tokens = normalized === "" ? [] : normalized.split(/\s+/).filter(function(token) { return token !== "" })
+    var selected = []
+    var appSource = Array.isArray(selectedApps) ? selectedApps : []
+    for (var s = 0; s < appSource.length; ++s) {
+        var appName = String(appSource[s] === undefined || appSource[s] === null ? "" : appSource[s]).trim().toLowerCase()
+        if (appName !== "" && selected.indexOf(appName) === -1) selected.push(appName)
+    }
+
+    return source.filter(function(entry) {
+        if (!entry) return false
+        if (selected.length > 0) {
+            var group = String(entry.appGroup || entry.appName || entry.desktopEntry || "Приложение").trim().toLowerCase()
+            if (selected.indexOf(group) === -1) return false
+        }
+        if (tokens.length === 0) return true
+        var searchable = [
+            entry.appName, entry.appGroup, entry.desktopEntry, entry.summary, entry.body
+        ].map(function(value) { return String(value || "").toLowerCase() }).join(" ")
+        for (var i = 0; i < tokens.length; ++i)
+            if (searchable.indexOf(tokens[i]) === -1) return false
+        return true
+    })
+}
+
+// Upsert a snapshot by stable notification ID. Notify(replacesId) can update
+// an existing tracked object in place, so refreshed content must replace the old
+// history snapshot instead of creating a duplicate entry.
+function upsertEntry(history, entry, limit) {
+    var source = Array.isArray(history) ? history : []
+    if (!entry || String(entry.id === undefined || entry.id === null ? "" : entry.id) === "")
+        return source.slice()
+    var id = String(entry.id)
+    var result = source.filter(function(current) {
+        return !current || String(current.id) !== id
+    })
+    result.push(entry)
+    var maxItems = Math.max(1, Math.min(200, Math.round(Number(limit) || 30)))
+    if (result.length > maxItems) result = result.slice(result.length - maxItems)
+    return result
+}
+
 function unreadCount(history) {
     var source = Array.isArray(history) ? history : []
     var count = 0

@@ -20,6 +20,7 @@ const registry = loadLibrary('js/settings/SettingsPageRegistry.js',
 const widget = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsWidget.qml'), 'utf8');
 const searchController = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsSearchController.qml'), 'utf8');
 const navigation = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsNavigationController.qml'), 'utf8');
+const pageContent = fs.readFileSync(path.join(rootDir, 'components/settings/SettingsPageContent.qml'), 'utf8');
 const definitions = Array.from(registry.tabDefinitions());
 const otherPages = Array.from(registry.otherPageDefinitions());
 const ids = definitions.map(page => page.id);
@@ -49,7 +50,11 @@ for (const page of otherPages) {
   assert.strictEqual(registry.hasOtherPageId(page.id), true, `${page.id} is an accepted route`);
   assert.deepStrictEqual(Array.from(registry.subtabsForPageId(page.id)), Array.from(page.subTabs), `${page.id} sub-tabs resolve by ID`);
   assert.strictEqual(registry.saveScopeForPageId(page.id, 0), page.saveScope, `${page.id} save scope resolves by ID`);
-  assert(sectionSources.some(source => source.includes(`currentPageId === "${page.id}"`)), `${page.id} QML component is routed by ID`);
+  const hasDirectRoute = sectionSources.some(source => source.includes(`currentPageId === "${page.id}"`));
+  const isSharedNotificationsRoute = (page.id === 'notifications' || page.id === 'notificationsDnd')
+    && pageContent.includes(`pageId: "${page.id}"`)
+    && sectionSources.some(source => source.includes('host.currentPageId === root.pageId'));
+  assert(hasDirectRoute || isSharedNotificationsRoute, `${page.id} QML component is routed by stable page ID`);
 }
 assert.strictEqual(registry.pageForId('unknown'), null, 'unknown page ID does not resolve');
 assert.strictEqual(registry.hasOtherPageId('unknown'), false, 'unknown page ID is not routable');
@@ -68,7 +73,7 @@ const resetMethods = {
   settingsWindow: 'resetSettingsWindow', mopidy: 'resetMopidySettings', launcher: 'resetLauncherSettings',
   launcherSearch: 'resetLauncherSettings', launcherTabs: 'resetLauncherSettings', launcherProjects: 'resetLauncherSettings',
   launcherActions: 'resetLauncherSettings', launcherAnimation: 'resetLauncherSettings', launcherApplications: 'resetLauncherSettings',
-  notifications: 'resetNotificationsSettings'
+  notifications: 'resetNotificationsSettings', notificationsDnd: 'resetNotificationsSettings'
 };
 for (const [pageId, method] of Object.entries(resetMethods)) {
   const calls = [];

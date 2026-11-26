@@ -23,9 +23,10 @@ grep -Fq 'label: "Радиус скругления рамки"' "$GENERAL"
 # Profiles have their own all-settings reset; don't show a redundant tab reset.
 grep -Fq 'readonly property bool currentPageResetAvailable:' "$WIDGET"
 grep -Fq '!(root.currentPageId === "general" && (root.currentPageSubTabIndex === 1 || root.currentPageSubTabIndex === 2))' "$WIDGET"
-grep -Fq 'visible: root.host && root.host.currentPageResetAvailable' "$HOST"
-grep -Fq 'root.host.currentPageSaveScope !== ""' "$HOST"
-grep -Fq 'root.host.profileController.canResetScope(root.host.currentPageSaveScope)' "$HOST"
+grep -Fq 'showResetButton: root.host && root.host.currentPageResetAvailable' "$HOST"
+grep -Fq 'SettingsPageRegistry.saveScopeForPageId(' "$WIDGET"
+grep -Fq 'profileController.canResetScope(root.currentPageSaveScope)' "$WIDGET"
+grep -Fq 'showResetButton: root.host && root.host.currentPageResetAvailable' "$HOST"
 grep -Fq 'visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && host.profileController.canResetScope("all")' "$WINDOW"
 grep -Fq 'settings.resetAllSettings()' "$WINDOW"
 

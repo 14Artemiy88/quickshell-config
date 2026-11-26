@@ -10,6 +10,7 @@ Row {
     // Exposes the visual row label to nested searchable controls without
     // turning this layout container into a search result itself.
     readonly property string settingsSearchRowLabel: root.label
+    property int settingsSearchSubTabIndex: -1
     property real labelWidth: 210
     property real labelFontSize: 11
     // Keep the legacy 30px label box centered inside taller rows.

@@ -21,12 +21,14 @@ ShellRoot {
     Component.onCompleted: storageCleanupProcess.running = true
     Clock { id: clock; active: Settings.loaded && (Settings.time || shell.dashboardVisible || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
     SystemMonitor { id: monitor }
-    // Instantiate the D-Bus notification server only after settings have loaded
-    // and only while the Notifications module is enabled. Deactivating the Loader
-    // destroys NotificationServer and releases org.freedesktop.Notifications.
+    // Keep the NotificationServer QML bridge alive for the whole shell session.
+    // Quickshell 0.3.1 backs it with a process-wide C++ singleton that keeps
+    // org.freedesktop.Notifications registered even if this Loader is destroyed.
+    // Settings.notifications therefore gates receipt/presentation inside the
+    // component; it cannot hand the D-Bus name to another daemon at runtime.
     Loader {
         id: notificationsModuleLoader
-        active: Settings.loaded && Settings.notifications
+        active: Settings.loaded
         sourceComponent: Component { NotificationComponents.Notifications {} }
         onLoaded: {
             item.layoutEditor = moduleLayoutEditorWindow

@@ -36,14 +36,17 @@ Column {
         if (changed) root.settings.save()
     }
 
-    function setDndApplicationRule(kind, appIds, enabled) {
+    function setDndApplicationRule(kind, appIds, enabled, legacyAliases) {
         var identities = root.normalizedDndRuleIds(appIds)
+        var aliases = root.normalizedDndRuleIds(legacyAliases)
         if (identities.length === 0) return
 
         // Each column owns an independent persisted list. Do not rewrite the
         // other property when one rule is toggled.
         if (kind === "allowed") {
             var allowed = root.normalizedDndRuleIds(Config.notificationsDndAllowedApps)
+            for (var a = 0; a < aliases.length; ++a)
+                allowed = LauncherAppPreferences.setId(allowed, aliases[a], false)
             for (var i = 0; i < identities.length; ++i)
                 allowed = LauncherAppPreferences.setId(allowed, identities[i], enabled)
             var nextAllowed = allowed.join(";")
@@ -51,6 +54,8 @@ Column {
             Config.notificationsDndAllowedApps = nextAllowed
         } else if (kind === "blocked") {
             var blocked = root.normalizedDndRuleIds(Config.notificationsDndBlockedApps)
+            for (var b = 0; b < aliases.length; ++b)
+                blocked = LauncherAppPreferences.setId(blocked, aliases[b], false)
             for (var j = 0; j < identities.length; ++j)
                 blocked = LauncherAppPreferences.setId(blocked, identities[j], enabled)
             var nextBlocked = blocked.join(";")
@@ -102,6 +107,12 @@ Column {
         root.dndShowAllApplications)
     readonly property int dndApplicationRowCount: Array.isArray(root.dndApplicationRows)
         ? root.dndApplicationRows.length : 0
+    // Catalog-wide counters do not depend on the current query, Show All state,
+    // or the 40-row search cap, so the overview always describes the whole list.
+    readonly property var dndCatalogSummary: NotificationAppCatalog.summarizeSenders(
+        Config.notificationsSeenSenders || [],
+        root.normalizedDndRuleIds(Config.notificationsDndAllowedApps),
+        root.normalizedDndRuleIds(Config.notificationsDndBlockedApps))
 
     readonly property bool dndPage: root.pageId === "notificationsDnd" && host && host.currentPageId === root.pageId
     readonly property int dndSubTab: host ? host.currentPageSubTabIndex : 0
@@ -132,6 +143,7 @@ Column {
             settingsSearchId: "notifications-do-not-disturb"
             settingsSearchLabel: "Не беспокоить: скрывать всплывающие уведомления"
             settingsSearchKeywords: "уведомления режим тишина dnd do not disturb подавлять скрывать без звука"
+            settingsSearchSubTabIndex: 0
             onToggled: {
                 Config.notificationsDoNotDisturb = checked
                 root.settings.save()
@@ -155,6 +167,7 @@ Column {
 
         SettingsRow {
             visible: root.dndSubTab === 2
+            settingsSearchSubTabIndex: 2
             width: parent.width
             height: 30
             spacing: 8
@@ -166,6 +179,9 @@ Column {
                 width: 100
                 height: 30
                 value: Config.notificationsHistoryLimit
+                settingsSearchId: "notifications-history-limit"
+                settingsSearchLabel: "Размер истории уведомлений"
+                settingsSearchKeywords: "история уведомлений память количество записей лимит очистка хранение"
                 minimum: 1
                 maximum: 200
                 step: 1
@@ -198,6 +214,7 @@ Column {
         }
         SettingsRow {
             visible: root.dndSubTab === 2
+            settingsSearchSubTabIndex: 2
             width: parent.width
             height: 30
             spacing: 8
@@ -209,6 +226,9 @@ Column {
                 width: 100
                 height: 30
                 value: Config.notificationsHistoryRetentionDays
+                settingsSearchId: "notifications-history-retention"
+                settingsSearchLabel: "Срок хранения истории уведомлений"
+                settingsSearchKeywords: "история уведомлений срок возраст дней автоматическое удаление очистка памяти"
                 minimum: 0
                 maximum: 365
                 step: 1
@@ -250,6 +270,27 @@ Column {
             wrapMode: Text.WordWrap
         }
 
+        Text {
+            visible: root.dndSubTab === 1
+            width: parent.width
+            text: {
+                var stats = root.dndCatalogSummary || ({})
+                var firstLine = "Отправителей: " + (stats.senderCount || 0)
+                    + " · С правилами: " + (stats.senderWithRulesCount || 0)
+                    + " · Без правил: " + (stats.senderWithoutRulesCount || 0)
+                var secondLine = "Игнор DND: " + (stats.ignoreDndCount || 0)
+                    + " · Отключить: " + (stats.disabledOutsideDndCount || 0)
+                    + " · Ранее настроено: " + (stats.savedOnlyCount || 0)
+                if ((stats.unresolvedCount || 0) > 0)
+                    secondLine += " · Неоднозначные: " + stats.unresolvedCount
+                return firstLine + "\n" + secondLine
+            }
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: Config.settingsUiSize(8)
+            wrapMode: Text.WordWrap
+        }
+
         Row {
             visible: root.dndSubTab === 1
             width: parent.width
@@ -261,6 +302,10 @@ Column {
                 height: 30
                 text: root.dndApplicationSearch
                 placeholderText: "Найти отправителя уведомлений…"
+                settingsSearchId: "notifications-dnd-sender-search"
+                settingsSearchLabel: "Поиск отправителя для правил DND"
+                settingsSearchKeywords: "не беспокоить исключения разрешить подавить приложение отправитель уведомлений поиск dnd"
+                settingsSearchSubTabIndex: 1
                 color: Config.text
                 font.family: Config.settingsFont
                 font.pixelSize: Config.settingsUiSize(10)
@@ -272,6 +317,10 @@ Column {
                 width: 118
                 height: 30
                 text: "Показать все"
+                settingsSearchId: "notifications-dnd-show-all"
+                settingsSearchLabel: "Показать все известные отправители уведомлений"
+                settingsSearchKeywords: "не беспокоить список отправители полный каталог все приложения show all"
+                settingsSearchSubTabIndex: 1
                 labelFontSize: 9
                 checked: root.dndShowAllApplications
                 ToolTip.visible: pointerHovered
@@ -356,22 +405,40 @@ Column {
                         width: 82
                         height: 30
                         indicatorOnly: true
+                        settingsSearchSubTabIndex: 1
+                        settingsSearchId: "notifications-dnd-ignore-" + String(modelData.id || modelData.name || "sender")
+                        settingsSearchLabel: "Игнор DND — " + String(modelData.name || modelData.id || "приложение")
+                        settingsSearchKeywords: String(modelData.comment || "") + " разрешить уведомления при включённом DND исключение"
                         checked: modelData.allowed
+                        enabled: modelData.unusableRule !== true
                         ToolTip.visible: pointerHovered
-                        ToolTip.text: "Игнорировать общий режим DND для этого приложения: показывать его уведомления, даже когда DND включён."
+                        ToolTip.text: modelData.unusableRule
+                            ? "Нельзя однозначно определить отправителя: уведомление не содержит desktopEntry, а appName совпадает с другим приложением."
+                            : (modelData.allowed
+                                ? "Игнор DND включён: уведомления приложения показываются при активном DND."
+                                : "Игнор DND выключен: при активном DND уведомления приложения подавляются.")
                         ToolTip.delay: 450
-                        onToggled: root.setDndApplicationRule("allowed", modelData.ruleIds || [modelData.id], checked)
+                        onToggled: root.setDndApplicationRule("allowed", modelData.ruleIds || [modelData.id], checked, modelData.legacyRuleIds || [])
                     }
                     SettingsCheckBox {
                         visible: modelData.kind !== "category"
                         width: 82
                         height: 30
                         indicatorOnly: true
+                        settingsSearchSubTabIndex: 1
+                        settingsSearchId: "notifications-dnd-disable-" + String(modelData.id || modelData.name || "sender")
+                        settingsSearchLabel: "Отключить — " + String(modelData.name || modelData.id || "приложение")
+                        settingsSearchKeywords: String(modelData.comment || "") + " подавлять уведомления при выключенном DND блокировка"
                         checked: modelData.blocked
+                        enabled: modelData.unusableRule !== true
                         ToolTip.visible: pointerHovered
-                        ToolTip.text: "Отключить всплывающие уведомления этого приложения, когда общий режим DND выключен."
+                        ToolTip.text: modelData.unusableRule
+                            ? "Нельзя однозначно определить отправителя: уведомление не содержит desktopEntry, а appName совпадает с другим приложением."
+                            : (modelData.blocked
+                                ? "Отключено: всплывающие уведомления приложения подавляются при выключенном DND."
+                                : "Включите, чтобы подавлять всплывающие уведомления приложения при выключенном DND.")
                         ToolTip.delay: 450
-                        onToggled: root.setDndApplicationRule("blocked", modelData.ruleIds || [modelData.id], checked)
+                        onToggled: root.setDndApplicationRule("blocked", modelData.ruleIds || [modelData.id], checked, modelData.legacyRuleIds || [])
                     }
                     SettingsResetButton {
                         visible: modelData.kind !== "category"
@@ -443,7 +510,7 @@ settingsSearchSubTabIndex: 0
 
         Text {
             width: parent.width
-            text: "Сервер уведомлений работает, пока модуль включён в разделе «Модули». Здесь настраиваются тайм-ауты и содержимое карточек."
+            text: "Модуль управляет приёмом и показом карточек. В Quickshell 0.3.1 служба org.freedesktop.Notifications имеет процессный жизненный цикл: выключение модуля скрывает карточки и отклоняет новые уведомления, но не освобождает D-Bus-имя. Чтобы передать его другому серверу уведомлений, нужно завершить Quickshell."
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: Config.settingsUiSize(10)
@@ -471,6 +538,9 @@ settingsSearchSubTabIndex: 0
                 width: 100
                 height: 30
                 value: Math.round(Config.notificationsDefaultTimeout / 1000)
+                settingsSearchId: "notifications-default-timeout"
+                settingsSearchLabel: "Время показа обычных уведомлений"
+                settingsSearchKeywords: "уведомления автоматическое закрытие длительность секунды таймер timeout"
                 minimum: 0
                 maximum: 120
                 step: 1
@@ -499,6 +569,9 @@ settingsSearchSubTabIndex: 0
                 width: 100
                 height: 30
                 value: Math.round(Config.notificationsCriticalTimeout / 1000)
+                settingsSearchId: "notifications-critical-timeout"
+                settingsSearchLabel: "Время показа критических уведомлений"
+                settingsSearchKeywords: "уведомления критические срочные автоматическое закрытие длительность секунды таймер timeout urgency"
                 minimum: 0
                 maximum: 120
                 step: 1
@@ -529,6 +602,9 @@ settingsSearchSubTabIndex: 0
             width: parent.width
             height: 28
             text: "Показывать время до закрытия"
+            settingsSearchId: "notifications-timeout-indicator-visible"
+            settingsSearchLabel: "Показывать индикатор оставшегося времени уведомления"
+            settingsSearchKeywords: "уведомления таймер обратный отсчёт полоса рамка progress countdown"
             checked: Config.notificationsShowTimeoutIndicator
             onToggled: { Config.notificationsShowTimeoutIndicator = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowTimeoutIndicatorChanged() { notificationsShowTimeoutIndicatorCheck.checked = Config.notificationsShowTimeoutIndicator } }
@@ -645,6 +721,9 @@ settingsSearchSubTabIndex: 1
 
             SettingsNumberField {
                 value: Config.notificationsCardSpacing
+                settingsSearchId: "notifications-card-spacing"
+                settingsSearchLabel: "Расстояние между карточками уведомлений"
+                settingsSearchKeywords: "уведомления интервалы отступ промежуток расстояние карточки stack"
                 minimum: 0
                 maximum: 32
                 step: 1
@@ -669,6 +748,9 @@ settingsSearchSubTabIndex: 1
 
             SettingsNumberField {
                 value: Config.notificationsImageHeight
+                settingsSearchId: "notifications-image-height"
+                settingsSearchLabel: "Максимальная высота изображения в уведомлении"
+                settingsSearchKeywords: "уведомления изображение картинка фото превью высота body image"
                 minimum: 0
                 maximum: 320
                 step: 8
@@ -700,6 +782,9 @@ settingsSearchSubTabIndex: 1
             width: parent.width
             height: 28
             text: "Показывать иконку приложения"
+            settingsSearchId: "notifications-show-app-icon"
+            settingsSearchLabel: "Показывать иконку приложения в уведомлении"
+            settingsSearchKeywords: "уведомления иконка значок приложение app icon leading visual"
             checked: Config.notificationsShowAppIcon
             onToggled: { Config.notificationsShowAppIcon = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowAppIconChanged() { notificationsShowAppIconCheck.checked = Config.notificationsShowAppIcon } }
@@ -709,6 +794,9 @@ settingsSearchSubTabIndex: 1
             width: parent.width
             height: 28
             text: "Показывать изображения в сообщениях"
+            settingsSearchId: "notifications-show-body-images"
+            settingsSearchLabel: "Показывать изображения в тексте уведомления"
+            settingsSearchKeywords: "уведомления изображения фотографии картинки вложения body image preview"
             checked: Config.notificationsShowBodyImages
             onToggled: { Config.notificationsShowBodyImages = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowBodyImagesChanged() { notificationsShowBodyImagesCheck.checked = Config.notificationsShowBodyImages } }
@@ -718,6 +806,9 @@ settingsSearchSubTabIndex: 1
             width: parent.width
             height: 28
             text: "Показывать индикатор прогресса"
+            settingsSearchId: "notifications-show-progress"
+            settingsSearchLabel: "Показывать индикатор прогресса уведомления"
+            settingsSearchKeywords: "уведомления progress bar прогресс загрузка процент progress hint"
             checked: Config.notificationsShowProgress
             onToggled: { Config.notificationsShowProgress = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowProgressChanged() { notificationsShowProgressCheck.checked = Config.notificationsShowProgress } }
@@ -730,6 +821,7 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsLeadingVisualSize"] })
         heading: "Заголовок и иконка"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
 
@@ -737,6 +829,9 @@ settingsSearchSubTabIndex: 1
             width: parent.width
             height: 30
             label: "Шрифт заголовка"
+            settingsSearchId: "notifications-summary-font"
+            settingsSearchLabel: "Шрифт заголовка уведомления"
+            settingsSearchKeywords: "уведомления заголовок summary title typography семейство гарнитура font"
             value: Config.notificationsSummaryFont
             targetObject: Config
             targetProperty: "notificationsSummaryFont"
@@ -758,6 +853,9 @@ settingsSearchSubTabIndex: 1
                 width: 100
                 height: 30
                 value: Config.notificationsSummaryFontSize
+                settingsSearchId: "notifications-summary-font-size"
+                settingsSearchLabel: "Размер заголовка уведомления"
+                settingsSearchKeywords: "уведомления заголовок summary title размер кегль px"
                 minimum: 8
                 maximum: 32
                 step: 1
@@ -777,6 +875,9 @@ settingsSearchSubTabIndex: 1
         SettingsColorField {
             width: parent.width
             label: "Цвет заголовка"
+            settingsSearchId: "notifications-summary-color"
+            settingsSearchLabel: "Цвет заголовка уведомления"
+            settingsSearchKeywords: "уведомления заголовок summary title цвет текста typography"
             value: String(Config.notificationsSummaryColor || Config.text)
             targetObject: Config
             targetProperty: "notificationsSummaryColor"
@@ -800,6 +901,9 @@ settingsSearchSubTabIndex: 1
                 width: 100
                 height: 30
                 value: Config.notificationsLeadingVisualSize
+                settingsSearchId: "notifications-leading-visual-size"
+                settingsSearchLabel: "Размер иконки или аватара уведомления"
+                settingsSearchKeywords: "уведомления иконка аватар изображение размер ведущий элемент leading visual"
                 minimum: 24
                 maximum: 72
                 step: 2
@@ -833,6 +937,7 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold"] })
         heading: "Название приложения"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
 
@@ -840,6 +945,9 @@ settingsSearchSubTabIndex: 1
             width: parent.width
             height: 30
             label: "Шрифт названия"
+            settingsSearchId: "notifications-app-name-font"
+            settingsSearchLabel: "Шрифт названия приложения в уведомлении"
+            settingsSearchKeywords: "уведомления приложение имя app name source label font шрифт"
             value: Config.notificationsAppNameFont
             targetObject: Config
             targetProperty: "notificationsAppNameFont"
@@ -856,6 +964,9 @@ settingsSearchSubTabIndex: 1
             labelElide: Text.ElideRight
             SettingsNumberField {
                 width: 100; height: 30; value: Config.notificationsAppNameFontSize
+                settingsSearchId: "notifications-app-name-font-size"
+                settingsSearchLabel: "Размер названия приложения в уведомлении"
+                settingsSearchKeywords: "уведомления приложение имя app name source размер кегль"
                 minimum: 8; maximum: 24; step: 1; wheelStep: 1; decimals: 0
                 compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "notificationsAppNameFontSize"
@@ -865,6 +976,9 @@ settingsSearchSubTabIndex: 1
         SettingsColorField {
             width: parent.width
             label: "Цвет названия"
+            settingsSearchId: "notifications-app-name-color"
+            settingsSearchLabel: "Цвет названия приложения в уведомлении"
+            settingsSearchKeywords: "уведомления приложение имя app name источник цвет текста"
             value: String(Config.notificationsAppNameColor || Config.text)
             targetObject: Config; targetProperty: "notificationsAppNameColor"
             settingsObject: root.settings; saveOnEdit: true
@@ -874,6 +988,9 @@ settingsSearchSubTabIndex: 1
         SettingsCheckBox {
             width: parent.width; height: 28
             text: "Полужирное начертание"
+            settingsSearchId: "notifications-app-name-bold"
+            settingsSearchLabel: "Полужирное название приложения в уведомлении"
+            settingsSearchKeywords: "уведомления приложение имя app name жирный bold начертание вес шрифта"
             checked: Config.notificationsAppNameBold
             onToggled: { Config.notificationsAppNameBold = checked; root.settings.save() }
         }
@@ -892,6 +1009,7 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsLeadingVisualRadius"] })
         heading: "Скругление иконки / аватара"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
         SettingsRow {
@@ -899,6 +1017,9 @@ settingsSearchSubTabIndex: 1
             label: "Радиус скругления"; labelWidth: 220; labelElide: Text.ElideRight
             SettingsNumberField {
                 width: 100; height: 30; value: Config.notificationsLeadingVisualRadius
+                settingsSearchId: "notifications-leading-visual-radius"
+                settingsSearchLabel: "Скругление углов иконки или аватара"
+                settingsSearchKeywords: "уведомления иконка аватар радиус скругление corners border radius rounded"
                 minimum: 0; maximum: 36; step: 1; wheelStep: 1; decimals: 0
                 compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "notificationsLeadingVisualRadius"
@@ -915,6 +1036,7 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsCardPadding"] })
         heading: "Внутренние отступы карточки"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
         SettingsRow {
@@ -922,6 +1044,9 @@ settingsSearchSubTabIndex: 1
             label: "Отступ от краёв"; labelWidth: 220; labelElide: Text.ElideRight
             SettingsNumberField {
                 width: 100; height: 30; value: Config.notificationsCardPadding
+                settingsSearchId: "notifications-card-padding"
+                settingsSearchLabel: "Внутренние отступы карточки уведомления"
+                settingsSearchKeywords: "уведомления карточка padding внутренний отступ поля расстояние до краёв"
                 minimum: 0; maximum: 32; step: 1; wheelStep: 1; decimals: 0
                 compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "notificationsCardPadding"
@@ -937,6 +1062,7 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor"] })
         heading: "Основной текст уведомления"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
         SettingsFontField {
@@ -960,6 +1086,9 @@ settingsSearchSubTabIndex: 1
             label: "Размер текста"; labelWidth: 220; labelElide: Text.ElideRight
             SettingsNumberField {
                 width: 100; height: 30; value: Config.notificationsBodyFontSize
+                settingsSearchId: "notifications-body-font-size"
+                settingsSearchLabel: "Размер основного текста уведомления"
+                settingsSearchKeywords: "уведомления текст сообщения body размер кегль шрифт"
                 minimum: 8; maximum: 32; step: 1; wheelStep: 1; decimals: 0
                 compact: true; fieldWidth: 100; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly
                 targetObject: Config; targetProperty: "notificationsBodyFontSize"
@@ -967,7 +1096,10 @@ settingsSearchSubTabIndex: 1
             }
         }
         SettingsColorField {
-            width: parent.width; label: "Цвет текста"
+            label: "Цвет текста"
+            settingsSearchId: "notifications-body-color"
+            settingsSearchLabel: "Цвет основного текста уведомления"
+            settingsSearchKeywords: "уведомления текст сообщения body цвет шрифт typography"
             value: String(Config.notificationsBodyColor || Config.text)
             targetObject: Config; targetProperty: "notificationsBodyColor"
             settingsObject: root.settings; saveOnEdit: true
@@ -984,12 +1116,16 @@ settingsSearchSubTabIndex: 1
         settings: root.settings
         changeKeys: ({ keys: ["notificationsBackgroundColor"] })
         heading: "Фон уведомлений"
+        settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
 
         SettingsColorField {
             width: parent.width
             label: "Цвет и прозрачность"
+            settingsSearchId: "notifications-background-color"
+            settingsSearchLabel: "Цвет и прозрачность фона уведомлений"
+            settingsSearchKeywords: "уведомления карточка фон background прозрачность alpha цвет заливка"
             value: String(Config.notificationsBackgroundColor)
             targetObject: Config
             targetProperty: "notificationsBackgroundColor"
@@ -1036,6 +1172,9 @@ settingsSearchSubTabIndex: 2
                 height: 30
                 model: ["Сверху", "Снизу"]
                 currentIndex: Config.notificationsVerticalAnchor === "bottom" ? 1 : 0
+                settingsSearchId: "notifications-vertical-anchor"
+                settingsSearchLabel: "Вертикальная привязка уведомлений к краю экрана"
+                settingsSearchKeywords: "уведомления расположение экран монитор сверху снизу top bottom position anchor"
                 onItemChosen: index => root.settings.setNotificationsVerticalAnchor(index === 1 ? "bottom" : "top")
             }
         }
@@ -1047,6 +1186,13 @@ settingsSearchSubTabIndex: 2
         settings: root.settings
         heading: "Переходы карточек уведомлений"
         detailsHeading: "Параметры переходов"
+        settingsSearchSubTabIndex: 3
+        profileSearchId: "notifications-animation-profile"
+        profileSearchLabel: "Профиль анимации уведомлений"
+        profileSearchKeywords: "анимация уведомления кривая плавность выразительность spatial effects expressive standard none"
+        durationSearchId: "notifications-animation-duration"
+        durationSearchLabel: "Длительность анимации уведомлений"
+        durationSearchKeywords: "анимация уведомления переход миллисекунды скорость длительность duration motion"
         changeKeys: ({ keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] })
         duration: Config.animationNotificationsMorphDuration
         durationLabel: "Длительность (мс)"
@@ -1088,6 +1234,9 @@ settingsSearchSubTabIndex: 2
                     property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]
                     model: ["Нет", "Плавное затухание", "Слева", "Справа", "Сверху", "Снизу"]
                     currentIndex: Math.max(0, values.indexOf(Config.animationNotificationsVisibilityStyle))
+                    settingsSearchId: "notifications-animation-visibility-style"
+                    settingsSearchLabel: "Направление и стиль появления уведомлений"
+                    settingsSearchKeywords: "уведомления анимация появление исчезновение направление нет fade slide слева справа сверху снизу"
                     onItemChosen: function(index) {
                         if (index >= 0 && index < values.length) {
                             Config.animationNotificationsVisibilityStyle = values[index]

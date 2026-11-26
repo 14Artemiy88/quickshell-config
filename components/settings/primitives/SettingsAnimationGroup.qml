@@ -13,6 +13,14 @@ Column {
     // Reserve that space inside the clipped MorphGeometry so the legend is not cropped.
     property real detailsTopInset: Math.ceil(Config.settingsUiSize(11) / 2) + 3
     property var changeKeys: null
+    // Optional global-settings-search metadata for the two shared controls.
+    property int settingsSearchSubTabIndex: -1
+    property string profileSearchId: ""
+    property string profileSearchLabel: ""
+    property string profileSearchKeywords: ""
+    property string durationSearchId: ""
+    property string durationSearchLabel: ""
+    property string durationSearchKeywords: ""
 
     property real duration: 180
     property string durationLabel: "Длительность (мс)"
@@ -61,6 +69,9 @@ Column {
                 property var values: root.profileValues
                 model: root.profileLabels
                 currentIndex: Math.max(0, values.indexOf(root.profile))
+                settingsSearchId: root.profileSearchId
+                settingsSearchLabel: root.profileSearchLabel
+                settingsSearchKeywords: root.profileSearchKeywords
                 onItemChosen: function(index) {
                     if (index >= 0 && index < values.length)
                         root.profileEdited(values[index])
@@ -129,6 +140,9 @@ Column {
                     fieldWidth: 100
                     fieldFontSize: 11
                     inputMethodHints: Qt.ImhDigitsOnly
+                    settingsSearchId: root.durationSearchId
+                    settingsSearchLabel: root.durationSearchLabel
+                    settingsSearchKeywords: root.durationSearchKeywords
                     valueWriter: function(value) {
                         root.durationEdited(value)
                     }

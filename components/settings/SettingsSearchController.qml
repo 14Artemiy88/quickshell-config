@@ -102,7 +102,7 @@ Item {
     }
 
     function settingsSearchSubTabIndex(item, pageRoot) {
-        var current = item ? item.parent : null
+        var current = item || null
         while (current && current !== pageRoot) {
             if (current.settingsSearchSubTabIndex !== undefined) {
                 var index = Number(current.settingsSearchSubTabIndex)

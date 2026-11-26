@@ -26,7 +26,7 @@ const notificationSource = fs.readFileSync(root + '/js/notifications/Notificatio
 const catalogSource = fs.readFileSync(root + '/js/notifications/NotificationAppCatalog.js', 'utf8')
   .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
 const catalogContext = vm.createContext({});
-vm.runInContext(catalogSource + '\nthis.api = { valuesOf, cleanText, normalized, copyStrings, desktopEntrySnapshot, makeSenderEntry, upsertSender, ruleIds, matchesAnyRule, normalizeDndRuleIds, mergeConfiguredEntries };', catalogContext);
+vm.runInContext(catalogSource + '\nthis.api = { valuesOf, cleanText, normalized, copyStrings, desktopEntrySnapshot, makeSenderEntry, upsertSender, ruleIds, canonicalRuleIds, uniqueLegacyRuleIds, uniqueRuleIds, matchesAnyRule, isAmbiguousAppName, normalizeDndRuleIds, mergeConfiguredEntries };', catalogContext);
 const notificationContext = vm.createContext({ LauncherAppSearch: launcherContext.api, NotificationAppCatalog: catalogContext.api });
 vm.runInContext(notificationSource + '\nthis.api = { buildRows };', notificationContext);
 const buildRows = notificationContext.api.buildRows;
@@ -112,12 +112,39 @@ const favoriteMatches = ids(buildRows(entries, [], [], 't', 40, true, ['org.tele
 assert.strictEqual(favoriteMatches[0], 'org.telegram.desktop',
   'Launcher favorites are pinned ahead of score-ranked search results');
 
+
+const sameNameEntries = [
+  { id: 'org.example.mail-a', desktopEntry: 'org.example.mail-a', appName: 'Mail', name: 'Mail A', genericName: 'Mail', comment: 'Sender A' },
+  { id: 'org.example.mail-b', desktopEntry: 'org.example.mail-b', appName: 'Mail', name: 'Mail B', genericName: 'Mail', comment: 'Sender B' }
+];
+const sameNameRows = buildRows(sameNameEntries, ['Mail'], [], '', 40, true, [], true);
+const mailARow = sameNameRows.find(row => row.id === 'org.example.mail-a');
+const mailBRow = sameNameRows.find(row => row.id === 'org.example.mail-b');
+const ambiguousLegacyRow = sameNameRows.find(row => row.id === 'Mail');
+assert.strictEqual(mailARow.allowed, false, 'ambiguous appName rule does not check the first desktop-backed row');
+assert.strictEqual(mailBRow.allowed, false, 'ambiguous appName rule does not check the second desktop-backed row');
+assert.deepStrictEqual(Array.from(mailARow.ruleIds), ['org.example.mail-a'], 'DND checkbox writes only the canonical desktop ID');
+assert.strictEqual(mailARow.legacyRuleIds.length, 0, 'shared appName aliases are excluded from migration actions');
+assert.strictEqual(ambiguousLegacyRow.unusableRule, true, 'ambiguous alias row is marked unsafe');
+const ambiguousNameOnly = { id: 'Mail', desktopEntry: '', appName: 'Mail', name: 'Mail', comment: '', genericName: '', keywords: [], categories: [] };
+const nameOnlyRows = buildRows(sameNameEntries.concat([ambiguousNameOnly]), ['Mail'], [], '', 40, true, [], false);
+const ambiguousNameOnlyRow = nameOnlyRows.find(row => row.id === 'Mail');
+assert(ambiguousNameOnlyRow && ambiguousNameOnlyRow.unusableRule, 'an observed name-only sender with colliding desktop IDs remains a visible but disabled configured row');
+assert.strictEqual(nameOnlyRows.filter(row => row.id === 'Mail').length, 1, 'ambiguous name-only rule is not duplicated by a configured-only placeholder');
+const uniqueLegacyRows = buildRows([sameNameEntries[0]], ['Mail'], [], '', 40, true, []);
+assert.strictEqual(uniqueLegacyRows[0].allowed, true, 'unique legacy appName alias remains checked');
+assert.deepStrictEqual(Array.from(uniqueLegacyRows[0].ruleIds), ['org.example.mail-a'], 'unique legacy alias migrates toward canonical desktop ID');
+assert.deepStrictEqual(Array.from(uniqueLegacyRows[0].legacyRuleIds), ['Mail'], 'only the unique legacy alias is removed when the canonical rule is toggled');
 const section = fs.readFileSync(root + '/components/settings/sections/SettingsNotificationsSection.qml', 'utf8');
 assert(section.includes('NotificationAppSearch.buildRows('), 'DND app list uses its row builder');
 assert(section.includes('Config.notificationsSeenSenders || []'), 'DND app search uses only the runtime observed-sender catalog');
 assert(!section.includes('DesktopEntries.applications.values'), 'DND does not browse the whole installed catalog');
 assert(section.includes('Config.launcherFuzzySearchApps !== false'), 'DND follows the Launcher fuzzy-search setting');
 assert(section.includes('LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps || [])'), 'DND follows Launcher favorite ordering');
+assert(section.includes('function setDndApplicationRule(kind, appIds, enabled, legacyAliases)'), 'DND rule edits distinguish canonical IDs from legacy appName aliases');
+assert(section.includes('LauncherAppPreferences.setId(allowed, aliases[a], false)'), 'allow-rule toggle removes only uniquely mapped legacy aliases before writing canonical IDs');
+assert(section.includes('LauncherAppPreferences.setId(blocked, aliases[b], false)'), 'block-rule toggle removes only uniquely mapped legacy aliases before writing canonical IDs');
+assert(section.includes('enabled: modelData.unusableRule !== true'), 'ambiguous name-only senders cannot receive an unsafe rule');
 assert(!section.includes('Config.launcherHiddenApps'), 'DND does not inherit Launcher-only hidden-app preferences');
 assert(section.includes('onTextEdited: root.dndApplicationSearch = text'), 'search uses direct user-edit events');
 assert(section.includes('property bool dndShowAllApplications: false'), 'show-all starts disabled by default');

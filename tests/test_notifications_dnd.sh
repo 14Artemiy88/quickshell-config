@@ -46,9 +46,14 @@ node - "$ROOT" <<'JS'
 const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
-const source = fs.readFileSync(process.argv[2] + '/js/notifications/NotificationDnd.js', 'utf8')
-  .replace(/^\.pragma library\s*/m, '');
-const context = {};
+const root = process.argv[2];
+const catalogSource = fs.readFileSync(root + '/js/notifications/NotificationAppCatalog.js', 'utf8')
+  .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
+const catalogContext = vm.createContext({});
+vm.runInContext(catalogSource + '\nthis.api = { isUniqueAppNameForDesktopEntry, isAmbiguousAppName, legacyRuleIdsForDesktopEntry, legacyRuleIdsForAppName, migrateUniqueLegacyRules };', catalogContext);
+const source = fs.readFileSync(root + '/js/notifications/NotificationDnd.js', 'utf8')
+  .replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/gm, '');
+const context = { NotificationAppCatalog: catalogContext.api };
 vm.createContext(context);
 vm.runInContext(source + '\nthis.api = { notificationId, isSuppressed, visibleNotifications, snapshot, trackedIdSet, pruneSuppressedIds, pruneRecords, dueRecords };', context);
 const api = context.api;

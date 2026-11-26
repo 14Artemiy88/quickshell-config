@@ -27,12 +27,13 @@ const defaults = {
   modules:{time:true,calendar:true}, geometry:{time:[1,2,300,60]},
   colors:{accent:'#00cccc',text:'#ffffff'},
   settingsNavigationOrder:{
-    groupOrder:['appearance','modules','dashboard','launcher','general'],
+    groupOrder:['appearance','modules','dashboard','launcher','notifications','general'],
     pagesByGroup:{
       appearance:['themes','settingsWindow'],
-      modules:['modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'],
+      modules:['modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar'],
       dashboard:['dashboard'],
       launcher:['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],
+      notifications:['notifications','notificationsDnd'],
       general:['general']
     }
   }

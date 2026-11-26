@@ -108,7 +108,8 @@ const popupWindowBlock = notifications.slice(notifications.indexOf('PanelWindow 
 assert(!popupWindowBlock.includes('anchors.right:') && popupWindowBlock.includes('anchors.bottom:') && !notifications.includes('Config.notificationsPosition') && !notifications.includes('Config.notificationsOffsetX') && !notifications.includes('Config.notificationsOffsetY'), 'runtime supports only vertical top/bottom anchoring, not horizontal corner anchoring');
 assert(notifications.includes('notificationTargetScreen()'), 'notification window resolves its target monitor like other modules');
 assert(notifications.includes('migrateLegacyNotificationCoordinates'), 'old corner settings are converted once to absolute coordinates');
-assert(shellHasNotificationLoader(read('shell.qml')), 'notification server loader follows module enable after settings load');
+assert(shellHasNotificationLoader(read('shell.qml')), 'notification server bridge remains loaded after settings initialize because the D-Bus owner is process-wide');
+assert(notifications.includes('notificationsModuleEnabled: Settings.notifications === true') && notifications.includes('root.dismissTrackedNotifications()'), 'module toggle gates notifications inside the component and dismisses existing cards');
 assert(read('shell.qml').includes('NotificationComponents.Notifications {}'), 'loader constructs the native notification component');
 assert(!widget.includes('notificationsMargin'), 'legacy margin is absent from Notifications Appearance dirty tracking');
 assert(section.includes('onNotificationsShowAppIconChanged()') && section.includes('onNotificationsShowBodyImagesChanged()') && section.includes('onNotificationsShowProgressChanged()'), 'display toggles stay synchronized when settings profiles switch');
@@ -123,7 +124,8 @@ assert(section.includes('heading: "Заголовок и иконка"') && sect
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');
 
 function shellHasNotificationLoader(source) {
-  return source.includes('active: Settings.loaded && Settings.notifications');
+  return /Loader\s*\{\s*id: notificationsModuleLoader\s*active: Settings\.loaded/.test(source)
+    && source.includes('process-wide C++ singleton');
 }
 function load(relative, exportLine) {
   const source = read(relative).replace(/^\.pragma library\s*$/gm, '').replace(/^\.import .*$/gm, '');

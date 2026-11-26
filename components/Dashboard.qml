@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import ".."
 import "../js/dashboard/DashboardCards.js" as DashboardCards
 import "../js/dashboard/DashboardAnimation.js" as DashboardAnimation
+import "../js/notifications/NotificationHistory.js" as NotificationHistory
 import "../js/player/PlayerImage.js" as PlayerImage
 
 PanelWindow {
@@ -14,6 +15,12 @@ PanelWindow {
     property bool open: false
     property bool historyViewActive: false
     property var notificationHistoryModel: []
+    property string notificationHistorySearchText: ""
+    property var notificationHistorySelectedApps: []
+    readonly property var notificationHistoryAppOptions: NotificationHistory.applicationNames(root.notificationHistoryModel)
+    readonly property var filteredNotificationHistoryModel: NotificationHistory.filterEntries(
+        root.notificationHistoryModel, root.notificationHistorySearchText, root.notificationHistorySelectedApps
+    )
     property int notificationHistoryLimit: 30
     property int notificationHistoryRetentionDays: 0
     property bool historyClearConfirmationPending: false
@@ -28,6 +35,39 @@ PanelWindow {
     property real layoutDragPressX: 0
     property real layoutDragPressY: 0
     readonly property string configuredMonitorName: String((Settings.moduleMonitors || {}).dashboard || Config.monitorName || "")
+
+    function isHistoryAppSelected(appName) {
+        var target = String(appName || "").trim().toLowerCase()
+        var selected = Array.isArray(root.notificationHistorySelectedApps) ? root.notificationHistorySelectedApps : []
+        for (var i = 0; i < selected.length; ++i)
+            if (String(selected[i] || "").trim().toLowerCase() === target) return true
+        return false
+    }
+
+    function setHistoryAppSelected(appName, checked) {
+        var target = String(appName || "").trim()
+        var key = target.toLowerCase()
+        if (key === "") return
+        var selected = Array.isArray(root.notificationHistorySelectedApps)
+            ? root.notificationHistorySelectedApps.slice() : []
+        var next = []
+        var found = false
+        for (var i = 0; i < selected.length; ++i) {
+            var current = String(selected[i] || "").trim()
+            if (current.toLowerCase() === key) {
+                found = true
+                if (checked) next.push(current)
+            } else if (current !== "") {
+                next.push(current)
+            }
+        }
+        if (checked && !found) next.push(target)
+        root.notificationHistorySelectedApps = next
+    }
+
+    function clearHistoryAppFilters() {
+        root.notificationHistorySelectedApps = []
+    }
 
     function resolveDashboardScreen() {
         var wanted = String(root.configuredMonitorName || "").trim().toLowerCase()
@@ -2662,10 +2702,215 @@ PanelWindow {
         }
         Text {
             Layout.fillWidth: true
-            text: root.notificationHistoryModel.length + " уведомлений · " + root.notificationHistoryUnreadCount + " непрочитанных · лимит " + root.notificationHistoryLimit + " · срок " + (root.notificationHistoryRetentionDays > 0 ? root.notificationHistoryRetentionDays + " дн." : "без ограничения") + " · только в памяти"
+            text: (root.notificationHistorySearchText.trim().length > 0 || root.notificationHistorySelectedApps.length > 0)
+                ? root.filteredNotificationHistoryModel.length + " из " + root.notificationHistoryModel.length + " уведомлений найдено · " + root.notificationHistoryUnreadCount + " непрочитанных · фильтр приложений: " + root.notificationHistorySelectedApps.length + " · только в памяти"
+                : root.notificationHistoryModel.length + " уведомлений · " + root.notificationHistoryUnreadCount + " непрочитанных · лимит " + root.notificationHistoryLimit + " · срок " + (root.notificationHistoryRetentionDays > 0 ? root.notificationHistoryRetentionDays + " дн." : "без ограничения") + " · только в памяти"
             color: Config.textMuted
             font.family: Config.settingsFont
             font.pixelSize: 9
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            TextField {
+                id: historySearchField
+                Layout.fillWidth: true
+                Layout.preferredHeight: 32
+                text: root.notificationHistorySearchText
+                placeholderText: "Поиск по приложению, заголовку или тексту уведомления…"
+                placeholderTextColor: Config.textMuted
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: Config.settingsUiSize(11)
+                selectByMouse: true
+                activeFocusOnTab: true
+                Accessible.name: "Поиск по истории уведомлений"
+                background: Rectangle {
+                    color: Config.settingsBackground
+                    border.color: historySearchField.activeFocus ? Config.accent : Config.baseColor
+                    border.width: 1
+                    radius: 5
+                }
+                onTextChanged: root.notificationHistorySearchText = text
+            }
+            Rectangle {
+                id: historyAppFilterButton
+                Layout.preferredWidth: root.notificationHistorySelectedApps.length > 0 ? 112 : 102
+                Layout.preferredHeight: 32
+                radius: 5
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: root.notificationHistorySelectedApps.length > 0
+                    ? "Фильтр приложений, выбрано: " + root.notificationHistorySelectedApps.length
+                    : "Фильтр приложений, все приложения"
+                Accessible.description: "Открыть список приложений для фильтрации истории"
+                color: historyAppFilterMouse.containsMouse || activeFocus || historyAppFilterPopup.visible
+                    ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.16)
+                    : Config.settingsBackground
+                border.color: historyAppFilterMouse.containsMouse || activeFocus || historyAppFilterPopup.visible
+                    ? Config.accent : Config.settingsBorder
+                border.width: 1
+                Text {
+                    anchors.centerIn: parent
+                    width: parent.width - 10
+                    text: root.notificationHistorySelectedApps.length > 0
+                        ? "Приложения · " + root.notificationHistorySelectedApps.length + " ▾"
+                        : "Приложения ▾"
+                    color: Config.text
+                    font.family: Config.settingsFont
+                    font.pixelSize: 9
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                }
+                MouseArea {
+                    id: historyAppFilterMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: historyAppFilterPopup.open()
+                }
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        event.accepted = true
+                        if (historyAppFilterPopup.visible) historyAppFilterPopup.close()
+                        else historyAppFilterPopup.open()
+                    }
+                }
+                ToolTip.visible: historyAppFilterMouse.containsMouse || activeFocus
+                ToolTip.text: root.notificationHistorySelectedApps.length > 0
+                    ? "История от выбранных приложений: " + root.notificationHistorySelectedApps.join(", ")
+                    : "Показать историю выбранных приложений"
+            }
+            Popup {
+                id: historyAppFilterPopup
+                parent: Overlay.overlay
+                x: {
+                    // Overlay.overlay is null briefly while Dashboard is being
+                    // constructed or detached from its window. Popup geometry
+                    // bindings must tolerate that initial lifecycle phase.
+                    var overlayItem = Overlay.overlay
+                    var anchorItem = historyAppFilterButton
+                    if (!overlayItem || !anchorItem) return 8
+                    var point = anchorItem.mapToItem(overlayItem, 0, 0)
+                    if (!point) return 8
+                    return Math.max(8, Math.min(point.x + anchorItem.width - width, overlayItem.width - width - 8))
+                }
+                y: {
+                    var overlayItem = Overlay.overlay
+                    var anchorItem = historyAppFilterButton
+                    if (!overlayItem || !anchorItem) return 8
+                    var point = anchorItem.mapToItem(overlayItem, 0, anchorItem.height)
+                    if (!point) return 8
+                    return Math.max(8, Math.min(point.y, overlayItem.height - height - 8))
+                }
+                width: Math.min(300, dashboardHistoryContent.width)
+                height: Math.min(330, Math.max(92, historyAppFilterList.contentHeight + 64))
+                padding: 8
+                modal: false
+                focus: true
+                closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+                background: Rectangle {
+                    color: Config.settingsBackground
+                    border.color: Config.settingsBorder
+                    border.width: 1
+                    radius: 7
+                }
+                contentItem: ColumnLayout {
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: "Фильтр по приложениям"
+                            color: Config.text
+                            font.family: Config.settingsFont
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                        Rectangle {
+                            id: historyAppFilterResetButton
+                            Layout.preferredWidth: 56
+                            Layout.preferredHeight: 23
+                            radius: 4
+                            activeFocusOnTab: true
+                            Accessible.role: Accessible.Button
+                            Accessible.name: "Сбросить фильтр приложений"
+                            color: historyAppFilterResetMouse.containsMouse || activeFocus ? Config.accent : "transparent"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "Сбросить"
+                                color: historyAppFilterResetMouse.containsMouse || historyAppFilterResetButton.activeFocus ? Config.black : Config.textMuted
+                                font.family: Config.settingsFont
+                                font.pixelSize: 9
+                            }
+                            MouseArea {
+                                id: historyAppFilterResetMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.clearHistoryAppFilters()
+                            }
+                            Keys.onPressed: function(event) {
+                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                    event.accepted = true
+                                    root.clearHistoryAppFilters()
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Config.settingsBorder }
+                    ListView {
+                        id: historyAppFilterList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: 1
+                        model: historyAppFilterPopup.visible ? root.notificationHistoryAppOptions : []
+                        delegate: CheckBox {
+                            id: historyAppFilterCheckBox
+                            required property string modelData
+                            width: historyAppFilterList.width
+                            height: 27
+                            text: modelData
+                            checked: root.isHistoryAppSelected(modelData)
+                            onToggled: root.setHistoryAppSelected(modelData, checked)
+                            indicator: Rectangle {
+                                implicitWidth: 15
+                                implicitHeight: 15
+                                x: historyAppFilterCheckBox.leftPadding
+                                y: historyAppFilterCheckBox.height / 2 - height / 2
+                                radius: 3
+                                color: historyAppFilterCheckBox.checked ? Config.accent : Config.baseColor
+                                border.color: historyAppFilterCheckBox.checked ? Config.accent : Config.settingsBorder
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: historyAppFilterCheckBox.checked ? "✓" : ""
+                                    color: Config.black
+                                    font.pixelSize: 10
+                                    font.bold: true
+                                }
+                            }
+                            contentItem: Text {
+                                text: historyAppFilterCheckBox.text
+                                color: historyAppFilterCheckBox.checked ? Config.text : Config.textMuted
+                                font.family: Config.settingsFont
+                                font.pixelSize: 10
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: historyAppFilterCheckBox.indicator.width + historyAppFilterCheckBox.spacing
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+                    Text {
+                        visible: root.notificationHistoryAppOptions.length === 0
+                        Layout.fillWidth: true
+                        text: "В истории пока нет приложений"
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: 9
+                    }
+                }
+            }
         }
         ListView {
             id: dashboardHistoryList
@@ -2675,7 +2920,7 @@ PanelWindow {
             focus: root.historyViewActive
             activeFocusOnTab: true
             spacing: 7
-            model: root.notificationHistoryModel || []
+            model: root.filteredNotificationHistoryModel
             section.property: "appGroup"
             section.criteria: ViewSection.FullString
             section.delegate: Rectangle {
@@ -2735,8 +2980,10 @@ PanelWindow {
                     }
                     ToolTip.visible: historyGroupDeleteMouse.containsMouse || activeFocus
                     ToolTip.text: root.historyGroupDeleteConfirmationPending === String(section)
-                        ? "Удалить все уведомления этой группы? Нажмите ещё раз для подтверждения"
-                        : "Удалить всю историю этого приложения"
+                        ? "Удалить всю историю этой группы? Нажмите ещё раз для подтверждения"
+                        : (root.notificationHistorySearchText.trim().length > 0 || root.notificationHistorySelectedApps.length > 0
+                            ? "Удалить всю историю приложения, включая записи вне текущих фильтров"
+                            : "Удалить всю историю этого приложения")
                 }
                 Text {
                     anchors.left: parent.left
@@ -2858,8 +3105,12 @@ PanelWindow {
             }
             Text {
                 anchors.centerIn: parent
-                visible: root.notificationHistoryModel.length === 0
-                text: "История пока пуста"
+                visible: root.filteredNotificationHistoryModel.length === 0
+                text: root.notificationHistorySearchText.trim().length > 0
+                    ? "Ничего не найдено"
+                    : (root.notificationHistorySelectedApps.length > 0
+                        ? "Нет уведомлений для выбранных приложений"
+                        : "История пока пуста")
                 color: Config.textMuted
                 font.family: Config.settingsFont
                 font.pixelSize: 12
