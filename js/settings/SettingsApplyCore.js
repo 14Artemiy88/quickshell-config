@@ -1,8 +1,8 @@
 .pragma library
 
 .import "SettingsSchema.js" as Schema
-var SETTINGS_TAB_IDS = ["modules", "time", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "settingsWindow"]
-var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"})
+var SETTINGS_TAB_IDS = ["modules", "time", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "notificationsDnd", "settingsWindow"]
+var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", notificationsDnd:"Не беспокоить", settingsWindow:"Окно настроек"})
 
 function normalizeSettingsLastActivePageId(value) {
     var pageId = typeof value === "string" ? value.trim() : ""
@@ -10,12 +10,13 @@ function normalizeSettingsLastActivePageId(value) {
 }
 
 function fallbackNavigationOrder(source) {
-    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
+    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "notifications", "general"]
     var defaults = {
         appearance: ["themes", "settingsWindow"],
-        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+        notifications: ["notifications", "notificationsDnd"],
         general: ["general"]
     }
     var input = source && typeof source === "object" && !Array.isArray(source) ? source : {}
@@ -160,6 +161,17 @@ function apply(owner, Config, o) {
         if (o.settingsNavigationCollapsedGroups !== undefined)
             Config.settingsNavigationCollapsedGroups = Schema.normalizeSettingsNavigationCollapsedGroups(
                 o.settingsNavigationCollapsedGroups, Config.settingsNavigationCollapsedGroups)
+        if (o.notificationsDoNotDisturb !== undefined) Config.notificationsDoNotDisturb = o.notificationsDoNotDisturb === true
+        if (o.notificationsDndAllowedApps !== undefined) Config.notificationsDndAllowedApps = String(o.notificationsDndAllowedApps || "").slice(0, 4096)
+        if (o.notificationsDndBlockedApps !== undefined) Config.notificationsDndBlockedApps = String(o.notificationsDndBlockedApps || "").slice(0, 4096)
+        if (o.notificationsHistoryLimit !== undefined) {
+            var notificationHistoryLimit = Number(o.notificationsHistoryLimit)
+            if (isFinite(notificationHistoryLimit)) Config.notificationsHistoryLimit = Math.max(1, Math.min(200, Math.round(notificationHistoryLimit)))
+        }
+        if (o.notificationsHistoryRetentionDays !== undefined) {
+            var notificationHistoryRetentionDays = Number(o.notificationsHistoryRetentionDays)
+            if (isFinite(notificationHistoryRetentionDays)) Config.notificationsHistoryRetentionDays = Math.max(0, Math.min(365, Math.round(notificationHistoryRetentionDays)))
+        }
         if (o.notificationsDefaultTimeout !== undefined) {
             var notificationTimeout = Number(o.notificationsDefaultTimeout)
             if (isFinite(notificationTimeout)) Config.notificationsDefaultTimeout = Math.max(0, Math.min(120000, Math.round(notificationTimeout)))

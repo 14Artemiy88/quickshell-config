@@ -23,7 +23,7 @@ const Registry = require(process.argv[2]);
 const Search = require(process.argv[3]);
 const controller = fs.readFileSync(process.argv[4], 'utf8');
 const pages = Registry.pageMetadataCatalog();
-assert.strictEqual(pages.length, 23, 'all pages participate in synonym search');
+assert.strictEqual(pages.length, 24, 'all pages participate in synonym search');
 
 const entries = [];
 let subtabCount = 0;
@@ -55,7 +55,7 @@ for (const page of pages) {
     subtabCount++;
   }
 }
-assert.strictEqual(subtabCount, 65, 'all existing subtabs expose targeted synonyms');
+assert.strictEqual(subtabCount, 68, 'all existing subtabs expose targeted synonyms');
 assert.ok(keywordPageCount >= 90, 'page synonym catalogue has broad coverage');
 
 function ids(query) { return Search.search(entries, query, 50).map(item => item.id); }

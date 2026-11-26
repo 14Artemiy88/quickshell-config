@@ -17,7 +17,7 @@ function loadLibrary(relativePath, appended = '') {
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
   'this.api = { normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
-const ids = ['modules','time','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','settingsWindow'];
+const ids = ['modules','time','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
 // Keep all duplicated registries aligned so a future tab cannot accidentally
@@ -48,7 +48,7 @@ assert.deepStrictEqual(widgetIds, ids, 'sidebar definitions match normalized tab
 const otherIds = otherPages.map(page => page.id);
 assert.deepStrictEqual(otherIds.slice().sort(), ids.filter(id => id !== 'modules' && id !== 'themes').slice().sort(), 'every non-core tab has exactly one content route');
 assert.deepStrictEqual(otherPages.map(page => page.id), otherIds, 'page metadata order matches route order');
-assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['clock','dashboard','general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications'], 'page save scopes remain aligned with their stable IDs');
+assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['clock','dashboard','general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications','notifications'], 'page save scopes remain aligned with their stable IDs');
 for (let i = 0; i < otherPages.length; i++)
   assert.strictEqual(registrySource.api.saveScopeForPageId(otherPages[i].id, 0), otherPages[i].saveScope, `page ${otherPages[i].id} resolves its own save scope`);
 assert(otherPages.every(page => Array.isArray(page.subTabs)), 'each registered page declares its subtab list');
@@ -96,10 +96,12 @@ const profiles = loadLibrary('js/settings/SettingsProfiles.js', 'this.api = { sa
 const defaultHierarchy = registrySource.api.defaultNavigationOrder();
 const cloneHierarchy = value => JSON.parse(JSON.stringify(value));
 const customHierarchy = cloneHierarchy(defaultHierarchy);
-customHierarchy.pagesByGroup.modules = ['weather','modules','calendar','timers','player','mopidy','cava','cpuRam','network','volume','notifications','time'];
+customHierarchy.pagesByGroup.modules = ['weather','modules','calendar','timers','player','mopidy','cava','cpuRam','network','volume','time'];
+customHierarchy.pagesByGroup.notifications = ['notificationsDnd','notifications'];
 customHierarchy.pagesByGroup.appearance = ['settingsWindow','themes'];
 const alternateHierarchy = cloneHierarchy(defaultHierarchy);
-alternateHierarchy.pagesByGroup.modules = ['player','modules','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications'];
+alternateHierarchy.pagesByGroup.modules = ['player','modules','timers','mopidy','weather','cava','cpuRam','network','volume','calendar'];
+alternateHierarchy.pagesByGroup.notifications = ['notificationsDnd','notifications'];
 const defaultLabels = JSON.parse(JSON.stringify(defaults));
 const owner = {
   profileDefaults: { settingsNavigationOrder: cloneHierarchy(defaultHierarchy), settingsTabLabels: defaultLabels },

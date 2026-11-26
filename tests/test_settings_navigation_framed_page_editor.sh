@@ -47,19 +47,20 @@ assert(pageEditor.includes('settingsSearchSubTabIndex: 2'), 'each framed editor 
 
 const defaultOrder = registry.defaultNavigationOrder();
 const customOrder = {
-  groupOrder: ['general', 'launcher', 'dashboard', 'modules', 'appearance'],
+  groupOrder: ['general', 'launcher', 'dashboard', 'modules', 'appearance', 'notifications'],
   pagesByGroup: JSON.parse(JSON.stringify(defaultOrder.pagesByGroup))
 };
-customOrder.pagesByGroup.modules = ['weather', 'modules', 'time', 'timers', 'player', 'mopidy', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'];
+customOrder.pagesByGroup.modules = ['weather', 'modules', 'time', 'timers', 'player', 'mopidy', 'cava', 'cpuRam', 'network', 'volume', 'calendar'];
+customOrder.pagesByGroup.notifications = ['notifications', 'notificationsDnd'];
 customOrder.pagesByGroup.appearance = ['settingsWindow', 'themes'];
 const labels = { general: 'Мои настройки', dashboard: 'Обзор', weather: 'Прогноз' };
 const groups = Array.from(registry.navigationGroupsForOrder(customOrder, labels));
 assert.deepStrictEqual(groups.map(group => group.id), customOrder.groupOrder,
   'framed editor follows the current frame order');
-assert.strictEqual(groups.length, 5, 'all five frames remain independently represented');
+assert.strictEqual(groups.length, 6, 'all six frames remain independently represented');
 const allIds = groups.flatMap(group => group.items.map(item => item.id));
-assert.strictEqual(allIds.length, 23, 'all 23 settings pages are represented');
-assert.strictEqual(new Set(allIds).size, 23, 'no page is duplicated across frames');
+assert.strictEqual(allIds.length, 24, 'all 24 settings pages are represented');
+assert.strictEqual(new Set(allIds).size, 24, 'no page is duplicated across frames');
 for (const group of groups) {
   assert(group.items.length >= 1, `${group.id} frame is not empty`);
   assert(group.items.every(item => item.groupId === group.id), `${group.id} editor contains only its own pages`);
@@ -74,7 +75,7 @@ assert.strictEqual(groups.find(group => group.id === 'dashboard').items[0].label
   'singleton Dashboard remains editable inside its own frame');
 assert.strictEqual(groups.find(group => group.id === 'modules').items[0].label, 'Прогноз',
   'page labels remain editable without affecting frame membership');
-console.log('Settings framed page editor: five frames, 23 unique pages, local order, singleton frames and editable labels: OK');
+console.log('Settings framed page editor: six frames, 24 unique pages, local order, singleton frames and editable labels: OK');
 NODE
 
 echo 'settings framed page editor: OK'

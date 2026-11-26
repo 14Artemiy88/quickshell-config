@@ -242,8 +242,25 @@ ShellRoot {
         playerSource: playerWidget
         weatherSource: weatherLoader.item
         monitorSource: monitor
+        notificationHistoryModel: notificationsModuleLoader.item ? notificationsModuleLoader.item.notificationHistoryGrouped : []
+        notificationHistoryUnreadCount: notificationsModuleLoader.item ? notificationsModuleLoader.item.notificationHistoryUnreadCount : 0
+        notificationHistoryLimit: Config.notificationsHistoryLimit
+        notificationHistoryRetentionDays: Config.notificationsHistoryRetentionDays
         onCloseRequested: shell.dashboardVisible = false
         onSettingsRequested: shell.settingsVisible = true
+        onHistoryRequested: {
+            if (notificationsModuleLoader.item) notificationsModuleLoader.item.markNotificationHistoryRead()
+            dashboardPanel.historyViewActive = true
+        }
+        onHistoryClearRequested: {
+            if (notificationsModuleLoader.item) notificationsModuleLoader.item.clearNotificationHistory()
+        }
+        onHistoryEntryDeleteRequested: function(entryId) {
+            if (notificationsModuleLoader.item) notificationsModuleLoader.item.removeNotificationHistoryEntry(entryId)
+        }
+        onHistoryGroupDeleteRequested: function(appGroup) {
+            if (notificationsModuleLoader.item) notificationsModuleLoader.item.removeNotificationHistoryGroup(appGroup)
+        }
     }
 
     IpcHandler {

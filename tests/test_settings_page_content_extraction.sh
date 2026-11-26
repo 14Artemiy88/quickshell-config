@@ -31,7 +31,7 @@ const mopidyPage = fs.readFileSync(path.join(root, 'components/settings/pages/Se
 const searchController = fs.readFileSync(path.join(root, 'components/settings/SettingsSearchController.qml'), 'utf8');
 const navigationController = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const pageSources = content + playerPage + mopidyPage;
-for (const page of ['modules','themes','calendar','weather','general','player','mopidy','cava','cpuRam','network','volume','timers','launcher','settingsWindow','notifications']) {
+for (const page of ['modules','themes','calendar','weather','general','player','mopidy','cava','cpuRam','network','volume','timers','launcher','settingsWindow','notifications','notificationsDnd']) {
   assert(pageSources.includes(`settings-search-page:${page}`), `${page} search root remains discoverable`);
 }
 const navigation = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');

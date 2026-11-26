@@ -24,12 +24,12 @@ function collectQml(dir) {
 }
 const content = collectQml(componentsPath);
 
-assert.strictEqual(groups.length, 5, 'Settings should keep five top-level navigation groups');
+assert.strictEqual(groups.length, 6, 'Settings should keep six top-level navigation groups');
 assert.strictEqual(JSON.stringify(groups.map(item => item.id)), JSON.stringify([
-  'appearance', 'modules', 'dashboard', 'launcher', 'general'
+  'appearance', 'modules', 'dashboard', 'launcher', 'notifications', 'general'
 ]), 'top-level group IDs/order are stable');
-assert.strictEqual(tabs.length, 23, 'all 23 settings pages are registered');
-assert.strictEqual(otherPages.length, 21, '21 pages use the shared SettingsPageHost registry');
+assert.strictEqual(tabs.length, 24, 'all 24 settings pages are registered');
+assert.strictEqual(otherPages.length, 22, '22 pages use the shared SettingsPageHost registry');
 
 const groupIds = new Set(groups.map(item => item.id));
 assert.strictEqual(groupIds.size, groups.length, 'navigation group IDs are unique');
@@ -38,7 +38,8 @@ assert.strictEqual(tabIds.size, tabs.length, 'settings page IDs are unique');
 
 const expectedGroupPages = {
   appearance: ['themes', 'settingsWindow'],
-  modules: ['modules', 'time', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
+  modules: ['modules', 'time', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar'],
+  notifications: ['notifications', 'notificationsDnd'],
   dashboard: ['dashboard'],
   launcher: ['launcher', 'launcherSearch', 'launcherTabs', 'launcherProjects', 'launcherActions', 'launcherAnimation', 'launcherApplications'],
   general: ['general']
@@ -69,13 +70,13 @@ for (const page of otherPages) {
   assert.strictEqual(registry.saveScopeForPageId(page.id, 0), page.saveScope,
     `${page.id} routes its first subtab to the declared save scope`);
 }
-assert.strictEqual(subTabCount, 65, 'all 65 registered subtabs are accounted for');
+assert.strictEqual(subTabCount, 68, 'all 68 registered subtabs are accounted for');
 assert.ok(content.includes('settings-search-page:modules'), 'Modules special page is in search tree');
 assert.ok(content.includes('settings-search-page:themes'), 'Themes special page is in search tree');
 assert.strictEqual(registry.saveScopeForPageId('general', 1), '',
   'General profile/storage subtabs do not expose a scoped save/reset action');
 
-console.log('settings page registry: 5 groups, 23 pages, 21 shared page routes, 65 subtabs: OK');
+console.log('settings page registry: 6 groups, 24 pages, 22 shared page routes, 68 subtabs: OK');
 NODE
 
 echo 'settings page registry catalogue: OK'

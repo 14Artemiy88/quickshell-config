@@ -122,13 +122,14 @@
   },
   "settingsPersistenceFormat": "profile-overrides-v1",
   "profileOverrides": {
-    "mopidyQueueDurationX": 0
+    "notificationsTimeoutIndicatorColor": "#009999"
   },
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
     "appearance": true,
-    "modules": false,
-    "launcher": true
+    "modules": true,
+    "launcher": true,
+    "notifications": false
   },
-  "settingsLastActivePageId": "mopidy"
+  "settingsLastActivePageId": "notificationsDnd"
 }

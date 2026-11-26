@@ -134,6 +134,14 @@ Item {
             SettingsNotificationsSection {
                 id: notificationsSectionSettingsSection
                 objectName: "settings-search-page:notifications"
+                pageId: "notifications"
+                host: root.host
+                settings: root.settings
+            }
+            SettingsNotificationsSection {
+                id: notificationsDndSectionSettingsSection
+                objectName: "settings-search-page:notificationsDnd"
+                pageId: "notificationsDnd"
                 host: root.host
                 settings: root.settings
             }

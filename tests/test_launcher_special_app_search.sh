@@ -5,12 +5,19 @@ MODULE="$ROOT/js/launcher/LauncherAppSearch.js"
 APP_MODEL="$ROOT/components/launcher/models/AppModel.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 
-node - "$MODULE" <<'JS'
+node - "$MODULE" "$ROOT/js/utils/ApplicationSearch.js" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
-const api = vm.runInThisContext(source + '\n({ parseSpecialQuery, scoreEntry })');
+const layoutSource = fs.readFileSync(process.argv[4], 'utf8').replace(/^\.pragma library\s*/, '');
+const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
+const helperSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const helperContext = vm.createContext({ KeyboardLayout });
+vm.runInContext(helperSource + '\nthis.api = { searchValue, fuzzyScoreCore, fuzzyScoreNative, fuzzyScore, valuesOf };', helperContext);
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const appContext = vm.createContext({ ApplicationSearch: helperContext.api });
+vm.runInContext(source + '\nthis.api = { parseSpecialQuery, scoreEntry, scoreApplication };', appContext);
+const api = appContext.api;
 
 const fuzzy = (value, query) => {
   value = String(value ?? '').toLowerCase();
@@ -65,6 +72,8 @@ assert.strictEqual(api.scoreEntry(app, api.parseSpecialQuery('@c'), fuzzy), -1, 
 assert.strictEqual(api.parseSpecialQuery('@cat firefox'), null, 'selector codes require a whitespace boundary');
 assert.strictEqual(api.parseSpecialQuery('@x firefox'), null, 'unknown selector codes stay ordinary search');
 assert.strictEqual(api.parseSpecialQuery('firefox'), null, 'ordinary queries are not special searches');
+assert(api.scoreApplication(app, '@i org.example', true) >= 0, 'canonical app scorer routes metadata selectors through special search');
+assert.strictEqual(api.scoreApplication(app, '@c', true), -1, 'canonical app scorer hides empty special-selector results');
 
 // QML list-like fields may not be native arrays; searchValue must still read them.
 const listLike = { 0: 'Graphics', 1: 'Utility', length: 2 };
@@ -79,7 +88,7 @@ app_model = Path(sys.argv[1]).read_text()
 launcher = Path(sys.argv[2]).read_text()
 assert 'LauncherAppSearch.js' in app_model
 assert 'readonly property var specialSearch: LauncherAppSearch.parseSpecialQuery(root.query)' in app_model
-assert 'LauncherAppSearch.scoreEntry(' in app_model
+assert 'LauncherAppSearch.scoreApplication(' in app_model
 assert 'if (appModel.specialSearch)\n            return results' in launcher
 assert 'appModel.specialSearch.query' in launcher
 expected_hints = '@i ID\\n@c category\\n@d description\\n@e command\\n@w WM_CLASS\\n@g generic name\\n@k keywords\\n@t apps inside terminal'

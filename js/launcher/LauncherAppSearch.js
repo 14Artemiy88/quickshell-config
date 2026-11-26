@@ -1,6 +1,6 @@
 .pragma library
 
-.import "LauncherKeyboardLayout.js" as KeyboardLayout
+.import "../utils/ApplicationSearch.js" as ApplicationSearch
 
 // Caelestia-inspired special application-search prefixes. These selectors
 // only change which DesktopEntry metadata is searched; they never alter how
@@ -41,25 +41,7 @@ function parseSpecialQuery(value) {
 }
 
 function searchValue(value) {
-    if (value === undefined || value === null)
-        return ""
-    if (typeof value === "string")
-        return value
-
-    // Qt list properties may cross the QML/JS boundary as list-like values
-    // rather than native arrays. Read them by length instead of relying on
-    // Array.isArray or an Array prototype from a particular JS realm.
-    if (typeof value.length === "number" && isFinite(value.length)) {
-        var parts = []
-        for (var i = 0; i < value.length; ++i) {
-            var part = value[i]
-            if (part !== undefined && part !== null)
-                parts.push(String(part))
-        }
-        return parts.join(" ")
-    }
-
-    return String(value)
+    return ApplicationSearch.searchValue(value)
 }
 
 function scoreEntry(entry, specialQuery, fuzzyScore) {
@@ -82,65 +64,168 @@ function scoreEntry(entry, specialQuery, fuzzyScore) {
     return fieldScore * 0.9 + (nameScore >= 0 ? nameScore * 0.1 : 0)
 }
 
-// Shared App search scorer. Disabling fuzzy mode still allows exact, prefix,
-// and contiguous substring matches; only subsequence/gapped matching is removed.
-function fuzzyScoreCore(text, query, fuzzyEnabled) {
-    text = String(text === undefined || text === null ? "" : text).toLowerCase().trim()
-    query = String(query === undefined || query === null ? "" : query).toLowerCase().trim()
-
-    if (query === "")
-        return 0
-    if (text === query)
-        return 10000
-    if (text.startsWith(query))
-        return 9000 - text.length
-    if (text.includes(query))
-        return 8000 - text.indexOf(query)
-
-    if (fuzzyEnabled === false)
+// The canonical application scorer used by Launcher AppModel. Keep matching
+// semantics here so every app picker (including DND rules) ranks and filters
+// applications exactly like the Launcher Apps tab.
+function scoreApplication(entry, queryValue, fuzzyEnabled) {
+    if (!entry)
         return -1
 
-    let score = 0
-    let position = 0
-    let firstMatch = -1
-    let previousMatch = -1
-
-    for (let i = 0; i < query.length; ++i) {
-        const character = query[i]
-        const found = text.indexOf(character, position)
-        if (found === -1)
+    var specialQuery = parseSpecialQuery(queryValue)
+    if (specialQuery) {
+        if (!specialQuery.query)
             return -1
-        if (firstMatch === -1)
-            firstMatch = found
-        if (previousMatch >= 0) {
-            const gap = found - previousMatch - 1
-            if (gap === 0)
-                score += 500
-            else
-                score += Math.max(0, 200 - gap * 30)
-        }
-        if (found === 0 || text[found - 1] === " " || text[found - 1] === "-" || text[found - 1] === "_" || text[found - 1] === ".")
-            score += 300
-        score += Math.max(0, 200 - found * 10)
-        previousMatch = found
-        position = found + 1
+        return scoreEntry(entry, specialQuery, function(searchText, searchQuery) {
+            return fuzzyScore(searchText, searchQuery, fuzzyEnabled)
+        })
     }
 
-    score += Math.max(0, 100 - text.length)
+    var query = String(queryValue === undefined || queryValue === null ? "" : queryValue)
+        .toLowerCase().trim()
+    if (query === "")
+        return 0
+
+    var score = -1
+
+    // Name is the primary search field. These offsets intentionally mirror
+    // the original AppModel.qml implementation.
+    score = Math.max(score, fuzzyScore(entry.name, query, fuzzyEnabled))
+    score = Math.max(score, fuzzyScore(entry.genericName, query, fuzzyEnabled) - 100)
+    score = Math.max(score, fuzzyScore(entry.comment, query, fuzzyEnabled) - 200)
+
+    var keywords = valuesOf(entry.keywords)
+    for (var i = 0; i < keywords.length; ++i)
+        score = Math.max(score, fuzzyScore(keywords[i], query, fuzzyEnabled) - 150)
+
     return score
 }
 
-function valuesOf(value) {
-    if (Array.isArray(value))
-        return value
-    if (typeof value === "string")
-        return value.trim() ? [value] : []
-    if (!value || typeof value.length !== "number" || !isFinite(value.length))
+// Canonical Launcher application-list builder. AppModel and secondary app
+// pickers call this complete pipeline rather than reimplementing filtering,
+// metadata matching, favorites, recency and result ordering independently.
+// hiddenIds can be [] for management pickers that must also expose Launcher-hidden apps.
+function buildApplicationResults(entries, queryValue, fuzzyEnabled, favoriteIds,
+        hiddenIds, usageCounts, recentApplications, emptyQueryLimit) {
+    var source = valuesOf(entries)
+    var favorites = valuesOf(favoriteIds).map(function(id) {
+        return String(id === undefined || id === null ? "" : id).trim()
+    })
+    var hidden = valuesOf(hiddenIds).map(function(id) {
+        return String(id === undefined || id === null ? "" : id).trim()
+    })
+    var counts = usageCounts && typeof usageCounts === "object" ? usageCounts : {}
+    var recent = valuesOf(recentApplications)
+    var rawQuery = String(queryValue === undefined || queryValue === null ? "" : queryValue)
+    var special = parseSpecialQuery(rawQuery)
+    var query = (special ? special.query : rawQuery).toLowerCase().trim()
+
+    // Launcher handles a bare @c as a category browser outside this list.
+    // Other bare selectors intentionally produce no app results either.
+    if (special && query === "")
         return []
-    var result = []
-    for (var i = 0; i < value.length; ++i)
-        result.push(value[i])
-    return result
+
+    var ranked = []
+    var hasNameMatch = false
+    for (var i = 0; i < source.length; ++i) {
+        var entry = source[i]
+        if (!entry)
+            continue
+
+        var id = String(entry.id || "").trim()
+        if (id && hidden.indexOf(id) >= 0)
+            continue
+
+        var favoriteIndex = id ? favorites.indexOf(id) : -1
+        if (query === "") {
+            var usage = Number(counts[entry.name] || 0)
+            var recentIndex = recent.indexOf(entry.name)
+            var recency = recentIndex >= 0 ? Math.max(0, 1000 - recentIndex) : 0
+            ranked.push({
+                entry: entry,
+                favoriteIndex: favoriteIndex,
+                usage: usage,
+                recency: recency,
+                rank: usage * 1000 + recency
+            })
+            continue
+        }
+
+        var score = scoreApplication(entry, rawQuery, fuzzyEnabled)
+        if (score >= 0) {
+            // The visible Launcher behavior prioritizes application-name hits.
+            // Without this second pass, a short query such as "fire" can also
+            // match scattered letters in long descriptions (e.g. "files over").
+            // Keep metadata search as a fallback when no app name matches.
+            var nameScore = special ? -1 : fuzzyScore(entry.name, query, fuzzyEnabled)
+            if (nameScore >= 0)
+                hasNameMatch = true
+            ranked.push({
+                entry: entry,
+                favoriteIndex: favoriteIndex,
+                score: score,
+                nameScore: nameScore
+            })
+        }
+    }
+
+    if (query === "") {
+        ranked.sort(function(a, b) {
+            var aFavorite = a.favoriteIndex >= 0
+            var bFavorite = b.favoriteIndex >= 0
+            if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
+                return a.favoriteIndex - b.favoriteIndex
+            if (aFavorite !== bFavorite)
+                return aFavorite ? -1 : 1
+            if (b.rank !== a.rank)
+                return b.rank - a.rank
+            if (b.usage !== a.usage)
+                return b.usage - a.usage
+            return String(a.entry.name).localeCompare(String(b.entry.name))
+        })
+
+        var favoriteCount = 0
+        for (var j = 0; j < ranked.length; ++j) {
+            if (ranked[j].favoriteIndex >= 0)
+                favoriteCount += 1
+        }
+        var emptyLimit = Math.max(Number(emptyQueryLimit) || 0, favoriteCount)
+        return ranked.slice(0, emptyLimit)
+    }
+
+    if (hasNameMatch && !special) {
+        ranked = ranked.filter(function(item) { return item.nameScore >= 0 })
+    }
+
+    ranked.sort(function(a, b) {
+        var aFavorite = a.favoriteIndex >= 0
+        var bFavorite = b.favoriteIndex >= 0
+        if (aFavorite !== bFavorite)
+            return aFavorite ? -1 : 1
+        if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
+            return a.favoriteIndex - b.favoriteIndex
+        if (b.score !== a.score)
+            return b.score - a.score
+        return String(a.entry.name).localeCompare(String(b.entry.name))
+    })
+
+    return ranked
+}
+
+function buildApplicationEntries(entries, queryValue, fuzzyEnabled, favoriteIds,
+        hiddenIds, usageCounts, recentApplications, emptyQueryLimit) {
+    return buildApplicationResults(
+        entries, queryValue, fuzzyEnabled, favoriteIds, hiddenIds,
+        usageCounts, recentApplications, emptyQueryLimit
+    ).map(function(item) { return item.entry })
+}
+
+// App search primitives are shared with settings and other application lists.
+function fuzzyScoreCore(text, query, fuzzyEnabled) {
+    return ApplicationSearch.fuzzyScoreCore(text, query, fuzzyEnabled)
+}
+
+function valuesOf(value) {
+    return ApplicationSearch.valuesOf(value)
 }
 
 function displayCategoryName(value) {
@@ -210,15 +295,9 @@ function collectCategories(entries, hiddenIds) {
 
 
 function fuzzyScoreNative(text, query, fuzzyEnabled) {
-    return fuzzyScoreCore(text, query, fuzzyEnabled)
+    return ApplicationSearch.fuzzyScoreNative(text, query, fuzzyEnabled)
 }
 
-// App search shares the same keyboard-layout correction as Launcher actions.
 function fuzzyScore(text, query, fuzzyEnabled) {
-    return KeyboardLayout.scoreWithLayout(
-        text, query,
-        function(searchText, searchQuery) {
-            return fuzzyScoreNative(searchText, searchQuery, fuzzyEnabled)
-        }
-    )
+    return ApplicationSearch.fuzzyScore(text, query, fuzzyEnabled)
 }

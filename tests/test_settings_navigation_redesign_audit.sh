@@ -25,8 +25,8 @@ const persistence = read(persistPath);
 
 const pages = registry.tabDefinitions();
 const groups = registry.navigationGroupDefinitions();
-assert.strictEqual(pages.length, 23, 'audit baseline must include all 23 stable settings pages');
-assert.strictEqual(groups.length, 5, 'audit baseline must include all 5 navigation groups');
+assert.strictEqual(pages.length, 24, 'audit baseline must include all 24 stable settings pages');
+assert.strictEqual(groups.length, 6, 'audit baseline must include all 6 navigation groups');
 assert.strictEqual(new Set(pages.map(page => page.id)).size, pages.length, 'page IDs must remain unique');
 assert(pages.every(page => groups.some(group => group.id === page.groupId)), 'every page must have a canonical group');
 assert(groups.some(group => group.id === 'dashboard') && groups.some(group => group.id === 'general'),
@@ -58,18 +58,18 @@ function functionBody(source, name) {
   throw new Error(`unterminated ${name}()`);
 }
 const normalizeSchema = { normalizeSettingsNavigationCollapsedGroups: (value) => value };
-const toggle = new Function('id', 'root', 'Config', 'SettingsSchema', functionBody(widget, 'toggleSettingsNavigationGroup'));
+const toggle = new Function('id', 'root', 'Config', 'SettingsSchema', 'SettingsPageRegistry', functionBody(widget, 'toggleSettingsNavigationGroup'));
 let savedState = null;
 const fakeRoot = {
   currentPageId: 'weather',
-  collapsedSettingsNavigationGroups: { appearance: false, modules: false, launcher: false },
+  collapsedSettingsNavigationGroups: { appearance: false, modules: false, launcher: false, notifications: false },
   settingsNavigationGroupCollapsed(id) { return this.collapsedSettingsNavigationGroups[id] === true; },
   setSettingsNavigationCollapsedGroups(value) {
     savedState = value;
     this.collapsedSettingsNavigationGroups = value;
   }
 };
-toggle('modules', fakeRoot, {}, normalizeSchema);
+toggle('modules', fakeRoot, {}, normalizeSchema, registry);
 assert.strictEqual(fakeRoot.currentPageId, 'weather', 'collapsing the active page folder must not teleport or deactivate its page');
 assert.strictEqual(fakeRoot.settingsNavigationGroupCollapsed('modules'), true, 'folder must collapse independently');
 assert.strictEqual(savedState.modules, true, 'collapsed state must be persisted separately');
@@ -100,7 +100,7 @@ assert(defaultOrder.groupOrder.includes('dashboard') && defaultOrder.groupOrder.
 const normalizedOrder = registry.normalizeNavigationOrder({
   groupOrder: ['general', 'dashboard', 'appearance', 'modules', 'launcher'],
   pagesByGroup: {
-    modules: ['dashboard', 'notifications'],
+    modules: ['dashboard'],
     dashboard: ['dashboard']
   }
 });
@@ -114,5 +114,5 @@ assert(pageMoveBody.includes('navigationGroupIdForTabId(pageId) !== targetGroupI
 const groupMoveBody = functionBody(controller, 'moveSettingsNavigationGroupTo');
 assert(groupMoveBody.includes('order.groupOrder = DragReorder.move(groupOrder, fromIndex, destination)'),
   'top-level groups must be independently reorderable');
-console.log('settings navigation audit: 23 pages, 5 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
+console.log('settings navigation audit: 24 pages, 6 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
 NODE

@@ -15,18 +15,24 @@ var defaultConfig = ({
     settingsSearchMatchCountFontSize: 8,
     settingsSearchVisible: true,
     settingsNavigationOrder: ({
-        groupOrder: ["appearance", "modules", "dashboard", "launcher", "general"],
+        groupOrder: ["appearance", "modules", "dashboard", "launcher", "notifications", "general"],
         pagesByGroup: ({
             appearance: ["themes", "settingsWindow"],
-            modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+            modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
             dashboard: ["dashboard"],
             launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+            notifications: ["notifications", "notificationsDnd"],
             general: ["general"]
         })
     }),
-    settingsTabLabels: ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", settingsWindow:"Окно настроек"}),
-    settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false }),
+    settingsTabLabels: ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", notificationsDnd:"Не беспокоить", settingsWindow:"Окно настроек"}),
+    settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false, notifications: false }),
     notificationsDefaultTimeout: 5000,
+    notificationsDoNotDisturb: false,
+    notificationsDndAllowedApps: "",
+    notificationsDndBlockedApps: "",
+    notificationsHistoryLimit: 30,
+    notificationsHistoryRetentionDays: 0,
     notificationsCriticalTimeout: 0,
     notificationsShowTimeoutIndicator: false,
     notificationsTimeoutIndicatorColor: "",

@@ -57,22 +57,26 @@ assert(!persistenceSource.includes('notificationsPosition: config.') && !persist
 for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificationsOffsetY', 'notificationsMargin'])
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
-assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "modules", description:'), 'sidebar declares the Notifications page and description in the Modules group');
+assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "notifications", description:'), 'sidebar declares the Notifications page in its own folder');
+assert(registry.includes('{ id: "notificationsDnd", defaultLabel: "Не беспокоить", groupId: "notifications", description:'), 'sidebar declares DND as a separate Notifications page');
 assert(config.includes('property var settingsNavigationOrder:'), 'Config declares the canonical hierarchical navigation order');
 assert(defaults.includes('settingsNavigationOrder: ({'), 'profile defaults use the canonical hierarchical navigation order');
 assert(!config.includes('property var settingsTabOrder:'), 'Config no longer creates the obsolete flat runtime order');
 assert(!defaults.includes('settingsTabOrder:'), 'new profiles no longer receive the obsolete flat order');
 const navigationRegistry = {};
 vm.runInNewContext(registry.replace(/^\.pragma library\s*$/gm, '').replace(/^\.import .*$/gm, ''), navigationRegistry);
-assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('notifications'), 'modules', 'Notifications belongs to the Modules frame');
+assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('notifications'), 'notifications', 'Notifications belongs to its own folder');
+assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('notificationsDnd'), 'notifications', 'DND belongs to the Notifications folder');
 assert.strictEqual(navigationRegistry.navigationGroupIdForTabId('settingsWindow'), 'appearance', 'Settings Window belongs to Appearance rather than a global flat order');
 const defaultNavigation = navigationRegistry.defaultNavigationOrder();
-assert(defaultNavigation.pagesByGroup.modules.includes('notifications'), 'Notifications remains available in the Modules frame');
+assert(defaultNavigation.pagesByGroup.notifications.includes('notifications'), 'Notifications is available in its dedicated folder');
+assert(defaultNavigation.pagesByGroup.notifications.includes('notificationsDnd'), 'DND is a separate page in the Notifications folder');
 assert(registry.includes('{ id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }'), 'Notifications page exposes Behavior, Appearance and Placement subtabs');
-assert(navigation.includes('notifications: "notifications"'), 'sidebar dirty indicator maps the Notifications page to its reset scope');
+assert(navigation.includes('notifications: "notifications"') && navigation.includes('notificationsDnd: "notifications"'), 'sidebar dirty indicators map both notification pages to the shared reset scope');
 assert(navigation.includes('settings.resetNotificationsSettings()'), 'page reset button invokes the notification reset');
+assert(navigation.includes('pageId === "notifications" || pageId === "notificationsDnd"'), 'notification sidebar dirty markers aggregate their own subtabs independently');
 assert(pageContent.includes('SettingsNotificationsSection {'), 'SettingsPageContent instantiates the notification settings section');
-assert(section.includes('visible: host && host.currentPageId === "notifications"'), 'section is routed only to the Notifications page');
+assert(section.includes('pageId === "notificationsDnd"'), 'section also renders the dedicated DND page');
 assert(section.includes('settings.save()'), 'section saves edits immediately');
 assert(section.includes('notificationsDefaultTimeout') && section.includes('notificationsCriticalTimeout'), 'section exposes separate normal and critical timeout controls');
 assert(!section.includes('notificationsPosition') && !section.includes('notificationsOffsetX') && !section.includes('notificationsOffsetY') && !section.includes('notificationsMargin'), 'legacy placement controls are removed from the Notifications page');

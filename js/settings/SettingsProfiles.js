@@ -120,12 +120,13 @@ var STORAGE_FORMAT = "profile-overrides-v1"
 // profileOverrides contains only deliberate differences from that profile.
 
 function fallbackNavigationOrder(source) {
-    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "general"]
+    var groupOrder = ["appearance", "modules", "dashboard", "launcher", "notifications", "general"]
     var defaults = {
         appearance: ["themes", "settingsWindow"],
-        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+        notifications: ["notifications", "notificationsDnd"],
         general: ["general"]
     }
     var input = isObject(source) ? source : {}
@@ -247,7 +248,7 @@ function expandStoredSettings(owner, stored) {
             navigationGroupState = clone(requestedProfile.settingsNavigationCollapsedGroups)
     }
     if (navigationGroupState === undefined)
-        navigationGroupState = { appearance: false, modules: false, launcher: false }
+        navigationGroupState = { appearance: false, modules: false, launcher: false, notifications: false }
     if ((hasLegacyNavigationState || navigationOrderMigrationPending) && owner)
         owner.profileMigrationPending = true
 

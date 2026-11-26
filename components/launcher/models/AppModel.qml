@@ -107,142 +107,22 @@ Item {
     }
 
     function scoreEntry(entry) {
-        const special = root.specialSearch
-        if (special) {
-            return LauncherAppSearch.scoreEntry(
-                entry,
-                special,
-                function(searchText, searchQuery) {
-                    return root.fuzzyScore(searchText, searchQuery)
-                }
-            )
-        }
-
-        const query = normalize(root.query);
-
-        if (query === "")
-            return 0;
-
-        let score = -1;
-
-        /*
-         * Название приложения — самый важный параметр.
-         */
-        score = Math.max(score, fuzzyScore(entry.name, query));
-
-        /*
-         * Generic name немного менее важен.
-         */
-        score = Math.max(score, fuzzyScore(entry.genericName, query) - 100);
-
-        /*
-         * Description ещё менее важен.
-         */
-        score = Math.max(score, fuzzyScore(entry.comment, query) - 200);
-
-        /*
-         * Keywords.
-         */
-        if (entry.keywords) {
-            for (const keyword of entry.keywords) {
-                score = Math.max(score, fuzzyScore(keyword, query) - 150);
-            }
-        }
-
-        return score;
+        return LauncherAppSearch.scoreApplication(
+            entry, root.query, root.fuzzySearchEnabled
+        )
     }
 
-    property var applications: {
-        // Read ObjectModel.values directly inside this binding. This is the
-        // native reactive path used by Quickshell and the pre-preferences Apps model.
-        const entries = DesktopEntries.applications.values || []
-        const result = []
-        const special = root.specialSearch
-        const query = special ? normalize(special.query) : normalize(root.query)
-
-        if (special && query === "")
-            return []
-
-        for (const entry of entries) {
-            const appId = String(entry.id || "").trim()
-            // Hidden applications stay out of every Apps result source, including
-            // metadata-filter searches, but remain manageable from Settings.
-            if (appId && root.hiddenAppIds.indexOf(appId) >= 0)
-                continue
-
-            const favoriteIndex = appId ? root.favoriteAppIds.indexOf(appId) : -1
-            if (query === "") {
-                const usage = root.usageCounts[entry.name] || 0
-                const recentIndex = root.recentApplications.indexOf(entry.name)
-                const recency = recentIndex >= 0
-                    ? Math.max(0, 1000 - recentIndex)
-                    : 0
-
-                result.push({
-                    entry: entry,
-                    favoriteIndex: favoriteIndex,
-                    usage: usage,
-                    recency: recency,
-                    rank: usage * 1000 + recency
-                })
-                continue
-            }
-
-            const score = scoreEntry(entry)
-            if (score >= 0) {
-                result.push({
-                    entry: entry,
-                    favoriteIndex: favoriteIndex,
-                    score: score
-                })
-            }
-        }
-
-        if (query === "") {
-            // Favorites are pinned in the user's saved order. Remaining slots
-            // retain the existing frequency/recency ranking.
-            result.sort(function(a, b) {
-                const aFavorite = a.favoriteIndex >= 0
-                const bFavorite = b.favoriteIndex >= 0
-                if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
-                    return a.favoriteIndex - b.favoriteIndex
-                if (aFavorite !== bFavorite)
-                    return aFavorite ? -1 : 1
-                if (b.rank !== a.rank)
-                    return b.rank - a.rank
-
-                if (b.usage !== a.usage)
-                    return b.usage - a.usage
-
-                return String(a.entry.name).localeCompare(
-                    String(b.entry.name)
-                )
-            })
-
-            let favoriteCount = 0
-            for (let i = 0; i < result.length; ++i) {
-                if (result[i].favoriteIndex >= 0)
-                    favoriteCount++
-            }
-            return result
-                .slice(0, Math.max(root.emptyQueryLimit, favoriteCount))
-                .map(function(item) { return item.entry })
-        }
-
-        // With a query, keep the existing fuzzy ranking and show all matches.
-        result.sort(function(a, b) {
-            const aFavorite = a.favoriteIndex >= 0
-            const bFavorite = b.favoriteIndex >= 0
-            if (aFavorite !== bFavorite)
-                return aFavorite ? -1 : 1
-            if (aFavorite && bFavorite && a.favoriteIndex !== b.favoriteIndex)
-                return a.favoriteIndex - b.favoriteIndex
-            if (b.score !== a.score)
-                return b.score - a.score
-            return String(a.entry.name).localeCompare(String(b.entry.name))
-        })
-
-        return result.map(function(item) { return item.entry })
-    }
+    // App result filtering and ranking are shared with other application pickers
+    // so DND and Launcher cannot drift into different matching behavior.
+    property var applications: LauncherAppSearch.buildApplicationEntries(
+        DesktopEntries.applications.values || [],
+        root.query,
+        root.fuzzySearchEnabled,
+        root.favoriteAppIds,
+        root.hiddenAppIds,
+        root.usageCounts,
+        root.recentApplications,
+        root.emptyQueryLimit
+    )
 
 }

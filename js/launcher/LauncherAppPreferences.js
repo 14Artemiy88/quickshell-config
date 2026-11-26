@@ -9,7 +9,12 @@ function valuesOf(value) {
 }
 
 function normalizeIds(value) {
-    var source = valuesOf(value)
+    // Persisted notification rules are delimiter-separated strings, while
+    // Launcher favorites/hidden apps are arrays or Qt list-like values.
+    // Treat strings as ID lists instead of iterating their characters.
+    var source = typeof value === "string"
+        ? value.split(/[;,\n]+/)
+        : valuesOf(value)
     var result = []
     for (var i = 0; i < source.length; ++i) {
         if (source[i] === undefined || source[i] === null) continue

@@ -188,6 +188,48 @@ function normalizeProfile(profile, isSparse) {
     if (legacyVolumeAnimationStyle === "none")
         p.animationVolumeStreamsVisibilityStyle = "fade"
 
+    if (p.notificationsDoNotDisturb !== undefined) {
+        if (typeof p.notificationsDoNotDisturb === "boolean") p.notificationsDoNotDisturb = p.notificationsDoNotDisturb
+        else if (isSparse) delete p.notificationsDoNotDisturb
+        else p.notificationsDoNotDisturb = false
+    } else if (!isSparse) {
+        p.notificationsDoNotDisturb = false
+    }
+
+    if (p.notificationsDndAllowedApps !== undefined) {
+        if (typeof p.notificationsDndAllowedApps === "string") p.notificationsDndAllowedApps = p.notificationsDndAllowedApps.slice(0, 4096)
+        else if (isSparse) delete p.notificationsDndAllowedApps
+        else p.notificationsDndAllowedApps = ""
+    } else if (!isSparse) {
+        p.notificationsDndAllowedApps = ""
+    }
+
+    if (p.notificationsDndBlockedApps !== undefined) {
+        if (typeof p.notificationsDndBlockedApps === "string") p.notificationsDndBlockedApps = p.notificationsDndBlockedApps.slice(0, 4096)
+        else if (isSparse) delete p.notificationsDndBlockedApps
+        else p.notificationsDndBlockedApps = ""
+    } else if (!isSparse) {
+        p.notificationsDndBlockedApps = ""
+    }
+
+    if (p.notificationsHistoryLimit !== undefined) {
+        var notificationHistoryLimit = Number(p.notificationsHistoryLimit)
+        if (isFinite(notificationHistoryLimit)) p.notificationsHistoryLimit = Math.max(1, Math.min(200, Math.round(notificationHistoryLimit)))
+        else if (isSparse) delete p.notificationsHistoryLimit
+        else p.notificationsHistoryLimit = 30
+    } else if (!isSparse) {
+        p.notificationsHistoryLimit = 30
+    }
+
+    if (p.notificationsHistoryRetentionDays !== undefined) {
+        var notificationHistoryRetentionDays = Number(p.notificationsHistoryRetentionDays)
+        if (isFinite(notificationHistoryRetentionDays)) p.notificationsHistoryRetentionDays = Math.max(0, Math.min(365, Math.round(notificationHistoryRetentionDays)))
+        else if (isSparse) delete p.notificationsHistoryRetentionDays
+        else p.notificationsHistoryRetentionDays = 0
+    } else if (!isSparse) {
+        p.notificationsHistoryRetentionDays = 0
+    }
+
     if (p.notificationsTimeoutIndicatorDirection !== undefined) {
         var timeoutIndicatorDirection = String(p.notificationsTimeoutIndicatorDirection)
         if (timeoutIndicatorDirection === "clockwise" || timeoutIndicatorDirection === "counterclockwise")
@@ -366,7 +408,7 @@ function normalizeProfiles(profiles, isSparse) {
 // Keep only the collapsible settings sidebar groups. Missing values preserve
 // the current UI preference, while malformed values fall back to expanded.
 function normalizeSettingsNavigationCollapsedGroups(source, current) {
-    var ids = ["appearance", "modules", "launcher"]
+    var ids = ["appearance", "modules", "launcher", "notifications"]
     var result = ({})
     var sourceIsObject = source && typeof source === "object" && !Array.isArray(source)
     var currentIsObject = current && typeof current === "object" && !Array.isArray(current)

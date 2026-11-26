@@ -9,7 +9,9 @@ grep -Fq 'import Quickshell.Services.Notifications' "$NOTIFS" || fail 'notificat
 grep -Fq 'NotificationServer {' "$NOTIFS" || fail 'NotificationServer missing'
 grep -Fq 'notification.tracked = true' "$NOTIFS" || fail 'incoming notifications are not tracked'
 grep -Fq 'notificationServer.trackedNotifications' "$NOTIFS" || fail 'tracked notification queue is not rendered'
-grep -Fq 'notificationServer.trackedNotifications.values.length > 0' "$NOTIFS" || fail 'popup visibility must use ObjectModel.values.length'
+grep -Fq 'readonly property int visibleNotificationCount: visibleNotificationModel.values.length' "$NOTIFS" || fail 'popup visibility must use the filtered visible count'
+grep -Fq 'ScriptModel {' "$NOTIFS" || fail 'visible tracked notifications must pass through ScriptModel'
+grep -Fq 'NotificationDnd.visibleNotifications(' "$NOTIFS" || fail 'DND-suppressed notifications must be removed from the toast model'
 grep -Fq 'notificationList.contentHeight' "$NOTIFS" || fail 'popup height must follow actual ListView content height'
 grep -Fq 'screen.height - root.notificationCoordinate(1) - 16' "$NOTIFS" || fail 'popup height must be capped to screen height'
 if grep -Fq 'notificationServer.trackedNotifications.count' "$NOTIFS"; then fail 'ObjectModel has no count property; use values.length'; fi

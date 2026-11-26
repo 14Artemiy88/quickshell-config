@@ -7,7 +7,7 @@ SCORING="$ROOT/js/launcher/LauncherSearchScoring.js"
 APP_MODEL="$ROOT/components/launcher/models/AppModel.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 
-node - "$LAYOUT" "$APP_SEARCH" "$SCORING" "$LAUNCHER" "$ROOT/js/launcher/LauncherCustomActions.js" <<'JS'
+node - "$LAYOUT" "$APP_SEARCH" "$SCORING" "$LAUNCHER" "$ROOT/js/launcher/LauncherCustomActions.js" "$ROOT/js/utils/ApplicationSearch.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
@@ -22,12 +22,22 @@ assert.strictEqual(layout.alternateLayoutQuery('12345'), '', 'numeric queries ar
 const loadScorer = (path) => {
   const source = fs.readFileSync(path, 'utf8')
     .replace(/^\.pragma library\s*/, '')
-    .replace(/^\.import .*$/m, '');
+    .replace(/^\.import .*$/gm, '');
   const context = vm.createContext({ KeyboardLayout: layout });
   vm.runInContext(source + '\nthis.api = { fuzzyScore, fuzzyScoreNative };', context);
   return context.api;
 };
-const appSearch = loadScorer(process.argv[3]);
+const helperSource = fs.readFileSync(process.argv[7], 'utf8')
+  .replace(/^\.pragma library\s*/, '')
+  .replace(/^\.import .*$/gm, '');
+const helperContext = vm.createContext({ KeyboardLayout: layout });
+vm.runInContext(helperSource + '\nthis.api = { searchValue, fuzzyScoreCore, fuzzyScoreNative, fuzzyScore, valuesOf };', helperContext);
+const appModuleSource = fs.readFileSync(process.argv[3], 'utf8')
+  .replace(/^\.pragma library\s*/, '')
+  .replace(/^\.import .*$/gm, '');
+const appContext = vm.createContext({ ApplicationSearch: helperContext.api });
+vm.runInContext(appModuleSource + '\nthis.api = { fuzzyScore };', appContext);
+const appSearch = appContext.api;
 const sharedScoring = loadScorer(process.argv[4]);
 const strictScore = (text, query) => {
   text = String(text ?? '').toLowerCase().trim();
@@ -85,13 +95,14 @@ assert(nixQueries.some(item => item.multi_match && item.multi_match.query === 'o
   'Nix search payload sends the converted query alongside the original');
 JS
 
-python3 - "$APP_MODEL" "$LAUNCHER" "$APP_SEARCH" "$SCORING" <<'PY'
+python3 - "$APP_MODEL" "$LAUNCHER" "$APP_SEARCH" "$SCORING" "$ROOT/js/utils/ApplicationSearch.js" <<'PY'
 from pathlib import Path
 import sys
-app_model, launcher, app_search, scoring = [Path(value).read_text() for value in sys.argv[1:]]
+app_model, launcher, app_search, scoring, app_search_core = [Path(value).read_text() for value in sys.argv[1:]]
 assert 'LauncherKeyboardLayout.js' in launcher, 'Launcher imports the shared layout helper'
-assert 'LauncherAppSearch.fuzzyScore(text, query, root.fuzzySearchEnabled)' in app_model, 'AppModel continues to use the app fuzzy helper that includes layout correction'
-assert 'LauncherKeyboardLayout.js' in app_search and 'KeyboardLayout.scoreWithLayout(' in app_search, 'Apps fuzzy scorer uses layout correction'
+assert 'LauncherAppSearch.buildApplicationEntries(' in app_model, 'AppModel delegates the complete application-list pipeline to the shared primitive'
+assert '../utils/ApplicationSearch.js' in app_search and 'ApplicationSearch.fuzzyScore(text, query, fuzzyEnabled)' in app_search, 'Launcher AppModel delegates to the extracted shared app-search primitive'
+assert 'KeyboardLayout.scoreWithLayout(' in app_search_core, 'shared app-search primitive keeps keyboard-layout correction'
 assert 'KeyboardLayout.scoreWithLayout(' in scoring, 'shared fuzzy scorer uses layout correction'
 assert 'LauncherKeyboardLayout.scoreWithLayout(' in launcher, 'Window and Network local fuzzy scorers use layout correction'
 assert 'const alternateQuery = LauncherKeyboardLayout.alternateLayoutQuery(query)' in launcher, 'Clipboard search checks the alternate query'

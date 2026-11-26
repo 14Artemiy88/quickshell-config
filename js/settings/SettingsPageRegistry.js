@@ -9,6 +9,7 @@ var NAVIGATION_GROUPS = [
     { id: "modules", label: "Модули", symbol: "▦", description: "Настройки и поведение встроенных модулей." },
     { id: "dashboard", label: "Dashboard", symbol: "▣", description: "Состав, порядок и размеры карточек панели." },
     { id: "launcher", label: "Лаунчер", symbol: "⌕", description: "Поиск, вкладки, действия и оформление лаунчера." },
+    { id: "notifications", label: "Уведомления", symbol: "◉", description: "Уведомления, история и режим Не беспокоить." },
     { id: "general", label: "Общие", symbol: "⚙", description: "Общие параметры, профили и хранение данных." }
 ]
 
@@ -34,7 +35,8 @@ var TAB_DEFINITIONS = [
     { id: "launcherActions", defaultLabel: "Действия", groupId: "launcher", description: "Переходы, инструменты и пользовательские действия.", keywords: ["команды", "быстрые действия", "пользовательские команды", "переходы", "запустить действие"] },
     { id: "launcherAnimation", defaultLabel: "Анимация", groupId: "launcher", description: "Профили и длительность анимаций лаунчера.", keywords: ["плавность", "скорость анимации", "анимация переходов", "эффекты движения"] },
     { id: "launcherApplications", defaultLabel: "Приложения", groupId: "launcher", description: "Список приложений и параметры их отображения.", keywords: ["список программ", "установленные программы", "программы в меню", "запуск программ"] },
-    { id: "notifications", defaultLabel: "Уведомления", groupId: "modules", description: "Поведение, внешний вид, размещение и анимации уведомлений.", keywords: ["всплывающие сообщения", "попапы", "баннеры", "уведомления приложений", "notification", "popup"] },
+    { id: "notifications", defaultLabel: "Уведомления", groupId: "notifications", description: "Поведение, внешний вид, размещение и анимации всплывающих уведомлений.", keywords: ["всплывающие сообщения", "попапы", "баннеры", "уведомления приложений", "notification", "popup"] },
+    { id: "notificationsDnd", defaultLabel: "Не беспокоить", groupId: "notifications", description: "Режим DND, правила приложений и история подавленных уведомлений.", keywords: ["dnd", "do not disturb", "не беспокоить", "режим тишины", "исключения уведомлений", "белый список", "черный список"] },
     { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance", description: "Размеры, поведение, навигация и внешний вид окна настроек.", keywords: ["окно конфигурации", "панель настроек", "размер окна", "боковая панель", "навигация настроек", "окно параметров"] }
 ]
 
@@ -60,7 +62,8 @@ var OTHER_PAGE_DEFINITIONS = [
     { id: "launcherActions", saveScope: "launcher", subTabs: ["Переходы", "Инструменты", "Пользовательские"] },
     { id: "launcherAnimation", saveScope: "launcher", subTabs: [] },
     { id: "launcherApplications", saveScope: "launcher", subTabs: [] },
-    { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] }
+    { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] },
+    { id: "notificationsDnd", saveScope: "notifications", subTabs: ["Режим", "Приложения", "История"] }
 ]
 
 function tabDefinitions() {
@@ -390,6 +393,11 @@ var SUBTAB_KEYWORDS = {
         ["внешний вид уведомлений", "карточки сообщений", "иконки и изображения уведомлений"],
         ["позиция уведомлений", "координаты уведомлений", "размер и отступы уведомлений"],
         ["анимация всплывающих окон", "появление уведомлений"]
+    ],
+    notificationsDnd: [
+        ["включить выключить режим не беспокоить", "подавление всплывающих уведомлений"],
+        ["исключения приложений", "разрешить уведомления", "блокировать приложения", "поиск установленных приложений"],
+        ["история уведомлений", "срок хранения", "лимит записей", "очистка истории"]
     ]
 }
 

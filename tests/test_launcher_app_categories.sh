@@ -5,12 +5,19 @@ MODULE="$ROOT/js/launcher/LauncherAppSearch.js"
 APP_MODEL="$ROOT/components/launcher/models/AppModel.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 
-node - "$MODULE" <<'JS'
+node - "$MODULE" "$ROOT/js/utils/ApplicationSearch.js" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
-const api = vm.runInThisContext(source + '\n({ collectCategories, displayCategoryName })');
+const layoutSource = fs.readFileSync(process.argv[4], 'utf8').replace(/^\.pragma library\s*/, '');
+const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
+const helperSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const helperContext = vm.createContext({ KeyboardLayout });
+vm.runInContext(helperSource + '\nthis.api = { searchValue, fuzzyScoreCore, fuzzyScoreNative, fuzzyScore, valuesOf };', helperContext);
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const appContext = vm.createContext({ ApplicationSearch: helperContext.api });
+vm.runInContext(source + '\nthis.api = { collectCategories, displayCategoryName };', appContext);
+const api = appContext.api;
 
 const entries = [
   { id: 'org.example.graphics.desktop', categories: ['Graphics', 'Utility', 'Graphics'] },
@@ -21,16 +28,16 @@ const entries = [
   { id: 'org.example.single.desktop', categories: 'Utility' }
 ];
 const categories = api.collectCategories(entries, ['org.example.hidden.desktop']);
-assert.deepStrictEqual(categories.map(item => item.name),
+assert.deepStrictEqual(Array.from(categories, item => item.name),
   ['AudioVideo', 'Development', 'Graphics', 'Utility', 'Video'],
   'categories are unique and sorted alphabetically by display label');
-assert.deepStrictEqual(categories.map(item => item.count), [1, 1, 1, 3, 1],
+assert.deepStrictEqual(Array.from(categories, item => item.count), [1, 1, 1, 3, 1],
   'counts include each visible app once per category and exclude hidden apps');
 assert.strictEqual(categories[0].label, 'Audio Video', 'camel-case categories receive a readable label');
 assert.strictEqual(api.displayCategoryName('X-KDE_Games'), 'X KDE Games', 'category labels normalize separators');
 assert.strictEqual(api.collectCategories([{ id: 'one', categories: 'Utility' }], [])[0].count, 1,
   'a single category string is treated as one category, not as individual characters');
-assert.deepStrictEqual(api.collectCategories([], []), [], 'an empty desktop-entry catalog returns no categories');
+assert.deepStrictEqual(Array.from(api.collectCategories([], [])), [], 'an empty desktop-entry catalog returns no categories');
 JS
 
 python3 - "$APP_MODEL" "$LAUNCHER" <<'PY'

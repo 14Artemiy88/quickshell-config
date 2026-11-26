@@ -21,12 +21,12 @@ const registry = loadLibrary('js/settings/SettingsPageRegistry.js');
 const pages = Array.from(registry.pageMetadataCatalog());
 const groups = Array.from(registry.navigationGroupDefinitions());
 const rows = Array.from(registry.navigationItemsForOrder(pages.map(page => page.id), {}));
-assert.strictEqual(pages.length, 23);
-assert.strictEqual(groups.length, 5);
+assert.strictEqual(pages.length, 24);
+assert.strictEqual(groups.length, 6);
 assert.strictEqual(rows.length, pages.length);
 assert.strictEqual(new Set(rows.map(row => row.id)).size, pages.length);
 assert(rows.every(row => groups.some(group => group.id === row.groupId)));
-assert.strictEqual(pages.reduce((sum, page) => sum + page.subTabs.length, 0), 65);
+assert.strictEqual(pages.reduce((sum, page) => sum + page.subTabs.length, 0), 68);
 assert(pages.every(page => page.keywords.length > 0 && page.subTabs.every(subtab => Array.isArray(subtab.keywords))));
 
 const navigation = read('components/settings/SettingsNavigationController.qml');
@@ -39,12 +39,12 @@ assert(search.includes('subTabMetadata.keywords'));
 // Navigation expansion is persisted as UI state, never as a profile override.
 const persistence = loadLibrary('js/settings/SettingsPersistence.js');
 const payloadOwner = {
-  snapshotObject: () => ({settingsNavigationCollapsedGroups: {appearance: true, modules: false}, modules: {}, colors: {accent: '#fff'}}),
+  snapshotObject: () => ({settingsNavigationCollapsedGroups: {appearance: true, modules: false, launcher: false, notifications: false}, modules: {}, colors: {accent: '#fff'}}),
   activeProfile: '', profiles: {}, customThemes: {},
-  config: {settingsNavigationCollapsedGroups: {appearance: true, modules: false}, settingsLastActivePageId: 'weather'}
+  config: {settingsNavigationCollapsedGroups: {appearance: true, modules: false, launcher: false, notifications: false}, settingsLastActivePageId: 'weather'}
 };
 const payload = persistence.payloadObject(payloadOwner, payloadOwner.config);
-assert.deepStrictEqual(JSON.parse(JSON.stringify(payload.settingsNavigationCollapsedGroups)), {appearance: true, modules: false});
+assert.deepStrictEqual(JSON.parse(JSON.stringify(payload.settingsNavigationCollapsedGroups)), {appearance: true, modules: false, launcher: false, notifications: false});
 assert(!Object.prototype.hasOwnProperty.call(payload.profileOverrides, 'settingsNavigationCollapsedGroups'));
 assert(payload.managedKeys.includes('settingsNavigationCollapsedGroups'));
 assert.strictEqual(payload.settingsLastActivePageId, 'weather', 'last selected page persists as root-level UI state');
@@ -134,5 +134,5 @@ for (const name of [
   const matches = check.match(new RegExp(`tests/${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}`, 'g')) || [];
   assert.strictEqual(matches.length, 1, `${name} is registered exactly once`);
 }
-console.log('Settings final integration: 5 groups, 23 pages, 65 subtabs, navigation, focus/search, shared Save/Reset, profile/theme ownership and persistence: OK');
+console.log('Settings final integration: 6 groups, 24 pages, 68 subtabs, navigation, focus/search, shared Save/Reset, profile/theme ownership and persistence: OK');
 JS

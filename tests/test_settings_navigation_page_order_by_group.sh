@@ -46,7 +46,7 @@ function body(name) {
 let order = registry.defaultNavigationOrder();
 const flat = registry.flattenNavigationOrder(order);
 const items = registry.navigationItemsForOrder(flat, {});
-assert.strictEqual(items.length, 23, 'all pages are available in the editor model');
+assert.strictEqual(items.length, 24, 'all pages are available in the editor model');
 for (const item of items) {
   assert.strictEqual(item.groupId, registry.navigationGroupIdForTabId(item.id), `${item.id} carries its canonical group ID`);
 }
@@ -69,7 +69,7 @@ assert.strictEqual(canMove('appearance', 'timers', -1, fakeRoot, registry), fals
   'a page cannot be moved by controls from another group');
 assert.strictEqual(canMove('modules', 'modules', -1, fakeRoot, registry), false,
   'first page cannot move above the first position');
-assert.strictEqual(canMove('modules', 'notifications', 1, fakeRoot, registry), false,
+assert.strictEqual(canMove('notifications', 'notificationsDnd', 1, fakeRoot, registry), false,
   'last page cannot move below the last position');
 assert.strictEqual(canMove('modules', 'timers', 0, fakeRoot, registry), false,
   'page movement is limited to one adjacent step');
@@ -96,8 +96,10 @@ assert.strictEqual(saveCount, 1, 'rejected page move is not persisted');
 
 const groups = registry.navigationGroupsForOrder(order, {});
 const modules = groups.find(group => group.id === 'modules');
-assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'notifications'],
+const notifications = groups.find(group => group.id === 'notifications');
+assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar'],
   'sidebar model reflects the customized page order inside its own group');
+assert.deepStrictEqual(Array.from(notifications.items.map(item => item.id)), ['notifications', 'notificationsDnd'], 'notification pages stay together in their dedicated folder');
 assert.strictEqual(groups.find(group => group.id === 'appearance').items[0].id, 'themes',
   'other groups retain their independent order');
 console.log('Settings page order by group: canonical membership, scoped movement, group boundaries, persistence and sidebar model: OK');

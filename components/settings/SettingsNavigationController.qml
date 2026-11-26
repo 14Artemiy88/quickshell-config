@@ -150,6 +150,11 @@ Item {
                 ] } },
                 { keys: ["launcherCustomActions"] }
             ],
+            "notificationsDnd": [
+                { keys: ["notificationsDoNotDisturb"] },
+                { keys: ["notificationsDndAllowedApps", "notificationsDndBlockedApps"] },
+                { keys: ["notificationsHistoryLimit", "notificationsHistoryRetentionDays"] }
+            ],
             "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection"] },
                 { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
@@ -201,13 +206,22 @@ Item {
         var pageId = String(id || "")
         if (["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"].indexOf(pageId) >= 0)
             return root.launcherPageHasChanges(pageId)
+        if (pageId === "notifications" || pageId === "notificationsDnd") {
+            var notificationSubTabCount = pageId === "notificationsDnd" ? 3 : 4
+            for (var notificationSubTab = 0; notificationSubTab < notificationSubTabCount; ++notificationSubTab) {
+                var notificationSpec = root.settingsSubTabChangeSpec(pageId, notificationSubTab)
+                if (notificationSpec !== null && settings.hasResetChanges("keys", notificationSpec))
+                    return true
+            }
+            return false
+        }
 
         var scopes = {
             modules: "modules", dashboard: "dashboard", themes: "themes", general: "general",
             timers: "timer", player: "player", mopidy: "mopidy",
             weather: "weather", cava: "cava", cpuRam: "cpu",
             network: "network", volume: "volume", calendar: "calendar",
-            time: "clock", notifications: "notifications", settingsWindow: "settingsWindow"
+            time: "clock", notifications: "notifications", notificationsDnd: "notifications", settingsWindow: "settingsWindow"
         }
         var scope = scopes[pageId] || ""
         return scope !== "" && settings.hasResetChanges(scope)
@@ -245,6 +259,7 @@ Item {
         case "launcherActions":
         case "launcherAnimation":
         case "launcherApplications": settings.resetLauncherSettings(); break
+        case "notificationsDnd":
         case "notifications": settings.resetNotificationsSettings(); break
         }
     }

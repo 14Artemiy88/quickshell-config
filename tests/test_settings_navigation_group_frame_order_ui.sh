@@ -36,14 +36,14 @@ const registry = {};
 vm.runInNewContext(source, registry, { filename: process.argv[2] });
 const defaults = registry.defaultNavigationOrder();
 const customOrder = {
-  groupOrder: ['general', 'launcher', 'dashboard', 'modules', 'appearance'],
+  groupOrder: ['general', 'launcher', 'dashboard', 'modules', 'appearance', 'notifications'],
   pagesByGroup: defaults.pagesByGroup
 };
 const labels = { general: 'Мои общие настройки', dashboard: 'Обзор' };
 const groups = Array.from(registry.navigationGroupsForOrder(customOrder, labels));
 assert.deepStrictEqual(groups.map(group => group.id), customOrder.groupOrder,
   'sidebar groups follow the saved top-level frame order');
-assert.strictEqual(groups.length, 5, 'all navigation frames remain present');
+assert.strictEqual(groups.length, 6, 'all navigation frames remain present');
 assert.strictEqual(groups[0].items[0].label, 'Мои общие настройки',
   'singleton General frame uses the customized page label');
 assert.strictEqual(groups[2].items[0].label, 'Обзор',

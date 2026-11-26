@@ -10,6 +10,7 @@ APPLY="$ROOT/js/settings/SettingsApplySystemVisual.js"
 PERSIST="$ROOT/js/settings/SettingsPersistence.js"
 RESETS="$ROOT/js/settings/SettingsResets.js"
 REGISTRY="$ROOT/js/settings/SettingsPageRegistry.js"
+SEARCH_PRIMITIVE="$ROOT/js/launcher/LauncherAppSearch.js"
 
 node - "$MODULE" <<'JS'
 const fs = require('fs');
@@ -22,6 +23,12 @@ assert.deepStrictEqual(api.normalizeIds(['org.a.desktop', ' org.b.desktop ', 'or
   ['org.a.desktop', 'org.b.desktop'], 'IDs are trimmed, deduplicated and empty values are removed');
 assert.deepStrictEqual(api.normalizeIds({ 0: 'a.desktop', 1: 'b.desktop', length: 2 }),
   ['a.desktop', 'b.desktop'], 'Qt-style list values are supported');
+assert.deepStrictEqual(api.normalizeIds('org.mozilla.firefox;Telegram; org.kde.dolphin '),
+  ['org.mozilla.firefox', 'Telegram', 'org.kde.dolphin'], 'persisted semicolon-separated IDs are parsed as tokens, never characters');
+assert.deepStrictEqual(api.normalizeIds('one.desktop,two.desktop\nthree.desktop'),
+  ['one.desktop', 'two.desktop', 'three.desktop'], 'comma/newline separated persisted IDs are supported');
+assert.deepStrictEqual(api.setId('org.mozilla.firefox;org.kde.dolphin', 'org.mozilla.firefox', false),
+  ['org.kde.dolphin'], 'toggling a string-backed DND rule preserves the other complete IDs');
 assert(api.containsId(['a.desktop'], 'a.desktop'), 'membership uses the desktop-entry ID');
 assert.strictEqual(api.containsId(['a.desktop'], 'b.desktop'), false);
 assert.deepStrictEqual(api.setId(['a.desktop'], 'b.desktop', true), ['a.desktop', 'b.desktop']);
@@ -30,10 +37,10 @@ assert.strictEqual(api.indexOfId(['b.desktop', 'a.desktop'], 'a.desktop'), 1,
   'favorite ordering is retained in the stored array');
 JS
 
-node - "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$REGISTRY" "$APP_MODEL" "$SECTION" <<'JS'
+node - "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$REGISTRY" "$APP_MODEL" "$SECTION" "$SEARCH_PRIMITIVE" <<'JS'
 const fs = require('fs');
 const assert = require('assert');
-const [config, defaults, apply, persist, resets, registry, model, section] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
+const [config, defaults, apply, persist, resets, registry, model, section, searchPrimitive] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
 for (const [name, source] of [['Config', config], ['defaults', defaults]]) {
   assert(source.includes('launcherFavoriteApps: []') || source.includes('property var launcherFavoriteApps: []'), `${name} has a favorites default`);
   assert(source.includes('launcherHiddenApps: []') || source.includes('property var launcherHiddenApps: []'), `${name} has a hidden apps default`);
@@ -50,12 +57,12 @@ assert(model.includes('import \"../../../\"'), 'AppModel imports the root QML mo
 const path = require('path');
 const rootQmldir = path.resolve(path.dirname(process.argv[8]), '../../../qmldir');
 assert(fs.readFileSync(rootQmldir, 'utf8').includes('singleton Config 1.0 Config.qml'), 'the root QML module exposes Config as a singleton');
-assert(model.includes('root.hiddenAppIds.indexOf(appId) >= 0'), 'hidden apps are excluded from all Apps results');
-assert(model.includes('const entries = DesktopEntries.applications.values || []'), 'Launcher reads the live DesktopEntries ObjectModel values directly');
-assert(!model.includes('desktopEntriesSnapshot') && !model.includes('catalogRefreshTimer'), 'Launcher does not cache a potentially stale desktop-entry snapshot');
-assert(model.includes('favoriteIndex: favoriteIndex'), 'favorite IDs are used to rank applications');
-assert(model.includes('Math.max(root.emptyQueryLimit, favoriteCount)'), 'all favorites can appear beyond the default recent-app limit');
-const querySort = model.split('// With a query, keep the existing fuzzy ranking and show all matches.')[1] || '';
+assert(searchPrimitive.includes('hidden.indexOf(id) >= 0'), 'hidden apps are excluded from all Apps results by the shared primitive');
+assert(model.includes('DesktopEntries.applications.values || []'), 'Launcher passes the live DesktopEntries ObjectModel values directly');
+assert(!model.includes('desktopEntriesSnapshot') && !model.includes('catalogRefreshTimer') && !searchPrimitive.includes('desktopEntriesSnapshot'), 'Launcher does not cache a potentially stale desktop-entry snapshot');
+assert(searchPrimitive.includes('favoriteIndex: favoriteIndex'), 'favorite IDs are used to rank applications');
+assert(searchPrimitive.includes('Math.max(Number(emptyQueryLimit) || 0, favoriteCount)'), 'all favorites can appear beyond the default recent-app limit');
+const querySort = searchPrimitive.slice(searchPrimitive.lastIndexOf('ranked.sort(function(a, b) {'));
 assert(querySort.indexOf('if (aFavorite !== bFavorite)') >= 0 && querySort.indexOf('if (aFavorite !== bFavorite)') < querySort.indexOf('if (b.score !== a.score)'), 'favorite matches stay pinned before other search results');
 assert(section.includes('Избранные и скрытые приложения'));
 assert(section.includes('if (!needle && !isFavorite && !isHidden) continue'), 'settings keep the compact behavior: show no unconfigured app rows until the user searches');

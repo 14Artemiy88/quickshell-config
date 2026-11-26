@@ -64,6 +64,20 @@ QtObject {
     // Native notification server presentation and timeout preferences.
     // Timeouts are milliseconds; zero means no automatic expiry.
     property int notificationsDefaultTimeout: 5000
+    // DND suppresses visible toasts while keeping received items in a bounded in-memory buffer.
+    property bool notificationsDoNotDisturb: false
+    // Comma/semicolon-separated desktop-entry IDs or exact app names allowed through DND.
+    property string notificationsDndAllowedApps: ""
+    // Applications suppressed while DND is off; desktop-entry IDs or exact app names.
+    property string notificationsDndBlockedApps: ""
+    // Runtime-only sender catalog populated by actual NotificationServer events.
+    // Deliberately excluded from settings persistence: only app identifiers and
+    // desktop metadata live in memory, never notification contents.
+    property var notificationsSeenSenders: []
+    // Maximum number of recent notification snapshots retained in memory.
+    property int notificationsHistoryLimit: 30
+    // Zero disables age-based expiry; the item-count limit still applies.
+    property int notificationsHistoryRetentionDays: 0
     property int notificationsCriticalTimeout: 0
     // Optional countdown bar; disabled by default to preserve the existing card appearance.
     property bool notificationsShowTimeoutIndicator: false
@@ -111,12 +125,13 @@ QtObject {
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
     // Hierarchical navigation order: independent frame order and per-frame page order.
     property var settingsNavigationOrder: ({
-        groupOrder: ["appearance", "modules", "dashboard", "launcher", "general"],
+        groupOrder: ["appearance", "modules", "dashboard", "launcher", "notifications", "general"],
         pagesByGroup: ({
             appearance: ["themes", "settingsWindow"],
-            modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "notifications"],
+            modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
             dashboard: ["dashboard"],
             launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
+            notifications: ["notifications", "notificationsDnd"],
             general: ["general"]
         })
     })
@@ -124,10 +139,10 @@ QtObject {
         modules: "Модули", time: "Часы", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
         cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
-        launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", settingsWindow: "Окно настроек"
+        launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", notificationsDnd: "Не беспокоить", settingsWindow: "Окно настроек"
     })
     // Remember expanded/collapsed state for the multi-page sidebar groups.
-    property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false })
+    property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false, notifications: false })
     // Last selected Settings page is a standalone UI preference, not a profile setting.
     property string settingsLastActivePageId: "general"
     // Shared compositor blur radius used by every independently enabled module.

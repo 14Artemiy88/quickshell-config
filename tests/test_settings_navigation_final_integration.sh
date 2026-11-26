@@ -43,7 +43,7 @@ const Config = {
   settingsNavigationOrder: asPlain(defaultOrder),
   settingsTabLabels: { weather: 'Прогноз' },
   settingsLastActivePageId: 'weather',
-  settingsNavigationCollapsedGroups: { appearance: false, modules: false, launcher: false }
+  settingsNavigationCollapsedGroups: { appearance: false, modules: false, launcher: false, notifications: false }
 };
 let saveCount = 0;
 const host = {
@@ -93,11 +93,11 @@ host.moveSettingsTabWithinGroup = (groupId, id, delta) => controller.movePage(gr
 assert(host.settingsNavigationGroupCanMove('general', -1), 'General singleton frame is movable');
 host.moveSettingsNavigationGroup('general', -1);
 assert.deepStrictEqual(Array.from(Config.settingsNavigationOrder.groupOrder),
-  ['appearance', 'modules', 'dashboard', 'general', 'launcher']);
+  ['appearance', 'modules', 'dashboard', 'launcher', 'general', 'notifications']);
 assert(host.settingsNavigationGroupCanMove('dashboard', -1), 'Dashboard singleton frame is movable');
 host.moveSettingsNavigationGroup('dashboard', -1);
 assert.deepStrictEqual(Array.from(Config.settingsNavigationOrder.groupOrder),
-  ['appearance', 'dashboard', 'modules', 'general', 'launcher']);
+  ['appearance', 'dashboard', 'modules', 'launcher', 'general', 'notifications']);
 
 // Invalid and non-adjacent frame movement must not damage or save the hierarchy.
 const orderBeforeInvalidFrameMove = asPlain(Config.settingsNavigationOrder);
@@ -127,10 +127,10 @@ assert.strictEqual(saveCount, savesBeforeCrossFrame, 'cross-frame move is reject
 host.settingsNavigationGroups = registry.navigationGroupsForOrder(Config.settingsNavigationOrder, Config.settingsTabLabels);
 const groups = host.settingsNavigationGroups;
 assert.deepStrictEqual(Array.from(groups, group => group.id),
-  ['appearance', 'dashboard', 'modules', 'general', 'launcher']);
+  ['appearance', 'dashboard', 'modules', 'launcher', 'general', 'notifications']);
 const editorPages = groups.flatMap(group => group.items.map(item => ({ groupId: group.id, id: item.id })));
-assert.strictEqual(editorPages.length, 23);
-assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 23, 'each page occurs exactly once');
+assert.strictEqual(editorPages.length, 24);
+assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 24, 'each page occurs exactly once');
 assert(editorPages.every(item => registry.navigationGroupIdForTabId(item.id) === item.groupId),
   'sidebar/editor never assigns a page to another frame');
 assert.strictEqual(groups.find(group => group.id === 'modules').items[4].id, 'weather',
@@ -143,13 +143,13 @@ assert(widgetSource.includes('SettingsPageRegistry.navigationGroupsForOrder('),
   'sidebar groups are derived from canonical hierarchy');
 
 // 4. Collapsing the active folder keeps the active page and exposes its hint.
-const toggleGroup = new Function('id', 'root', 'Config', 'SettingsSchema',
+const toggleGroup = new Function('id', 'root', 'Config', 'SettingsSchema', 'SettingsPageRegistry',
   functionBody(widgetSource, 'toggleSettingsNavigationGroup'));
 const hasCurrentPage = new Function('id', 'root', functionBody(widgetSource, 'settingsNavigationGroupHasCurrentPage'));
 const currentPageLabel = new Function('id', 'root', functionBody(widgetSource, 'settingsNavigationGroupCurrentPageLabel'));
 const SettingsSchema = { normalizeSettingsNavigationCollapsedGroups: value => value };
 host.currentPageId = 'weather';
-toggleGroup('modules', host, Config, SettingsSchema);
+toggleGroup('modules', host, Config, SettingsSchema, registry);
 assert.strictEqual(host.currentPageId, 'weather', 'collapsing the active frame must not teleport the content page');
 assert.strictEqual(host.settingsNavigationGroupCollapsed('modules'), true, 'active page folder can collapse independently');
 assert.strictEqual(hasCurrentPage('modules', host), true, 'collapsed frame still reports that it contains the active page');
@@ -180,7 +180,7 @@ assert(folderSource.includes('Accessible.name') && folderSource.includes('active
 assert(widgetSource.includes('function focusAdjacentSettingsNavigationItem(')
   && widgetSource.includes('function focusSettingsNavigationPage('),
   'sidebar maintains keyboard traversal and search-focus routing');
-assert(registry.tabDefinitions().length === 23 && registry.navigationGroupDefinitions().length === 5);
+assert(registry.tabDefinitions().length === 24 && registry.navigationGroupDefinitions().length === 6);
 
 // 7. Registration gate guards the integration and its constituent regression tests exactly once.
 const check = read('CHECK.sh');

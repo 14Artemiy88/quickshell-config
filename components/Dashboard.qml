@@ -12,6 +12,13 @@ PanelWindow {
     id: root
 
     property bool open: false
+    property bool historyViewActive: false
+    property var notificationHistoryModel: []
+    property int notificationHistoryLimit: 30
+    property int notificationHistoryRetentionDays: 0
+    property bool historyClearConfirmationPending: false
+    property string historyGroupDeleteConfirmationPending: ""
+    property int notificationHistoryUnreadCount: 0
     property bool layoutEditMode: false
     property var layoutEditor: null
     property bool layoutDragging: false
@@ -176,6 +183,10 @@ PanelWindow {
 
     signal closeRequested()
     signal settingsRequested()
+    signal historyRequested()
+    signal historyClearRequested()
+    signal historyEntryDeleteRequested(string entryId)
+    signal historyGroupDeleteRequested(string appGroup)
 
     readonly property var playerData: root.playerSource && root.playerSource.player
                                       ? root.playerSource.player : ({})
@@ -694,6 +705,14 @@ PanelWindow {
 
     function isCardEnabled(cardId) {
         return DashboardCards.contains(Config.dashboardVisibleCards, cardId)
+    }
+
+    function toggleNotificationsDoNotDisturb() {
+        if (!Settings.notifications)
+            return
+        Config.notificationsDoNotDisturb = !Config.notificationsDoNotDisturb
+        notificationsDndButton.dndVisualActive = Config.notificationsDoNotDisturb
+        Settings.save()
     }
 
     function toggleDashboardCardEditMode() {
@@ -1543,6 +1562,7 @@ PanelWindow {
                 visibilityAnimationReadyTimer.restart()
         } else {
             visibilityAnimationReadyTimer.stop()
+            root.historyViewActive = false
             root.cardEditMode = false
             root.draggingCardId = ""
             root.cardDropTargetId = ""
@@ -1716,10 +1736,23 @@ PanelWindow {
         }
 
         ColumnLayout {
+            id: mainDashboardContent
             z: 1
             anchors.fill: parent
             anchors.margins: 18
             spacing: 14
+            visible: root.open || root.keepWindowDuringClose
+            enabled: root.open && !root.historyViewActive
+            opacity: root.historyViewActive ? 0 : 1
+            transform: Translate {
+                x: root.historyViewActive ? -28 : 0
+                Behavior on x {
+                    NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+            }
 
             RowLayout {
                 Layout.fillWidth: true
@@ -1735,6 +1768,145 @@ PanelWindow {
                         font.bold: true
                     }
                 }
+                Rectangle {
+                    id: notificationsDndButton
+                    readonly property bool navigationCard: false
+                    property bool dndVisualActive: Config.notificationsDoNotDisturb
+                    Layout.preferredWidth: 64
+                    Layout.preferredHeight: 32
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 8
+                    activeFocusOnTab: true
+                    enabled: Settings.notifications
+                    Accessible.role: Accessible.Button
+                    Accessible.name: Config.notificationsDoNotDisturb ? "Выключить режим Не беспокоить" : "Включить режим Не беспокоить"
+                    Accessible.description: Settings.notifications
+                        ? "Переключает показ всплывающих уведомлений"
+                        : "Сначала включите модуль Уведомления в настройках"
+                    ToolTip.visible: dndMouse.containsMouse
+                    ToolTip.text: Settings.notifications
+                        ? (Config.notificationsDoNotDisturb ? "Не беспокоить включён" : "Не беспокоить выключен")
+                        : "Модуль уведомлений выключен"
+                    ToolTip.delay: 400
+                    Component.onCompleted: root.registerNavigationTarget(notificationsDndButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(notificationsDndButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(notificationsDndButton)
+                        else
+                            root.releaseNavigationTargetFocus(notificationsDndButton)
+                    }
+                    color: !enabled ? "transparent"
+                        : (dndMouse.pressed
+                           ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.24)
+                           : (dndVisualActive
+                              ? Config.accent
+                              : (dndMouse.containsMouse
+                                 ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
+                                 : "transparent")))
+                    border.width: activeFocus ? 2 : (dndVisualActive || dndMouse.containsMouse ? 1 : 0)
+                    border.color: Config.accent
+                    opacity: enabled ? 1 : 0.45
+                    Text {
+                        anchors.centerIn: parent
+                        text: "DND"
+                        color: notificationsDndButton.dndVisualActive
+                            ? Config.black : (notificationsDndButton.activeFocus ? Config.accent : Config.textMuted)
+                        font.family: Config.settingsFont
+                        font.pixelSize: 10
+                        font.bold: notificationsDndButton.dndVisualActive
+                    }
+                    Connections {
+                        target: Config
+                        function onNotificationsDoNotDisturbChanged() {
+                            notificationsDndButton.dndVisualActive = Config.notificationsDoNotDisturb
+                        }
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.toggleNotificationsDoNotDisturb()
+                            notificationsDndButton.forceActiveFocus()
+                        }
+                    }
+                    Behavior on color {
+                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+                    }
+                    MouseArea {
+                        id: dndMouse
+                        anchors.fill: parent
+                        enabled: notificationsDndButton.enabled
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            notificationsDndButton.forceActiveFocus()
+                            root.toggleNotificationsDoNotDisturb()
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: notificationsHistoryButton
+                    readonly property bool navigationCard: false
+                    Layout.preferredWidth: 92
+                    Layout.preferredHeight: 32
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 8
+                    activeFocusOnTab: true
+                    visible: Settings.notifications && root.notificationHistoryModel.length > 0
+                    enabled: Settings.notifications && root.notificationHistoryModel.length > 0
+                    Accessible.role: Accessible.Button
+                    Accessible.name: "Открыть историю уведомлений"
+                    Accessible.description: "Показывает последние уведомления, сохранённые в памяти"
+                    ToolTip.visible: historyButtonMouse.containsMouse
+                    ToolTip.text: enabled ? ("Непрочитанных: " + root.notificationHistoryUnreadCount + " · Всего: " + root.notificationHistoryModel.length) : "Модуль уведомлений выключен"
+                    ToolTip.delay: 400
+                    Component.onCompleted: root.registerNavigationTarget(notificationsHistoryButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(notificationsHistoryButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(notificationsHistoryButton)
+                        else
+                            root.releaseNavigationTargetFocus(notificationsHistoryButton)
+                    }
+                    color: historyButtonMouse.pressed
+                        ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.24)
+                        : (activeFocus || historyButtonMouse.containsMouse
+                            ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.12)
+                            : "transparent")
+                    border.width: activeFocus || historyButtonMouse.containsMouse ? 1 : 0
+                    border.color: Config.accent
+                    opacity: enabled ? 1 : 0.45
+                    Text {
+                        anchors.centerIn: parent
+                        text: "История · " + String(root.notificationHistoryUnreadCount > 0
+                            ? root.notificationHistoryUnreadCount : root.notificationHistoryModel.length)
+                        color: notificationsHistoryButton.activeFocus || historyButtonMouse.containsMouse
+                            ? Config.accent : Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: 10
+                        font.bold: notificationsHistoryButton.activeFocus
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.historyRequested()
+                            notificationsHistoryButton.forceActiveFocus()
+                        }
+                    }
+                    MouseArea {
+                        id: historyButtonMouse
+                        anchors.fill: parent
+                        enabled: notificationsHistoryButton.enabled
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            notificationsHistoryButton.forceActiveFocus()
+                            root.historyRequested()
+                        }
+                    }
+                }
+
                 Rectangle {
                     id: cardEditButton
                     readonly property bool navigationCard: false
@@ -2382,9 +2554,334 @@ PanelWindow {
         }
     }
 
+    ColumnLayout {
+        id: dashboardHistoryContent
+        z: 2
+        anchors.fill: drawer
+        anchors.margins: 18
+        spacing: 12
+        visible: root.open || root.keepWindowDuringClose
+        enabled: root.open && root.historyViewActive
+        opacity: root.historyViewActive ? 1 : 0
+        transform: Translate {
+            x: root.historyViewActive ? 0 : 28
+            Behavior on x {
+                NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+            }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+            Text {
+                Layout.fillWidth: true
+                text: "История уведомлений"
+                color: Config.text
+                font.family: Config.settingsFont
+                font.pixelSize: 20
+                font.bold: true
+            }
+            Rectangle {
+                visible: root.notificationHistoryModel.length > 0
+                Layout.preferredWidth: root.historyClearConfirmationPending ? 112 : 76
+                Layout.preferredHeight: 30
+                radius: 7
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: root.historyClearConfirmationPending ? "Подтвердить очистку истории" : "Очистить историю уведомлений"
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        event.accepted = true
+                        if (root.historyClearConfirmationPending) {
+                            root.historyClearRequested()
+                            root.historyClearConfirmationPending = false
+                        } else {
+                            root.historyGroupDeleteConfirmationPending = ""
+                            root.historyClearConfirmationPending = true
+                        }
+                    }
+                    if (event.key === Qt.Key_Escape) root.historyClearConfirmationPending = false
+                }
+                color: historyClearMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
+                border.color: root.historyClearConfirmationPending ? Config.accent : Config.settingsBorder
+                border.width: root.historyClearConfirmationPending ? 2 : 1
+                Text {
+                    anchors.centerIn: parent
+                    text: root.historyClearConfirmationPending ? "Точно очистить?" : "Очистить"
+                    color: historyClearMouse.containsMouse || activeFocus ? Config.black : Config.textMuted
+                    font.family: Config.settingsFont
+                    font.pixelSize: 9
+                    font.bold: root.historyClearConfirmationPending
+                }
+                MouseArea {
+                    id: historyClearMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (root.historyClearConfirmationPending) {
+                            root.historyClearRequested()
+                            root.historyClearConfirmationPending = false
+                        } else {
+                            root.historyGroupDeleteConfirmationPending = ""
+                            root.historyClearConfirmationPending = true
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                Layout.preferredWidth: 34
+                Layout.preferredHeight: 30
+                radius: 7
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: "Назад к обзору Dashboard"
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        event.accepted = true
+                        root.historyViewActive = false
+                        root.historyClearConfirmationPending = false
+                        root.historyGroupDeleteConfirmationPending = ""
+                    }
+                }
+                color: historyBackMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
+                border.color: Config.settingsBorder
+                border.width: 1
+                Text { anchors.centerIn: parent; text: "‹"; color: Config.text; font.pixelSize: 22 }
+                MouseArea {
+                    id: historyBackMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { root.historyViewActive = false; root.historyClearConfirmationPending = false; root.historyGroupDeleteConfirmationPending = "" }
+                }
+            }
+        }
+        Text {
+            Layout.fillWidth: true
+            text: root.notificationHistoryModel.length + " уведомлений · " + root.notificationHistoryUnreadCount + " непрочитанных · лимит " + root.notificationHistoryLimit + " · срок " + (root.notificationHistoryRetentionDays > 0 ? root.notificationHistoryRetentionDays + " дн." : "без ограничения") + " · только в памяти"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: 9
+        }
+        ListView {
+            id: dashboardHistoryList
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            focus: root.historyViewActive
+            activeFocusOnTab: true
+            spacing: 7
+            model: root.notificationHistoryModel || []
+            section.property: "appGroup"
+            section.criteria: ViewSection.FullString
+            section.delegate: Rectangle {
+                width: dashboardHistoryList.width
+                height: 30
+                color: "transparent"
+                Rectangle {
+                    id: historyGroupDeleteButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: root.historyGroupDeleteConfirmationPending === String(section) ? 58 : 26
+                    height: 24
+                    radius: 6
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.historyGroupDeleteConfirmationPending === String(section)
+                        ? "Подтвердить удаление истории приложения " + String(section)
+                        : "Удалить всю историю приложения " + String(section)
+                    color: historyGroupDeleteMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
+                    border.color: root.historyGroupDeleteConfirmationPending === String(section) ? Config.accent : Config.settingsBorder
+                    border.width: root.historyGroupDeleteConfirmationPending === String(section) ? 2 : 1
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.historyGroupDeleteConfirmationPending === String(section) ? "Точно?" : "×"
+                        color: historyGroupDeleteMouse.containsMouse || historyGroupDeleteButton.activeFocus ? Config.black : Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: root.historyGroupDeleteConfirmationPending === String(section) ? 9 : 17
+                        font.bold: root.historyGroupDeleteConfirmationPending === String(section)
+                    }
+                    MouseArea {
+                        id: historyGroupDeleteMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (root.historyGroupDeleteConfirmationPending === String(section)) {
+                                root.historyGroupDeleteRequested(String(section))
+                                root.historyGroupDeleteConfirmationPending = ""
+                            } else {
+                                root.historyGroupDeleteConfirmationPending = String(section)
+                                root.historyClearConfirmationPending = false
+                            }
+                        }
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            if (root.historyGroupDeleteConfirmationPending === String(section)) {
+                                root.historyGroupDeleteRequested(String(section))
+                                root.historyGroupDeleteConfirmationPending = ""
+                            } else {
+                                root.historyGroupDeleteConfirmationPending = String(section)
+                                root.historyClearConfirmationPending = false
+                            }
+                        }
+                        if (event.key === Qt.Key_Escape) root.historyGroupDeleteConfirmationPending = ""
+                    }
+                    ToolTip.visible: historyGroupDeleteMouse.containsMouse || activeFocus
+                    ToolTip.text: root.historyGroupDeleteConfirmationPending === String(section)
+                        ? "Удалить все уведомления этой группы? Нажмите ещё раз для подтверждения"
+                        : "Удалить всю историю этого приложения"
+                }
+                Text {
+                    anchors.left: parent.left
+                    anchors.right: historyGroupDeleteButton.left
+                    anchors.rightMargin: 7
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: section + "  ·  " + String((dashboardHistoryList.model || []).filter(function(entry) { return entry.appGroup === section }).length)
+                    color: Config.accent
+                    font.family: Config.settingsFont
+                    font.pixelSize: 10
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
+            }
+            WheelHandler {
+                target: null
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: function(event) {
+                    var nextContentY = DashboardCards.wheelScrollPosition(
+                        dashboardHistoryList.contentY,
+                        dashboardHistoryList.contentHeight,
+                        dashboardHistoryList.height,
+                        event.pixelDelta.y,
+                        event.angleDelta.y
+                    )
+                    if (nextContentY === null) return
+                    dashboardHistoryList.contentY = nextContentY
+                    event.accepted = true
+                }
+            }
+            delegate: Rectangle {
+                required property var modelData
+                width: dashboardHistoryList.width
+                height: historyEntryText.implicitHeight + 20
+                radius: 8
+                color: Config.settingsBackground
+                border.width: modelData.unread === true ? 2 : 1
+                border.color: modelData.unread === true ? Config.accent : Config.settingsBorder
+                Column {
+                    id: historyEntryText
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 4
+                    Row {
+                        width: parent.width
+                        spacing: 6
+                        Text {
+                            width: Math.max(0, parent.width - historyEntryTime.implicitWidth - historyEntryDeleteButton.width - 12)
+                            text: String(modelData.appName || modelData.desktopEntry || "Приложение") + (modelData.unread === true ? "  ·  новое" : "")
+                            color: Config.accent
+                            font.family: Config.settingsFont
+                            font.pixelSize: 10
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            id: historyEntryTime
+                            text: Qt.formatDateTime(new Date(Number(modelData.receivedAt) || 0), "dd.MM.yyyy HH:mm")
+                            color: Config.textMuted
+                            font.family: Config.settingsFont
+                            font.pixelSize: 9
+                        }
+                        Rectangle {
+                            id: historyEntryDeleteButton
+                            width: 24
+                            height: 24
+                            radius: 6
+                            activeFocusOnTab: true
+                            Accessible.role: Accessible.Button
+                            Accessible.name: "Удалить уведомление: " + String(modelData.summary || "без заголовка")
+                            color: historyEntryDeleteMouse.containsMouse || activeFocus ? Config.accent : "transparent"
+                            border.color: historyEntryDeleteMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBorder
+                            border.width: 1
+                            Text {
+                                anchors.centerIn: parent
+                                text: "×"
+                                color: historyEntryDeleteMouse.containsMouse || historyEntryDeleteButton.activeFocus ? Config.black : Config.textMuted
+                                font.family: Config.settingsFont
+                                font.pixelSize: 17
+                            }
+                            MouseArea {
+                                id: historyEntryDeleteMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.historyEntryDeleteRequested(String(modelData.id || ""))
+                            }
+                            Keys.onPressed: function(event) {
+                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                    event.accepted = true
+                                    root.historyEntryDeleteRequested(String(modelData.id || ""))
+                                }
+                            }
+                            ToolTip.visible: historyEntryDeleteMouse.containsMouse || activeFocus
+                            ToolTip.text: "Удалить уведомление"
+                        }
+                    }
+                    Text {
+                        width: parent.width
+                        text: String(modelData.summary || "(без заголовка)")
+                        color: Config.text
+                        font.family: Config.settingsFont
+                        font.pixelSize: 12
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                    }
+                    Text {
+                        visible: String(modelData.body || "").length > 0
+                        width: parent.width
+                        text: String(modelData.body || "")
+                        color: Config.textMuted
+                        font.family: Config.settingsFont
+                        font.pixelSize: 10
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 5
+                        elide: Text.ElideRight
+                    }
+                }
+            }
+            Text {
+                anchors.centerIn: parent
+                visible: root.notificationHistoryModel.length === 0
+                text: "История пока пуста"
+                color: Config.textMuted
+                font.family: Config.settingsFont
+                font.pixelSize: 12
+            }
+        }
+        Text {
+            Layout.fillWidth: true
+            text: "‹ Назад к обзору · Esc"
+            color: Config.textMuted
+            font.family: Config.settingsFont
+            font.pixelSize: 9
+        }
+    }
+
     Shortcut {
         sequence: "Esc"
-        enabled: root.open
+        enabled: root.open && root.historyViewActive
+        onActivated: root.historyViewActive = false
+    }
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.open && !root.historyViewActive
         onActivated: root.closeRequested()
     }
 

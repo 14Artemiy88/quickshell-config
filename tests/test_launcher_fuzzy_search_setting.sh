@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-node - "$ROOT/js/launcher/LauncherAppSearch.js" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
+node - "$ROOT/js/launcher/LauncherAppSearch.js" "$ROOT/js/launcher/LauncherKeyboardLayout.js" "$ROOT/js/utils/ApplicationSearch.js" <<'JS'
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 const layoutSource = fs.readFileSync(process.argv[3], 'utf8').replace(/^\.pragma library\s*/, '');
 const KeyboardLayout = vm.runInNewContext(layoutSource + '\n({ alternateLayoutQuery, scoreWithLayout, bestMatchingQuery })');
-const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/m, '');
-const context = vm.createContext({ KeyboardLayout });
+const helperSource = fs.readFileSync(process.argv[4], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const helperContext = vm.createContext({ KeyboardLayout });
+vm.runInContext(helperSource + '\nthis.api = { searchValue, fuzzyScoreCore, fuzzyScoreNative, fuzzyScore, valuesOf };', helperContext);
+const ApplicationSearch = helperContext.api;
+const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma library\s*/, '').replace(/^\.import .*$/gm, '');
+const context = vm.createContext({ ApplicationSearch });
 vm.runInContext(source + '\nthis.api = { fuzzyScore, parseSpecialQuery, scoreEntry };', context);
 const api = context.api;
 
@@ -63,8 +67,8 @@ assert(ui.includes('Config.launcherFuzzySearchApps = checked') && ui.includes('r
   'changing the control persists the preference');
 assert(model.includes('readonly property bool fuzzySearchEnabled: Config.launcherFuzzySearchApps !== false'),
   'AppModel tracks the preference reactively');
-assert(model.includes('LauncherAppSearch.fuzzyScore(text, query, root.fuzzySearchEnabled)'),
-  'AppModel delegates app scoring to the shared fuzzy helper');
+assert(model.includes('LauncherAppSearch.buildApplicationEntries('),
+  'AppModel delegates the complete application query pipeline to the canonical shared primitive');
 const begin = navigation.indexOf('"launcherSearch": [');
 const end = navigation.indexOf('\n            ],', begin);
 assert(begin >= 0 && end > begin, 'find Launcher dirty-state mapping');

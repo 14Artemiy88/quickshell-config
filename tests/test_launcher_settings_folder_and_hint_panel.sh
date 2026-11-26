@@ -23,7 +23,7 @@ assert '{ id: "launcher", label: "Лаунчер", symbol: "⌕", description:' 
 launcher_pages = ("launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications")
 for page_id in launcher_pages:
     assert f'id: "{page_id}"' in registry and f'groupId: "launcher"' in registry
-assert 'if (key !== "appearance" && key !== "modules" && key !== "launcher") return' in widget
+assert 'if (!SettingsPageRegistry.navigationGroupForId(key)) return' in widget
 assert 'launcher: false' in widget and 'settingsNavigationCollapsedGroups' in config and 'launcher: false' in defaults
 assert 'settingsNavigationGroupCollapsed(modelData.id)' in nav and 'modelData.items.length > 1' in nav
 assert 'root.host.currentPageSubTabs.length > 0' in host and 'SettingsSubTab' in host

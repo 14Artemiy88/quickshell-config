@@ -5,21 +5,21 @@ APP_MODEL="$ROOT/components/launcher/models/AppModel.qml"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 SETTINGS="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 
-node - "$APP_MODEL" "$LAUNCHER" "$SETTINGS" <<'JS'
+node - "$APP_MODEL" "$LAUNCHER" "$SETTINGS" "$ROOT/js/launcher/LauncherAppSearch.js" <<'JS'
 const fs = require('fs');
 const assert = require('assert');
-const [model, launcher, settings] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
+const [model, launcher, settings, searchPrimitive] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
 
-assert(model.includes('const entries = DesktopEntries.applications.values || []'),
-  'AppModel reads the live ObjectModel values directly inside the results binding');
+assert(model.includes('DesktopEntries.applications.values || []') && model.includes('LauncherAppSearch.buildApplicationEntries('),
+  'AppModel passes the live ObjectModel values into the shared result builder inside its reactive binding');
 assert(model.includes('readonly property int desktopEntryCount: DesktopEntries.applications.values.length'),
   'the empty state reads the current system catalog count reactively');
 assert(!model.includes('desktopEntriesSnapshot') && !model.includes('refreshDesktopEntries'),
   'there is no imperative snapshot or polling path that can become stale');
-assert(model.includes('root.hiddenAppIds.indexOf(appId) >= 0'),
-  'hidden apps are excluded from every Apps result source');
-assert(model.includes('favoriteIndex: favoriteIndex'),
-  'favorite app IDs are used to rank applications');
+assert(searchPrimitive.includes('hidden.indexOf(id) >= 0'),
+  'hidden apps are excluded by the shared result builder');
+assert(searchPrimitive.includes('favoriteIndex: favoriteIndex'),
+  'favorite app IDs are ranked by the shared result builder');
 assert(launcher.includes('property var appsUnifiedResults: {')
   && launcher.includes('return root.buildAppsUnifiedResults(\n            appModel.applications, root.fuzzyCustomActionsEnabled'),
   'the ListView result binding directly depends on AppModel applications');

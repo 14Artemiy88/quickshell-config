@@ -362,10 +362,11 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "notifications") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
+            "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
             "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress",
             "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
         ])
+        resetNotificationDndDefaults(owner, config, profile)
         resetNotificationTimeoutIndicatorDefaults(owner, config, profile)
         // Geometry is authoritative for module placement. Keep its width and the
         // legacy scalar aligned when resetting profiles created before this move.
@@ -522,6 +523,20 @@ function resetSettingsWindow(owner, config) {
     resetSettingsWindowFromProfile(owner, config)
 }
 
+function resetNotificationDndDefaults(owner, config, profile) {
+    var defaults = owner && owner.defaultConfig ? owner.defaultConfig : ({})
+    if (!profile || profile.notificationsDoNotDisturb === undefined)
+        config.notificationsDoNotDisturb = defaults.notificationsDoNotDisturb === true
+    if (!profile || profile.notificationsDndAllowedApps === undefined)
+        config.notificationsDndAllowedApps = String(defaults.notificationsDndAllowedApps || "")
+    if (!profile || profile.notificationsDndBlockedApps === undefined)
+        config.notificationsDndBlockedApps = String(defaults.notificationsDndBlockedApps || "")
+    if (!profile || profile.notificationsHistoryLimit === undefined)
+        config.notificationsHistoryLimit = Math.max(1, Math.min(200, Number(defaults.notificationsHistoryLimit) || 30))
+    if (!profile || profile.notificationsHistoryRetentionDays === undefined)
+        config.notificationsHistoryRetentionDays = Math.max(0, Math.min(365, Number(defaults.notificationsHistoryRetentionDays) || 0))
+}
+
 function resetNotificationTimeoutIndicatorDefaults(owner, config, profile) {
     var defaults = owner && owner.defaultConfig ? owner.defaultConfig : ({})
     if (!profile || profile.notificationsTimeoutIndicatorColor === undefined)
@@ -539,10 +554,11 @@ function resetNotificationsSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
     applyConfigKeysFromProfile(owner, config, profile, [
-        "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardSpacing",
+        "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardSpacing",
         "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages",
         "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
     ])
+    resetNotificationDndDefaults(owner, config, profile)
     resetNotificationTimeoutIndicatorDefaults(owner, config, profile)
     owner.save()
 }

@@ -62,7 +62,8 @@ assert 'remove: Transition {' not in notifications, 'exit animation must be expl
 assert 'displaced: Transition {' in notifications
 assert 'Config.animationEasingType(card.activeTransitionProfile, "enter")' in notifications
 assert 'Config.animationEasingType(card.activeTransitionProfile, "exit")' in notifications
-assert 'model: notificationServer.trackedNotifications' in notifications
+assert 'model: visibleNotificationModel' in notifications
+assert 'ScriptModel {' in notifications and 'NotificationDnd.visibleNotifications(' in notifications
 assert 'ListView.onRemove:' in notifications, 'removed delegates must stop their timeout before the remove animation finishes'
 assert 'ListView.delayRemove = true' in notifications and 'ListView.delayRemove = false' in notifications
 assert 'root.activeNotificationExitCount += 1' in notifications

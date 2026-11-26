@@ -103,7 +103,7 @@ Item {
     readonly property var settingsNavigationItems: settingsNavigationController.settingsNavigationItems
     readonly property var settingsNavigationGroups: SettingsPageRegistry.navigationGroupsForOrder(
         settingsNavigationController.settingsNavigationOrderNormalized(), Config.settingsTabLabels || ({}))
-    readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false, launcher: false })
+    readonly property var collapsedSettingsNavigationGroups: Config.settingsNavigationCollapsedGroups || ({ appearance: false, modules: false, launcher: false, notifications: false })
     readonly property var currentPageSubTabs: settingsNavigationController.currentPageSubTabs
     readonly property string currentPageTitle: settingsNavigationController.currentPageTitle
 
@@ -245,10 +245,13 @@ Item {
     }
 
     function toggleSettingsNavigationGroup(id) {
-        var key = String(id)
-        if (key !== "appearance" && key !== "modules" && key !== "launcher") return
+        var key = String(id || "")
+        // The folder primitive is shared by every multi-page navigation group.
+        // Validate against the canonical registry instead of maintaining a
+        // second, incomplete allowlist here.
+        if (!SettingsPageRegistry.navigationGroupForId(key)) return
         var next = Object.assign({}, root.collapsedSettingsNavigationGroups || ({}))
-        next[key] = next[key] !== true
+        next[key] = !root.settingsNavigationGroupCollapsed(key)
         root.setSettingsNavigationCollapsedGroups(next)
     }
 

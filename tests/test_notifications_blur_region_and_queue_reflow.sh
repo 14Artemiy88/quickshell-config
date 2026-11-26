@@ -33,8 +33,9 @@ assert "NotificationAnimation.visibilityDuration(" in source
 blur_active_start = source.index("readonly property bool notificationBlurRegionActive:")
 blur_active_end = source.index("\n    readonly property int layoutPreviewHeight", blur_active_start)
 blur_active = source[blur_active_start:blur_active_end]
-assert "trackedNotifications.values.length > 0" in blur_active
+assert "visibleNotificationCount > 0" in blur_active
 assert "activeNotificationExitCount" not in blur_active, "exit retention must not extend blur lifetime"
+assert "visibleNotificationCount" in blur_active, "DND-suppressed notifications must not keep a visible blur region"
 print("notification blur follows tracked model and clears when the final notification leaves; queue reflow follows effective visibility animation: OK")
 PY
 node - "$ROOT" <<'JS'

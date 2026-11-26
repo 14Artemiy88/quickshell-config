@@ -9,6 +9,9 @@ import "../.."
 import "../../js/NotificationsGeometry.js" as NotificationsGeometry
 import "../../js/notifications/NotificationAnimation.js" as NotificationAnimation
 import "../../js/notifications/NotificationTimeout.js" as NotificationTimeout
+import "../../js/notifications/NotificationDnd.js" as NotificationDnd
+import "../../js/notifications/NotificationHistory.js" as NotificationHistory
+import "../../js/notifications/NotificationAppCatalog.js" as NotificationAppCatalog
 
 Item {
     id: root
@@ -26,16 +29,30 @@ Item {
     // explicit exit animation. ListView.delayRemove keeps the delegate in layout.
     property int activeNotificationExitCount: 0
     property real notificationListLastContentHeight: 0
+    // DND keeps received notifications tracked but removes them from the toast model.
+    // The DND-specific buffer keeps bounded snapshots for expiry bookkeeping;
+    // the separate History model below is also memory-only and never persisted.
+    property var dndSuppressedNotificationIds: ({})
+    property var dndSuppressedRecords: []
+    property var dndMemoryHistory: []
+    property var notificationHistory: []
+    readonly property int dndMemoryHistoryLimit: 200
+    readonly property var notificationHistoryGrouped: NotificationHistory.groupedEntries(root.notificationHistory)
+    readonly property int notificationHistoryUnreadCount: NotificationHistory.unreadCount(root.notificationHistory)
+    readonly property int notificationHistoryLimit: Math.max(1, Math.min(200, Number(Config.notificationsHistoryLimit) || 30))
+    readonly property int notificationHistoryRetentionDays: Math.max(0, Math.min(365, Number(Config.notificationsHistoryRetentionDays) || 0))
+    readonly property int dndSuppressedCount: dndMemoryHistory.length
+    readonly property int visibleNotificationCount: visibleNotificationModel.values.length
     // Keep the layer-surface mapped for the lifetime of the Notifications module.
     // Mapping/unmapping PanelWindow for every toast triggers the compositor's
     // own window open/close fade, which is independent of the selected card style.
     // When idle the surface is reduced to 1x1 and its content is hidden.
-    readonly property bool notificationSurfaceActive: notificationServer.trackedNotifications.values.length > 0
+    readonly property bool notificationSurfaceActive: visibleNotificationCount > 0
         || activeNotificationExitCount > 0 || layoutEditMode
     // The tracked notification model, not retained ListView exit delegates,
     // owns the blur lifetime. delayRemove may keep an invisible delegate and
     // the PanelWindow alive for its exit motion, but must not keep the blur alive.
-    readonly property bool notificationBlurRegionActive: notificationServer.trackedNotifications.values.length > 0
+    readonly property bool notificationBlurRegionActive: visibleNotificationCount > 0
     readonly property int layoutPreviewHeight: 104
 
     function notificationTargetScreen() {
@@ -162,7 +179,180 @@ Item {
         Settings.save()
     }
 
-    Component.onCompleted: Qt.callLater(root.migrateLegacyNotificationCoordinates)
+    Component.onCompleted: Qt.callLater(function() {
+        root.migrateLegacyNotificationCoordinates()
+        if (Config.notificationsDoNotDisturb)
+            root.suppressTrackedNotifications()
+    })
+
+    function isNotificationSuppressed(notification) {
+        return NotificationDnd.isSuppressed(notification, root.dndSuppressedNotificationIds)
+    }
+
+    function recordNotificationSender(notification) {
+        var senders = NotificationAppCatalog.upsertSender(
+            Config.notificationsSeenSenders,
+            notification,
+            function(desktopEntryId) { return DesktopEntries.byId(desktopEntryId) }
+        )
+        Config.notificationsSeenSenders = senders
+    }
+
+    function recordNotificationHistory(notification, receivedAt) {
+        var snapshot = NotificationDnd.snapshot(notification, receivedAt || Date.now())
+        if (!snapshot) return
+        snapshot.unread = true
+        var nextHistory = (root.notificationHistory || []).filter(function(entry) {
+            return String(entry.id) !== String(snapshot.id)
+        })
+        nextHistory.push(snapshot)
+        if (nextHistory.length > root.notificationHistoryLimit)
+            nextHistory = nextHistory.slice(nextHistory.length - root.notificationHistoryLimit)
+        root.notificationHistory = nextHistory
+        root.pruneNotificationHistory()
+    }
+
+    function clearNotificationHistory() {
+        root.notificationHistory = []
+    }
+
+    function removeNotificationHistoryEntry(entryId) {
+        var current = root.notificationHistory || []
+        var nextHistory = NotificationHistory.removeEntryById(current, entryId)
+        if (nextHistory.length !== current.length)
+            root.notificationHistory = nextHistory
+    }
+
+    function removeNotificationHistoryGroup(appGroup) {
+        var current = root.notificationHistory || []
+        var nextHistory = NotificationHistory.removeGroupByApp(current, appGroup)
+        if (nextHistory.length !== current.length)
+            root.notificationHistory = nextHistory
+    }
+
+    function pruneNotificationHistory() {
+        var current = root.notificationHistory || []
+        var retained = NotificationHistory.pruneEntries(
+            current, Date.now(), root.notificationHistoryRetentionDays, root.notificationHistoryLimit
+        )
+        if (retained.length !== current.length)
+            root.notificationHistory = retained
+    }
+
+    function markNotificationHistoryRead() {
+        root.notificationHistory = NotificationHistory.markAllRead(root.notificationHistory)
+    }
+
+    function trimNotificationHistory() {
+        root.pruneNotificationHistory()
+    }
+
+    function suppressNotification(notification) {
+        var id = NotificationDnd.notificationId(notification)
+        if (id === "") return
+
+        var now = Date.now()
+        var nextIds = Object.assign({}, root.dndSuppressedNotificationIds || ({}))
+        nextIds[id] = true
+        root.dndSuppressedNotificationIds = nextIds
+
+        var timeout = root.notificationTimeout(notification)
+        var nextRecords = (root.dndSuppressedRecords || []).filter(function(record) { return String(record.id) !== id })
+        nextRecords.push({
+            id: id,
+            notification: notification,
+            receivedAt: now,
+            expiresAt: timeout > 0 ? now + timeout : 0
+        })
+
+        var overflowRecords = []
+        if (nextRecords.length > root.dndMemoryHistoryLimit) {
+            overflowRecords = nextRecords.splice(0, nextRecords.length - root.dndMemoryHistoryLimit)
+        }
+        root.dndSuppressedRecords = nextRecords
+
+        var snapshot = NotificationDnd.snapshot(notification, now)
+        if (snapshot) {
+            var nextHistory = (root.dndMemoryHistory || []).filter(function(entry) { return String(entry.id) !== id })
+            nextHistory.push(snapshot)
+            if (nextHistory.length > root.dndMemoryHistoryLimit)
+                nextHistory = nextHistory.slice(nextHistory.length - root.dndMemoryHistoryLimit)
+            root.dndMemoryHistory = nextHistory
+        }
+
+        // A bounded queue prevents never-expiring notifications from accumulating
+        // unlimited retained server objects while DND is active.
+        for (var i = 0; i < overflowRecords.length; ++i) {
+            var dropped = overflowRecords[i] && overflowRecords[i].notification
+            if (dropped && dropped.tracked)
+                dropped.expire()
+        }
+    }
+
+    function suppressTrackedNotifications() {
+        root.reconcileDndNotifications()
+    }
+
+    function reconcileDndNotifications() {
+        var tracked = notificationServer && notificationServer.trackedNotifications
+            ? notificationServer.trackedNotifications.values : []
+        var visibleIds = ({})
+        for (var i = 0; i < tracked.length; ++i) {
+            var notification = tracked[i]
+            var id = NotificationDnd.notificationId(notification)
+            if (id === "") continue
+            if (NotificationDnd.shouldSuppress(
+                        notification, Config.notificationsDoNotDisturb,
+                        Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps)) {
+                root.suppressNotification(notification)
+            } else {
+                visibleIds[id] = true
+            }
+        }
+
+        var nextIds = Object.assign({}, root.dndSuppressedNotificationIds || ({}))
+        for (var visibleId in visibleIds) delete nextIds[visibleId]
+        root.dndSuppressedNotificationIds = nextIds
+        root.dndSuppressedRecords = (root.dndSuppressedRecords || []).filter(function(record) {
+            return record && visibleIds[String(record.id)] !== true
+        })
+        root.dndMemoryHistory = (root.dndMemoryHistory || []).filter(function(entry) {
+            return entry && visibleIds[String(entry.id)] !== true
+        })
+    }
+
+    function pruneSuppressedNotifications() {
+        var tracked = notificationServer && notificationServer.trackedNotifications
+            ? notificationServer.trackedNotifications.values : []
+        root.dndSuppressedNotificationIds = NotificationDnd.pruneSuppressedIds(
+            root.dndSuppressedNotificationIds, tracked)
+        root.dndSuppressedRecords = NotificationDnd.pruneRecords(root.dndSuppressedRecords, tracked)
+    }
+
+    function expireSuppressedNotifications() {
+        var now = Date.now()
+        var tracked = notificationServer && notificationServer.trackedNotifications
+            ? notificationServer.trackedNotifications.values : []
+        var trackedIds = NotificationDnd.trackedIdSet(tracked)
+        var keep = []
+        var due = []
+        var records = root.dndSuppressedRecords || []
+        for (var i = 0; i < records.length; ++i) {
+            var record = records[i]
+            if (!record || trackedIds[String(record.id)] !== true)
+                continue
+            if (Number(record.expiresAt) > 0 && now >= Number(record.expiresAt))
+                due.push(record)
+            else
+                keep.push(record)
+        }
+        root.dndSuppressedRecords = keep
+        for (var j = 0; j < due.length; ++j) {
+            var notification = due[j].notification
+            if (notification && notification.tracked)
+                notification.expire()
+        }
+    }
 
     onLayoutEditModeChanged: {
         if (!root.layoutEditMode)
@@ -572,10 +762,55 @@ Item {
         imageSupported: true
 
         onNotification: function(notification) {
-            // Keep notifications in the server's tracked model until the user
-            // dismisses them or their own timeout expires.
+            // Learn the sender identity from the actual incoming notification.
+            // The catalog contains app metadata only and remains runtime-only.
+            root.recordNotificationSender(notification)
+            // Keep a bounded, memory-only history snapshot for every incoming item.
+            // DND never rejects the D-Bus notification; it only filters the toast.
+            root.recordNotificationHistory(notification, Date.now())
+            if (NotificationDnd.shouldSuppress(
+                        notification, Config.notificationsDoNotDisturb,
+                        Config.notificationsDndAllowedApps, Config.notificationsDndBlockedApps))
+                root.suppressNotification(notification)
             notification.tracked = true
         }
+    }
+
+    Connections {
+        target: Config
+        function onNotificationsDoNotDisturbChanged() { root.reconcileDndNotifications() }
+        function onNotificationsDndAllowedAppsChanged() { root.reconcileDndNotifications() }
+        function onNotificationsDndBlockedAppsChanged() { root.reconcileDndNotifications() }
+    }
+
+    Connections {
+        target: notificationServer
+        function onTrackedNotificationsChanged() {
+            root.pruneSuppressedNotifications()
+        }
+    }
+
+    ScriptModel {
+        id: visibleNotificationModel
+        comparisonMode: ObjectComparison.Identity
+        values: NotificationDnd.visibleNotifications(
+            notificationServer.trackedNotifications.values,
+            root.dndSuppressedNotificationIds)
+    }
+
+    Timer {
+        id: dndSuppressedExpirationTimer
+        interval: 250
+        repeat: true
+        running: root.dndSuppressedRecords.some(function(record) { return Number(record.expiresAt) > 0 })
+        onTriggered: root.expireSuppressedNotifications()
+    }
+
+    Timer {
+        interval: 60000
+        repeat: true
+        running: true
+        onTriggered: root.pruneNotificationHistory()
     }
 
     PanelWindow {
@@ -606,7 +841,7 @@ Item {
             if (!root.notificationSurfaceActive)
                 return 1
             // Keep an editable preview available even when the notification queue is empty.
-            if (root.layoutEditMode && notificationServer.trackedNotifications.values.length === 0)
+            if (root.layoutEditMode && root.visibleNotificationCount === 0)
                 return root.layoutPreviewHeight
             // Zero preserves the natural content-driven height. A positive value
             // limits the notification queue and lets ListView scroll the overflow.
@@ -648,7 +883,7 @@ Item {
             ListView {
                 id: notificationList
                 anchors.fill: parent
-                visible: notificationServer.trackedNotifications.values.length > 0 || root.activeNotificationExitCount > 0
+                visible: root.visibleNotificationCount > 0 || root.activeNotificationExitCount > 0
                 onContentHeightChanged: {
                     const currentHeight = Math.max(0, Number(contentHeight) || 0)
                     if (currentHeight > 0) {
@@ -661,7 +896,7 @@ Item {
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.StopAtBounds
-                model: notificationServer.trackedNotifications
+                model: visibleNotificationModel
 
                 // The card owns its entrance animation. ListView's add/populate
                 // transitions only animate view-managed x/y and were not reliably
@@ -792,7 +1027,7 @@ Item {
                         && !imageLoadFailed && !hasLeadingImage
 
                     function startNotificationEntry() {
-                        if (entryAnimationStarted || removalPending || notification === null)
+                        if (entryAnimationStarted || removalPending || notification === null || root.isNotificationSuppressed(notification))
                             return
 
                         entryAnimationStarted = true
@@ -816,6 +1051,13 @@ Item {
                             return
                         }
                         removalPending = true
+                        if (root.isNotificationSuppressed(notification)) {
+                            expirationTimer.stop()
+                            entryAnimation.stop()
+                            exitAnimation.stop()
+                            exitKeepsWindowAlive = false
+                            return
+                        }
                         expirationTimer.stop()
                         entryAnimation.stop()
                         exitAnimation.stop()
@@ -1393,7 +1635,7 @@ Item {
             Rectangle {
                 id: layoutEditPreview
                 anchors.fill: parent
-                visible: root.layoutEditMode && notificationServer.trackedNotifications.values.length === 0
+                visible: root.layoutEditMode && root.visibleNotificationCount === 0
                 radius: Config.frameRadius
                 color: Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent
                 border.width: Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0
@@ -1512,4 +1754,14 @@ Item {
             }
         }
     }
+
+
+
+
+    Connections {
+        target: Config
+        function onNotificationsHistoryLimitChanged() { root.trimNotificationHistory() }
+        function onNotificationsHistoryRetentionDaysChanged() { root.pruneNotificationHistory() }
+    }
+
 }
