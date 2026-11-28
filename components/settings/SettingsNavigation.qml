@@ -189,13 +189,14 @@ Column {
 
                     SettingsNavigationFolder {
                         id: navigationGroupFolder
-                        visible: navigationGroupDelegate.modelData.items.length > 1
+                        visible: navigationGroupDelegate.modelData.items.length !== 1
                         width: parent.width
                         groupId: navigationGroupDelegate.modelData.id
                         groupLabel: navigationGroupDelegate.modelData.label
                         groupSymbol: navigationGroupDelegate.modelData.symbol
                         collapsed: root.host.settingsNavigationGroupCollapsed(groupId)
                         compactNavigation: root.compactNavigation
+                        emptyFolder: navigationGroupDelegate.modelData.items.length === 0
                         collapsedWithCurrentPage: navigationGroupDelegate.collapsedWithCurrentPage
                         currentPageLabel: collapsedWithCurrentPage
                             ? root.host.settingsNavigationGroupCurrentPageLabel(groupId) : ""

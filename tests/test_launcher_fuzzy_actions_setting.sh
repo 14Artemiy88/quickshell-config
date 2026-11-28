@@ -12,6 +12,7 @@ RESETS="$ROOT/js/settings/SettingsResets.js"
 NAV="$ROOT/components/settings/SettingsNavigationController.qml"
 UI="$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 README="$ROOT/README.md"
+README_EN="$ROOT/README.en.md"
 
 node - "$MODULE" "$ACTIONS" "$ROOT/js/launcher/LauncherKeyboardLayout.js" <<'JS'
 const fs = require('fs');
@@ -79,10 +80,10 @@ assert.strictEqual(build('', true).length, 0, 'ordinary Apps search stays empty 
 assert.strictEqual(build('', true, true).length, 2, 'the : custom-action catalog lists complete enabled actions');
 JS
 
-node - "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$NAV" "$UI" "$LAUNCHER" "$README" <<'JS'
+node - "$CONFIG" "$DEFAULTS" "$APPLY" "$PERSIST" "$RESETS" "$NAV" "$UI" "$LAUNCHER" "$README" "$README_EN" <<'JS'
 const fs = require('fs');
 const assert = require('assert');
-const [config, defaults, apply, persist, resets, nav, ui, launcher, readme] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
+const [config, defaults, apply, persist, resets, nav, ui, launcher, readme, readmeEn] = process.argv.slice(2).map(p => fs.readFileSync(p, 'utf8'));
 assert(config.includes('property bool launcherFuzzySearchActions: true'), 'Config defaults action fuzzy search to enabled');
 assert(defaults.includes('launcherFuzzySearchActions: true'), 'settings defaults enable action fuzzy search');
 assert(apply.includes('if (o.launcherFuzzySearchActions !== undefined)') && apply.includes('Config.launcherFuzzySearchActions = !!o.launcherFuzzySearchActions'), 'profile application restores the setting');
@@ -103,6 +104,7 @@ assert(!builtinPalette.includes('buildCustomActionResults'), 'the > palette no l
 assert(launcher.includes('query, results.length, false, fuzzyActionsEnabled'), 'ordinary Apps search keeps its existing custom-action cross-search');
 assert(launcher.includes('import "../../js/launcher/LauncherSearchScoring.js" as LauncherSearchScoring'), 'Launcher imports shared scorer');
 assert(launcher.includes('return LauncherSearchScoring.fuzzyScore(text, query, true)'), 'Run and project matching retain the previous fuzzy behavior');
-assert(readme.includes('пользовательских действий') && readme.includes('saved custom actions'), 'both README languages document independent action search mode');
+assert(readme.includes('пользовательских действий'), 'Russian README documents independent action search mode');
+assert(readmeEn.includes('saved custom actions'), 'English README documents independent action search mode');
 JS
 printf 'launcher fuzzy custom-action setting: OK\n'

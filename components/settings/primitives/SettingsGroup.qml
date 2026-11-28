@@ -27,6 +27,9 @@ Item {
         ? root.backgroundColor : Config.settingsBackground
     property color borderColor: Config.baseColor
     property int borderWidth: 1
+    // Temporary drag target highlight can be shown even when global card
+    // borders are disabled; it is only used by the settings page organizer.
+    property bool forceFrameBorder: false
     property real radius: Config.frameRadius
     // The first direct Text child is promoted to a consistent fieldset legend.
     property var headingSource: null
@@ -92,7 +95,7 @@ Item {
         visible: root.showFrame
         color: root.backgroundColor
         border.color: root.borderColor
-        border.width: Config.cardBordersEnabled ? root.borderWidth : 0
+        border.width: (Config.cardBordersEnabled || root.forceFrameBorder) ? root.borderWidth : 0
         radius: Config.scaledCornerRadius(root.radius)
         z: -1
     }

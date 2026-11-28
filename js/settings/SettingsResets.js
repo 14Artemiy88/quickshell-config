@@ -283,7 +283,11 @@ function resetModule(owner, config, moduleName) {
     owner.moduleMonitors = m
 
     if (moduleName === "time") {
-        applyConfigKeysFromProfile(owner, config, profile, ["clockFont", "clockFontSize", "clockDateFontSize", "clockWeekdayFont", "clockWeekdayFontSize"])
+        applyConfigKeysFromProfile(owner, config, profile, [
+            "clockFont", "clockDateFont", "clockFontSize", "clockDateFontSize", "clockWeekdayFont", "clockWeekdayFontSize",
+            "clockTimeColor", "clockDateColor", "clockWeekdayColor", "clockPaddingX", "clockPaddingY",
+            "clockColumnSpacing", "clockDetailsRightPadding"
+        ])
     } else if (moduleName === "calendar") {
         applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarVisibilityProfile", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
     } else if (moduleName === "cpu") {
@@ -553,7 +557,11 @@ function resetCavaSettings(owner, config) {
 
 function resetClockSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["clockFont", "clockFontSize", "clockDateFontSize", "clockWeekdayFont", "clockWeekdayFontSize"])
+    applyConfigKeysFromProfile(owner, config, profile, [
+        "clockFont", "clockDateFont", "clockFontSize", "clockDateFontSize", "clockWeekdayFont", "clockWeekdayFontSize",
+        "clockTimeColor", "clockDateColor", "clockWeekdayColor", "clockPaddingX", "clockPaddingY",
+        "clockColumnSpacing", "clockDetailsRightPadding"
+    ])
     owner.save()
 }
 

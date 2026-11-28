@@ -8,7 +8,7 @@ NAV="$ROOT/components/settings/SettingsNavigation.qml"
 FOLDER="$ROOT/components/settings/primitives/SettingsNavigationFolder.qml"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 
-# The grouped sidebar is rendered from four fixed semantic groups, including the Launcher folder.
+# The grouped sidebar is rendered from six semantic folders; page membership is user-customizable.
 grep -Fq 'model: root.navigationGroups' "$NAV"
 grep -Fq 'function toggleSettingsNavigationGroup(id)' "$WIDGET"
 grep -Fq 'function expandSettingsNavigationGroupForPage(pageId)' "$WIDGET"
@@ -21,12 +21,13 @@ grep -Fq 'border.width: root.searchMatchCount > 0' "$FOLDER"
 grep -Fq 'SettingsNavigationVisualState.shouldShowCollapsedPageHint(' "$NAV"
 grep -Fq 'currentPageLabel: collapsedWithCurrentPage' "$NAV"
 grep -Fq 'visible: modelData.items.length === 1' "$NAV"
-grep -Fq 'visible: navigationGroupDelegate.modelData.items.length > 1' "$NAV"
+grep -Fq 'visible: navigationGroupDelegate.modelData.items.length !== 1' "$NAV"
 grep -Fq 'function settingsTabCanMove(id, delta)' "$CONTROLLER"
 grep -Fq 'function settingsTabCanMoveWithinGroup(groupId, id, delta)' "$CONTROLLER"
 grep -Fq 'function moveSettingsTabWithinGroup(groupId, id, delta)' "$CONTROLLER"
 grep -Fq 'listRepeater: settingsNavigationPagesOrderRepeater' "$WINDOW"
 grep -Fq 'host.moveSettingsTabWithinGroupTo(' "$WINDOW"
+grep -Fq 'host.moveSettingsTabToGroup(pageId, targetGroupId, targetIndex)' "$WINDOW"
 
 node - "$REGISTRY" <<'NODE'
 const fs = require('fs');

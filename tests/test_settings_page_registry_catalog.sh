@@ -70,13 +70,13 @@ for (const page of otherPages) {
   assert.strictEqual(registry.saveScopeForPageId(page.id, 0), page.saveScope,
     `${page.id} routes its first subtab to the declared save scope`);
 }
-assert.strictEqual(subTabCount, 70, 'all 70 registered subtabs are accounted for');
+assert.strictEqual(subTabCount, 69, 'all 69 registered subtabs are accounted for');
 assert.ok(content.includes('settings-search-page:modules'), 'Modules special page is in search tree');
 assert.ok(content.includes('settings-search-page:themes'), 'Themes special page is in search tree');
 assert.strictEqual(registry.saveScopeForPageId('general', 0), '',
   'General profile/storage subtabs do not expose a scoped save/reset action');
 
-console.log('settings page registry: 6 groups, 26 pages, 24 shared page routes, 70 subtabs: OK');
+console.log('settings page registry: 6 groups, 26 pages, 24 shared page routes, 69 subtabs: OK');
 NODE
 
 echo 'settings page registry catalogue: OK'

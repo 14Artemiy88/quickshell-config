@@ -45,7 +45,9 @@ grep -Fq 'model: settingsNavigationPageGroup.groupData.items' "$WINDOW"
 grep -Fq 'visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2' "$WINDOW"
 grep -Fq 'host.setSettingsTabLabel(modelData.id, text)' "$WINDOW"
 grep -Fq 'host.moveSettingsTabWithinGroupTo(' "$WINDOW"
+grep -Fq 'host.moveSettingsTabToGroup(pageId, targetGroupId, targetIndex)' "$WINDOW"
+grep -Fq 'allowSingleItemDrag: true' "$WINDOW"
 grep -Fq 'function moveSettingsTabWithinGroupTo(groupId, id, toIndex)' "$WIDGET"
-grep -Fq 'внутри своей рамки' "$WINDOW"
+grep -Fq 'между папками' "$WINDOW"
 
 echo 'settings sidebar labels/order customization and persistence: OK'

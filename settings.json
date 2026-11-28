@@ -124,10 +124,10 @@
   "profileOverrides": {},
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
-    "appearance": true,
-    "modules": false,
+    "appearance": false,
+    "modules": true,
     "launcher": true,
     "notifications": true
   },
-  "settingsLastActivePageId": "cpuRam"
+  "settingsLastActivePageId": "settingsWindow"
 }

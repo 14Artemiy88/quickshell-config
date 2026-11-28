@@ -15,6 +15,9 @@ Item {
     property int itemIndex: -1
     property string accessibleLabel: "элемент"
     property bool interactionEnabled: true
+    // Some cross-list editors must let a singleton page leave its current
+    // group, even though there is no second row for an in-list reorder.
+    property bool allowSingleItemDrag: false
     property real horizontalSlop: 120
     property real verticalSlop: 76
     property int dragSourceIndex: -1
@@ -50,6 +53,7 @@ Item {
 
     signal reorderRequested(int fromIndex, int toIndex)
     signal dragPositionChanged(real sceneX, real sceneY)
+    signal dragSessionFinished(int fromIndex, int toIndex)
 
     implicitWidth: 26
     implicitHeight: 26
@@ -62,7 +66,7 @@ Item {
 
     enabled: root.interactionEnabled && (root.listRepeater !== null || root.reorderAdapter !== null)
              && root.dropIndicatorHost !== null
-             && root.itemCount() > 1 && root.itemIndex >= 0
+             && (root.itemCount() > 1 || root.allowSingleItemDrag) && root.itemIndex >= 0
 
     function delegateTarget(index) {
         if (!root.listRepeater || index < 0 || index >= root.listRepeater.count)
@@ -396,6 +400,8 @@ Item {
         root.clearDropTarget()
         if (from >= 0 && to >= 0 && from !== to)
             root.reorderRequested(from, to)
+        if (from >= 0)
+            root.dragSessionFinished(from, to)
     }
 
     Rectangle {

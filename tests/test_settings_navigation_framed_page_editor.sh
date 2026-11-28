@@ -5,8 +5,8 @@ REGISTRY="$ROOT/js/settings/SettingsPageRegistry.js"
 WINDOW="$ROOT/components/settings/sections/SettingsWindowSection.qml"
 CONTROLLER="$ROOT/components/settings/SettingsNavigationController.qml"
 
-# The page editor is no longer one flat list. It renders one framed editor per
-# navigation group, with an independent local page counter and group-scoped move APIs.
+# The page editor renders one framed editor per navigation group, supports
+# local reordering and cross-folder drag/drop, including singleton pages.
 grep -Fq 'text: "Вкладки панели настроек"' "$WINDOW"
 grep -Fq 'model: host ? host.settingsNavigationGroups : []' "$WINDOW"
 grep -Fq 'delegate: SettingsGroup {' "$WINDOW"
@@ -19,6 +19,10 @@ grep -Fq 'id: settingsNavigationPagesOrderRepeater' "$WINDOW"
 grep -Fq 'listRepeater: settingsNavigationPagesOrderRepeater' "$WINDOW"
 grep -Fq 'dropIndicatorHost: settingsNavigationPageGroup' "$WINDOW"
 grep -Fq 'host.moveSettingsTabWithinGroupTo(' "$WINDOW"
+grep -Fq 'allowSingleItemDrag: true' "$WINDOW"
+grep -Fq 'host.moveSettingsTabToGroup(' "$WINDOW"
+grep -Fq 'forceFrameBorder: settingsWindowColumn.pageGroupDropTargetId === groupData.id' "$WINDOW"
+grep -Fq 'property bool forceFrameBorder: false' "$ROOT/components/settings/primitives/SettingsGroup.qml"
 ! grep -Fq 'model: host ? host.settingsNavigationItems : []' "$WINDOW"
 grep -Fq 'settingsWindowColumn.settings.hasResetChanges("keys", ({ keys: ["settingsNavigationOrder", "settingsTabLabels"] }))' "$WINDOW"
 
@@ -74,7 +78,18 @@ assert.strictEqual(groups.find(group => group.id === 'general').items[0].label, 
 assert.strictEqual(groups.find(group => group.id === 'dashboard').items[0].label, 'Обзор',
   'singleton Dashboard remains editable inside its own frame');
 assert.strictEqual(groups.find(group => group.id === 'modules').items[0].label, 'Прогноз',
-  'page labels remain editable without affecting frame membership');
+  'page labels remain editable without affecting default frame membership');
+const moved = JSON.parse(JSON.stringify(customOrder));
+moved.pagesByGroup.modules = moved.pagesByGroup.modules.filter(id => id !== 'weather');
+moved.pagesByGroup.appearance.splice(1, 0, 'weather');
+const normalizedMoved = registry.normalizeNavigationOrder(moved);
+const movedGroups = Array.from(registry.navigationGroupsForOrder(normalizedMoved, labels));
+assert.deepStrictEqual(Array.from(movedGroups.find(group => group.id === 'modules').items.map(item => item.id)),
+  Array.from(normalizedMoved.pagesByGroup.modules), 'source folder model reflects the removed page');
+assert.deepStrictEqual(Array.from(movedGroups.find(group => group.id === 'appearance').items.map(item => item.id)),
+  Array.from(normalizedMoved.pagesByGroup.appearance), 'destination folder model reflects the inserted page');
+assert.strictEqual(movedGroups.find(group => group.id === 'appearance').items[1].groupId, 'appearance',
+  'runtime row metadata uses the selected folder, not the canonical default folder');
 console.log('Settings framed page editor: six frames, 26 unique pages, local order, singleton frames and editable labels: OK');
 NODE
 

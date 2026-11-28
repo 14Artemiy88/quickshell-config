@@ -4,6 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODULE="$ROOT/js/launcher/LauncherCustomActions.js"
 LAUNCHER="$ROOT/components/launcher/Launcher.qml"
 README="$ROOT/README.md"
+README_EN="$ROOT/README.en.md"
 
 node - "$MODULE" <<'JS'
 const fs = require('fs');
@@ -41,11 +42,12 @@ assert.strictEqual(filtered.length, 1, ':term searches saved actions by name, de
 assert.strictEqual(filtered[0].command, 'foot', 'the result carries the saved command, not the raw search text');
 JS
 
-python3 - "$LAUNCHER" "$README" <<'PY'
+python3 - "$LAUNCHER" "$README" "$README_EN" <<'PY'
 from pathlib import Path
 import sys
 launcher = Path(sys.argv[1]).read_text()
 readme = Path(sys.argv[2]).read_text()
+readme_en = Path(sys.argv[3]).read_text()
 assert 'const customActionQuery = LauncherCustomActions.parseQuery(rawQuery)' in launcher
 assert 'customActionQuery.query, 0, true, fuzzyActionsEnabled' in launcher
 palette = launcher[launcher.index('function buildLauncherActionResults'):launcher.index('function russianApplicationCount')]
@@ -53,8 +55,9 @@ assert 'buildCustomActionResults' not in palette, 'built-in > palette must stay 
 assert 'launcherQuery.startsWith(">") || launcherQuery.startsWith(":")' in launcher
 assert 'if (result.kind === "customAction")' in launcher and 'root.runCommand(result.command)' in launcher
 assert 'Search apps, @ filters, > commands or : saved actions...' in launcher
-assert 'bare `:` lists all complete records' in readme, 'README should document the dedicated custom-action prefix'
-assert 'palette stays dedicated to built-in navigation' in readme, 'README should document separation from built-in actions'
+assert 'каталог сохранённых пользовательских действий' in readme, 'Russian README should document the dedicated custom-action prefix'
+assert 'bare `:` lists all complete records' in readme_en, 'English README should document the dedicated custom-action prefix'
+assert 'palette stays dedicated to built-in navigation' in readme_en, 'English README should document separation from built-in actions'
 PY
 
 printf 'Launcher custom-action prefix : is separate from built-in > palette: OK\n'

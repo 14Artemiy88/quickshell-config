@@ -25,6 +25,8 @@ assert resets.count('"notificationsDoNotDisturb"') >= 2, 'module and page reset 
 assert 'function resetNotificationDndDefaults' in resets, 'legacy profiles reset DND to its false default'
 assert 'notificationsDoNotDisturb' in nav, 'Behavior subtab has an independent DND dirty marker'
 assert 'notificationsDoNotDisturbCheck' in section and 'settingsSearchId: "notifications-do-not-disturb"' in section
+assert 'heading: "Режим Не беспокоить"' in section and 'settingsSearchSubTabIndex: 0' in section, 'DND checkbox belongs to Notifications > Behavior'
+assert 'notificationsDoNotDisturbCheck' not in section.split('visible: root.dndPage', 1)[1].split('SettingsGroup {\n        visible: root.pageId === "notifications"', 1)[0], 'DND master checkbox removed from DND rules/history page'
 assert 'text: "Не беспокоить"' in section and 'root.settings.save()' in section
 assert 'property var dndMemoryHistory: []' in qml and 'dndMemoryHistoryLimit: 200' in qml
 assert 'ScriptModel {' in qml and 'comparisonMode: ObjectComparison.Identity' in qml and 'NotificationDnd.visibleNotifications(' in qml

@@ -33,20 +33,28 @@ function fallbackNavigationOrder(source) {
     for (var dg = 0; dg < groupOrder.length; ++dg)
         if (!seenGroups[groupOrder[dg]]) result.groupOrder.push(groupOrder[dg])
     var savedPages = input.pagesByGroup && typeof input.pagesByGroup === "object" && !Array.isArray(input.pagesByGroup) ? input.pagesByGroup : {}
+    var validPages = {}
+    for (var validIndex = 0; validIndex < SETTINGS_TAB_IDS.length; ++validIndex)
+        validPages[SETTINGS_TAB_IDS[validIndex]] = true
+    var seenPages = {}
     for (var p = 0; p < groupOrder.length; ++p) {
         var id = groupOrder[p]
         var pages = []
-        var seen = {}
         var candidates = Array.isArray(savedPages[id]) ? savedPages[id] : []
         for (var c = 0; c < candidates.length; ++c) {
             var pageId = candidates[c]
-            if (typeof pageId === "string" && defaults[id].indexOf(pageId) >= 0 && !seen[pageId]) {
-                seen[pageId] = true
+            if (typeof pageId === "string" && validPages[pageId] && !seenPages[pageId]) {
+                seenPages[pageId] = true
                 pages.push(pageId)
             }
         }
-        for (var d = 0; d < defaults[id].length; ++d)
-            if (!seen[defaults[id][d]]) pages.push(defaults[id][d])
+        for (var d = 0; d < defaults[id].length; ++d) {
+            var defaultPageId = defaults[id][d]
+            if (!seenPages[defaultPageId]) {
+                pages.push(defaultPageId)
+                seenPages[defaultPageId] = true
+            }
+        }
         result.pagesByGroup[id] = pages
     }
     return result
@@ -313,6 +321,10 @@ function apply(owner, Config, o) {
             Config.clockFont = typeof o.clockFont === "string"
                 ? o.clockFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
         }
+        if (o.clockDateFont !== undefined) {
+            Config.clockDateFont = typeof o.clockDateFont === "string"
+                ? o.clockDateFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : ""
+        }
         if (o.clockFontSize !== undefined) { var clockFontSize = Number(o.clockFontSize); if (isFinite(clockFontSize)) Config.clockFontSize = Math.max(24, Math.min(72, Math.round(clockFontSize))) }
         if (o.clockDateFontSize !== undefined) { var clockDateFontSize = Number(o.clockDateFontSize); if (isFinite(clockDateFontSize)) Config.clockDateFontSize = Math.max(12, Math.min(36, Math.round(clockDateFontSize))) }
         if (o.clockWeekdayFont !== undefined) {
@@ -320,6 +332,22 @@ function apply(owner, Config, o) {
                 ? o.clockWeekdayFont.replace(/[\r\n\t]/g, " ").trim().slice(0, 128) : "Ubuntu"
         }
         if (o.clockWeekdayFontSize !== undefined) { var clockWeekdayFontSize = Number(o.clockWeekdayFontSize); if (isFinite(clockWeekdayFontSize)) Config.clockWeekdayFontSize = Math.max(8, Math.min(24, Math.round(clockWeekdayFontSize))) }
+        if (o.clockTimeColor !== undefined) {
+            var clockTimeColor = typeof o.clockTimeColor === "string" ? o.clockTimeColor.trim() : ""
+            Config.clockTimeColor = clockTimeColor === "" ? "" : Schema.normalizeSavedColor(clockTimeColor, "")
+        }
+        if (o.clockDateColor !== undefined) {
+            var clockDateColor = typeof o.clockDateColor === "string" ? o.clockDateColor.trim() : ""
+            Config.clockDateColor = clockDateColor === "" ? "" : Schema.normalizeSavedColor(clockDateColor, "")
+        }
+        if (o.clockWeekdayColor !== undefined) {
+            var clockWeekdayColor = typeof o.clockWeekdayColor === "string" ? o.clockWeekdayColor.trim() : ""
+            Config.clockWeekdayColor = clockWeekdayColor === "" ? "" : Schema.normalizeSavedColor(clockWeekdayColor, "")
+        }
+        if (o.clockPaddingX !== undefined) { var clockPaddingX = Number(o.clockPaddingX); if (isFinite(clockPaddingX)) Config.clockPaddingX = Math.max(0, Math.min(24, Math.round(clockPaddingX))) }
+        if (o.clockPaddingY !== undefined) { var clockPaddingY = Number(o.clockPaddingY); if (isFinite(clockPaddingY)) Config.clockPaddingY = Math.max(0, Math.min(18, Math.round(clockPaddingY))) }
+        if (o.clockColumnSpacing !== undefined) { var clockColumnSpacing = Number(o.clockColumnSpacing); if (isFinite(clockColumnSpacing)) Config.clockColumnSpacing = Math.max(0, Math.min(24, Math.round(clockColumnSpacing))) }
+        if (o.clockDetailsRightPadding !== undefined) { var clockDetailsRightPadding = Number(o.clockDetailsRightPadding); if (isFinite(clockDetailsRightPadding)) Config.clockDetailsRightPadding = Math.max(0, Math.min(24, Math.round(clockDetailsRightPadding))) }
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
         if (o.playerSilenceText !== undefined) Config.playerSilenceText = String(o.playerSilenceText)

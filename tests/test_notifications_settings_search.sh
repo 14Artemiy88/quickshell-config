@@ -50,9 +50,9 @@ grep -Fq 'settingsSearchId: "notifications-dnd-ignore-" + String(modelData.id ||
     || fail 'per-sender Ignore DND controls are not searchable by sender identity'
 grep -Fq 'settingsSearchId: "notifications-dnd-disable-" + String(modelData.id || modelData.name || "sender")' "$SECTION" \
     || fail 'per-sender Disable controls are not searchable by sender identity'
-grep -Fq 'settingsSearchSubTabIndex: 1' "$SECTION" \
+grep -Fq 'settingsSearchSubTabIndex: 0' "$SECTION" \
     || fail 'Notifications/DND application controls have no subtab routing'
-grep -Fq 'settingsSearchSubTabIndex: 2' "$SECTION" \
+grep -Fq 'settingsSearchSubTabIndex: 1' "$SECTION" \
     || fail 'history controls have no subtab routing'
 grep -Fq 'settingsSearchSubTabIndex: 3' "$SECTION" \
     || fail 'animation controls have no subtab routing'
@@ -114,14 +114,14 @@ for (let i = open; i < source.length; i++) {
 assert(end > open, 'subtab resolver body is complete');
 const fn = vm.runInNewContext(`(${source.slice(start, end).replace(/^\s*function\s+settingsSearchSubTabIndex/, 'function')})`);
 const page = {};
-const dnd = { settingsSearchSubTabIndex: 1, parent: page };
+const dnd = { settingsSearchSubTabIndex: 0, parent: page };
 const control = { settingsSearchSubTabIndex: -1, parent: dnd };
-assert.strictEqual(fn(control, page), 1, 'default -1 on a control falls through to its DND Applications group');
-const historyRow = { settingsSearchSubTabIndex: 2, parent: dnd };
+assert.strictEqual(fn(control, page), 0, 'default -1 on a control falls through to its DND Applications group');
+const historyRow = { settingsSearchSubTabIndex: 1, parent: dnd };
 const historyControl = { parent: historyRow };
-assert.strictEqual(fn(historyControl, page), 2, 'history row overrides the parent group context');
+assert.strictEqual(fn(historyControl, page), 1, 'history row overrides the parent group context');
 const explicitControl = { settingsSearchSubTabIndex: 0, parent: dnd };
-assert.strictEqual(fn(explicitControl, page), 0, 'direct DND mode control overrides parent context');
+assert.strictEqual(fn(explicitControl, page), 0, 'direct app-control subtab metadata overrides parent context');
 console.log('Settings search subtab routing from control and row metadata: OK');
 NODE
 

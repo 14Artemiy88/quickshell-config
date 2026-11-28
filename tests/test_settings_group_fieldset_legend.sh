@@ -32,7 +32,7 @@ checks = {
         and "y: 8 - root.borderWidth" in s
     ),
     "settings groups default to transparent surfaces": "property color backgroundColor: Config.transparent" in s and "color: root.backgroundColor" in s,
-    "frame outline remains visible unless disabled globally": "border.color: root.borderColor" in s and "border.width: Config.cardBordersEnabled ? root.borderWidth : 0" in s,
+    "frame outline remains visible unless disabled globally": "border.color: root.borderColor" in s and "border.width: (Config.cardBordersEnabled || root.forceFrameBorder) ? root.borderWidth : 0" in s,
     "content is offset only below a visible non-empty legend": "root.padding + (root.hasHeading ? root.headingContentGap : 0)" in s,
     "existing no-frame groups remain unaffected": "if (!root.showFrame || root.headingSource || root.adoptingHeading)" in s,
 }

@@ -30,7 +30,7 @@ const defaults = {
     groupOrder:['appearance','modules','dashboard','launcher','notifications','general'],
     pagesByGroup:{
       appearance:['themes','interface','settingsWindow'],
-      modules:['modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar'],
+      modules:['modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','osd','calendar'],
       dashboard:['dashboard'],
       launcher:['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],
       notifications:['notifications','notificationsDnd'],

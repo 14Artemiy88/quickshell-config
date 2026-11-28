@@ -11,18 +11,27 @@ grep -Fqx 'var DEFAULT_PROJECTS = [];' "$PROJECTS"
 ! grep -q '"path":' "$PROJECTS"
 
 # Ship one product README and no internal design/version-history documents.
-extra_readmes="$(find "$ROOT" -type f -iname 'readme*' ! -path "$README" -print)"
+README_EN="$ROOT/README.en.md"
+extra_readmes="$(find "$ROOT" -type f -iname 'readme*' ! -path "$README" ! -path "$README_EN" -print)"
 [[ -z "$extra_readmes" ]] || { printf 'Unexpected additional README files:\n%s\n' "$extra_readmes" >&2; exit 1; }
+[[ -f "$README_EN" ]] || { echo 'Missing English README.md companion: README.en.md' >&2; exit 1; }
 [[ ! -d "$ROOT/docs" ]] || { echo 'Internal docs/ must not be shipped in the project archive' >&2; exit 1; }
-for section in \
-    '## Русский' '### Требования' '### Установка и запуск' '### Разработка и тесты' \
-    '## English' '### Requirements' '### Install and update' '### Development and tests'; do
-    grep -Fq "$section" "$README" || { echo "README missing section: $section" >&2; exit 1; }
+for section in '### Возможности' '### Требования' '### Установка и запуск' '### Разработка и тесты'; do
+    grep -Fq "$section" "$README" || { echo "Russian README missing section: $section" >&2; exit 1; }
 done
-if grep -Eiq '^#{1,6}[[:space:]].*(v[0-9]{3,}|version[[:space:]_-]*history|release[[:space:]_-]*history|история[[:space:]]+версий|история[[:space:]]+изменений)' "$README"; then
-    echo 'README must describe the product, not individual versions or release history' >&2
-    exit 1
-fi
+for section in '### Features' '### Requirements' '### Install and update' '### Development and tests'; do
+    grep -Fq "$section" "$README_EN" || { echo "English README missing section: $section" >&2; exit 1; }
+done
+grep -Fq '[English](README.en.md)' "$README" || { echo 'Russian README must link to the English version' >&2; exit 1; }
+grep -Fq '[Русский](README.md)' "$README_EN" || { echo 'English README must link to the Russian version' >&2; exit 1; }
+! grep -Fq '## English' "$README" || { echo 'English content must live in README.en.md' >&2; exit 1; }
+! grep -Fq '## Русский' "$README_EN" || { echo 'Russian content must live in README.md' >&2; exit 1; }
+for readme_file in "$README" "$README_EN"; do
+    if grep -Eiq '^#{1,6}[[:space:]].*(v[0-9]{3,}|version[[:space:]_-]*history|release[[:space:]_-]*history|история[[:space:]]+версий|история[[:space:]]+изменений)' "$readme_file"; then
+        echo 'README files must describe the product, not individual versions or release history' >&2
+        exit 1
+    fi
+done
 
 # The main settings/profile files are intentionally trackable for explicit
 # configuration sync; private data and all runtime migration/recovery sidecars
@@ -101,7 +110,7 @@ for relative_path in "${ignored_paths[@]}"; do
         exit 1
     fi
 done
-for trackable_path in settings.json profiles.json README.md LICENSE .env.example; do
+for trackable_path in settings.json profiles.json README.md README.en.md LICENSE .env.example; do
     : > "$ignore_tmp/$trackable_path"
     if git -C "$ignore_tmp" check-ignore -q --no-index "$trackable_path"; then
         printf 'Path must remain trackable: %s\n' "$trackable_path" >&2
@@ -119,4 +128,4 @@ grep -Fq 'calendar-notes.json' "$GITIGNORE"
 grep -Fq 'calendar-marks.json' "$GITIGNORE"
 grep -Fq 'XDG_CONFIG_HOME' "$ROOT/install.sh"
 
-echo 'GitHub source hygiene: concise bilingual README, no docs/version log, migration and local data ignored, settings/profile sync preserved: OK'
+echo 'GitHub source hygiene: separate linked RU/EN READMEs, no version log, migration and local data ignored, settings/profile sync preserved: OK'

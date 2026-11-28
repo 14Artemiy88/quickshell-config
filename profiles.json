@@ -682,7 +682,11 @@
                     "network",
                     "weather",
                     "timers",
-                    "time",
+                    "time"
+                ],
+                "notifications": [
+                    "notifications",
+                    "notificationsDnd",
                     "osd"
                 ]
             }

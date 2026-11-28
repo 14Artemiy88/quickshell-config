@@ -1,8 +1,6 @@
 # quickshell-widgets
 
-Configurable desktop widgets, a dashboard, and a keyboard-driven launcher for **Quickshell** on Linux/Wayland. The project is written in QML/Qt Quick with JavaScript and Bash helpers.
-
-## Русский
+[**Русский**](README.md) | [English](README.en.md)
 
 `quickshell-widgets` — набор модулей рабочего стола и встроенный лаунчер. Проект рассчитан на Quickshell в графической сессии Wayland; доступность отдельных интеграций зависит от рабочего стола и установленных утилит.
 
@@ -165,98 +163,3 @@ GitHub Actions запускает проверки при push и pull request, 
 ### Лицензия
 
 MIT — см. [`LICENSE`](LICENSE).
-
-## English
-
-`quickshell-widgets` is a modular desktop widget collection and built-in launcher for Quickshell on Linux/Wayland.
-
-### Features
-
-- **Desktop widgets:** clock with independent typography controls for time, date, and weekday, CPU/RAM and Top Apps, network traffic and connections, audio volume and streams, CAVA, calendar notes and marks, current weather and forecasts, timers and alarms, Player, Mopidy, and desktop notifications.
-- **Dashboard:** configurable Today, System, Network, Weather, and Media cards with independent visibility, ordering, sizing, responsive columns, and an in-panel editing mode.
-- **Launcher:** applications, Run, windows, clipboard, power, network, packages, Pass, projects, and calculator, plus custom actions and multi-source search. Built-in navigation entries can be independently hidden from the `>` palette. Saved custom actions use the separate `:` prefix (bare `:` lists all complete records), and the palette stays dedicated to built-in navigation.
-- **Settings:** grouped navigation, searchable controls, draggable page ordering, reusable controls, and module-specific pages.
-- **Notification sender identity:** DND and history-exclusion rules prefer exact desktop IDs; legacy app-name aliases are retained only while uniquely resolvable. Different desktop IDs with the same app name remain independent, and ambiguous name-only senders are not guessed. The per-app `notificationsHistoryIgnoredApps` rule affects only history snapshots (including `replacesId` updates), never popup visibility or the two DND suppression rules; existing history entries are not retroactively deleted.
-- **Profiles and themes:** named profiles, scoped Save/Reset, built-in palettes, and custom color themes.
-- **OSD:** shared on-screen indicators for system volume/mute, media track changes, and DND state, with independent display duration and animation settings.
-- **Scaling:** independent 75–150% UI and font scales for desktop modules and the Settings window; per-widget base font sizes and stored module coordinates remain independent.
-- **Global appearance:** a proportional corner-radius scale (50–150%) plus independent border toggles for buttons, input controls, popups, and cards. Defaults preserve the established look; keyboard focus, validation, and settings-search highlights remain visible when ordinary borders are disabled.
-- **Motion:** per-module animation styles, easing profiles, and durations.
-- **Drag and drop:** shared reordering for Settings, Launcher, Dashboard, Player, Timer, and Mopidy queues/playlists.
-
-### Launcher search and navigation
-
-- The built-in command palette uses the `>` prefix. Dashboard can be opened with `>dashboard`, `>overview`, or `>обзор`. Saved custom actions use the separate `:` prefix and remain independent from built-in navigation.
-- Fuzzy search for saved custom actions, color schemes, and wallpapers has independent settings in **Settings → Launcher → Search**. The action-search switch controls saved custom actions; the **Schemes setting** and **Wallpapers setting** independently control matching for color schemes and wallpapers.
-- Dynamic color schemes include `Fruit Salad` and `Tonal Spot`. Use `>scheme variants` to open the variant picker; `>variant` is a shorter alias.
-- Optional Vim-style navigation is disabled by default. When enabled, `Ctrl+J`/`Ctrl+N` move down and `Ctrl+K`/`Ctrl+P` move up.
-- The keyboard navigation hints panel is visible by default and can be hidden independently from Vim-style navigation.
-
-### Dashboard
-
-Dashboard cards are informational and passive: clicking a card surface does not open another view. Open Dashboard settings with the shared Settings control in the upper-right corner. The Dashboard can also be toggled through Quickshell IPC:
-
-```sh
-qs -c <path-to-configuration> ipc call dashboard toggle
-```
-
-### Requirements
-
-Quickshell with Qt Quick/Wayland support, Bash, and `jq` are required. Optional integrations may need `cava`, NetworkManager/`nmcli`, `pactl` or `wpctl`, MPRIS-compatible players, Mopidy, `cliphist`, `wl-copy`, `pass`, Niri, Zsh, `foot`, or Nix. Weather uses a Gismeteo API token configured in Settings.
-
-### Install and update
-
-Run the installer from the project directory:
-
-```sh
-./install.sh
-```
-
-It installs the shell configuration into `${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell` and preserves existing user data. Start it with:
-
-```sh
-quickshell -c "${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/desktop-shell"
-```
-
-Use `qs` instead of `quickshell` if that is the executable provided by your distribution. Run the installer again to update the installed files.
-
-### Settings and user data
-
-Settings and profiles are stored under `${XDG_CONFIG_HOME:-$HOME/.config}/quickshell-widgets/`; calendar data defaults to `${XDG_DATA_HOME:-$HOME/.local/share}/quickshell-widgets/`. The weather token is kept in a separate local `secrets.json` file. Storage locations can be changed in **Settings → General → Storage**.
-
-`settings.json` and `profiles.json` are intentionally trackable for users who explicitly want to sync configuration. Review them before committing. Secrets, calendar data, migration markers, temporary files, locks, and recovery backups are ignored by `.gitignore`.
-
-### Development and tests
-
-Run the static and fixture-based regression suite from the repository root:
-
-```sh
-bash CHECK.sh
-```
-
-Test dependencies: `jq`, `curl`, `file`, Python 3, Node.js, and `gawk`. The suite does not launch a graphical Quickshell session, so visually verify QML changes in the target environment. Add every new `tests/*.sh` script to `CHECK.sh`.
-
-### License
-
-MIT — see [`LICENSE`](LICENSE).
-
-#### Notification app-icon surface and bounds
-
-The Notifications appearance settings include `notificationsShowAppIconBackground` (enabled by default to preserve the existing appearance). Disabling it removes only the `Config.baseColor` surface behind desktop application icons; messenger avatars and notification-provided leading images retain their existing frame surface. The leading visual now renders through a clipped viewport, with the icon `Image` constrained to the viewport's smaller dimension and its source size derived from its final bounds. This prevents oversized or non-square icon sources from painting outside their allocated area while retaining aspect-fit rendering for application icons.
-
-
-### Adaptive presentation: Networks
-
-The Networks panel now consumes the shared `compact` / `regular` / `wide` presentation contract.
-- Compact mode tightens row spacing, padding, icon column and label typography while keeping connection names visible.
-- Regular mode preserves the previous row composition and dimensions.
-- Wide mode provides more generous spacing and shows an explicit connected/disconnected status label for each profile.
-- Network rows receive the host presentation mode from `ModuleFrame`; no backend, connection discovery, or stored geometry behavior changes.
-
-### Adaptive presentation: Network traffic
-
-The upload/download traffic widget also consumes the shared `compact` / `regular` / `wide` presentation contract.
-- Compact mode trims row density and prioritizes current transfer speed, hiding accumulated byte totals when horizontal space is tight.
-- Regular mode preserves the previous combined `speed / total` value and the existing settings-backed typography.
-- Wide mode separates live speed and accumulated total into aligned columns, with the total visually de-emphasized for easier scanning.
-- The module keeps its original click-through-to-Networks action, per-direction visibility settings, transfer colors, and MorphGeometry enter/exit animations. No traffic-monitoring backend or stored geometry behavior changes.

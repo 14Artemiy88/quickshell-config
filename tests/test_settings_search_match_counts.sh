@@ -43,12 +43,19 @@ const controller = {
     { pageId: 'mopidy', subTabIndex: 1 },
     { pageId: 'weather', subTabIndex: 0 },
     { pageId: 'weather', subTabIndex: 2 }
-  ]
+  ],
+  host: {
+    settingsNavigationOrderNormalized: () => ({ pagesByGroup: { appearance: ['weather'], modules: ['mopidy'] } })
+  }
 };
 const context = {
   root: controller,
   SettingsPageRegistry: {
-    navigationGroupIdForTabId: id => id === 'weather' || id === 'mopidy' ? 'modules' : 'appearance'
+    navigationGroupIdForTabId: id => id === 'weather' || id === 'mopidy' ? 'modules' : 'appearance',
+    navigationGroupIdForTabIdInOrder: (order, id) => {
+      for (const [groupId, ids] of Object.entries(order.pagesByGroup)) if (ids.includes(id)) return groupId;
+      return id === 'weather' || id === 'mopidy' ? 'modules' : 'appearance';
+    }
   }
 };
 vm.runInNewContext(methods, context, { filename: 'SettingsSearchController-counts.js' });
@@ -59,7 +66,8 @@ for (const name of [
   'settingsSearchSubTabHasMatches'
 ]) controller[name] = context[name];
 if (controller.settingsSearchPageMatchCount('mopidy') !== 3) throw new Error('Mopidy page count is wrong');
-if (controller.settingsSearchNavigationGroupMatchCount('modules') !== 5) throw new Error('Modules group count is wrong');
+if (controller.settingsSearchNavigationGroupMatchCount('modules') !== 3) throw new Error('Modules group count must use the current folder after moving a page');
+if (controller.settingsSearchNavigationGroupMatchCount('appearance') !== 2) throw new Error('Appearance group count must include the moved Weather page');
 if (controller.settingsSearchSubTabMatchCount('mopidy', 2) !== 2) throw new Error('Mopidy icons subtab count is wrong');
 if (controller.settingsSearchSubTabMatchCount('mopidy', 1) !== 1) throw new Error('Mopidy other subtab count is wrong');
 if (!controller.settingsSearchSubTabHasMatches('mopidy', 2)) throw new Error('Subtab match predicate is inconsistent');

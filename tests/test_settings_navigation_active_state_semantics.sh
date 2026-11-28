@@ -58,7 +58,7 @@ assert(pageHost.includes('selected: root.host && root.host.currentPageSubTabInde
 assert((nav.match(/persistentSelectionHighlight: true/g) || []).length === 2, 'standalone and nested sidebar page tabs preserve their selected state independently of focus');
 
 // Folder header is an expansion control only; actual child page owns selection.
-assert(nav.includes('SettingsNavigationFolder {') && nav.includes('visible: navigationGroupDelegate.modelData.items.length > 1'), 'multi-page groups must use the reusable folder primitive');
+assert(nav.includes('SettingsNavigationFolder {') && nav.includes('visible: navigationGroupDelegate.modelData.items.length !== 1'), 'multi-page and empty groups must use the reusable folder primitive');
 assert(nav.includes('selected: root.host.isSettingsTabSelected(parent.modelData.id)'), 'actual page row owns selected state');
 assert(folder.includes('folderHeader.focus = false'), 'mouse expansion clears stale folder focus');
 assert(!folder.includes('folderHeader.forceActiveFocus(Qt.MouseFocusReason)'), 'mouse expansion must not give the folder a focus ring');

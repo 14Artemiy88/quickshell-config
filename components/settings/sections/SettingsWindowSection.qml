@@ -38,6 +38,61 @@ Column {
     Component.onCompleted: Qt.callLater(settingsWindowColumn.syncProfileComboToActiveProfile)
     property var host
     property var settings: Settings
+    property string pageGroupDropTargetId: ""
+    property int pageGroupDropTargetIndex: -1
+
+    function clearPageGroupDropTarget() {
+        pageGroupDropTargetId = ""
+        pageGroupDropTargetIndex = -1
+    }
+
+    function updatePageGroupDropTarget(pageId, sourceGroupId, sceneX, sceneY) {
+        var groups = settingsNavigationPageGroupsRepeater
+        if (!groups) {
+            clearPageGroupDropTarget()
+            return false
+        }
+        for (var i = 0; i < groups.count; ++i) {
+            var groupItem = groups.itemAt(i)
+            if (!groupItem || !groupItem.groupData || groupItem.groupData.id === sourceGroupId)
+                continue
+            var point = groupItem.mapFromItem(null, sceneX, sceneY)
+            if (point.x < 0 || point.y < 0 || point.x > groupItem.width || point.y > groupItem.height)
+                continue
+
+            var pages = groupItem.pageOrderRepeater
+            var destination = pages ? pages.count : 0
+            if (pages) {
+                for (var rowIndex = 0; rowIndex < pages.count; ++rowIndex) {
+                    var row = pages.itemAt(rowIndex)
+                    if (!row) continue
+                    var rowPoint = row.mapFromItem(null, sceneX, sceneY)
+                    if (rowPoint.y < row.height / 2) {
+                        destination = rowIndex
+                        break
+                    }
+                    if (rowPoint.y <= row.height) {
+                        destination = rowIndex + 1
+                        break
+                    }
+                }
+            }
+            pageGroupDropTargetId = String(groupItem.groupData.id)
+            pageGroupDropTargetIndex = destination
+            return true
+        }
+        clearPageGroupDropTarget()
+        return false
+    }
+
+    function finishPageGroupDrag(pageId, sourceGroupId) {
+        var targetGroupId = pageGroupDropTargetId
+        var targetIndex = pageGroupDropTargetIndex
+        clearPageGroupDropTarget()
+        if (!targetGroupId || targetGroupId === sourceGroupId || !host)
+            return false
+        return host.moveSettingsTabToGroup(pageId, targetGroupId, targetIndex)
+    }
 
     width: parent ? parent.width : 0
     spacing: 10
@@ -661,7 +716,7 @@ settingsSearchSubTabIndex: 1
     SettingsDescription {
         descriptionConditionVisible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
         width: parent.width
-        text: "Каждый раздел показан отдельной рамкой. Переименовывайте страницы и перетаскивайте их за маркер ⠿, меняя порядок только внутри своей рамки. Порядок самих рамок настраивается отдельно выше. С клавиатуры: Alt + ↑/↓."
+        text: "Переименовывайте страницы и перетаскивайте их за маркер ⠿. Внутри рамки меняется порядок, а перенос на другую рамку перемещает страницу между папками. Перетаскивание на заголовок или пустое место добавляет страницу в конец папки. Порядок самих рамок настраивается отдельно выше. Внутри папки также доступны Alt + ↑/↓."
         color: Config.textMuted
         font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
@@ -674,16 +729,21 @@ settingsSearchSubTabIndex: 1
         spacing: 8
 
         Repeater {
+            id: settingsNavigationPageGroupsRepeater
             model: host ? host.settingsNavigationGroups : []
 
             delegate: SettingsGroup {
                 id: settingsNavigationPageGroup
                 required property var modelData
                 property var groupData: modelData
+                property var pageOrderRepeater: settingsNavigationPagesOrderRepeater
 
                 visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
                 width: parent.width
                 showFrame: true
+                forceFrameBorder: settingsWindowColumn.pageGroupDropTargetId === groupData.id
+                borderColor: forceFrameBorder ? Config.accent : Config.baseColor
+                borderWidth: forceFrameBorder ? 2 : 1
                 heading: groupData.label
                 settingsSearchSubTabIndex: 2
                 padding: 8
@@ -748,12 +808,25 @@ settingsSearchSubTabIndex: 1
                             listRepeater: settingsNavigationPagesOrderRepeater
                             dropIndicatorHost: settingsNavigationPageGroup
                             itemIndex: settingsNavigationPageOrderRow.index
+                            allowSingleItemDrag: true
                             accessibleLabel: settingsNavigationPageOrderRow.modelData.label
+                            onDragPositionChanged: function(sceneX, sceneY) {
+                                settingsWindowColumn.updatePageGroupDropTarget(
+                                    settingsNavigationPageOrderRow.modelData.id,
+                                    settingsNavigationPageGroup.groupData.id,
+                                    sceneX, sceneY)
+                            }
                             onReorderRequested: function(fromIndex, toIndex) {
-                                if (settingsWindowColumn.host)
+                                if (settingsWindowColumn.host
+                                        && !settingsWindowColumn.pageGroupDropTargetId)
                                     settingsWindowColumn.host.moveSettingsTabWithinGroupTo(
                                         settingsNavigationPageGroup.groupData.id,
                                         settingsNavigationPageOrderRow.modelData.id, toIndex)
+                            }
+                            onDragSessionFinished: function(fromIndex, toIndex) {
+                                settingsWindowColumn.finishPageGroupDrag(
+                                    settingsNavigationPageOrderRow.modelData.id,
+                                    settingsNavigationPageGroup.groupData.id)
                             }
                         }
                     }

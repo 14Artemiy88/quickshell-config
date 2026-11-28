@@ -763,10 +763,19 @@ QtObject {
     property string ledFont: "LED"
     // Empty clockFont inherits the shared LED font; clock typography can be overridden independently.
     property string clockFont: ""
+    property string clockDateFont: ""
     property int clockFontSize: 55
     property int clockDateFontSize: 25
     property string clockWeekdayFont: "Ubuntu"
     property int clockWeekdayFontSize: 15
+    // Empty color overrides inherit the active theme text color.
+    property string clockTimeColor: ""
+    property string clockDateColor: ""
+    property string clockWeekdayColor: ""
+    property int clockPaddingX: 2
+    property int clockPaddingY: 0
+    property int clockColumnSpacing: 4
+    property int clockDetailsRightPadding: 6
     property string playerFont: "HARDBOR"
     property string playerMetaFont: "Ubuntu Mono Nerd Font"
     property string playerSilenceText: "silence"

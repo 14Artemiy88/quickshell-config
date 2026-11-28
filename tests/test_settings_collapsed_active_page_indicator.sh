@@ -69,8 +69,10 @@ assert(folder.includes('color: Config.textMuted'),
   'collapsed folder page hint must use neutral text rather than selected-page accent');
 assert(nav.includes('SettingsSubTab {\n                        id: navigationGroupStandaloneTab'),
   'standalone pages use the shared tab component rather than the folder header');
-assert(nav.includes('visible: navigationGroupDelegate.modelData.items.length > 1'),
-  'folder header is only rendered for multi-page groups');
+assert(nav.includes('visible: navigationGroupDelegate.modelData.items.length !== 1'),
+  'folder header is rendered for multi-page and empty folders');
+assert(folder.includes('root.emptyFolder && !root.collapsed'),
+  'empty folders show a hint after the last page is moved out');
 assert(folder.includes('border.width: root.searchMatchCount > 0\n                ? Config.settingsSearchHighlightBorderWidth\n                : (folderHeader.activeFocus || (Config.cardBordersEnabled && folderHover.hovered) ? 1 : 0)'),
   'collapsed folder header remains thin; expanded card uses its own outer frame');
 assert(widget.includes('function toggleSettingsNavigationGroup(id)'), 'group collapse remains an independent navigation action');

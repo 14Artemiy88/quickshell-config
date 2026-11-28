@@ -149,7 +149,7 @@ function fallbackNavigationOrder(source) {
     var groupOrder = ["appearance", "modules", "dashboard", "launcher", "notifications", "general"]
     var defaults = {
         appearance: ["themes", "interface", "settingsWindow"],
-        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "osd", "calendar"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
         notifications: ["notifications", "notificationsDnd"],
@@ -169,18 +169,30 @@ function fallbackNavigationOrder(source) {
     for (var j = 0; j < groupOrder.length; ++j)
         if (!seenGroups[groupOrder[j]]) result.groupOrder.push(groupOrder[j])
     var savedPages = isObject(input.pagesByGroup) ? input.pagesByGroup : {}
+    var validPages = {}
+    for (var validGroupIndex = 0; validGroupIndex < groupOrder.length; ++validGroupIndex) {
+        var validGroupPages = defaults[groupOrder[validGroupIndex]]
+        for (var validPageIndex = 0; validPageIndex < validGroupPages.length; ++validPageIndex)
+            validPages[validGroupPages[validPageIndex]] = true
+    }
+    var seenAllPages = {}
     for (var g = 0; g < groupOrder.length; ++g) {
-        var id = groupOrder[g], pageList = [], seenPages = {}
+        var id = groupOrder[g], pageList = []
         var candidates = Array.isArray(savedPages[id]) ? savedPages[id] : []
         for (var p = 0; p < candidates.length; ++p) {
             var pageId = candidates[p]
-            if (typeof pageId === "string" && defaults[id].indexOf(pageId) >= 0 && !seenPages[pageId]) {
-                seenPages[pageId] = true
+            if (typeof pageId === "string" && validPages[pageId] && !seenAllPages[pageId]) {
+                seenAllPages[pageId] = true
                 pageList.push(pageId)
             }
         }
-        for (var d = 0; d < defaults[id].length; ++d)
-            if (!seenPages[defaults[id][d]]) pageList.push(defaults[id][d])
+        for (var d = 0; d < defaults[id].length; ++d) {
+            var defaultPageId = defaults[id][d]
+            if (!seenAllPages[defaultPageId]) {
+                pageList.push(defaultPageId)
+                seenAllPages[defaultPageId] = true
+            }
+        }
         result.pagesByGroup[id] = pageList
     }
     return result

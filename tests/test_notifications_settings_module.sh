@@ -58,7 +58,8 @@ for (const key of ['notificationsPosition', 'notificationsOffsetX', 'notificatio
   assert(persistenceSource.includes(`"${key}"`), `${key} is explicitly pruned from old settings files`);
 
 assert(registry.includes('{ id: "notifications", defaultLabel: "Уведомления", groupId: "notifications", description:'), 'sidebar declares the Notifications page in its own folder');
-assert(registry.includes('{ id: "notificationsDnd", defaultLabel: "Не беспокоить", groupId: "notifications", description:'), 'sidebar declares DND as a separate Notifications page');
+assert(registry.includes('{ id: "notificationsDnd", defaultLabel: "Правила и история", groupId: "notifications", description:'), 'sidebar declares DND rules/history as a separate Notifications page');
+assert(registry.includes('subTabs: ["Приложения", "История"]'), 'DND page contains only app rules and history subtabs');
 assert(config.includes('property var settingsNavigationOrder:'), 'Config declares the canonical hierarchical navigation order');
 assert(defaults.includes('settingsNavigationOrder: ({'), 'profile defaults use the canonical hierarchical navigation order');
 assert(!config.includes('property var settingsTabOrder:'), 'Config no longer creates the obsolete flat runtime order');
@@ -118,7 +119,7 @@ assert(settings.includes('notifications: ["notifications", "animationNotificatio
 assert(resetsSource.includes('function resetNotificationsSettings(owner, config)') && resetsSource.includes('\"notificationsVerticalAnchor\"'), 'profile reset implementation includes the vertical anchor');
 assert(!resetsSource.includes('geometry.notifications = profile.geometry && profile.geometry.notifications'), 'Notifications content reset no longer resets module geometry');
 assert(profilesSource.includes('notifications: ["notifications", "animationNotifications"]'), 'save-profile scope includes notification preferences');
-assert(navigation.includes('notificationsDefaultTimeout", "notificationsCriticalTimeout'), 'Behavior subtab has focused dirty tracking');
+assert(navigation.includes('keys: ["notificationsDoNotDisturb", "notificationsDefaultTimeout", "notificationsCriticalTimeout"'), 'Behavior subtab tracks DND and notification behavior settings');
 assert(navigation.includes('keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages", "notificationsShowProgress"]'), 'Appearance subtab tracks all notification typography and card appearance settings');
 assert(section.includes('heading: "Заголовок и иконка"') && section.includes('targetProperty: "notificationsSummaryFont"') && section.includes('targetProperty: "notificationsSummaryFontSize"') && section.includes('targetProperty: "notificationsSummaryColor"') && section.includes('targetProperty: "notificationsLeadingVisualSize"'), 'Appearance exposes title typography and icon sizing controls');
 assert(section.includes('changeKeys: ({ keys: [\"notificationsVerticalAnchor\"] })'), 'Placement subtab tracks its own vertical anchor field');

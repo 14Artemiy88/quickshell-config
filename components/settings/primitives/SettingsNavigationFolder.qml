@@ -13,6 +13,7 @@ Item {
     property string groupSymbol: ""
     property bool collapsed: true
     property bool compactNavigation: false
+    property bool emptyFolder: false
     property bool collapsedWithCurrentPage: false
     property string currentPageLabel: ""
     property int searchMatchCount: 0
@@ -236,6 +237,19 @@ Item {
                 duration: 130
                 easing.type: Easing.InOutCubic
             }
+        }
+
+        Text {
+            visible: root.emptyFolder && !root.collapsed
+            width: parent.width - 16
+            height: visible ? 24 : 0
+            x: 8
+            text: "Папка пуста · добавьте вкладку в настройках порядка"
+            color: Config.textMuted
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.settingsUiSize(8)
+            wrapMode: Text.WordWrap
+            verticalAlignment: Text.AlignVCenter
         }
     }
     }

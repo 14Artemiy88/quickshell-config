@@ -151,12 +151,11 @@ Item {
                 { keys: ["launcherCustomActions"] }
             ],
             "notificationsDnd": [
-                { keys: ["notificationsDoNotDisturb"] },
                 { keys: ["notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps"] },
                 { keys: ["notificationsHistoryLimit", "notificationsHistoryRetentionDays"] }
             ],
             "notifications": [
-                { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection"] },
+                { keys: ["notificationsDoNotDisturb", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection"] },
                 { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages", "notificationsShowProgress"] },
                 { keys: ["notificationsVerticalAnchor"] },
                 { keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"] }
@@ -207,7 +206,7 @@ Item {
         if (["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"].indexOf(pageId) >= 0)
             return root.launcherPageHasChanges(pageId)
         if (pageId === "notifications" || pageId === "notificationsDnd") {
-            var notificationSubTabCount = pageId === "notificationsDnd" ? 3 : 4
+            var notificationSubTabCount = pageId === "notificationsDnd" ? 2 : 4
             for (var notificationSubTab = 0; notificationSubTab < notificationSubTabCount; ++notificationSubTab) {
                 var notificationSpec = root.settingsSubTabChangeSpec(pageId, notificationSubTab)
                 if (notificationSpec !== null && settings.hasResetChanges("keys", notificationSpec))
@@ -274,18 +273,17 @@ Item {
         root.settings.save()
     }
 
-    // Page ordering is explicitly scoped to one canonical navigation frame.
-    // The legacy page-only wrappers remain for existing callers, but editor
-    // controls use the group-scoped API so a page can never cross a frame.
+    // Page ordering and folder membership are scoped to the user's hierarchical
+    // navigation order. Stable page IDs/routes remain canonical in the registry.
     function settingsTabCanMoveWithinGroup(groupId, id, delta) {
         var pageId = String(id)
         var targetGroupId = String(groupId)
         var step = Number(delta)
         if (step !== -1 && step !== 1)
             return false
-        if (SettingsPageRegistry.navigationGroupIdForTabId(pageId) !== targetGroupId)
-            return false
         var order = root.settingsNavigationOrderNormalized()
+        if (SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId) !== targetGroupId)
+            return false
         var pageOrder = order.pagesByGroup[targetGroupId] || []
         var from = pageOrder.indexOf(pageId)
         var to = from + step
@@ -294,16 +292,17 @@ Item {
 
     function settingsTabCanMove(id, delta) {
         var pageId = String(id)
+        var order = root.settingsNavigationOrderNormalized()
         return root.settingsTabCanMoveWithinGroup(
-            SettingsPageRegistry.navigationGroupIdForTabId(pageId), pageId, delta)
+            SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId), pageId, delta)
     }
 
     function moveSettingsTabWithinGroupTo(groupId, id, toIndex) {
         var pageId = String(id)
         var targetGroupId = String(groupId)
-        if (SettingsPageRegistry.navigationGroupIdForTabId(pageId) !== targetGroupId)
-            return false
         var order = root.settingsNavigationOrderNormalized()
+        if (SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId) !== targetGroupId)
+            return false
         var pageOrder = (order.pagesByGroup[targetGroupId] || []).slice()
         var fromIndex = pageOrder.indexOf(pageId)
         var destination = Number(toIndex)
@@ -321,6 +320,8 @@ Item {
         var targetGroupId = String(groupId)
         if (!root.settingsTabCanMoveWithinGroup(targetGroupId, pageId, delta)) return false
         var order = root.settingsNavigationOrderNormalized()
+        if (SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId) !== targetGroupId)
+            return false
         var pageOrder = (order.pagesByGroup[targetGroupId] || []).slice()
         var from = pageOrder.indexOf(pageId)
         var destination = from + Number(delta)
@@ -334,8 +335,39 @@ Item {
 
     function moveSettingsTab(id, delta) {
         var pageId = String(id)
+        var order = root.settingsNavigationOrderNormalized()
         root.moveSettingsTabWithinGroup(
-            SettingsPageRegistry.navigationGroupIdForTabId(pageId), pageId, delta)
+            SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId), pageId, delta)
+    }
+
+    function moveSettingsTabToGroup(id, targetGroupId, toIndex) {
+        var pageId = String(id)
+        var destinationGroupId = String(targetGroupId)
+        var order = root.settingsNavigationOrderNormalized()
+        if (!SettingsPageRegistry.pageMetadataForId(pageId)
+                || !order.pagesByGroup.hasOwnProperty(destinationGroupId))
+            return false
+
+        var sourceGroupId = SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId)
+        if (sourceGroupId === destinationGroupId)
+            return root.moveSettingsTabWithinGroupTo(sourceGroupId, pageId, toIndex)
+
+        var sourcePages = (order.pagesByGroup[sourceGroupId] || []).slice()
+        var targetPages = (order.pagesByGroup[destinationGroupId] || []).slice()
+        var sourceIndex = sourcePages.indexOf(pageId)
+        if (sourceIndex < 0) return false
+        sourcePages.splice(sourceIndex, 1)
+
+        var destination = Number(toIndex)
+        if (!isFinite(destination) || Math.floor(destination) !== destination)
+            return false
+        destination = Math.max(0, Math.min(targetPages.length, destination))
+        targetPages.splice(destination, 0, pageId)
+        order.pagesByGroup[sourceGroupId] = sourcePages
+        order.pagesByGroup[destinationGroupId] = targetPages
+        Config.settingsNavigationOrder = SettingsPageRegistry.normalizeNavigationOrder(order)
+        root.settings.save()
+        return true
     }
 
     function settingsNavigationGroupCanMove(id, delta) {

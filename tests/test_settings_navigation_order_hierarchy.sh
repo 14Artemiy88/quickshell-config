@@ -40,7 +40,7 @@ assert.deepStrictEqual(Array.from(registry.flattenNavigationOrder(migrated)), [
 ]);
 
 // Malformed input is normalized: unknown/duplicate groups and pages disappear,
-// cross-frame page assignment is rejected, and missing canonical entries return.
+// valid cross-folder assignments are retained, and omitted pages return to defaults.
 const malformed = registry.normalizeNavigationOrder({
   groupOrder: ['general','modules','modules','unknown'],
   pagesByGroup: {
@@ -50,8 +50,9 @@ const malformed = registry.normalizeNavigationOrder({
   }
 });
 assert.deepStrictEqual(Array.from(malformed.groupOrder), ['general','modules','appearance','dashboard','launcher','notifications']);
-assert.deepStrictEqual(Array.from(malformed.pagesByGroup.appearance), ['settingsWindow','themes','interface']);
+assert.deepStrictEqual(Array.from(malformed.pagesByGroup.appearance), ['settingsWindow','modules','themes','interface']);
 assert.deepStrictEqual(Array.from(malformed.pagesByGroup.modules.slice(0, 2)), ['weather','calendar']);
+assert.strictEqual(registry.navigationGroupIdForTabIdInOrder(malformed, 'modules'), 'appearance');
 assert.strictEqual(Object.values(malformed.pagesByGroup).flat().length, 26);
 assert.strictEqual(new Set(Object.values(malformed.pagesByGroup).flat()).size, 26);
 
@@ -77,7 +78,7 @@ const fakeRoot = {
     const from = navState.groupOrder.indexOf(id); return from >= 0 && from + delta >= 0 && from + delta < navState.groupOrder.length;
   },
   settingsTabCanMoveWithinGroup: (groupId, id, delta) => {
-    if (registry.navigationGroupIdForTabId(id) !== groupId) return false;
+    if (registry.navigationGroupIdForTabIdInOrder(navState, id) !== groupId) return false;
     const arr = navState.pagesByGroup[groupId];
     const from = arr.indexOf(id); return from >= 0 && from + delta >= 0 && from + delta < arr.length;
   },
@@ -93,7 +94,7 @@ navState = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
 const movePage = new Function('groupId','id','delta','root','Config','SettingsPageRegistry','DragReorder', body('moveSettingsTabWithinGroup'));
 movePage('modules', 'timers', 1, fakeRoot, config, registry, dragReorder);
 assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.modules.slice(0, 3)), ['modules','time','player']);
-assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.appearance.includes('weather'), false, 'pages cannot move between groups');
+assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.appearance.includes('weather'), false, 'unmoved pages retain their original group');
 assert.strictEqual(saveCount, 2, 'moving a page persists the page order');
 
 const moveGroupTo = new Function('id','toIndex','root','Config','SettingsPageRegistry','DragReorder', body('moveSettingsNavigationGroupTo'));
@@ -108,12 +109,23 @@ assert.deepStrictEqual(Array.from(config.settingsNavigationOrder.pagesByGroup.no
   'destination index is the final zero-based position in the page list');
 const exactBeforeInvalid = JSON.stringify(config.settingsNavigationOrder);
 assert.strictEqual(movePageTo('appearance', 'notifications', 0, fakeRoot, config, registry, dragReorder), false,
-  'drag cannot move a page into another frame');
+  'within-group reorder cannot operate on a page assigned to a different group');
 assert.strictEqual(moveGroupTo('missing-group', 0, fakeRoot, config, registry, dragReorder), false,
   'drag rejects unknown frame IDs');
 assert.strictEqual(JSON.stringify(config.settingsNavigationOrder), exactBeforeInvalid,
   'invalid exact-index drag destinations leave the hierarchy unchanged');
-assert.strictEqual(saveCount, 4, 'each accepted exact-index move persists once; rejected moves do not save');
+const movePageAcrossGroups = new Function('id','targetGroupId','toIndex','root','Config','SettingsPageRegistry','DragReorder', body('moveSettingsTabToGroup'));
+navState = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
+assert.strictEqual(movePageAcrossGroups('weather', 'appearance', 1, fakeRoot, config, registry, dragReorder), true,
+  'a page can be moved into another folder at a chosen position');
+navState = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
+assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.appearance[1], 'weather');
+assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.modules.includes('weather'), false);
+assert.strictEqual(registry.navigationGroupIdForTabIdInOrder(config.settingsNavigationOrder, 'weather'), 'appearance');
+assert.strictEqual(movePageAcrossGroups('weather', 'modules', 0, fakeRoot, config, registry, dragReorder), true,
+  'a page can be moved back out of a folder');
+assert.strictEqual(config.settingsNavigationOrder.pagesByGroup.modules[0], 'weather');
+assert.strictEqual(saveCount, 6, 'each accepted exact-index move persists once; rejected moves do not save');
 assert.strictEqual('settingsTabOrder' in config, false, 'canonical hierarchical updates do not create a flat runtime compatibility mirror');
 
 // Profile and persistence integrations use the hierarchical value as canonical.

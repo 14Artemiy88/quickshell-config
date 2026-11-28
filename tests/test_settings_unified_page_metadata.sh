@@ -75,7 +75,7 @@ for (const page of catalog) {
   }
 }
 assert.strictEqual(routeById.size, 24, 'all 24 shared content pages remain registered');
-assert.strictEqual(subTabCount, 70, 'all registered 70 subtabs are included in the unified catalog');
+assert.strictEqual(subTabCount, 69, 'all registered 69 subtabs are included in the unified catalog');
 assert.strictEqual(new Set(allSubTabIds).size, allSubTabIds.length, 'subtab metadata IDs are unique');
 assert.strictEqual(registry.pageMetadataForId('not-a-page'), null, 'unknown pages return no metadata');
 assert.strictEqual(registry.saveScopeForPageId('general', 0), '', 'General profile/storage subtabs remain unscoped');
@@ -95,7 +95,7 @@ assert(search.includes('pageMetadata.subTabs[subTabIndex]'), 'search index resol
 assert(search.includes('subTabLabel, targetKey'), 'search includes the central subtab label');
 assert(!search.includes('activePageId, pageDescription, subTabLabel'), 'page descriptions do not create broad duplicate control matches');
 assert(search.includes('subTabMetadata.id'), 'search results retain the stable subtab metadata ID');
-console.log('settings unified metadata: 6 groups, 26 pages, 24 routes, 70 subtabs: OK');
+console.log('settings unified metadata: 6 groups, 26 pages, 24 routes, 69 subtabs: OK');
 NODE
 
 echo 'settings unified page metadata: OK'

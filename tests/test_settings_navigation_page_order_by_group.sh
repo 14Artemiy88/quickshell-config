@@ -13,7 +13,11 @@ grep -Fq 'dropIndicatorHost: settingsNavigationPageGroup' "$WINDOW"
 grep -Fq 'host.moveSettingsTabWithinGroupTo(' "$WINDOW"
 grep -Fq 'function moveSettingsTabWithinGroup(groupId, id, delta)' "$WIDGET"
 grep -Fq 'function settingsTabCanMoveWithinGroup(groupId, id, delta)' "$WIDGET"
-grep -Fq 'SettingsPageRegistry.navigationGroupIdForTabId(pageId) !== targetGroupId' "$CONTROLLER"
+grep -Fq 'SettingsPageRegistry.navigationGroupIdForTabIdInOrder(order, pageId) !== targetGroupId' "$CONTROLLER"
+grep -Fq 'function moveSettingsTabToGroup(id, targetGroupId, toIndex)' "$CONTROLLER"
+grep -Fq 'allowSingleItemDrag: true' "$WINDOW"
+grep -Fq 'onDragSessionFinished:' "$WINDOW"
+grep -Fq 'updatePageGroupDropTarget(' "$WINDOW"
 
 node - "$ROOT" <<'NODE'
 const fs = require('fs');
@@ -66,7 +70,7 @@ const config = {};
 assert.strictEqual(canMove('modules', 'timers', -1, fakeRoot, registry), true,
   'a page can move up inside its own group');
 assert.strictEqual(canMove('appearance', 'timers', -1, fakeRoot, registry), false,
-  'a page cannot be moved by controls from another group');
+  'within-group control cannot reorder a page assigned to another group');
 assert.strictEqual(canMove('modules', 'modules', -1, fakeRoot, registry), false,
   'first page cannot move above the first position');
 assert.strictEqual(canMove('notifications', 'notificationsDnd', 1, fakeRoot, registry), false,
@@ -91,18 +95,25 @@ assert.strictEqual(saveCount, 1, 'successful page move is persisted once');
 const beforeInvalid = JSON.stringify(order);
 move('appearance', 'timers', -1, fakeRoot, config, registry, dragReorder);
 assert.strictEqual(JSON.stringify(config.settingsNavigationOrder), beforeInvalid,
-  'cross-group page move is rejected without changing the canonical hierarchy');
-assert.strictEqual(saveCount, 1, 'rejected page move is not persisted');
+  'invalid within-group move leaves the hierarchy unchanged');
+const moveToGroup = new Function('id','targetGroupId','toIndex','root','Config','SettingsPageRegistry','DragReorder', body('moveSettingsTabToGroup'));
+assert.strictEqual(moveToGroup('timers', 'appearance', 1, fakeRoot, config, registry, dragReorder), true,
+  'cross-folder move accepts the destination group');
+order = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
+assert.strictEqual(order.pagesByGroup.modules.includes('timers'), false);
+assert.strictEqual(order.pagesByGroup.appearance[1], 'timers');
+assert.strictEqual(registry.navigationGroupIdForTabIdInOrder(order, 'timers'), 'appearance');
+assert.strictEqual(saveCount, 2, 'both accepted moves are persisted exactly once');
 
 const groups = registry.navigationGroupsForOrder(order, {});
 const modules = groups.find(group => group.id === 'modules');
 const notifications = groups.find(group => group.id === 'notifications');
-assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'osd', 'calendar'],
-  'sidebar model reflects the customized page order inside its own group');
+assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'osd', 'calendar'],
+  'source sidebar model reflects the removal after cross-folder move');
 assert.deepStrictEqual(Array.from(notifications.items.map(item => item.id)), ['notifications', 'notificationsDnd'], 'notification pages stay together in their dedicated folder');
-assert.strictEqual(groups.find(group => group.id === 'appearance').items[0].id, 'themes',
-  'other groups retain their independent order');
-console.log('Settings page order by group: canonical membership, scoped movement, group boundaries, persistence and sidebar model: OK');
+assert.deepStrictEqual(Array.from(groups.find(group => group.id === 'appearance').items.map(item => item.id)), ['themes', 'timers', 'interface', 'settingsWindow'],
+  'destination sidebar model includes the page at its chosen position');
+console.log('Settings page order by group: default grouping, dynamic cross-folder membership, scoped movement, persistence and sidebar model: OK');
 NODE
 
 echo 'settings navigation page order by group: OK'

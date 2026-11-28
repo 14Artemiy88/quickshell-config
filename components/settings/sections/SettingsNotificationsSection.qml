@@ -151,48 +151,14 @@ Column {
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays"] })
-        heading: root.dndSubTab === 0 ? "Режим Не беспокоить" : (root.dndSubTab === 1 ? "Правила приложений" : "История уведомлений")
+        changeKeys: ({ keys: ["notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays"] })
+        heading: root.dndSubTab === 0 ? "Правила приложений" : "История уведомлений"
         padding: 8
         contentSpacing: 6
 
-        SettingsCheckBox {
-            id: notificationsDoNotDisturbCheck
-            visible: root.dndSubTab === 0
-            width: parent.width
-            height: 28
-            text: "Не беспокоить"
-            checked: Config.notificationsDoNotDisturb
-            settingsSearchId: "notifications-do-not-disturb"
-            settingsSearchLabel: "Не беспокоить: скрывать всплывающие уведомления"
-            settingsSearchKeywords: "уведомления режим тишина dnd do not disturb подавлять скрывать без звука"
-            settingsSearchSubTabIndex: 0
-            onToggled: {
-                Config.notificationsDoNotDisturb = checked
-                root.settings.save()
-            }
-            Connections {
-                target: Config
-                function onNotificationsDoNotDisturbChanged() {
-                    notificationsDoNotDisturbCheck.checked = Config.notificationsDoNotDisturb
-                }
-            }
-        }
-        SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 0
-            width: parent.width
-            text: "Входящие уведомления продолжают приниматься, но всплывающие карточки не показываются. Последние уведомления доступны в истории Dashboard; история ограничена 200 записями и хранится только в оперативной памяти, без записи содержимого на диск."
-            color: Config.textMuted
-            font.family: Config.settingsFontFamily
-            font.pixelSize: Config.settingsUiSize(9)
-            wrapMode: Text.WordWrap
-        }
-
-
-
         SettingsRow {
-            visible: root.dndSubTab === 2
-            settingsSearchSubTabIndex: 2
+            visible: root.dndSubTab === 1
+            settingsSearchSubTabIndex: 1
             width: parent.width
             height: 30
             spacing: 8
@@ -229,7 +195,7 @@ Column {
             }
         }
         SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 2
+            descriptionConditionVisible: root.dndSubTab === 1
             width: parent.width
             text: "Количество последних уведомлений, сохраняемых в оперативной памяти. Допустимо от 1 до 200; содержимое не записывается на диск."
             color: Config.textMuted
@@ -238,8 +204,8 @@ Column {
             wrapMode: Text.WordWrap
         }
         SettingsRow {
-            visible: root.dndSubTab === 2
-            settingsSearchSubTabIndex: 2
+            visible: root.dndSubTab === 1
+            settingsSearchSubTabIndex: 1
             width: parent.width
             height: 30
             spacing: 8
@@ -276,7 +242,7 @@ Column {
             }
         }
         SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 2
+            descriptionConditionVisible: root.dndSubTab === 1
             width: parent.width
             text: "0 — без ограничения по возрасту. От 1 до 365 дней — автоматически удалять более старые записи. Лимит по количеству действует всегда."
             color: Config.textMuted
@@ -286,7 +252,7 @@ Column {
         }
 
         SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 1
+            descriptionConditionVisible: root.dndSubTab === 0
             width: parent.width
             text: "В списке появляются приложения, от которых Quickshell уже получил уведомления. «Игнор DND» оставляет их уведомления видимыми при включённом режиме. «Отключить» подавляет их уведомления при выключенном режиме. Ранее настроенные правила остаются доступны после перезапуска; кнопка с корзиной удаляет запись и оба правила."
             color: Config.textMuted
@@ -296,7 +262,7 @@ Column {
         }
 
         Text {
-            visible: root.dndSubTab === 1
+            visible: root.dndSubTab === 0
             width: parent.width
             text: {
                 var stats = root.dndCatalogSummary || ({})
@@ -318,7 +284,7 @@ Column {
         }
 
         Row {
-            visible: root.dndSubTab === 1
+            visible: root.dndSubTab === 0
             width: parent.width
             height: 30
             spacing: 8
@@ -331,7 +297,7 @@ Column {
                 settingsSearchId: "notifications-dnd-sender-search"
                 settingsSearchLabel: "Поиск отправителя для правил DND"
                 settingsSearchKeywords: "не беспокоить исключения разрешить подавить приложение отправитель уведомлений поиск dnd"
-                settingsSearchSubTabIndex: 1
+                settingsSearchSubTabIndex: 0
                 color: Config.text
                 font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
@@ -346,7 +312,7 @@ Column {
                 settingsSearchId: "notifications-dnd-show-all"
                 settingsSearchLabel: "Показать все известные отправители уведомлений"
                 settingsSearchKeywords: "не беспокоить список отправители полный каталог все приложения show all"
-                settingsSearchSubTabIndex: 1
+                settingsSearchSubTabIndex: 0
                 labelFontSize: 9
                 checked: root.dndShowAllApplications
                 ToolTip.visible: pointerHovered
@@ -357,7 +323,7 @@ Column {
         }
 
         Row {
-            visible: root.dndSubTab === 1
+            visible: root.dndSubTab === 0
             width: parent.width
             height: 28
             spacing: 6
@@ -400,8 +366,8 @@ Column {
         }
 
         Repeater {
-            visible: root.dndSubTab === 1
-            model: root.dndSubTab === 1 ? root.dndApplicationRows : []
+            visible: root.dndSubTab === 0
+            model: root.dndSubTab === 0 ? root.dndApplicationRows : []
             delegate: Item {
                 required property var modelData
                 width: parent.width
@@ -440,7 +406,7 @@ Column {
                         width: 82
                         height: 30
                         indicatorOnly: true
-                        settingsSearchSubTabIndex: 1
+                        settingsSearchSubTabIndex: 0
                         settingsSearchId: "notifications-dnd-ignore-" + String(modelData.id || modelData.name || "sender")
                         settingsSearchLabel: "Игнор DND — " + String(modelData.name || modelData.id || "приложение")
                         settingsSearchKeywords: String(modelData.comment || "") + " разрешить уведомления при включённом DND исключение"
@@ -460,7 +426,7 @@ Column {
                         width: 82
                         height: 30
                         indicatorOnly: true
-                        settingsSearchSubTabIndex: 1
+                        settingsSearchSubTabIndex: 0
                         settingsSearchId: "notifications-dnd-disable-" + String(modelData.id || modelData.name || "sender")
                         settingsSearchLabel: "Отключить — " + String(modelData.name || modelData.id || "приложение")
                         settingsSearchKeywords: String(modelData.comment || "") + " подавлять уведомления при выключенном DND блокировка"
@@ -480,7 +446,7 @@ Column {
                         width: 82
                         height: 30
                         indicatorOnly: true
-                        settingsSearchSubTabIndex: 1
+                        settingsSearchSubTabIndex: 0
                         settingsSearchId: "notifications-dnd-history-ignore-" + String(modelData.id || modelData.name || "sender")
                         settingsSearchLabel: "Игнорировать в истории — " + String(modelData.name || modelData.id || "приложение")
                         settingsSearchKeywords: String(modelData.comment || "") + " история уведомлений не сохранять исключить из истории скрыть запись"
@@ -526,7 +492,7 @@ Column {
         }
 
         SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 1 && root.dndApplicationRowCount === 0
+            descriptionConditionVisible: root.dndSubTab === 0 && root.dndApplicationRowCount === 0
             width: parent.width
             text: root.dndApplicationSearch.trim().startsWith("@")
                 ? "@i ID\n@c category\n@d description\n@e command\n@w WM_CLASS\n@g generic name\n@k keywords\n@t apps inside terminal"
@@ -541,7 +507,7 @@ Column {
             wrapMode: Text.WordWrap
         }
         SettingsDescription {
-            descriptionConditionVisible: root.dndSubTab === 1 && root.dndApplicationSearch.trim().length > 0 && root.dndApplicationRowCount === 40
+            descriptionConditionVisible: root.dndSubTab === 0 && root.dndApplicationSearch.trim().length > 0 && root.dndApplicationRowCount === 40
             width: parent.width
             text: "Показаны первые 40 совпадений. Уточните запрос, чтобы найти нужное приложение."
             color: Config.textMuted
@@ -552,6 +518,48 @@ Column {
 
     }
 
+
+    SettingsGroup {
+        visible: root.pageId === "notifications" && root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0
+        width: parent.width
+        showFrame: true
+        settings: root.settings
+        changeKeys: ({ keys: ["notificationsDoNotDisturb"] })
+        heading: "Режим Не беспокоить"
+        settingsSearchSubTabIndex: 0
+        padding: 8
+        contentSpacing: 6
+
+        SettingsCheckBox {
+            id: notificationsDoNotDisturbCheck
+            width: parent.width
+            height: 28
+            text: "Не беспокоить"
+            checked: Config.notificationsDoNotDisturb
+            settingsSearchId: "notifications-do-not-disturb"
+            settingsSearchLabel: "Не беспокоить: скрывать всплывающие уведомления"
+            settingsSearchKeywords: "уведомления режим тишина dnd do not disturb подавлять скрывать без звука"
+            settingsSearchSubTabIndex: 0
+            onToggled: {
+                Config.notificationsDoNotDisturb = checked
+                root.settings.save()
+            }
+            Connections {
+                target: Config
+                function onNotificationsDoNotDisturbChanged() {
+                    notificationsDoNotDisturbCheck.checked = Config.notificationsDoNotDisturb
+                }
+            }
+        }
+        SettingsDescription {
+            width: parent.width
+            text: "Входящие уведомления продолжают приниматься, но всплывающие карточки не показываются. Последние уведомления доступны в истории Dashboard; история ограничена 200 записями и хранится только в оперативной памяти, без записи содержимого на диск."
+            color: Config.textMuted
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.settingsUiSize(9)
+            wrapMode: Text.WordWrap
+        }
+    }
 
     SettingsGroup {
                 visible: root.pageId === "notifications" && root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0

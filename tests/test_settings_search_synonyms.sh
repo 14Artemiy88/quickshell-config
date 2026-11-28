@@ -55,7 +55,7 @@ for (const page of pages) {
     subtabCount++;
   }
 }
-assert.strictEqual(subtabCount, 70, 'all existing subtabs expose targeted synonyms');
+assert.strictEqual(subtabCount, 69, 'all existing subtabs expose targeted synonyms');
 assert.ok(keywordPageCount >= 90, 'page synonym catalogue has broad coverage');
 
 function ids(query) { return Search.search(entries, query, 50).map(item => item.id); }

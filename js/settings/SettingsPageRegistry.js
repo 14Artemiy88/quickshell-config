@@ -15,7 +15,7 @@ var NAVIGATION_GROUPS = [
 
 var TAB_DEFINITIONS = [
     { id: "modules", defaultLabel: "Включение модулей", groupId: "modules", description: "Включение и отключение модулей оболочки.", keywords: ["включить модуль", "отключить модуль", "компоненты оболочки", "виджеты", "список модулей"] },
-    { id: "time", defaultLabel: "Часы", groupId: "modules", description: "Шрифт и размеры времени, даты и дня недели.", keywords: ["часы", "цифровые часы", "время на рабочем столе", "циферблат", "шрифт часов", "размер времени", "дата", "день недели", "clock"] },
+    { id: "time", defaultLabel: "Часы", groupId: "modules", description: "Отдельные шрифты, размеры, цвета и внутренние отступы времени, даты и дня недели.", keywords: ["часы", "цифровые часы", "время на рабочем столе", "циферблат", "шрифт часов", "размер времени", "шрифт даты", "цвет часов", "цвет даты", "отступы часов", "дата", "день недели", "clock"] },
     { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard", description: "Состав, порядок, видимость, размеры и анимация панели Dashboard.", keywords: ["панель обзора", "главный экран", "карточки панели", "виджеты панели", "обзор системы", "анимация dashboard", "появление панели", "исчезновение панели"] },
     { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance", description: "Цветовые схемы, палитры, акцентные и пользовательские цвета.", keywords: ["палитра", "цветовая схема", "тема оформления", "акцентный цвет", "цвета интерфейса", "theme", "color scheme"] },
     { id: "interface", defaultLabel: "Интерфейс", groupId: "appearance", description: "Шрифты, масштаб модулей, размытие фона, рамки и скругления.", keywords: ["масштаб интерфейса", "масштаб шрифта", "шрифты модулей", "рамки", "скругления", "блюр", "размытие фона", "типографика", "внешний вид интерфейса"] },
@@ -37,8 +37,8 @@ var TAB_DEFINITIONS = [
     { id: "launcherActions", defaultLabel: "Действия", groupId: "launcher", description: "Переходы, инструменты и пользовательские действия.", keywords: ["команды", "быстрые действия", "пользовательские команды", "переходы", "запустить действие"] },
     { id: "launcherAnimation", defaultLabel: "Анимация", groupId: "launcher", description: "Профили и длительность анимаций лаунчера.", keywords: ["плавность", "скорость анимации", "анимация переходов", "эффекты движения"] },
     { id: "launcherApplications", defaultLabel: "Приложения", groupId: "launcher", description: "Список приложений и параметры их отображения.", keywords: ["список программ", "установленные программы", "программы в меню", "запуск программ"] },
-    { id: "notifications", defaultLabel: "Уведомления", groupId: "notifications", description: "Поведение, внешний вид, размещение и анимации всплывающих уведомлений.", keywords: ["всплывающие сообщения", "попапы", "баннеры", "уведомления приложений", "notification", "popup"] },
-    { id: "notificationsDnd", defaultLabel: "Не беспокоить", groupId: "notifications", description: "Режим DND, правила приложений и история подавленных уведомлений.", keywords: ["dnd", "do not disturb", "не беспокоить", "режим тишины", "исключения уведомлений", "белый список", "черный список"] },
+    { id: "notifications", defaultLabel: "Уведомления", groupId: "notifications", description: "Поведение уведомлений и DND, внешний вид карточек, размещение и анимации.", keywords: ["всплывающие сообщения", "попапы", "баннеры", "уведомления приложений", "не беспокоить", "dnd", "режим тишины", "notification", "popup"] },
+    { id: "notificationsDnd", defaultLabel: "Правила и история", groupId: "notifications", description: "Исключения DND для приложений и история подавленных уведомлений.", keywords: ["dnd", "do not disturb", "правила приложений", "исключения уведомлений", "белый список", "черный список", "история подавленных уведомлений"] },
     { id: "settingsWindow", defaultLabel: "Окно настроек", groupId: "appearance", description: "Размеры, поведение, навигация и внешний вид окна настроек.", keywords: ["окно конфигурации", "панель настроек", "размер окна", "боковая панель", "навигация настроек", "окно параметров"] }
 ]
 
@@ -67,7 +67,7 @@ var OTHER_PAGE_DEFINITIONS = [
     { id: "launcherAnimation", saveScope: "launcher", subTabs: [] },
     { id: "launcherApplications", saveScope: "launcher", subTabs: [] },
     { id: "notifications", saveScope: "notifications", subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"] },
-    { id: "notificationsDnd", saveScope: "notifications", subTabs: ["Режим", "Приложения", "История"] }
+    { id: "notificationsDnd", saveScope: "notifications", subTabs: ["Приложения", "История"] }
 ]
 
 function tabDefinitions() {
@@ -102,12 +102,12 @@ function navigationGroupDefinitions() {
     return NAVIGATION_GROUPS.slice()
 }
 
-// Build sidebar groups in the user's configured frame order. Page membership
-// remains fixed by canonical metadata; only the top-level presentation order
-// is customizable here.
+// Build sidebar groups from the fully customizable page membership/order.
+// Canonical metadata supplies stable identity and defaults only; the configured
+// pagesByGroup object is authoritative after a page has been moved by the user.
 function navigationGroupsForOrder(source, labels) {
     var normalized = normalizeNavigationOrder(source)
-    var items = navigationItemsForOrder(flattenNavigationOrder(normalized), labels)
+    var labelMap = labels && typeof labels === "object" ? labels : {}
     var result = []
     for (var orderIndex = 0; orderIndex < normalized.groupOrder.length; ++orderIndex) {
         var groupId = normalized.groupOrder[orderIndex]
@@ -120,9 +120,20 @@ function navigationGroupsForOrder(source, labels) {
         }
         if (!definition) continue
         var groupItems = []
-        for (var itemIndex = 0; itemIndex < items.length; ++itemIndex) {
-            if (items[itemIndex].groupId === groupId)
-                groupItems.push(items[itemIndex])
+        var pageIds = normalized.pagesByGroup[groupId] || []
+        for (var itemIndex = 0; itemIndex < pageIds.length; ++itemIndex) {
+            var pageId = pageIds[itemIndex]
+            var metadata = pageMetadataForId(pageId)
+            if (!metadata) continue
+            var configuredLabel = labelMap[pageId]
+            var label = configuredLabel === undefined || configuredLabel === null
+                ? "" : String(configuredLabel).trim()
+            groupItems.push({
+                id: pageId,
+                label: label || metadata.defaultLabel,
+                groupId: groupId,
+                canonicalGroupId: metadata.groupId
+            })
         }
         result.push({
             id: definition.id,
@@ -135,9 +146,9 @@ function navigationGroupsForOrder(source, labels) {
     return result
 }
 
-// Hierarchical navigation order. Folder/frame order is independent from the
-// page order inside each frame. Page membership remains canonical in
-// TAB_DEFINITIONS; cross-frame page moves are intentionally not supported yet.
+// Hierarchical navigation order. Folder/frame order and page membership/order
+// are independently customizable. TAB_DEFINITIONS remains the canonical list
+// of valid stable page IDs and their initial/default group assignments.
 function defaultNavigationOrder() {
     var groupOrder = []
     var pagesByGroup = {}
@@ -172,26 +183,37 @@ function normalizeNavigationOrder(source) {
         if (!seenGroups[fallbackGroupId]) result.groupOrder.push(fallbackGroupId)
     }
 
+    var validPages = {}
+    for (var definitionIndex = 0; definitionIndex < TAB_DEFINITIONS.length; ++definitionIndex)
+        validPages[TAB_DEFINITIONS[definitionIndex].id] = true
+
     var savedPages = input.pagesByGroup && typeof input.pagesByGroup === "object" && !Array.isArray(input.pagesByGroup)
         ? input.pagesByGroup : {}
+    var seenPages = {}
     for (var pageGroupIndex = 0; pageGroupIndex < defaults.groupOrder.length; ++pageGroupIndex) {
         var pageGroupId = defaults.groupOrder[pageGroupIndex]
-        var allowed = defaults.pagesByGroup[pageGroupId]
         var pages = []
-        var seenPages = {}
         var candidatePages = Array.isArray(savedPages[pageGroupId]) ? savedPages[pageGroupId] : []
         for (var candidateIndex = 0; candidateIndex < candidatePages.length; ++candidateIndex) {
             var pageId = candidatePages[candidateIndex]
-            if (typeof pageId !== "string" || allowed.indexOf(pageId) < 0 || seenPages[pageId])
+            if (typeof pageId !== "string" || !Object.prototype.hasOwnProperty.call(validPages, pageId)
+                    || Object.prototype.hasOwnProperty.call(seenPages, pageId))
                 continue
             seenPages[pageId] = true
             pages.push(pageId)
         }
-        for (var allowedIndex = 0; allowedIndex < allowed.length; ++allowedIndex) {
-            var fallbackPageId = allowed[allowedIndex]
-            if (!seenPages[fallbackPageId]) pages.push(fallbackPageId)
-        }
         result.pagesByGroup[pageGroupId] = pages
+    }
+
+    // Any page omitted by a partial/old profile returns to its canonical
+    // default group. This preserves forward compatibility and guarantees that
+    // every registered page appears exactly once after normalization.
+    for (var fallbackPageIndex = 0; fallbackPageIndex < TAB_DEFINITIONS.length; ++fallbackPageIndex) {
+        var fallbackPage = TAB_DEFINITIONS[fallbackPageIndex]
+        if (!seenPages[fallbackPage.id]) {
+            result.pagesByGroup[fallbackPage.groupId].push(fallbackPage.id)
+            seenPages[fallbackPage.id] = true
+        }
     }
     return result
 }
@@ -238,6 +260,18 @@ function flattenNavigationOrder(source) {
     return result
 }
 
+function navigationGroupIdForTabIdInOrder(source, id) {
+    var pageId = String(id === undefined || id === null ? "" : id)
+    var normalized = normalizeNavigationOrder(source)
+    for (var groupIndex = 0; groupIndex < normalized.groupOrder.length; ++groupIndex) {
+        var groupId = normalized.groupOrder[groupIndex]
+        var pages = normalized.pagesByGroup[groupId] || []
+        if (pages.indexOf(pageId) >= 0)
+            return groupId
+    }
+    return navigationGroupIdForTabId(pageId)
+}
+
 function navigationGroupIdForTabId(id) {
     var pageId = String(id === undefined || id === null ? "" : id)
     for (var i = 0; i < TAB_DEFINITIONS.length; ++i) {
@@ -249,6 +283,12 @@ function navigationGroupIdForTabId(id) {
 
 function navigationGroupLabelForTabId(id) {
     var groupId = navigationGroupIdForTabId(id)
+    var group = navigationGroupForId(groupId)
+    return group ? group.label : "Общие"
+}
+
+function navigationGroupLabelForTabIdInOrder(source, id) {
+    var groupId = navigationGroupIdForTabIdInOrder(source, id)
     var group = navigationGroupForId(groupId)
     return group ? group.label : "Общие"
 }

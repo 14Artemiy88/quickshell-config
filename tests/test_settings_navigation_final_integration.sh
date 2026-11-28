@@ -64,7 +64,7 @@ const host = {
     return String(Config.settingsTabLabels[id] || (page && page.defaultLabel) || 'Настройки');
   },
   expandSettingsNavigationGroupForPage(pageId) {
-    const groupId = registry.navigationGroupIdForTabId(pageId);
+    const groupId = registry.navigationGroupIdForTabIdInOrder(this.settingsNavigationOrderNormalized(), pageId);
     if (this.settingsNavigationGroupCollapsed(groupId)) {
       const next = Object.assign({}, Config.settingsNavigationCollapsedGroups, { [groupId]: false });
       this.setSettingsNavigationCollapsedGroups(next);
@@ -118,10 +118,15 @@ assert.deepStrictEqual(Array.from(Config.settingsNavigationOrder.pagesByGroup.mo
 const orderBeforeCrossFrame = asPlain(Config.settingsNavigationOrder);
 const savesBeforeCrossFrame = saveCount;
 assert.strictEqual(host.settingsTabCanMoveWithinGroup('appearance', 'weather', -1), false,
-  'a page cannot be moved through another frame');
-host.moveSettingsTabWithinGroup('appearance', 'weather', -1);
+  'within-folder keyboard movement cannot act on a page outside that folder');
 assert.deepStrictEqual(asPlain(Config.settingsNavigationOrder), orderBeforeCrossFrame);
-assert.strictEqual(saveCount, savesBeforeCrossFrame, 'cross-frame move is rejected without persistence');
+assert.strictEqual(saveCount, savesBeforeCrossFrame, 'invalid within-folder movement does not persist');
+const movePageAcrossGroups = new Function('id','targetGroupId','toIndex','root','Config','SettingsPageRegistry','DragReorder',
+  functionBody(controllerSource, 'moveSettingsTabToGroup'));
+assert.strictEqual(movePageAcrossGroups('weather', 'appearance', 2, host, Config, registry, dragReorder), true,
+  'page can be dragged from Modules into Appearance');
+assert.strictEqual(Config.settingsNavigationOrder.pagesByGroup.modules.includes('weather'), false);
+assert.strictEqual(Config.settingsNavigationOrder.pagesByGroup.appearance[2], 'weather');
 
 // 3. Sidebar and framed editor consume the same ordered group model.
 host.settingsNavigationGroups = registry.navigationGroupsForOrder(Config.settingsNavigationOrder, Config.settingsTabLabels);
@@ -131,12 +136,14 @@ assert.deepStrictEqual(Array.from(groups, group => group.id),
 const editorPages = groups.flatMap(group => group.items.map(item => ({ groupId: group.id, id: item.id })));
 assert.strictEqual(editorPages.length, 26);
 assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 26, 'each page occurs exactly once');
-assert(editorPages.every(item => registry.navigationGroupIdForTabId(item.id) === item.groupId),
-  'sidebar/editor never assigns a page to another frame');
-assert.strictEqual(groups.find(group => group.id === 'modules').items[4].id, 'weather',
-  'the reordered page appears at its saved position in the live group model');
-assert.strictEqual(groups.find(group => group.id === 'modules').items[4].label, 'Прогноз',
-  'custom page labels survive group/page reordering');
+assert(editorPages.every(item => registry.navigationGroupIdForTabIdInOrder(Config.settingsNavigationOrder, item.id) === item.groupId),
+  "sidebar/editor reflect the user-selected page-to-folder assignment");
+assert.strictEqual(groups.find(group => group.id === 'modules').items[4].id, 'mopidy',
+  'source group reflects removal of the moved page');
+assert.strictEqual(groups.find(group => group.id === 'appearance').items[2].id, 'weather',
+  'destination group shows the page at its selected insertion position');
+assert.strictEqual(groups.find(group => group.id === 'appearance').items[2].label, 'Прогноз',
+  'custom page labels survive cross-folder movement');
 assert(windowSource.includes('model: host ? host.settingsNavigationGroups : []'),
   'framed editor reads the same group model as the sidebar');
 assert(widgetSource.includes('SettingsPageRegistry.navigationGroupsForOrder('),
@@ -149,12 +156,12 @@ const hasCurrentPage = new Function('id', 'root', functionBody(widgetSource, 'se
 const currentPageLabel = new Function('id', 'root', functionBody(widgetSource, 'settingsNavigationGroupCurrentPageLabel'));
 const SettingsSchema = { normalizeSettingsNavigationCollapsedGroups: value => value };
 host.currentPageId = 'weather';
-toggleGroup('modules', host, Config, SettingsSchema, registry);
+toggleGroup('appearance', host, Config, SettingsSchema, registry);
 assert.strictEqual(host.currentPageId, 'weather', 'collapsing the active frame must not teleport the content page');
-assert.strictEqual(host.settingsNavigationGroupCollapsed('modules'), true, 'active page folder can collapse independently');
-assert.strictEqual(hasCurrentPage('modules', host), true, 'collapsed frame still reports that it contains the active page');
-assert.strictEqual(currentPageLabel('modules', host), 'Прогноз', 'collapsed active-page hint respects custom label');
-assert.strictEqual(host.settingsNavigationGroupCollapsed('appearance'), false, 'other group state is untouched');
+assert.strictEqual(host.settingsNavigationGroupCollapsed('appearance'), true, 'active page folder can collapse independently');
+assert.strictEqual(hasCurrentPage('appearance', host), true, 'collapsed frame still reports that it contains the moved page');
+assert.strictEqual(currentPageLabel('appearance', host), 'Прогноз', 'collapsed active-page hint respects custom label');
+assert.strictEqual(host.settingsNavigationGroupCollapsed('modules'), false, 'other group state is untouched');
 
 // 5. Explicit search navigation may reveal its destination, select the page and focus it.
 const openSearchResult = new Function('entry', 'root', 'Qt', functionBody(searchSource, 'openSettingsSearchResult'));

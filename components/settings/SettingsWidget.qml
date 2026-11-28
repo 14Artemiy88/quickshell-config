@@ -125,6 +125,7 @@ Item {
     function settingsTabCanMove(id, delta) { return settingsNavigationController.settingsTabCanMove(id, delta) }
     function moveSettingsTabWithinGroup(groupId, id, delta) { return settingsNavigationController.moveSettingsTabWithinGroup(groupId, id, delta) }
     function moveSettingsTabWithinGroupTo(groupId, id, toIndex) { return settingsNavigationController.moveSettingsTabWithinGroupTo(groupId, id, toIndex) }
+    function moveSettingsTabToGroup(id, targetGroupId, toIndex) { return settingsNavigationController.moveSettingsTabToGroup(id, targetGroupId, toIndex) }
     function settingsTabCanMoveWithinGroup(groupId, id, delta) { return settingsNavigationController.settingsTabCanMoveWithinGroup(groupId, id, delta) }
     function settingsNavigationGroupCanMove(id, delta) { return settingsNavigationController.settingsNavigationGroupCanMove(id, delta) }
     function moveSettingsNavigationGroup(id, delta) { return settingsNavigationController.moveSettingsNavigationGroup(id, delta) }
@@ -256,7 +257,8 @@ Item {
     }
 
     function expandSettingsNavigationGroupForPage(pageId) {
-        var groupId = SettingsPageRegistry.navigationGroupIdForTabId(pageId)
+        var groupId = SettingsPageRegistry.navigationGroupIdForTabIdInOrder(
+            root.settingsNavigationOrderNormalized(), pageId)
         if (root.settingsNavigationGroupCollapsed(groupId)) {
             var next = Object.assign({}, root.collapsedSettingsNavigationGroups || ({}))
             next[groupId] = false

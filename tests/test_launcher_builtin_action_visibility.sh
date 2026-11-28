@@ -10,6 +10,7 @@ RESETS="$ROOT/js/settings/SettingsResets.js"
 CONFIG="$ROOT/Config.qml"
 DEFAULTS="$ROOT/js/settings/SettingsDefaults.js"
 README="$ROOT/README.md"
+README_EN="$ROOT/README.en.md"
 
 node - "$MODULE" "$APPLY" <<'JS'
 const fs = require('fs');
@@ -56,6 +57,7 @@ persistence = (root / "js/settings/SettingsPersistence.js").read_text()
 resets = (root / "js/settings/SettingsResets.js").read_text()
 apply = (root / "js/settings/SettingsApplySystemVisual.js").read_text()
 readme = (root / "README.md").read_text()
+readme_en = (root / "README.en.md").read_text()
 
 assert 'property var launcherDisabledBuiltinActions: []' in config
 assert 'launcherDisabledBuiltinActions: []' in defaults
@@ -79,7 +81,7 @@ assert 'Переходы между вкладками' in settings and 'Инс�
 assert 'Каталог пользовательских действий : не затрагивается.' in settings
 assert 'launcherQuery.startsWith(":")' in launcher, 'the separate custom-action catalog must remain available'
 assert 'Настройки → Лаунчер → Действия → Переходы' in readme
-assert 'can be independently hidden from the `>` palette' in readme
+assert 'can be independently hidden from the `>` palette' in readme_en
 # The visible tab list itself remains independent from the palette-only setting.
 visible_tabs = launcher[launcher.index('readonly property var displayedModeTabs'):launcher.index('readonly property int selectedModeTabIndex')]
 assert 'launcherDisabledBuiltinActions' not in visible_tabs, 'palette toggles must not hide or disable actual tabs'

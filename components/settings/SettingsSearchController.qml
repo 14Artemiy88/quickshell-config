@@ -162,8 +162,10 @@ Item {
                 var pageLabel = root.host ? root.host.settingsTabLabelForId(activePageId) : activePageId
                 var pageMetadata = typeof SettingsPageRegistry.pageMetadataForId === "function"
                     ? (SettingsPageRegistry.pageMetadataForId(activePageId) || ({})) : ({})
-                var navigationGroupLabel = pageMetadata.navigationGroupLabel
-                    || SettingsPageRegistry.navigationGroupLabelForTabId(activePageId)
+                var navigationGroupLabel = root.host
+                    ? SettingsPageRegistry.navigationGroupLabelForTabIdInOrder(
+                        root.host.settingsNavigationOrderNormalized(), activePageId)
+                    : (pageMetadata.navigationGroupLabel || SettingsPageRegistry.navigationGroupLabelForTabId(activePageId))
                 var pageDescription = String(pageMetadata.description || "")
                 var pageKeywords = Array.isArray(pageMetadata.keywords) ? pageMetadata.keywords.join(" ") : String(pageMetadata.keywords || "")
                 var subTabIndex = root.settingsSearchSubTabIndex(item, activePageRoot)
@@ -375,8 +377,13 @@ Item {
         var group = String(groupId || "")
         if (!group)
             return 0
+        var navigationOrder = root.host && typeof root.host.settingsNavigationOrderNormalized === "function"
+            ? root.host.settingsNavigationOrderNormalized() : null
         return root.settingsSearchCountMatches(function(entry) {
-            return SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId) === group
+            var entryGroupId = typeof SettingsPageRegistry.navigationGroupIdForTabIdInOrder === "function"
+                ? SettingsPageRegistry.navigationGroupIdForTabIdInOrder(navigationOrder, entry.pageId)
+                : SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId)
+            return entryGroupId === group
         })
     }
 
@@ -433,8 +440,13 @@ Item {
 
     function settingsSearchNavigationGroupMatchHint(groupId) {
         var group = String(groupId || "")
+        var navigationOrder = root.host && typeof root.host.settingsNavigationOrderNormalized === "function"
+            ? root.host.settingsNavigationOrderNormalized() : null
         return root.settingsSearchMatchesHint(function(entry) {
-            return SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId) === group
+            var entryGroupId = typeof SettingsPageRegistry.navigationGroupIdForTabIdInOrder === "function"
+                ? SettingsPageRegistry.navigationGroupIdForTabIdInOrder(navigationOrder, entry.pageId)
+                : SettingsPageRegistry.navigationGroupIdForTabId(entry.pageId)
+            return entryGroupId === group
         })
     }
 
