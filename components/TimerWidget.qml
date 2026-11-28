@@ -22,6 +22,18 @@ Primitives.ModuleFrame {
         }
         return -1
     }
+    // Vertical anchor for the shared options surface. Read the live delegate
+    // geometry so adaptive row heights, spacing and in-flight row morphs are
+    // reflected without estimating from the timer's index.
+    readonly property real selectedTimerRowCenterY: {
+        const index = root.selectedIndex
+        if (index < 0)
+            return root.height / 2
+        const row = timerRowsRepeater.itemAt(index)
+        if (!row)
+            return root.height / 2
+        return timerList.y + timerRowsColumn.y + row.y + row.height / 2
+    }
     readonly property int visibleTimerCount: Math.min((timers || []).length, 5)
     // Include outgoing delegates until their MorphGeometry collapse finishes;
     // shell.qml uses adaptiveHeight as the timer surface's content height.
@@ -616,6 +628,7 @@ Primitives.ModuleFrame {
         }
 
         Column {
+            id: timerRowsColumn
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.topMargin: root.effectiveTimerTopMargin

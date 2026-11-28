@@ -47,8 +47,10 @@ assert(windowQml.includes('Math.max(42, parent.width - settingsNavigationPageOrd
   'page label editor has a controlled compact minimum width');
 assert(windowQml.includes('minimum: fieldIndex === 2 ? 320'),
   'responsive navigation is tested against the existing 320px minimum Settings window width');
-assert((nav.match(/height: root\.compactNavigation \? 36 : 34/g) || []).length === 3,
-  'standalone tabs, folder page rows and their page-tab controls use the same height');
+assert((nav.match(/height: root\.compactNavigation \? 32 : 30/g) || []).length === 3,
+  'standalone tabs, folder page rows and their page-tab controls use the compact 30/32px height');
+assert(nav.includes('fontPixelSize: root.compactNavigation ? 9 : 10'),
+  'sidebar row height changes must preserve the existing 9/10px typography');
 
 function layout(bodyWidth) {
   const navigationWidth = Math.min(176, Math.max(112, Math.round(bodyWidth * 0.33)));

@@ -30,7 +30,8 @@ assert 'timerOptionsPopup.startClose()' in close
 assert 'setSurfaceVisible' not in panel and 'grabFocus' not in panel
 assert 'TimerOptions {' in panel
 assert 'x: Settings.geometry.timerOptions[0]' in panel
-assert 'y: Settings.geometry.timerOptions[1]' in panel
+assert 'y: timerOptionsOverlay.timerOptionsAnchoredY()' in panel, 'popup must vertically follow its selected timer instead of a fixed saved Y'
+assert 'function timerOptionsAnchoredY()' in panel
 assert 'z: 1' in panel, 'the card must be above the full-screen outside-click catcher'
 assert 'onCloseFinished: {' in panel and 'timerOptionsOverlay.hideAfterClose()' in panel
 assert 'openForOptions' not in panel and 'PopupWindow' not in shell.split('id: timerWindow', 1)[1].split('id: timerFinishedPopup', 1)[0]

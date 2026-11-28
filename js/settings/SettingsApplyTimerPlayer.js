@@ -37,6 +37,7 @@ function apply(Config, o, legacyTimerIconOrder) {
         }
         var playerNumberFields = [
             ["playerSilenceFontSize", 8, 100], ["playerSilenceLongFontSize", 8, 100],
+            ["playerSilenceOutlineWidth", 0, 4],
             ["playerMetaFontSize", 8, 48], ["playerMetaSecondaryFontSize", 8, 48],
             ["playerMetaLineSpacing", 0, 100],
             ["playerPlayingIconSize", 8, 64], ["playerPausedIconSize", 8, 64], ["playerNextIconSize", 8, 64],

@@ -346,6 +346,45 @@ Primitives.ModuleFrame {
         text: silenceText.text
     }
 
+    // Give the player fallback/status label an independently configurable
+    // outline. Render small offset copies behind the fill so the stroke width
+    // is controllable (QtQuick Text.Outline does not expose a stroke width).
+    readonly property var silenceOutlineOffsets: {
+        var offsets = []
+        var thickness = Math.max(0, Math.min(4, Math.round(Number(Config.playerSilenceOutlineWidth) || 0)))
+        if (thickness <= 0)
+            return offsets
+        var radius = thickness * 0.5
+        var sampleCount = 8
+        for (var i = 0; i < sampleCount; ++i) {
+            var angle = (Math.PI * 2 * i) / sampleCount
+            offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+        }
+        return offsets
+    }
+
+    Repeater {
+        model: root.silenceOutlineOffsets
+        delegate: Text {
+            z: 0
+            x: silenceText.x + modelData.x
+            y: silenceText.y + modelData.y
+            width: silenceText.width
+            height: silenceText.height
+            text: silenceText.text
+            color: Config.playerSilenceOutlineColor
+            font.family: Config.playerFont
+            font.pixelSize: Config.uiFontSize(silenceText.needsMultiline ? root.effectivePlayerSilenceLongFontSize : root.effectivePlayerSilenceFontSize)
+            fontSizeMode: silenceText.needsMultiline ? Text.FixedSize : Text.HorizontalFit
+            minimumPixelSize: root.effectivePlayerSilenceLongFontSize
+            maximumLineCount: silenceText.needsMultiline ? 3 : 1
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: silenceText.needsMultiline ? Text.Wrap : Text.NoWrap
+            elide: Text.ElideRight
+        }
+    }
+
     // With no cover/track information, keep "silence" exactly in the
     // center of the player rather than inheriting the metadata layout.
     Text {
@@ -368,8 +407,7 @@ Primitives.ModuleFrame {
         verticalAlignment: Text.AlignVCenter
         wrapMode: needsMultiline ? Text.Wrap : Text.NoWrap
         elide: Text.ElideRight
-        style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
-        styleColor: Config.playerTextOutlineColor
+        style: Text.Normal
     }
 
     // Metadata grows upward from a fixed bottom edge. The progress value is the

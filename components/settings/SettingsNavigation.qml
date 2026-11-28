@@ -161,7 +161,7 @@ Column {
                         id: navigationGroupStandaloneTab
                         visible: modelData.items.length === 1
                         width: parent.width
-                        height: root.compactNavigation ? 36 : 34
+                        height: root.compactNavigation ? 32 : 30
                         settingsNavigationFocusTarget: true
                         settingsNavigationPageId: visible ? String(modelData.items[0].id) : ""
                         settingsNavigationHost: root.host
@@ -210,13 +210,13 @@ Column {
                             delegate: Item {
                                 required property var modelData
                                 width: navigationGroupFolder.expandedContentWidth
-                                height: root.compactNavigation ? 36 : 34
+                                height: root.compactNavigation ? 32 : 30
 
                                 SettingsSubTab {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 6
                                     width: parent.width - navigationGroupFolder.childContentInset
-                                    height: root.compactNavigation ? 36 : 34
+                                    height: root.compactNavigation ? 32 : 30
                                     settingsNavigationFocusTarget: true
                                     settingsNavigationPageId: String(parent.modelData.id)
                                     settingsNavigationHost: root.host

@@ -323,6 +323,7 @@ function apply(owner, Config, o) {
         if (o.playerFont !== undefined) Config.playerFont = String(o.playerFont)
         if (o.playerMetaFont !== undefined) Config.playerMetaFont = String(o.playerMetaFont)
         if (o.playerSilenceText !== undefined) Config.playerSilenceText = String(o.playerSilenceText)
+        if (o.playerSilenceOutlineColor !== undefined) Config.playerSilenceOutlineColor = String(o.playerSilenceOutlineColor)
         if (o.playerTextOutlineEnabled !== undefined) Config.playerTextOutlineEnabled = !!o.playerTextOutlineEnabled
         if (o.playerTextOutlineColor !== undefined) Config.playerTextOutlineColor = String(o.playerTextOutlineColor)
         if (o.playerPlayingIcon !== undefined) Config.playerPlayingIcon = String(o.playerPlayingIcon)

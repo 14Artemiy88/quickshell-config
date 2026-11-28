@@ -354,7 +354,7 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "player") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled",
+            "playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerSilenceOutlineColor", "playerSilenceOutlineWidth", "playerTextOutlineEnabled",
             "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize",
             "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress",
             "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize",
@@ -526,7 +526,7 @@ function resetTimerSettings(owner, config) {
 
 function resetPlayerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval", "animationPlayerMorphEnabled", "animationPlayerMorphDuration", "animationPlayerMorphProfile"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["playerSilenceText", "playerFont", "playerMetaFont", "playerSilenceFontSize", "playerSilenceOutlineColor", "playerSilenceOutlineWidth", "playerTextOutlineEnabled", "playerTextOutlineColor", "playerSilenceLongFontSize", "playerMetaFontSize", "playerMetaSecondaryFontSize", "playerMetaLineSpacing", "playerBoldArtist", "playerShowProgress", "playerPlayingIconSize", "playerPausedIconSize", "playerNextIconSize", "playerPlayingIconY", "playerPausedIconY", "playerNextIconY", "playerPlayingIcon", "playerPausedIcon", "playerNextIcon", "playerMetadataXPadding", "playerMetadataY", "playerProgressY", "playerProgressTrackHeight", "playerControlTopMargin", "playerControlGap", "playerTimeFontSize", "playerTimeFont", "playerTimeY", "playerTimeRightPadding", "playerCoverOpacity", "playerSilenceWidth", "playerProgressTrackOffsetY", "playerPriority", "playerUpdateInterval", "animationPlayerMorphEnabled", "animationPlayerMorphDuration", "animationPlayerMorphProfile"]); owner.save()
 }
 
 function resetMopidySettings(owner, config) {

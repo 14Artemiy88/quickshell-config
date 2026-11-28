@@ -500,12 +500,32 @@ ShellRoot {
                 timerOptionsPopup.closing = false
             }
 
+            // Keep the user-configured horizontal position, but vertically
+            // anchor the options card to the selected timer row. The anchor is
+            // derived from the live delegate geometry and clamped to this
+            // monitor so a timer near an edge cannot push the popup off-screen.
+            function timerOptionsAnchoredY() {
+                if (!timerWidget.selectedFile || timerWidget.selectedIndex < 0)
+                    return Number(Settings.geometry.timerOptions[1]) || 0
+
+                var scale = Math.max(0.1, Number(timerWindow.surfaceScale) || 1)
+                var popupScale = Math.max(0.1, Number(timerOptionsScaleHost.scale) || 1)
+                var timerTop = Number(timerWindow.offsetY) || 0
+                var rowCenter = Number(timerWidget.selectedTimerRowCenterY) || 0
+                var popupHeight = Math.max(0, Number(timerOptionsScaleHost.height) || 95) * popupScale
+                var targetY = timerTop + rowCenter * scale - popupHeight / 2
+                var availableHeight = Number(timerOptionsOverlay.screen && timerOptionsOverlay.screen.height) || 0
+                if (availableHeight > 0)
+                    targetY = Math.max(0, Math.min(Math.max(0, availableHeight - popupHeight), targetY))
+                return Math.round(targetY)
+            }
+
             // Keep persisted timerOptions geometry logical while scaling the
             // complete popup surface and its hit targets with ordinary modules.
             Item {
                 id: timerOptionsScaleHost
                 x: Settings.geometry.timerOptions[0]
-                y: Settings.geometry.timerOptions[1]
+                y: timerOptionsOverlay.timerOptionsAnchoredY()
                 width: Math.max(110, Settings.geometry.timerOptions[2])
                 height: Settings.geometry.timerOptions[3]
                 scale: Config.moduleUiScale()

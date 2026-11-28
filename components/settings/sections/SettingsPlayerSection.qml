@@ -107,7 +107,7 @@ Column {
 settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["playerFont", "playerSilenceFontSize", "playerSilenceLongFontSize", "playerSilenceText", "playerSilenceWidth"] })
+        changeKeys: ({ keys: ["playerFont", "playerSilenceFontSize", "playerSilenceLongFontSize", "playerSilenceText", "playerSilenceWidth", "playerSilenceOutlineColor", "playerSilenceOutlineWidth"] })
         padding: 8
         contentSpacing: 6
 
@@ -250,6 +250,55 @@ settingsSearchSubTabIndex: 1
             settingsObject: root.settings
             saveOnEdit: true
         }
+            }
+            SettingsRow {
+                label: "Цвет обводки"
+                labelWidth: 210
+                width: parent.width
+                height: 30
+                spacing: 8
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
+                SettingsColorField {
+                    width: 120
+                    height: 30
+                    value: Config.playerSilenceOutlineColor
+                    targetObject: Config
+                    targetProperty: "playerSilenceOutlineColor"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                    allowAlpha: false
+                    allowTransparent: false
+                    compact: true
+                    fieldWidth: 88
+                    swatchSize: 24
+                }
+            }
+            SettingsRow {
+                label: "Толщина обводки"
+                labelWidth: 210
+                width: parent.width
+                height: 30
+                spacing: 8
+                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 1
+                SettingsNumberField {
+                    id: playerSilenceOutlineWidthField
+                    width: 100
+                    height: 30
+                    value: Config.playerSilenceOutlineWidth
+                    minimum: 0
+                    maximum: 4
+                    step: 1
+                    wheelStep: 1
+                    decimals: 0
+                    compact: true
+                    fieldWidth: 72
+                    fieldFontSize: 11
+                    inputMethodHints: Qt.ImhDigitsOnly
+                    targetObject: Config
+                    targetProperty: "playerSilenceOutlineWidth"
+                    settingsObject: root.settings
+                    saveOnEdit: true
+                }
             }
     }
     SettingsGroup {

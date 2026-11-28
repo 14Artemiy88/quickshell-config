@@ -272,6 +272,8 @@ var defaultConfig = ({
     timerFinishedTitleFont: "JetBrainsMono Nerd Font",
     timerFinishedTitleAlignment: 1,
     playerSilenceFontSize: 57,
+    playerSilenceOutlineColor: "#000000",
+    playerSilenceOutlineWidth: 1,
     playerTextOutlineEnabled: false,
     playerTextOutlineColor: "#000000",
     playerSilenceLongFontSize: 25,

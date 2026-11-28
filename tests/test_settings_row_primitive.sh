@@ -57,7 +57,7 @@ for filename in sections:
     assert old_labels == 0, f"{filename} still contains inline SettingsLabel nodes"
     row_total += rows
 
-assert row_total == 248, f"expected 248 shared settings rows including the new OSD page and global scaling controls, got {row_total}"
+assert row_total == 250, f"expected 250 shared settings rows including the new OSD page and global scaling controls, got {row_total}"
 network = (root / "components/settings/sections/SettingsNetworkSection.qml").read_text()
 assert len(re.findall(r"\bSettingsRow\s*\{", network)) == 9, "expected nine shared Network rows, including the two conditional module-animation controls"
 general = (root / "components/settings/sections/SettingsInterfaceSection.qml").read_text()
@@ -139,6 +139,7 @@ for label_text in [
     assert f'label: "{label_text}"' in player, f"Player SettingsRow label is missing: {label_text}"
 for control_id in [
     "silenceSizeField", "silenceLongSizeField", "playerSilenceWidthField",
+    "playerSilenceOutlineWidthField",
     "playerTimeFontSizeField", "playerTimeYField", "playerTimeRightPaddingField",
     "metaSizeField", "metaSecondarySizeField", "metaSpacingField",
     "playerMetaXPadField", "playerMetaYField", "playerTextOutlineColorField",
@@ -147,7 +148,7 @@ for control_id in [
     assert control_id in player, f"Player SettingsRow lost control {control_id}"
 for label_text in ["Текст при отсутствии воспроизведения", "Основной шрифт плеера"]:
     assert f'label: "{label_text}"' in player, f"Player SettingsRow label is missing: {label_text}"
-assert len(re.findall(r"\bSettingsRow\s*\{", player)) == 16, "expected 16 migrated Player rows"
+assert len(re.findall(r"\bSettingsRow\s*\{", player)) == 18, "expected 18 migrated Player rows"
 notifications = (root / "components/settings/sections/SettingsNotificationsSection.qml").read_text()
 for label_text in [
     "Обычные уведомления (с)",
@@ -222,7 +223,7 @@ for control_id in [
 ]:
     assert control_id in launcher, f"Launcher SettingsRow lost control {control_id}"
 assert 'fieldWidth: Math.max(80, Math.min(222, parent.width - 38))' in launcher, "Launcher font fields no longer account for the SettingsRow control slot"
-assert row_total == 248, f"expected 248 shared settings rows including the new Interface and OSD pages, got {row_total}"
+assert row_total == 250, f"expected 250 shared settings rows including the new Interface and OSD pages, got {row_total}"
 print(f"SettingsRow primitive: {row_total} shared rows across {len(sections)} sections: OK")
 PY
 

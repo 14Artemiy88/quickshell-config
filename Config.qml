@@ -442,6 +442,11 @@ QtObject {
 
     // Player tuning
     property int playerSilenceFontSize: 40
+    // Independent outline for the centered fallback/status label (Silence).
+    // Width 0 disables the outline; positive values use the same stepped
+    // offset-rendering model as the weather comfort-temperature label.
+    property string playerSilenceOutlineColor: "#000000"
+    property int playerSilenceOutlineWidth: 1
     property bool playerTextOutlineEnabled: false
     property string playerTextOutlineColor: "#000000"
     property int playerSilenceLongFontSize: 25
