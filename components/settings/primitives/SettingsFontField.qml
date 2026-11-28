@@ -96,7 +96,7 @@ Item {
             selectedTextColor: Config.black
             placeholderText: root.placeholderText
             placeholderTextColor: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.fieldFontSize)
             activeFocusOnTab: true
             selectByMouse: true

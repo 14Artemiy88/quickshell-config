@@ -13,7 +13,9 @@ grep -Fq 'id: textMetrics' "$qml" || fail "TextMetrics instance missing"
 grep -Fq 'font.family: Config.timerElapsedFont' "$qml" || fail "metrics do not use the countdown font"
 grep -Fq 'font.pixelSize: timerDisplay.displaySize' "$qml" || fail "metrics do not follow responsive countdown font size"
 grep -Fq 'text: timerDisplay.displayText' "$qml" || fail "metrics do not measure the current countdown/sign text"
-grep -Fq 'spacing: Config.timerCommentGap' "$qml" || fail "user-configurable comment spacing was removed"
+grep -Fq 'readonly property int effectiveTimerCommentGap' "$qml" || fail "adaptive comment gap is missing"
+grep -Fq 'Config.timerCommentGap' "$qml" || fail "user-configurable comment spacing was removed"
+grep -Fq 'spacing: root.effectiveTimerCommentGap' "$qml" || fail "timer rows do not use the adaptive comment gap"
 if grep -Fq 'width: 100' "$qml"; then
   fail "fixed-width countdown column still present"
 fi

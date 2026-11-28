@@ -10,7 +10,7 @@ grep -Fq 'fromGeometry: Qt.rect(0, 0, parent.width, 0)' "$QML"
 grep -Fq 'toGeometry: Qt.rect(0, 0, parent.width, cavaHideZeroBarsContent.implicitHeight)' "$QML"
 grep -Fq 'progress: Config.cavaHideWhenSilent ? 1 : 0' "$QML"
 grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$QML"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", Config.cavaHideWhenSilent ? "enter" : "exit")' "$QML"
+grep -Fq 'animationEasing: Config.animationEasingType("ease-out", Config.cavaHideWhenSilent ? "enter" : "exit")' "$QML"
 
 python3 - "$QML" <<'PYTEST'
 from pathlib import Path

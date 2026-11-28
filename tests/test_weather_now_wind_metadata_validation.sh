@@ -43,7 +43,7 @@ assert(qml.includes('return DashboardCards.normalizeWeatherWindSpeed(speed)'),
   'module wind speed uses the shared strict speed normalizer');
 assert(qml.includes('text: root.normalizedWindSpeed') && qml.includes('visible: root.normalizedWindSpeed !== ""'),
   'invalid wind speed value is hidden');
-assert(qml.includes('text: "м/с"\n                    visible: root.normalizedWindSpeed !== ""'),
+assert(qml.includes('text: "м/с"\n                        visible: root.normalizedWindSpeed !== ""'),
   'wind speed unit is hidden when the measurement is invalid or absent');
 assert(!qml.includes('text: root.weather.wind?.speed?.m_s ?? ""'),
   'raw unvalidated wind speed is no longer rendered');

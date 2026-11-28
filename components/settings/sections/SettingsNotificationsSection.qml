@@ -22,8 +22,10 @@ Column {
     function migrateLegacyDndCharacterRules() {
         var allowed = root.normalizedDndRuleIds(Config.notificationsDndAllowedApps)
         var blocked = root.normalizedDndRuleIds(Config.notificationsDndBlockedApps)
+        var historyIgnored = root.normalizedDndRuleIds(Config.notificationsHistoryIgnoredApps)
         var nextAllowed = allowed.join(";")
         var nextBlocked = blocked.join(";")
+        var nextHistoryIgnored = historyIgnored.join(";")
         var changed = false
         if (nextAllowed !== String(Config.notificationsDndAllowedApps || "")) {
             Config.notificationsDndAllowedApps = nextAllowed
@@ -31,6 +33,10 @@ Column {
         }
         if (nextBlocked !== String(Config.notificationsDndBlockedApps || "")) {
             Config.notificationsDndBlockedApps = nextBlocked
+            changed = true
+        }
+        if (nextHistoryIgnored !== String(Config.notificationsHistoryIgnoredApps || "")) {
+            Config.notificationsHistoryIgnoredApps = nextHistoryIgnored
             changed = true
         }
         if (changed) root.settings.save()
@@ -61,6 +67,15 @@ Column {
             var nextBlocked = blocked.join(";")
             if (nextBlocked === String(Config.notificationsDndBlockedApps || "")) return
             Config.notificationsDndBlockedApps = nextBlocked
+        } else if (kind === "history") {
+            var historyIgnored = root.normalizedDndRuleIds(Config.notificationsHistoryIgnoredApps)
+            for (var h = 0; h < aliases.length; ++h)
+                historyIgnored = LauncherAppPreferences.setId(historyIgnored, aliases[h], false)
+            for (var k = 0; k < identities.length; ++k)
+                historyIgnored = LauncherAppPreferences.setId(historyIgnored, identities[k], enabled)
+            var nextHistoryIgnored = historyIgnored.join(";")
+            if (nextHistoryIgnored === String(Config.notificationsHistoryIgnoredApps || "")) return
+            Config.notificationsHistoryIgnoredApps = nextHistoryIgnored
         } else {
             return
         }
@@ -75,22 +90,28 @@ Column {
         var removableIds = NotificationAppCatalog.removableRuleIds(entry, remainingSenders)
         var allowed = root.normalizedDndRuleIds(Config.notificationsDndAllowedApps)
         var blocked = root.normalizedDndRuleIds(Config.notificationsDndBlockedApps)
+        var historyIgnored = root.normalizedDndRuleIds(Config.notificationsHistoryIgnoredApps)
 
         for (var i = 0; i < removableIds.length; ++i) {
             allowed = LauncherAppPreferences.setId(allowed, removableIds[i], false)
             blocked = LauncherAppPreferences.setId(blocked, removableIds[i], false)
+            historyIgnored = LauncherAppPreferences.setId(historyIgnored, removableIds[i], false)
         }
 
         var nextAllowed = allowed.join(";")
         var nextBlocked = blocked.join(";")
+        var nextHistoryIgnored = historyIgnored.join(";")
         var settingsChanged = nextAllowed !== String(Config.notificationsDndAllowedApps || "")
             || nextBlocked !== String(Config.notificationsDndBlockedApps || "")
+            || nextHistoryIgnored !== String(Config.notificationsHistoryIgnoredApps || "")
 
         Config.notificationsSeenSenders = remainingSenders
         if (nextAllowed !== String(Config.notificationsDndAllowedApps || ""))
             Config.notificationsDndAllowedApps = nextAllowed
         if (nextBlocked !== String(Config.notificationsDndBlockedApps || ""))
             Config.notificationsDndBlockedApps = nextBlocked
+        if (nextHistoryIgnored !== String(Config.notificationsHistoryIgnoredApps || ""))
+            Config.notificationsHistoryIgnoredApps = nextHistoryIgnored
         if (settingsChanged) root.settings.save()
     }
 
@@ -104,7 +125,8 @@ Column {
         root.dndApplicationSearch, 40,
         Config.launcherFuzzySearchApps !== false,
         LauncherAppPreferences.normalizeIds(Config.launcherFavoriteApps || []),
-        root.dndShowAllApplications)
+        root.dndShowAllApplications,
+        root.normalizedDndRuleIds(Config.notificationsHistoryIgnoredApps))
     readonly property int dndApplicationRowCount: Array.isArray(root.dndApplicationRows)
         ? root.dndApplicationRows.length : 0
     // Catalog-wide counters do not depend on the current query, Show All state,
@@ -112,7 +134,8 @@ Column {
     readonly property var dndCatalogSummary: NotificationAppCatalog.summarizeSenders(
         Config.notificationsSeenSenders || [],
         root.normalizedDndRuleIds(Config.notificationsDndAllowedApps),
-        root.normalizedDndRuleIds(Config.notificationsDndBlockedApps))
+        root.normalizedDndRuleIds(Config.notificationsDndBlockedApps),
+        root.normalizedDndRuleIds(Config.notificationsHistoryIgnoredApps))
 
     readonly property bool dndPage: root.pageId === "notificationsDnd" && host && host.currentPageId === root.pageId
     readonly property int dndSubTab: host ? host.currentPageSubTabIndex : 0
@@ -128,7 +151,7 @@ Column {
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays"] })
+        changeKeys: ({ keys: ["notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays"] })
         heading: root.dndSubTab === 0 ? "Режим Не беспокоить" : (root.dndSubTab === 1 ? "Правила приложений" : "История уведомлений")
         padding: 8
         contentSpacing: 6
@@ -155,15 +178,17 @@ Column {
                 }
             }
         }
-        Text {
-            visible: root.dndSubTab === 0
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 0
             width: parent.width
             text: "Входящие уведомления продолжают приниматься, но всплывающие карточки не показываются. Последние уведомления доступны в истории Dashboard; история ограничена 200 записями и хранится только в оперативной памяти, без записи содержимого на диск."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
+
+
 
         SettingsRow {
             visible: root.dndSubTab === 2
@@ -203,12 +228,12 @@ Column {
                 }
             }
         }
-        Text {
-            visible: root.dndSubTab === 2
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 2
             width: parent.width
             text: "Количество последних уведомлений, сохраняемых в оперативной памяти. Допустимо от 1 до 200; содержимое не записывается на диск."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -250,22 +275,22 @@ Column {
                 }
             }
         }
-        Text {
-            visible: root.dndSubTab === 2
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 2
             width: parent.width
             text: "0 — без ограничения по возрасту. От 1 до 365 дней — автоматически удалять более старые записи. Лимит по количеству действует всегда."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
 
-        Text {
-            visible: root.dndSubTab === 1
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 1
             width: parent.width
             text: "В списке появляются приложения, от которых Quickshell уже получил уведомления. «Игнор DND» оставляет их уведомления видимыми при включённом режиме. «Отключить» подавляет их уведомления при выключенном режиме. Ранее настроенные правила остаются доступны после перезапуска; кнопка с корзиной удаляет запись и оба правила."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -280,13 +305,14 @@ Column {
                     + " · Без правил: " + (stats.senderWithoutRulesCount || 0)
                 var secondLine = "Игнор DND: " + (stats.ignoreDndCount || 0)
                     + " · Отключить: " + (stats.disabledOutsideDndCount || 0)
+                    + " · Игнор истории: " + (stats.historyIgnoredCount || 0)
                     + " · Ранее настроено: " + (stats.savedOnlyCount || 0)
                 if ((stats.unresolvedCount || 0) > 0)
                     secondLine += " · Неоднозначные: " + stats.unresolvedCount
                 return firstLine + "\n" + secondLine
             }
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(8)
             wrapMode: Text.WordWrap
         }
@@ -307,7 +333,7 @@ Column {
                 settingsSearchKeywords: "не беспокоить исключения разрешить подавить приложение отправитель уведомлений поиск dnd"
                 settingsSearchSubTabIndex: 1
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
                 selectByMouse: true
                 onTextEdited: root.dndApplicationSearch = text
@@ -336,10 +362,10 @@ Column {
             height: 28
             spacing: 6
             Text {
-                width: Math.max(70, parent.width - 200)
+                width: Math.max(70, parent.width - 294)
                 text: "Приложение"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
             }
@@ -347,7 +373,7 @@ Column {
                 width: 82
                 text: "Игнор DND"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(8)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -356,7 +382,16 @@ Column {
                 width: 82
                 text: "Отключить"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.settingsUiSize(8)
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            Text {
+                width: 82
+                text: "Игнор истории"
+                color: Config.textMuted
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(8)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -376,7 +411,7 @@ Column {
                     spacing: 6
                     Column {
                         width: modelData.kind === "category"
-                            ? parent.width : Math.max(70, parent.width - 206)
+                            ? parent.width : Math.max(70, parent.width - 294)
                         height: parent.height
                         spacing: 1
                         Text {
@@ -384,7 +419,7 @@ Column {
                             height: 17
                             text: modelData.name
                             color: Config.text
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(10)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
@@ -394,7 +429,7 @@ Column {
                             height: 14
                             text: modelData.comment || modelData.id
                             color: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(8)
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
@@ -440,6 +475,26 @@ Column {
                         ToolTip.delay: 450
                         onToggled: root.setDndApplicationRule("blocked", modelData.ruleIds || [modelData.id], checked, modelData.legacyRuleIds || [])
                     }
+                    SettingsCheckBox {
+                        visible: modelData.kind !== "category"
+                        width: 82
+                        height: 30
+                        indicatorOnly: true
+                        settingsSearchSubTabIndex: 1
+                        settingsSearchId: "notifications-dnd-history-ignore-" + String(modelData.id || modelData.name || "sender")
+                        settingsSearchLabel: "Игнорировать в истории — " + String(modelData.name || modelData.id || "приложение")
+                        settingsSearchKeywords: String(modelData.comment || "") + " история уведомлений не сохранять исключить из истории скрыть запись"
+                        checked: modelData.historyIgnored === true
+                        enabled: modelData.unusableRule !== true
+                        ToolTip.visible: pointerHovered
+                        ToolTip.text: modelData.unusableRule
+                            ? "Нельзя однозначно определить отправителя: уведомление не содержит desktopEntry, а appName совпадает с другим приложением."
+                            : (modelData.historyIgnored
+                                ? "Игнорирование истории включено: новые уведомления приложения не добавляются в историю. Уже сохранённые записи остаются."
+                                : "Игнорирование истории выключено: уведомления приложения добавляются в историю.")
+                        ToolTip.delay: 450
+                        onToggled: root.setDndApplicationRule("history", modelData.ruleIds || [modelData.id], checked, modelData.legacyRuleIds || [])
+                    }
                     SettingsResetButton {
                         visible: modelData.kind !== "category"
                         width: 24
@@ -447,7 +502,7 @@ Column {
                         label: ""
                         iconText: "\uf1f8"
                         fontSize: 9
-                        tooltip: "Удалить приложение из списка и снять оба его правила DND"
+                        tooltip: "Удалить приложение из списка и снять все его правила"
                         emphasized: true
                         emphasizedHoverOnly: true
                         emphasizedColor: "#663333"
@@ -470,8 +525,8 @@ Column {
             }
         }
 
-        Text {
-            visible: root.dndSubTab === 1 && root.dndApplicationRowCount === 0
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 1 && root.dndApplicationRowCount === 0
             width: parent.width
             text: root.dndApplicationSearch.trim().startsWith("@")
                 ? "@i ID\n@c category\n@d description\n@e command\n@w WM_CLASS\n@g generic name\n@k keywords\n@t apps inside terminal"
@@ -481,21 +536,22 @@ Column {
                         ? "Пока нет отправителей уведомлений. Приложения появятся здесь после того, как Quickshell получит от них первое уведомление."
                         : "Нет приложений с настроенными правилами. Включите «Показать все», чтобы увидеть остальных отправителей уведомлений."))
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
-        Text {
-            visible: root.dndSubTab === 1 && root.dndApplicationSearch.trim().length > 0 && root.dndApplicationRowCount === 40
+        SettingsDescription {
+            descriptionConditionVisible: root.dndSubTab === 1 && root.dndApplicationSearch.trim().length > 0 && root.dndApplicationRowCount === 40
             width: parent.width
             text: "Показаны первые 40 совпадений. Уточните запрос, чтобы найти нужное приложение."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(8)
             wrapMode: Text.WordWrap
         }
 
     }
+
 
     SettingsGroup {
                 visible: root.pageId === "notifications" && root.host && root.host.currentPageId === "notifications" && root.host.currentPageSubTabIndex === 0
@@ -508,20 +564,20 @@ settingsSearchSubTabIndex: 0
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Модуль управляет приёмом и показом карточек. В Quickshell 0.3.1 служба org.freedesktop.Notifications имеет процессный жизненный цикл: выключение модуля скрывает карточки и отклоняет новые уведомления, но не освобождает D-Bus-имя. Чтобы передать его другому серверу уведомлений, нужно завершить Quickshell."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Время указывается в секундах. Значение 0 отключает автоматическое закрытие. Явный тайм-аут, переданный приложением, имеет приоритет."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
@@ -588,11 +644,11 @@ settingsSearchSubTabIndex: 0
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "По умолчанию критические уведомления не закрываются автоматически."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -609,11 +665,11 @@ settingsSearchSubTabIndex: 0
             onToggled: { Config.notificationsShowTimeoutIndicator = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowTimeoutIndicatorChanged() { notificationsShowTimeoutIndicatorCheck.checked = Config.notificationsShowTimeoutIndicator } }
         }
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Индикатор показывает оставшееся время до автоматического закрытия. При наведении на карточку отсчёт приостанавливается."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -690,11 +746,11 @@ settingsSearchSubTabIndex: 0
             settingsSearchLabel: "Цвет полосы или рамки оставшегося времени уведомления"
             settingsSearchKeywords: "уведомления countdown таймер цвет полоска рамка progress accent"
         }
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Пустое значение использует основной цвет темы. Цвет применяется и к полосе, и к рамке. Для рамки можно выбрать направление обхода."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -772,7 +828,7 @@ settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
         settings: root.settings
-        changeKeys: ({ keys: ["notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] })
+        changeKeys: ({ keys: ["notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages", "notificationsShowProgress"] })
         heading: "Элементы карточки"
         padding: 8
         contentSpacing: 4
@@ -788,6 +844,19 @@ settingsSearchSubTabIndex: 1
             checked: Config.notificationsShowAppIcon
             onToggled: { Config.notificationsShowAppIcon = checked; root.settings.save() }
             Connections { target: Config; function onNotificationsShowAppIconChanged() { notificationsShowAppIconCheck.checked = Config.notificationsShowAppIcon } }
+        }
+        SettingsCheckBox {
+            id: notificationsShowAppIconBackgroundCheck
+            width: parent.width
+            height: 28
+            text: "Показывать фон под иконкой приложения"
+            settingsSearchId: "notifications-show-app-icon-background"
+            settingsSearchLabel: "Показывать фон под иконкой приложения в уведомлении"
+            settingsSearchKeywords: "уведомления иконка значок фон подложка убрать отключить прозрачный прозрачность app icon background"
+            checked: Config.notificationsShowAppIconBackground
+            enabled: Config.notificationsShowAppIcon
+            onToggled: { Config.notificationsShowAppIconBackground = checked; root.settings.save() }
+            Connections { target: Config; function onNotificationsShowAppIconBackgroundChanged() { notificationsShowAppIconBackgroundCheck.checked = Config.notificationsShowAppIconBackground } }
         }
         SettingsCheckBox {
             id: notificationsShowBodyImagesCheck
@@ -920,11 +989,11 @@ settingsSearchSubTabIndex: 1
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Пустой шрифт использует системный. Размер иконки применяется одинаково к иконкам приложений, аватарам и ведущим изображениям."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -994,10 +1063,10 @@ settingsSearchSubTabIndex: 1
             checked: Config.notificationsAppNameBold
             onToggled: { Config.notificationsAppNameBold = checked; root.settings.save() }
         }
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Пустой шрифт и цвет используют системное семейство и активный цвет текста."
-            color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9)
+            color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
     }
@@ -1026,7 +1095,7 @@ settingsSearchSubTabIndex: 1
                 settingsObject: root.settings; saveOnEdit: true
             }
         }
-        Text { width: parent.width; text: "0 — квадратные углы; максимальный радиус автоматически ограничивается половиной размера изображения."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
+        SettingsDescription { width: parent.width; text: "0 — квадратные углы; максимальный радиус автоматически ограничивается половиной размера изображения."; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
     }
 
     SettingsGroup {
@@ -1106,7 +1175,7 @@ settingsSearchSubTabIndex: 1
             allowAlpha: true; allowTransparent: false
             labelWidth: 220; fieldWidth: 120
         }
-        Text { width: parent.width; text: "Пустой цвет использует основной цвет активной темы."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
+        SettingsDescription { width: parent.width; text: "Пустой цвет использует основной цвет активной темы."; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9); wrapMode: Text.WordWrap }
     }
 
     SettingsGroup {
@@ -1149,11 +1218,11 @@ settingsSearchSubTabIndex: 2
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Уведомления можно привязать к верхнему или нижнему краю выбранного монитора. Горизонтальная координата X всегда отсчитывается слева."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
@@ -1213,7 +1282,7 @@ settingsSearchSubTabIndex: 2
             width: parent.width
             showFrame: true
             heading: "Вид появления и исчезновения"
-            changeKeys: ({ keys: ["animationNotificationsVisibilityStyle"] })
+            changeKeys: ({ keys: ["animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"] })
             padding: 8
             contentSpacing: 6
 
@@ -1250,15 +1319,15 @@ settingsSearchSubTabIndex: 2
                         }
                     }
                     background: Rectangle {
-                        color: Config.settingsBackground
+                        color: "transparent"
                         border.color: (notificationVisibilityStyleBox.activeFocus || notificationVisibilityStyleBox.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
+                        border.width: (Config.inputBordersEnabled || notificationVisibilityStyleBox.activeFocus) ? 1 : 0
+                        radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                     }
                     contentItem: Text {
                         text: notificationVisibilityStyleBox.currentText
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 8
@@ -1266,12 +1335,23 @@ settingsSearchSubTabIndex: 2
                 }
             }
 
-            Text {
+            SettingsAnimationCurveControl {
+                profile: Config.animationNotificationsVisibilityProfile
+                searchId: "notifications-visibility-animation-curve"
+                searchLabel: "CSS-кривая появления уведомлений"
+                searchKeywords: "уведомления карточки появление исчезновение очередь bezier"
+                onProfileEdited: function(value) {
+                    Config.animationNotificationsVisibilityProfile = value
+                    root.settings.save()
+                }
+            }
+
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: "Стиль применяется к появлению и исчезновению новых карточек. Профиль кривой и длительность задают характер движения; перемещение остальных карточек в очереди настраивается отдельно."
+                text: "Кривая сглаживания управляет ускорением и замедлением появления и исчезновения карточек. Перемещение остальных карточек в очереди настраивается отдельно."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }

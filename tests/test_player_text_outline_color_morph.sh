@@ -13,7 +13,7 @@ for token in \
     'toGeometry: Qt.rect(0, 0, parent.width, playerTextOutlineColorContent.implicitHeight)' \
     'progress: Config.playerTextOutlineEnabled ? 1 : 0' \
     'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", Config.playerTextOutlineEnabled ? "enter" : "exit")'; do
+    'animationEasing: Config.animationEasingType("ease-out", Config.playerTextOutlineEnabled ? "enter" : "exit")'; do
     grep -Fq "$token" "$QML" || fail "missing $token"
 done
 

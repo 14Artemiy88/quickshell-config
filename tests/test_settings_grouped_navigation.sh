@@ -38,8 +38,8 @@ vm.runInNewContext(source, sandbox, { filename: process.argv[2] });
 const tabs = sandbox.tabDefinitions();
 const groups = sandbox.navigationGroupDefinitions();
 assert.strictEqual(groups.map(x => x.id).join(','), 'appearance,modules,dashboard,launcher,notifications,general');
-assert.strictEqual(tabs.length, 24);
-assert.strictEqual(new Set(tabs.map(x => x.id)).size, 24);
+assert.strictEqual(tabs.length, 26);
+assert.strictEqual(new Set(tabs.map(x => x.id)).size, 26);
 assert(tabs.every(x => groups.some(g => g.id === x.groupId)), 'every tab belongs to a navigation group');
 assert.strictEqual(sandbox.navigationGroupIdForTabId('themes'), 'appearance');
 assert.strictEqual(sandbox.navigationGroupIdForTabId('settingsWindow'), 'appearance');
@@ -52,13 +52,13 @@ assert.strictEqual(sandbox.navigationGroupLabelForTabId('notifications'), 'Ув�
 assert.strictEqual(sandbox.navigationGroupLabelForTabId('dashboard'), 'Dashboard');
 assert.strictEqual(sandbox.navigationGroupLabelForTabId('launcher'), 'Лаунчер');
 assert.strictEqual(sandbox.navigationGroupLabelForTabId('general'), 'Общие');
-const defaultOrder = ['modules','time','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','settingsWindow'];
+const defaultOrder = ['modules','time','dashboard','themes','interface','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','osd','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','settingsWindow'];
 const grouped = sandbox.groupedTabOrder(defaultOrder);
-assert.deepStrictEqual(Array.from(grouped), ['themes','settingsWindow','modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','dashboard','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','general']);
-assert.strictEqual(new Set(grouped).size, 24, 'grouping must preserve every page exactly once');
-const customized = sandbox.groupedTabOrder(['player','modules','time','dashboard','themes','settingsWindow','launcher','launcherActions','launcherSearch','launcherProjects','launcherTabs','launcherAnimation','launcherApplications','general','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications','notificationsDnd']);
-assert.deepStrictEqual(Array.from(customized), ['themes','settingsWindow','player','modules','time','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','dashboard','launcher','launcherActions','launcherSearch','launcherProjects','launcherTabs','launcherAnimation','launcherApplications','notifications','notificationsDnd','general'], 'custom page order must remain stable within each group');
-console.log('Settings grouped navigation registry: 24 pages assigned to 6 groups');
+assert.deepStrictEqual(Array.from(grouped), ['themes','interface','settingsWindow','modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','osd','calendar','dashboard','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','general']);
+assert.strictEqual(new Set(grouped).size, 26, 'grouping must preserve every page exactly once');
+const customized = sandbox.groupedTabOrder(['player','modules','time','dashboard','themes','interface','settingsWindow','launcher','launcherActions','launcherSearch','launcherProjects','launcherTabs','launcherAnimation','launcherApplications','general','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','notifications','notificationsDnd']);
+assert.deepStrictEqual(Array.from(customized), ['themes','interface','settingsWindow','player','modules','time','timers','mopidy','weather','cava','cpuRam','network','volume','calendar','dashboard','launcher','launcherActions','launcherSearch','launcherProjects','launcherTabs','launcherAnimation','launcherApplications','notifications','notificationsDnd','general'], 'custom page order must remain stable within each group');
+console.log('Settings grouped navigation registry: 26 pages assigned to 6 groups');
 NODE
 
 echo 'settings grouped navigation: OK'

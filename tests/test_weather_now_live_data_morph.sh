@@ -56,8 +56,8 @@ def extract_block(source, marker):
         i+=1
     raise AssertionError(f"unclosed block: {marker}")
 
-icon=extract_block(qml, "Primitives.MorphGeometry {\n        id: weatherIconMorph")
-wind=extract_block(qml, "Primitives.MorphGeometry {\n        id: weatherWindMorph")
+icon=extract_block(qml, "Primitives.MorphGeometry {\n            id: weatherIconMorph")
+wind=extract_block(qml, "Primitives.MorphGeometry {\n            id: weatherWindMorph")
 placeholder=extract_block(qml, "WeatherPlaceholder {")
 assert 'fromGeometry: Qt.rect(' in icon and 'toGeometry: Qt.rect(' in icon
 assert icon.count('Config.weatherIconSize') >= 4

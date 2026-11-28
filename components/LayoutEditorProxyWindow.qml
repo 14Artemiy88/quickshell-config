@@ -8,6 +8,7 @@ PanelWindow {
 
     property var editor: null
     property var targetScreen: null
+    readonly property real proxyUiScale: Config.moduleUiScale()
 
     visible: Boolean(editor && editor.proxyActive && editor.proxyModuleName !== "settings" && targetScreen && root.intersectsProxy)
     screen: targetScreen
@@ -54,18 +55,18 @@ PanelWindow {
             anchors.fill: parent
             color: "transparent"
             border.color: Config.accent
-            border.width: Math.max(2, Config.frameBorderWidth + 1)
-            radius: Config.frameRadius
+            border.width: Math.max(2, Math.round((Config.frameBorderWidth + 1) * root.proxyUiScale))
+            radius: Math.round(Config.scaledCornerRadius(Config.frameRadius) * root.proxyUiScale)
             antialiasing: true
         }
 
         Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.margins: 5
-            width: proxyLabel.implicitWidth + 14
-            height: proxyLabel.implicitHeight + 8
-            radius: 4
+            anchors.margins: Math.round(5 * root.proxyUiScale)
+            width: proxyLabel.implicitWidth + Math.round(14 * root.proxyUiScale)
+            height: proxyLabel.implicitHeight + Math.round(8 * root.proxyUiScale)
+            radius: Math.round(4 * root.proxyUiScale)
             color: Config.accent
 
             Text {
@@ -73,7 +74,7 @@ PanelWindow {
                 anchors.centerIn: parent
                 text: editor ? editor.proxyModuleName : ""
                 color: Config.black
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 font.bold: true
             }

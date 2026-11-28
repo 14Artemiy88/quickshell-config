@@ -326,11 +326,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Ctrl+J или Ctrl+N — следующий результат; Ctrl+K или Ctrl+P — предыдущий. Стрелки и переключение вкладок через Tab остаются без изменений. Vim-сочетания по умолчанию выключены."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -465,11 +465,11 @@ Column {
                     }
                 }
 
-                Text {
+                SettingsDescription {
                     width: parent.width
                     text: "Высота задаёт размер нижней панели. Смещение Y перемещает подписи относительно центра; настройки действуют только на Launcher."
                     color: Config.textMuted
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(9)
                     wrapMode: Text.WordWrap
                 }
@@ -492,11 +492,11 @@ Column {
         padding: 8
         contentSpacing: 7
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Отключённые пункты исчезают из командного поиска >. Сами вкладки остаются доступны через панель вкладок. Каталог пользовательских действий : не затрагивается."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -542,11 +542,11 @@ Column {
         padding: 8
         contentSpacing: 7
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Отключённые инструменты и их подкоманды исчезают из командного поиска >. Сами инструменты и их данные не удаляются. Чтобы вернуть команду, снова включите её здесь. Каталог пользовательских действий : не затрагивается."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -615,11 +615,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Включено: ищет также по непоследовательным буквам (например, ff → Firefox). Выключено: только точное, начальное или непрерывное совпадение. Работает и для фильтров @."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -662,11 +662,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Включено: пользовательские действия ищутся по непоследовательным буквам в названии, описании и команде. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в обычном поиске Apps и отдельном каталоге пользовательских действий `:`."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -710,11 +710,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Включено: ищет темы по непоследовательным буквам в названии и описании. Выключено: остаются точные, начальные и непрерывные совпадения. Работает также для >scheme dynamic."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -757,11 +757,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Включено: ищет файлы обоев по непоследовательным буквам в имени. Выключено: остаются точные, начальные и непрерывные совпадения. Работает в режимах Все, Избранное и Недавние."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -792,7 +792,7 @@ Column {
                 text: Config.launcherWallpaperDirectory
                 placeholderText: "~/Pictures/Wallpapers"
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 onEditingFinished: {
                     Config.launcherWallpaperDirectory = text.replace(/[\r\n\t]/g, " ").trim()
@@ -808,11 +808,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Пустое значение использует ~/Pictures/Wallpapers. В Launcher откройте >wallpaper; установка поддерживает plasma-apply-wallpaperimage (KDE) и swww (Wayland)."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -972,7 +972,7 @@ Column {
                 height: 30
                 text: Config.launcherTitleText
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 onEditingFinished: {
                     Config.launcherTitleText = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64) || "LAUNCHER"
@@ -1105,7 +1105,7 @@ Column {
                 text: Config.launcherSearchPlaceholder
                 placeholderText: "Текст-подсказка"
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 onEditingFinished: { Config.launcherSearchPlaceholder = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 128); text = Config.launcherSearchPlaceholder; root.settings.save() }
                 Connections { target: Config; function onLauncherSearchPlaceholderChanged() { launcherSearchPlaceholderField.text = Config.launcherSearchPlaceholder } }
@@ -1215,7 +1215,7 @@ Column {
                 width: 40
                 text: "Вкл."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -1224,7 +1224,7 @@ Column {
                 width: 78
                 text: "Иконка"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -1233,7 +1233,7 @@ Column {
                 width: 165
                 text: "Название вкладки"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
             }
@@ -1242,7 +1242,7 @@ Column {
                 width: 72
                 text: "Порядок"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
@@ -1302,7 +1302,7 @@ Column {
                     color: Config.text
                     selectionColor: Config.accent
                     selectedTextColor: Config.black
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     activeFocusOnTab: true
                     onEditingFinished: {
@@ -1381,7 +1381,7 @@ Column {
                         text: root.projectValue(projectSettingsCard.index, "name")
                         placeholderText: "Название"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         onEditingFinished: root.updateProject(projectSettingsCard.index, "name", text)
                     }
@@ -1406,7 +1406,7 @@ Column {
                         radius: 4
                         fillOnHover: false
                         borderOnHover: true
-                        backgroundColor: Config.settingsBackground
+                        backgroundColor: "transparent"
                         textColor: Config.text
                         onClicked: root.settings.removeLauncherProject(projectSettingsCard.index)
                     }
@@ -1418,7 +1418,7 @@ Column {
                     text: root.projectValue(projectSettingsCard.index, "path")
                     placeholderText: "Путь к проекту (например ~/WORK/project)"
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     onEditingFinished: root.updateProject(projectSettingsCard.index, "path", text)
                 }
@@ -1429,7 +1429,7 @@ Column {
                     text: root.projectValue(projectSettingsCard.index, "ide")
                     placeholderText: "IDE: полный путь к исполняемому файлу или команда"
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     onEditingFinished: root.updateProject(projectSettingsCard.index, "ide", text)
                 }
@@ -1444,7 +1444,7 @@ Column {
             radius: 4
             fillOnHover: false
             borderOnHover: true
-            backgroundColor: Config.settingsBackground
+            backgroundColor: "transparent"
             textColor: Config.text
             onClicked: root.settings.addLauncherProject()
         }
@@ -1463,11 +1463,11 @@ Column {
         padding: 8
         contentSpacing: 7
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Действия доступны в обычном поиске Apps и через префикс : с любой вкладки Launcher. Для включённого действия обязательны название и команда; краткое описание можно оставить пустым. Новая запись создаётся с пустыми полями: подсказки внутри полей показывают, что нужно ввести. При сохранении любого поля проверяются название и команда. Незаполненное обязательное поле подсвечивается мягкой красной рамкой, а сохранение блокируется до исправления. Команда запускается через Zsh от имени текущего пользователя. Добавляйте только команды, которым доверяете."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -1557,7 +1557,7 @@ Column {
                         text: String(customActionCard.modelData.name || "")
                         placeholderText: "Название действия (обязательно)"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         onEditingFinished: customActionCard.saveAction()
                     }
@@ -1582,7 +1582,7 @@ Column {
                         radius: 4
                         fillOnHover: false
                         borderOnHover: true
-                        backgroundColor: Config.settingsBackground
+                        backgroundColor: "transparent"
                         textColor: Config.text
                         onClicked: root.settings.removeLauncherCustomAction(customActionCard.index)
                     }
@@ -1595,7 +1595,7 @@ Column {
                     text: String(customActionCard.modelData.description || "")
                     placeholderText: "Краткое описание действия (необязательно)"
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     onEditingFinished: customActionCard.saveAction()
                 }
@@ -1614,7 +1614,7 @@ Column {
                         text: String(customActionCard.modelData.command || "")
                         placeholderText: "Команда для запуска (обязательно), например: foot -- nvim ~/WORK"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         // Every commit path validates and saves the whole action, including when this
                         // field was never visited and a different field is edited or submitted.
@@ -1630,7 +1630,7 @@ Column {
                         radius: 4
                         fillOnHover: false
                         borderOnHover: true
-                        backgroundColor: Config.settingsBackground
+                        backgroundColor: "transparent"
                         textColor: Config.text
                         tooltip: "Проверить обязательные поля и сохранить действие"
                         onClicked: customActionCard.saveAction()
@@ -1648,7 +1648,7 @@ Column {
             radius: 4
             fillOnHover: false
             borderOnHover: true
-            backgroundColor: Config.settingsBackground
+            backgroundColor: "transparent"
             textColor: Config.text
             onClicked: root.settings.addLauncherCustomAction()
         }
@@ -1686,11 +1686,11 @@ Column {
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Избранные приложения поднимаются в начало списка Apps. Скрытые приложения не показываются в поиске, включая фильтры @. Один и тот же пункт нельзя одновременно добавить в избранное и скрыть."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
@@ -1701,7 +1701,7 @@ Column {
             height: 30
             placeholderText: "Найти установленное приложение…"
             color: Config.text
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             onTextChanged: root.applicationPreferenceSearch = text
         }
@@ -1714,7 +1714,7 @@ Column {
                 width: Math.max(80, parent.width - 150)
                 text: "Приложение"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 verticalAlignment: Text.AlignVCenter
             }
@@ -1722,7 +1722,7 @@ Column {
                 width: 66
                 text: "Избр."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -1731,7 +1731,7 @@ Column {
                 width: 66
                 text: "Скрыть"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -1755,7 +1755,7 @@ Column {
                         height: 17
                         text: modelData.name
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
@@ -1765,7 +1765,7 @@ Column {
                         height: 14
                         text: modelData.comment || modelData.id
                         color: Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(8)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
@@ -1803,17 +1803,17 @@ Column {
                 ? "Ничего не найдено."
                 : "Пока нет выбранных приложений. Введите часть названия, чтобы найти приложение и добавить его в избранное или скрыть."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }
 
-        Text {
-            visible: root.applicationPreferenceSearch.trim().length > 0 && root.applicationPreferenceRows.length === 40
+        SettingsDescription {
+            descriptionConditionVisible: root.applicationPreferenceSearch.trim().length > 0 && root.applicationPreferenceRows.length === 40
             width: parent.width
             text: "Выдача ограничена 40 совпадениями. Уточните запрос, чтобы найти нужное приложение."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(8)
             wrapMode: Text.WordWrap
         }

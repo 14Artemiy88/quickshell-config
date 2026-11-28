@@ -42,7 +42,7 @@ assert 'Keep forecast icons on the original direct Image path' in forecast
 assert re.search(r'Image\s*\{\s*id:\s*forecastIconImage\s*\n\s*x:', forecast), "Forecast icon must remain a direct Image with its stable id and explicit x geometry"
 # Existing pilot components remain opt-in; no blanket conversion or global default change.
 network = (root / "components/NetworkStat.qml").read_text(encoding="utf-8")
-assert network.count('animationProfile: "expressive"') == 2
+assert network.count('animationProfile: Config.animationNetworkMorphProfile') == 2
 placeholder = (root / "components/WeatherPlaceholder.qml").read_text(encoding="utf-8")
 assert placeholder.count('animationProfile: Config.animationWeatherMorphProfile') == 1
 print("Expressive component expansion (Weather forecast, Player, Mopidy dialog): OK")

@@ -17,7 +17,7 @@ checks = {
     "progress fill maps percentage to available bar width": 'width: parent.width * card.progressValue / 100',
     "progress fill uses the accent color": 'color: Config.accent',
     "progress bar contributes to measured card height": 'const progressSpace = hasProgress ? progressBarGap + progressBarHeight : 0',
-    "progress bar uses independent fixed height and gap": 'readonly property int progressBarHeight: 5',
+    "progress bar height and gap follow the notification module scale": 'readonly property int progressBarHeight: Math.max(1, Math.round(5 * root.notificationUiScale))' and 'readonly property int progressBarGap: Math.round(8 * root.notificationUiScale)',
 }
 for description, needle in checks.items():
     assert needle in source, f"{description}: missing {needle!r}"

@@ -35,6 +35,13 @@ Primitives.ModuleFrame {
     }
     signal settingsRequested()
 
+    // Weather Now uses user-configurable absolute coordinates. Keep that layout
+    // intact at its 315x80 reference size, but fit the complete composition into
+    // smaller surfaces as one unit instead of rewriting saved coordinate values.
+    readonly property real contentScale: Math.max(0.01, Math.min(1,
+        Number(root.width) / 315,
+        Number(root.height) / 80))
+
     function windDirectionKey(scale) {
         const n = DashboardCards.normalizeWeatherWindScale(scale)
         switch (n) {
@@ -75,280 +82,297 @@ Primitives.ModuleFrame {
     }
 
     Item {
-        x: Config.weatherIconPlacement === "left" ? Config.weatherMiddleBlockWidth : 0
-        y: 0
-        width: Config.weatherTempColumnWidth
-        height: parent.height
+        id: weatherContent
+        width: 315
+        height: root.height
+        scale: root.contentScale
+        transformOrigin: Item.TopLeft
+        x: root.widePresentation ? Math.max(0, (root.width - width * scale) / 2) : 0
+        y: Math.max(0, (root.height - height * scale) / 2)
 
-        Text {
-            x: Config.weatherTempX + Config.weatherTempOffsetX
-            y: Config.weatherTempOffsetY
-            width: Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX)
-            height: 55
-            text: root.normalizedAirTemperature
-            visible: root.normalizedAirTemperature !== ""
-            color: Config.currentWeather
-            font.family: Config.weatherFont || Config.ledFont
-            font.pixelSize: Config.weatherTempFontSize
-            lineHeight: 55
-            lineHeightMode: Text.FixedHeight
-            verticalAlignment: Text.AlignTop
-            horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
-        }
+        Item {
+            x: Config.weatherIconPlacement === "left" ? Config.weatherMiddleBlockWidth : 0
+            y: 0
+            width: Config.weatherTempColumnWidth
+            height: parent.height
 
-        Primitives.MorphGeometry {
-            id: weatherComfortMorph
-            clip: true
-            visible: weatherComfortLabel.shouldShow || normalizedProgress > 0.001
-            fromGeometry: Qt.rect(
-                Config.weatherTempX + Config.weatherComfortOffsetX,
-                Config.weatherComfortY + Config.weatherComfortOffsetY,
-                Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX),
-                0)
-            toGeometry: Qt.rect(
-                Config.weatherTempX + Config.weatherComfortOffsetX,
-                Config.weatherComfortY + Config.weatherComfortOffsetY,
-                Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX),
-                Config.weatherComfortHeight)
-            progress: weatherComfortLabel.shouldShow ? 1 : 0
-            animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
-            animationProfile: Config.animationWeatherMorphProfile
-            animationPhase: weatherComfortLabel.shouldShow ? "enter" : "exit"
-            animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, weatherComfortLabel.shouldShow ? "enter" : "exit")
+            Text {
+                x: Config.weatherTempX + Config.weatherTempOffsetX
+                // Keep the configured position while the comfort row is present.
+                // When it collapses (disabled, unavailable, or equal to air temperature),
+                // move the air temperature toward the visual center of the module.
+                // A small upward optical correction compensates for the font's visual
+                // bounds sitting lower than the Text item's 55 px layout box.
+                // Reading morph progress keeps the movement in sync with the comfort row.
+                y: Config.weatherTempOffsetY + Math.max(0, (root.height - height) / 2 - 6) * (1 - weatherComfortMorph.normalizedProgress)
+                width: Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX)
+                height: 55
+                text: root.normalizedAirTemperature
+                visible: root.normalizedAirTemperature !== ""
+                color: Config.currentWeather
+                font.family: Config.weatherFont || Config.ledFont
+                font.pixelSize: Config.uiFontSize(Config.weatherTempFontSize)
+                lineHeight: 55
+                lineHeightMode: Text.FixedHeight
+                verticalAlignment: Text.AlignTop
+                horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
+            }
 
-            Item {
-                id: weatherComfortLabel
-                anchors.fill: parent
-                property string comfortValue: {
-                    var comfort = root.normalizedComfortTemperature
-                    if (comfort === "") return ""
-                    var air = root.normalizedAirTemperature
-                    if (air === "") return comfort
-                    return Number(comfort.replace(",", ".")) !== Number(air.replace(",", "."))
-                            ? comfort : ""
-                }
-                readonly property bool shouldShow: Config.weatherShowComfort && comfortValue !== ""
-                // QtQuick Text.Outline exposes a color but not a stroke width. Build a
-                // smoother outline from evenly spaced fractional offsets behind the fill.
-                // One UI step maps to a 0.5 px radius (about a 1 px total stroke), rather
-                // than a full 1 px radius which made the thinnest setting look too heavy.
-                property var outlineOffsets: {
-                    var offsets = []
-                    var thickness = Math.max(0, Math.min(4, Math.round(Number(Config.weatherComfortOutlineWidth) || 0)))
-                    if (thickness <= 0)
-                        return offsets
-                    var radius = thickness * 0.5
-                    var sampleCount = 8
-                    for (var i = 0; i < sampleCount; ++i) {
-                        var angle = (Math.PI * 2 * i) / sampleCount
-                        offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+            Primitives.MorphGeometry {
+                id: weatherComfortMorph
+                clip: true
+                visible: weatherComfortLabel.shouldShow || normalizedProgress > 0.001
+                fromGeometry: Qt.rect(
+                    Config.weatherTempX + Config.weatherComfortOffsetX,
+                    Config.weatherComfortY + Config.weatherComfortOffsetY,
+                    Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX),
+                    0)
+                toGeometry: Qt.rect(
+                    Config.weatherTempX + Config.weatherComfortOffsetX,
+                    Config.weatherComfortY + Config.weatherComfortOffsetY,
+                    Math.max(1, Config.weatherTempColumnWidth - Config.weatherTempX - Config.weatherTempOffsetX),
+                    Config.weatherComfortHeight)
+                progress: weatherComfortLabel.shouldShow ? 1 : 0
+                animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+                animationProfile: Config.animationWeatherMorphProfile
+                animationPhase: weatherComfortLabel.shouldShow ? "enter" : "exit"
+                animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, weatherComfortLabel.shouldShow ? "enter" : "exit")
+
+                Item {
+                    id: weatherComfortLabel
+                    anchors.fill: parent
+                    property string comfortValue: {
+                        var comfort = root.normalizedComfortTemperature
+                        if (comfort === "") return ""
+                        var air = root.normalizedAirTemperature
+                        if (air === "") return comfort
+                        return Number(comfort.replace(",", ".")) !== Number(air.replace(",", "."))
+                                ? comfort : ""
                     }
-                    return offsets
-                }
+                    readonly property bool shouldShow: Config.weatherShowComfort && comfortValue !== ""
+                    // QtQuick Text.Outline exposes a color but not a stroke width. Build a
+                    // smoother outline from evenly spaced fractional offsets behind the fill.
+                    // One UI step maps to a 0.5 px radius (about a 1 px total stroke), rather
+                    // than a full 1 px radius which made the thinnest setting look too heavy.
+                    property var outlineOffsets: {
+                        var offsets = []
+                        var thickness = Math.max(0, Math.min(4, Math.round(Number(Config.weatherComfortOutlineWidth) || 0)))
+                        if (thickness <= 0)
+                            return offsets
+                        var radius = thickness * 0.5
+                        var sampleCount = 8
+                        for (var i = 0; i < sampleCount; ++i) {
+                            var angle = (Math.PI * 2 * i) / sampleCount
+                            offsets.push({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius })
+                        }
+                        return offsets
+                    }
 
-                Repeater {
-                    model: weatherComfortLabel.outlineOffsets
-                    delegate: Text {
-                        z: -1
-                        x: modelData.x
-                        y: modelData.y
-                        width: weatherComfortLabel.width
-                        height: weatherComfortLabel.height
+                    Repeater {
+                        model: weatherComfortLabel.outlineOffsets
+                        delegate: Text {
+                            z: -1
+                            x: modelData.x
+                            y: modelData.y
+                            width: weatherComfortLabel.width
+                            height: weatherComfortLabel.height
+                            text: weatherComfortLabel.comfortValue
+                            color: Config.weatherComfortOutlineColor
+                            font.family: Config.weatherFont || Config.ledFont
+                            font.pixelSize: Config.uiFontSize(Config.weatherComfortFontSize)
+                            lineHeight: Config.weatherComfortHeight
+                            lineHeightMode: Text.FixedHeight
+                            verticalAlignment: Text.AlignTop
+                            horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
+                        }
+                    }
+
+                    Text {
+                        z: 1
+                        anchors.fill: parent
                         text: weatherComfortLabel.comfortValue
-                        color: Config.weatherComfortOutlineColor
+                        color: Config.textMuted
                         font.family: Config.weatherFont || Config.ledFont
-                        font.pixelSize: Config.weatherComfortFontSize
+                        font.pixelSize: Config.uiFontSize(Config.weatherComfortFontSize)
                         lineHeight: Config.weatherComfortHeight
                         lineHeightMode: Text.FixedHeight
                         verticalAlignment: Text.AlignTop
                         horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
                     }
                 }
-
-                Text {
-                    z: 1
-                    anchors.fill: parent
-                    text: weatherComfortLabel.comfortValue
-                    color: Config.textMuted
-                    font.family: Config.weatherFont || Config.ledFont
-                    font.pixelSize: Config.weatherComfortFontSize
-                    lineHeight: Config.weatherComfortHeight
-                    lineHeightMode: Text.FixedHeight
-                    verticalAlignment: Text.AlignTop
-                    horizontalAlignment: root.textAlignment(Config.weatherLeftBlockAlignment)
-                }
             }
         }
-    }
 
-    Primitives.MorphGeometry {
-        id: weatherIconMorph
-        fromGeometry: Qt.rect(
-            Config.weatherIconPlacement === "left"
-                ? root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment)
-                : Config.weatherIconX + root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment),
-            Config.weatherIconY,
-            Config.weatherIconSize,
-            Config.weatherIconSize)
-        toGeometry: Qt.rect(
-            Config.weatherIconPlacement === "left"
-                ? root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment)
-                : Config.weatherIconX + root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment),
-            Config.weatherIconY,
-            Config.weatherIconSize,
-            Config.weatherIconSize)
-        progress: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? 1 : 0
-        visible: (root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001
-        animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
-        animationProfile: Config.animationWeatherMorphProfile
-        animationPhase: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit"
-        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
-
-        Item {
-            anchors.fill: parent
-            opacity: weatherIconMorph.normalizedProgress
-            scale: 0.96 + 0.04 * weatherIconMorph.normalizedProgress
-            transformOrigin: Item.Center
-
-            Image {
-                id: weatherNowIconImage
-                anchors.fill: parent
-                visible: root.normalizedIconCode !== ""
-                fillMode: Image.PreserveAspectFit
-                source: root.normalizedIconCode !== ""
-                        ? (Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.normalizedIconCode + ".png")
-                        : ""
-            }
-
-            Text {
-                anchors.fill: parent
-                visible: root.normalizedIconCode !== "" && weatherNowIconImage.status !== Image.Ready
-                text: "☁"
-                color: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: Math.max(18, Math.round(Config.weatherIconSize * 0.48))
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-    }
-
-    Primitives.MorphGeometry {
-        id: weatherWindMorph
-        fromGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)
-        toGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)
-        progress: root.hasData ? 1 : 0
-        visible: root.hasData || normalizedProgress > 0.001
-        animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
-        animationProfile: Config.animationWeatherMorphProfile
-        animationPhase: root.hasData ? "enter" : "exit"
-        animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData ? "enter" : "exit")
-
-        Item {
-            anchors.fill: parent
-            opacity: weatherWindMorph.normalizedProgress
-            scale: 0.96 + 0.04 * weatherWindMorph.normalizedProgress
-            transformOrigin: Item.Center
+        Primitives.MorphGeometry {
+            id: weatherIconMorph
+            fromGeometry: Qt.rect(
+                Config.weatherIconPlacement === "left"
+                    ? root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment)
+                    : Config.weatherIconX + root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment),
+                Config.weatherIconY,
+                Config.weatherIconSize,
+                Config.weatherIconSize)
+            toGeometry: Qt.rect(
+                Config.weatherIconPlacement === "left"
+                    ? root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment)
+                    : Config.weatherIconX + root.blockOffset(Config.weatherMiddleBlockWidth, Config.weatherIconSize, Config.weatherMiddleBlockAlignment),
+                Config.weatherIconY,
+                Config.weatherIconSize,
+                Config.weatherIconSize)
+            progress: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? 1 : 0
+            visible: (root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off") || normalizedProgress > 0.001
+            animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+            animationProfile: Config.animationWeatherMorphProfile
+            animationPhase: root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit"
+            animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData && root.normalizedIconCode !== "" && Config.weatherIconPlacement !== "off" ? "enter" : "exit")
 
             Item {
-                x: 0
-                y: 0
-                width: Config.weatherWindColumnWidth
-                height: 40
+                anchors.fill: parent
+                opacity: weatherIconMorph.normalizedProgress
+                scale: 0.96 + 0.04 * weatherIconMorph.normalizedProgress
+                transformOrigin: Item.Center
+
+                Image {
+                    id: weatherNowIconImage
+                    anchors.fill: parent
+                    visible: root.normalizedIconCode !== ""
+                    fillMode: Image.PreserveAspectFit
+                    source: root.normalizedIconCode !== ""
+                            ? (Quickshell.shellDir + "/assets/gismeteo/new_png/" + root.normalizedIconCode + ".png")
+                            : ""
+                }
 
                 Text {
-                    id: windArrow
-                    x: windSpeed.x - width + Config.weatherWindArrowGap
-                    y: Config.weatherArrowYOffset
-                    text: root.windIcon(root.weather.wind?.direction?.scale_8)
-                    visible: root.windDirectionKey(root.weather.wind?.direction?.scale_8) !== ""
-                    color: Config.text
-                    font.family: root.windFont(root.weather.wind?.direction?.scale_8)
-                    font.pixelSize: Config.weatherArrowSize
+                    anchors.fill: parent
+                    visible: root.normalizedIconCode !== "" && weatherNowIconImage.status !== Image.Ready
+                    text: "☁"
+                    color: Config.accent
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(Math.max(18, Math.round(Config.weatherIconSize * 0.48)))
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
-
-                Text {
-                    id: windSpeed
-                    x: Config.weatherWindSpeedX
-                    y: Config.weatherWindSpeedY
-                    width: Config.weatherWindSpeedWidth
-                    height: 25
-                    text: root.normalizedWindSpeed
-                    visible: root.normalizedWindSpeed !== ""
-                    color: Config.text
-                    font.family: Config.weatherFont || Config.ledFont
-                    font.pixelSize: Config.weatherWindSpeedFontSize
-                    horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
-                    verticalAlignment: Text.AlignTop
-                }
-
-                Text {
-                    x: Config.weatherWindUnitX
-                    y: Config.weatherWindUnitY
-                    width: Config.weatherWindUnitWidth
-                    height: 18
-                    text: "м/с"
-                    visible: root.normalizedWindSpeed !== ""
-                    color: Config.text
-                    font.family: Config.weatherFont || Config.ledFont
-                    font.pixelSize: Config.weatherWindUnitFontSize
-                    horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
-                    verticalAlignment: Text.AlignTop
-                }
-            }
-
-            Item {
-                x: 0
-                y: Config.weatherPressureY
-                width: Config.weatherWindColumnWidth
-                height: 25
-
-                Text {
-                    x: Config.weatherPressureX
-                    y: 0
-                    width: Config.weatherPressureValueWidth
-                    height: 20
-                    text: root.normalizedPressure
-                    visible: root.normalizedPressure !== ""
-                    color: Config.text
-                    font.family: Config.weatherFont || Config.ledFont
-                    font.pixelSize: Config.weatherPressureFontSize
-                    horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
-                    verticalAlignment: Text.AlignTop
-                }
-
-                Text {
-                    x: Config.weatherPressureUnitX
-                    y: Config.weatherPressureUnitY
-                    width: Math.max(1, Config.weatherWindColumnWidth - Config.weatherPressureUnitX)
-                    height: 12
-                    text: "MM.PT.CT"
-                    visible: root.normalizedPressure !== ""
-                    color: Config.text
-                    font.family: Config.weatherFont || Config.ledFont
-                    font.pixelSize: Config.weatherPressureUnitFontSize
-                    horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
-                    verticalAlignment: Text.AlignTop
-                }
-            }
-
-            Text {
-                x: Config.weatherDescriptionX
-                y: Config.weatherDescriptionY
-                width: Config.weatherDescriptionWidth
-                height: Config.weatherDescriptionHeight
-                text: root.weather.description?.full ?? ""
-                color: Config.text
-                horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
-                verticalAlignment: Text.AlignTop
-                font.pixelSize: Config.uiFontSize(Config.weatherDescriptionFontSize)
-                wrapMode: Text.NoWrap
-                elide: Text.ElideNone
-                clip: false
             }
         }
+
+        Primitives.MorphGeometry {
+            id: weatherWindMorph
+            fromGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)
+            toGeometry: Qt.rect(Config.weatherWindColumnX, Config.weatherWindColumnY, Config.weatherWindColumnWidth, root.height)
+            progress: root.hasData ? 1 : 0
+            visible: root.hasData || normalizedProgress > 0.001
+            animationDuration: Config.animationDurationForProfile(Config.animationWeatherMorphEnabled, Config.animationWeatherMorphProfile, Config.animationWeatherMorphDuration, "appearance")
+            animationProfile: Config.animationWeatherMorphProfile
+            animationPhase: root.hasData ? "enter" : "exit"
+            animationEasing: Config.animationEasingType(Config.animationWeatherMorphProfile, root.hasData ? "enter" : "exit")
+
+            Item {
+                anchors.fill: parent
+                opacity: weatherWindMorph.normalizedProgress
+                scale: 0.96 + 0.04 * weatherWindMorph.normalizedProgress
+                transformOrigin: Item.Center
+
+                Item {
+                    x: 0
+                    y: 0
+                    width: Config.weatherWindColumnWidth
+                    height: 40
+
+                    Text {
+                        id: windArrow
+                        x: windSpeed.x - width + Config.weatherWindArrowGap
+                        y: Config.weatherArrowYOffset
+                        text: root.windIcon(root.weather.wind?.direction?.scale_8)
+                        visible: root.windDirectionKey(root.weather.wind?.direction?.scale_8) !== ""
+                        color: Config.text
+                        font.family: root.windFont(root.weather.wind?.direction?.scale_8)
+                        font.pixelSize: Config.uiFontSize(Config.weatherArrowSize)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Text {
+                        id: windSpeed
+                        x: Config.weatherWindSpeedX
+                        y: Config.weatherWindSpeedY
+                        width: Config.weatherWindSpeedWidth
+                        height: 25
+                        text: root.normalizedWindSpeed
+                        visible: root.normalizedWindSpeed !== ""
+                        color: Config.text
+                        font.family: Config.weatherFont || Config.ledFont
+                        font.pixelSize: Config.uiFontSize(Config.weatherWindSpeedFontSize)
+                        horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
+                        verticalAlignment: Text.AlignTop
+                    }
+
+                    Text {
+                        x: Config.weatherWindUnitX
+                        y: Config.weatherWindUnitY
+                        width: Config.weatherWindUnitWidth
+                        height: 18
+                        text: "м/с"
+                        visible: root.normalizedWindSpeed !== ""
+                        color: Config.text
+                        font.family: Config.weatherFont || Config.ledFont
+                        font.pixelSize: Config.uiFontSize(Config.weatherWindUnitFontSize)
+                        horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
+                        verticalAlignment: Text.AlignTop
+                    }
+                }
+
+                Item {
+                    x: 0
+                    y: Config.weatherPressureY
+                    width: Config.weatherWindColumnWidth
+                    height: 25
+
+                    Text {
+                        x: Config.weatherPressureX
+                        y: 0
+                        width: Config.weatherPressureValueWidth
+                        height: 20
+                        text: root.normalizedPressure
+                        visible: root.normalizedPressure !== ""
+                        color: Config.text
+                        font.family: Config.weatherFont || Config.ledFont
+                        font.pixelSize: Config.uiFontSize(Config.weatherPressureFontSize)
+                        horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
+                        verticalAlignment: Text.AlignTop
+                    }
+
+                    Text {
+                        x: Config.weatherPressureUnitX
+                        y: Config.weatherPressureUnitY
+                        width: Math.max(1, Config.weatherWindColumnWidth - Config.weatherPressureUnitX)
+                        height: 12
+                        text: "MM.PT.CT"
+                        visible: root.normalizedPressure !== ""
+                        color: Config.text
+                        font.family: Config.weatherFont || Config.ledFont
+                        font.pixelSize: Config.uiFontSize(Config.weatherPressureUnitFontSize)
+                        horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
+                        verticalAlignment: Text.AlignTop
+                    }
+                }
+
+                Text {
+                    x: Config.weatherDescriptionX
+                    y: Config.weatherDescriptionY
+                    width: Config.weatherDescriptionWidth
+                    height: Config.weatherDescriptionHeight
+                    text: root.weather.description?.full ?? ""
+                    color: Config.text
+                    horizontalAlignment: root.textAlignment(Config.weatherRightBlockAlignment)
+                    verticalAlignment: Text.AlignTop
+                    font.pixelSize: Config.uiFontSize(Config.weatherDescriptionFontSize)
+                    wrapMode: Text.NoWrap
+                    elide: Text.ElideNone
+                    clip: false
+                }
+            }
+        }
+
     }
 
     WeatherPlaceholder {

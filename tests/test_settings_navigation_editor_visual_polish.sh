@@ -17,7 +17,7 @@ const groupQml = read('components/settings/primitives/SettingsGroup.qml');
 
 const frameHeading = windowQml.indexOf('heading: "Порядок рамок"');
 const pageHeading = windowQml.indexOf('text: "Вкладки панели настроек"');
-const nextSection = windowQml.indexOf('visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1', pageHeading);
+const nextSection = windowQml.indexOf('visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0', pageHeading);
 assert(frameHeading >= 0 && pageHeading > frameHeading && nextSection > pageHeading,
   'frame order and per-group page editor sections are present in the expected order');
 const frameOrder = windowQml.slice(frameHeading, pageHeading);
@@ -37,8 +37,9 @@ assert(buttonQml.includes('property color outlineColor: Config.baseColor'),
   'SettingsButton defaults to the shared standard frame color');
 assert(buttonQml.includes('root.activeFocus || root.emphasized || (root.borderOnHover && mouse.containsMouse)'),
   'keyboard focus and hover still emphasize the standard outline');
-assert(buttonQml.includes('border.width: root.activeFocus ? Math.max(2, root.borderWidth) : root.borderWidth'),
-  'keyboard focus keeps a stronger visible border');
+assert(buttonQml.includes('border.width: root.activeFocus\n            ? Math.max(2, root.borderWidth)')
+    && buttonQml.includes('Config.buttonBordersEnabled ? root.borderWidth : 0'),
+  'keyboard focus keeps a stronger visible border while the global toggle controls the idle border');
 assert(buttonQml.includes('root.forceActiveFocus(Qt.MouseFocusReason)'),
   'mouse activation also gives the action focus');
 assert(groupQml.includes('property color backgroundColor: Config.transparent'),

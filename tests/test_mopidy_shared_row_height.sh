@@ -9,10 +9,10 @@ browser = Path(sys.argv[2]).read_text()
 library = Path(sys.argv[3]).read_text()
 settings = Path(sys.argv[4]).read_text()
 assert 'id: browseListView' in browser
-assert 'height: Config.mopidyTrackRowHeight' in browser[browser.index('id: browseListView'):]
+assert 'height: controller.effectiveTrackRowHeight' in browser[browser.index('id: browseListView'):]
 playlists_start = library.index('model: controller.playlists')
 playlists_end = library.index('text: "Плейлистов нет"', playlists_start)
-assert 'height: Config.mopidyTrackRowHeight' in library[playlists_start:playlists_end]
+assert 'height: controller.effectiveTrackRowHeight' in library[playlists_start:playlists_end]
 assert 'label: "Высота строки списка"' in settings
 print('Mopidy shared row height: OK')
 PYCODE

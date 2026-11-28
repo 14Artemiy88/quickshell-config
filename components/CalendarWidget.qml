@@ -21,9 +21,39 @@ Primitives.ModuleFrame {
     property var calendarMarkedDates: ({})
     property bool markedDatesLoaded: false
     property string noteOverlayMode: "" // "edit", "view", or empty
+    // Fade independently from the eased scale morph so cubic-bezier overshoot
+    // remains visible all the way through both opening and closing.
+    property real noteOverlayOpacityProgress: noteOverlayMode !== "" ? 1 : 0
     property string noteDialogDate: ""
     property string noteDraft: ""
     clip: true
+
+    // Keep the established regular composition untouched; only tighten the
+    // seven-column grid when the host gives the calendar a narrow surface.
+    readonly property real calendarPresentationScale: root.compactPresentation
+        ? Math.max(0.88, Math.min(1, Number(root.width) / 315))
+        : root.widePresentation ? 1.04 : 1
+    readonly property int effectiveCalendarOuterMargin: root.compactPresentation ? 4 : 5
+    readonly property int effectiveCalendarTitleHeight: root.compactPresentation ? 23 : 25
+    readonly property int effectiveCalendarWeekdayHeight: root.compactPresentation ? 22 : 25
+    readonly property int effectiveCalendarDayHeight: root.compactPresentation ? 27
+        : root.widePresentation ? 32 : 30
+    readonly property int effectiveCalendarGridSpacing: root.compactPresentation ? 2
+        : root.widePresentation ? 4 : 3
+    readonly property int effectiveCalendarTitleFontSize: Math.max(1, Math.round(Config.calendarTitleFontSize * root.calendarPresentationScale))
+    readonly property int effectiveCalendarWeekdayFontSize: Math.max(1, Math.round(Config.calendarWeekdayFontSize * root.calendarPresentationScale))
+    readonly property int effectiveCalendarDayFontSize: Math.max(1, Math.round(Config.calendarDayFontSize * root.calendarPresentationScale))
+    readonly property int effectiveCalendarDayY: Math.round(Config.calendarDayY * root.calendarPresentationScale)
+    readonly property int effectiveCalendarWeekdayY: Math.round(Config.calendarWeekdayY * root.calendarPresentationScale)
+    readonly property int effectiveCalendarTitleY: Math.round(Config.calendarTitleY * root.calendarPresentationScale)
+
+    Behavior on noteOverlayOpacityProgress {
+        enabled: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance") > 0
+        NumberAnimation {
+            duration: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance")
+            easing.type: Easing.Linear
+        }
+    }
 
     function dateKeyForDay(day) {
         if (day < 1 || day > root.daysInMonth()) return ""
@@ -190,15 +220,15 @@ Primitives.ModuleFrame {
     Item {
         id: reveal
         anchors.fill: parent
-        anchors.margins: 5
+        anchors.margins: root.effectiveCalendarOuterMargin
         transformOrigin: Item.Bottom
 
         Column {
             anchors.fill: parent
             Row {
                 width: parent.width
-                height: 25
-                spacing: 4
+                height: root.effectiveCalendarTitleHeight
+                spacing: root.compactPresentation ? 3 : 4
 
                 Primitives.HoverIconButton {
                     width: 28
@@ -218,11 +248,11 @@ Primitives.ModuleFrame {
                 Text {
                     width: parent.width - 64
                     height: parent.height
-                    y: Config.calendarTitleY
+                    y: root.effectiveCalendarTitleY
                     text: root.monthName(root.month) + " " + root.year
                     color: Config.text
                     font.family: Config.calendarTitleFont
-                    font.pixelSize: Config.calendarTitleFontSize
+                    font.pixelSize: Config.uiFontSize(root.effectiveCalendarTitleFontSize)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -244,20 +274,20 @@ Primitives.ModuleFrame {
             }
             Row {
                 width: parent.width
-                height: 25
+                height: root.effectiveCalendarWeekdayHeight
                 Repeater {
                     model: root.names
                     delegate: Text {
                         x: 0
                         width: parent.width / 7
                         height: parent.height
-                        y: Config.calendarWeekdayY
+                        y: root.effectiveCalendarWeekdayY
                         text: modelData
                         color: Config.textDim
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: true
-                        font.pixelSize: Config.calendarWeekdayFontSize
+                        font.pixelSize: Config.uiFontSize(root.effectiveCalendarWeekdayFontSize)
                         font.family: Config.calendarWeekdayFont
                     }
                 }
@@ -265,13 +295,13 @@ Primitives.ModuleFrame {
             Grid {
                 width: parent.width
                 columns: 7
-                rowSpacing: 3
+                rowSpacing: root.effectiveCalendarGridSpacing
                 Repeater {
                     model: root.gridCellCount()
                     delegate: Rectangle {
                         id: dayCell
                         width: parent.width / 7
-                        height: 30
+                        height: root.effectiveCalendarDayHeight
                         color: dayMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.07) : Config.transparent
                         property int day: index - root.firstDay() + 1
                         property string dateKey: root.dateKeyForDay(day)
@@ -288,7 +318,7 @@ Primitives.ModuleFrame {
                             delegate: Text {
                                 required property var modelData
                                 x: modelData.dx
-                                y: Config.calendarDayY + modelData.dy
+                                y: root.effectiveCalendarDayY + modelData.dy
                                 width: dayCell.width
                                 height: dayCell.height
                                 text: root.calendarGridDayNumber(dayCell.day)
@@ -296,7 +326,7 @@ Primitives.ModuleFrame {
                                 opacity: 0.9
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
-                                font.pixelSize: Config.calendarDayFontSize
+                                font.pixelSize: Config.uiFontSize(root.effectiveCalendarDayFontSize)
                                 font.family: Config.calendarDayFont
                             }
                         }
@@ -306,12 +336,12 @@ Primitives.ModuleFrame {
                             x: 0
                             width: parent.width
                             height: parent.height
-                            y: Config.calendarDayY
+                            y: root.effectiveCalendarDayY
                             text: root.calendarGridDayNumber(parent.day)
                             color: root.calendarDayTextColor(parent.dateKey, parent.day, dayMouse.containsMouse)
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: Config.calendarDayFontSize
+                            font.pixelSize: Config.uiFontSize(root.effectiveCalendarDayFontSize)
                             font.family: Config.calendarDayFont
                         }
 
@@ -328,9 +358,9 @@ Primitives.ModuleFrame {
                             // Extra right-side breathing room helps fonts such as LED,
                             // whose glyphs can look visually cramped against a centered frame.
                             width: Math.max(8, noteDayMetrics.advanceWidth + 12)
-                            height: Config.calendarDayFontSize + 6
+                            height: root.effectiveCalendarDayFontSize + 6
                             x: (parent.width - width) / 2 + 2
-                            y: Config.calendarDayY + (parent.height - Config.calendarDayFontSize) / 2 - 3
+                            y: root.effectiveCalendarDayY + (parent.height - root.effectiveCalendarDayFontSize) / 2 - 3
                             color: "transparent"
                             border.color: root.noteMarkerColor(parent.dateKey, Config.calendarNoteFrameColor)
                             border.width: 1
@@ -346,8 +376,8 @@ Primitives.ModuleFrame {
                             property real glyphWidth: Math.max(1, noteDayMetrics.advanceWidth)
                             property real glyphLeft: (parent.width - glyphWidth) / 2
                             property real glyphRight: glyphLeft + glyphWidth
-                            property real glyphTop: Config.calendarDayY + (parent.height - Config.calendarDayFontSize) / 2
-                            property real glyphBottom: glyphTop + Config.calendarDayFontSize
+                            property real glyphTop: root.effectiveCalendarDayY + (parent.height - root.effectiveCalendarDayFontSize) / 2
+                            property real glyphBottom: glyphTop + root.effectiveCalendarDayFontSize
                             property bool sideCenter: markerPosition === "leftCenter" || markerPosition === "rightCenter"
                             visible: parent.hasNote && markerStyle !== "frame"
                             width: markerStyle === "note" ? 12
@@ -356,7 +386,7 @@ Primitives.ModuleFrame {
                                  : 5
                             height: markerStyle === "note" ? 12
                                   : markerStyle === "ring" ? 7
-                                  : markerStyle === "line" ? (sideCenter ? Math.max(8, Config.calendarDayFontSize - 2) : 2)
+                                  : markerStyle === "line" ? (sideCenter ? Math.max(8, root.effectiveCalendarDayFontSize - 2) : 2)
                                   : 5
                             x: {
                                 if (markerPosition === "leftCenter") return glyphLeft - width - 1
@@ -371,7 +401,7 @@ Primitives.ModuleFrame {
                             y: {
                                 if (markerPosition.indexOf("top") === 0) return glyphTop - height - 1
                                 if (markerPosition.indexOf("bottom") === 0) return glyphBottom + 1
-                                return glyphTop + (Config.calendarDayFontSize - height) / 2
+                                return glyphTop + (root.effectiveCalendarDayFontSize - height) / 2
                             }
 
                             Rectangle {
@@ -392,7 +422,7 @@ Primitives.ModuleFrame {
                                 text: "✎"
                                 color: noteMarker.markerColor
                                 font.family: "Sans Serif"
-                                font.pixelSize: 10
+                                font.pixelSize: Config.uiFontSize(10)
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -455,10 +485,12 @@ Primitives.ModuleFrame {
         fromRadius: Config.frameRadius + 4
         toRadius: Config.frameRadius
         progress: root.noteOverlayMode !== "" ? 1 : 0
-        visible: root.noteOverlayMode !== "" || normalizedProgress > 0.001
+        visible: root.noteOverlayMode !== "" || root.noteOverlayOpacityProgress > 0.001
         animationDuration: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance")
         animationProfile: Config.animationCalendarMorphProfile
         animationPhase: root.noteOverlayMode !== "" ? "enter" : "exit"
+        animationEasing: Config.animationEasingType(Config.animationCalendarMorphProfile, root.noteOverlayMode !== "" ? "enter" : "exit")
+        animationBezierCurve: Config.animationBezierCurve(Config.animationCalendarMorphProfile, root.noteOverlayMode !== "" ? "enter" : "exit")
 
         // Keep the interaction shield full-size while the visible overlay content
         // performs a restrained scale morph. This avoids clipping the TextArea or
@@ -471,8 +503,10 @@ Primitives.ModuleFrame {
 
         Item {
             anchors.fill: parent
-            opacity: noteOverlayMorph.normalizedProgress
-            scale: 0.97 + 0.03 * noteOverlayMorph.normalizedProgress
+            // Use the raw eased value for scale: normalizedProgress intentionally
+            // clamps alpha, but that clamp would erase a cubic-bezier spring overshoot.
+            opacity: root.noteOverlayOpacityProgress
+            scale: 0.90 + 0.10 * noteOverlayMorph.animatedProgress
             transformOrigin: Item.Center
 
             Rectangle {
@@ -496,7 +530,7 @@ Primitives.ModuleFrame {
                     height: parent.height
                     text: "Заметка · " + root.noteDialogDate
                     color: Config.accent
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(12)
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -527,7 +561,7 @@ Primitives.ModuleFrame {
                 color: Config.text
                 selectedTextColor: Config.text
                 selectionColor: Config.baseColor
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(12)
                 background: Rectangle {
                     color: Config.settingsBackground
@@ -550,7 +584,7 @@ Primitives.ModuleFrame {
                     height: parent.height
                     text: root.isCalendarDateMarked(root.noteDialogDate) ? "День отмечен цветом" : "Отметка отпуска / события"
                     color: Config.calendarWeekendColor
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight

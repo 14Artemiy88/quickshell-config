@@ -85,9 +85,9 @@ Column {
                 controlSpacing: 8
                 width: parent.width; height: 30; spacing: 8
 
-                Text { width: 46; height: 30; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                Text { width: 46; height: 30; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
                 SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationX; minimum: Config.mopidyQueueDurationAlignment === "left" ? 0 : -2000; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhFormattedNumbersOnly; targetObject: Config; targetProperty: "mopidyQueueDurationX"; settingsObject: root.settings; saveOnEdit: true }
-                Text { width: 46; height: 30; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+                Text { width: 46; height: 30; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
                 SettingsNumberField { width: 58; height: 30; value: Config.mopidyQueueDurationY; minimum: -20; maximum: 20; step: 1; wheelStep: 1; decimals: 0; compact: true; fieldWidth: 58; fieldFontSize: 11; inputMethodHints: Qt.ImhDigitsOnly; targetObject: Config; targetProperty: "mopidyQueueDurationY"; settingsObject: root.settings; saveOnEdit: true }
             }
 
@@ -116,13 +116,13 @@ Column {
                 }
             }
 
-            Text {
+            SettingsDescription {
                 width: parent.width
                 text: Config.mopidyQueueDurationAlignment === "left"
                     ? "X — отступ от левого края панели (0 — у самого края)."
                     : "X — горизонтальное смещение относительно блока кнопок."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 wrapMode: Text.WordWrap
             }
@@ -213,7 +213,7 @@ Column {
                 Text {
                     text: "px"
                     color: Config.textMuted
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -236,7 +236,7 @@ Column {
                 Text {
                     text: "px"
                     color: Config.textMuted
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -252,7 +252,7 @@ Column {
                     width: 160; height: 30
                     text: Config.mopidyTrackArtistSeparator
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     activeFocusOnTab: true
                     onEditingFinished: function() {

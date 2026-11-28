@@ -8,16 +8,14 @@ import sys
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
     "default action lookup reads NotificationAction.identifier": 'String(action.identifier || "") === "default"',
-    "default action is invoked on card-body click": 'if (card.defaultAction && typeof card.defaultAction.invoke === "function")' in source,
+    "default action remains invoked by clicking non-text card surface": 'if (card.defaultAction && typeof card.defaultAction.invoke === "function")' in source,
     "card-body hit area is enabled only when a default action exists": 'enabled: card.defaultAction !== null && !card.removalPending',
-    "default action is not rendered as an explicit button": 'String(action.identifier || "") !== "default"' in source,
-    "explicit action row uses filtered actions": 'model: card.buttonActions' in source,
-    "explicit action buttons remain invokable": 'if (!card.removalPending && modelData && typeof modelData.invoke === "function") modelData.invoke()' in source,
-    "card sizing reserves room only for visible action buttons": 'card.buttonActions.length > 0, root.notificationHasBody' in source,
+    "provider action buttons are not rendered": 'id: actionRow' not in source and 'model: card.buttonActions' not in source,
+    "provider action button projection is removed": 'function notificationButtonActions(notification)' not in source and 'property var buttonActions:' not in source,
+    "card sizing no longer reserves space for provider action buttons": 'function notificationCardHeight(summaryHeight, bodyHeight, hasBody, hasProgress, hasImage, hasLeadingVisual)' in source,
+    "replaced default-action metadata is still observed": 'function onActionsChanged() { root.scheduleTrackedNotificationRefresh(modelData) }' in source,
 }
 for label, result in checks.items():
-    if isinstance(result, str):
-        result = result in source
-    assert result, f"{label}: missing required wiring"
-print("notification default action click behavior: OK")
+    assert result, f"{label}: missing required behavior"
+print("notification default action and no-provider-buttons behavior: OK")
 PYCODE

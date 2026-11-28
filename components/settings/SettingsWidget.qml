@@ -22,7 +22,7 @@ Item {
     readonly property string currentPageSaveScope: SettingsPageRegistry.saveScopeForPageId(
         root.currentPageId, root.currentPageSubTabIndex)
     readonly property bool quickSavePageAvailable: profileController.canSaveScope(root.currentPageSaveScope)
-    readonly property bool currentPageResetAvailable: !(root.currentPageId === "general" && (root.currentPageSubTabIndex === 1 || root.currentPageSubTabIndex === 2)) && profileController.canResetScope(root.currentPageSaveScope)
+    readonly property bool currentPageResetAvailable: root.currentPageId !== "general" && profileController.canResetScope(root.currentPageSaveScope)
     // Search state is owned by a dedicated controller; aliases keep the
     // existing SettingsWidget-facing API used by the search UI.
     property alias settingsSearchIndex: settingsSearchController.settingsSearchIndex
@@ -216,9 +216,9 @@ Item {
         // Restore the selected page before enabling navigation side effects.
         // A selected page inside a collapsed group is valid and must stay there.
         root.settingsNavigationReady = false
-        var savedPageId = String(Config.settingsLastActivePageId || "general").trim()
+        var savedPageId = String(Config.settingsLastActivePageId || "interface").trim()
         if (!SettingsPageRegistry.pageMetadataForId(savedPageId))
-            savedPageId = "general"
+            savedPageId = "interface"
         root.currentPageId = savedPageId
         root.currentPageSubTabIndex = 0
         if (String(Config.settingsLastActivePageId || "") !== savedPageId) {
@@ -345,8 +345,8 @@ Item {
         anchors.fill: parent
         color: Config.settingsBackground
         border.color: Config.settingsBorder
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
+        border.width: Config.cardBordersEnabled ? Config.frameBorderWidth : 0
+        radius: Config.scaledCornerRadius(Config.frameRadius)
         antialiasing: true
     }
 
@@ -362,7 +362,7 @@ Item {
                 width: Math.max(70, parent.width - 260)
                 text: "НАСТРОЙКИ"
                 color: Config.accent
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(20)
                 verticalAlignment: Text.AlignVCenter
             }
@@ -372,7 +372,7 @@ Item {
                 text: "Сначала сохраните профиль"
                 color: Config.accent
                 opacity: 0
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter
@@ -383,7 +383,7 @@ Item {
                 text: "✓ сохранено"
                 color: Config.accent
                 opacity: 0
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter

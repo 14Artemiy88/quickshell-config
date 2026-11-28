@@ -24,20 +24,20 @@ settingsSearchSubTabIndex: 0
         padding: 8
         contentSpacing: 6
 
-        Text { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+        Text { visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; text: "Иконки громкости"; color: Config.settingsSubheading; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10) }
         SettingsRow {
             label: "Громкость"
             labelWidth: 210
             visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; width: parent.width; height: 30; spacing: 8
             
-            SettingsTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
+            SettingsTextField { id: volumeIconField; width: 100; height: 30; text: Config.volumeIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: "transparent"; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || volumeIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) } onEditingFinished: { Config.volumeIcon=text; settings.save() } Connections { target: Config; function onVolumeIconChanged(){volumeIconField.text=Config.volumeIcon} } }
         }
         SettingsRow {
             label: "Без звука"
             labelWidth: 210
             visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 0; width: parent.width; height: 30; spacing: 8
             
-            SettingsTextField { id: volumeMutedIconField; width: 100; height: 30; text: Config.volumeMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (volumeMutedIconField.activeFocus || volumeMutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.volumeMutedIcon=text; settings.save() } Connections { target: Config; function onVolumeMutedIconChanged(){volumeMutedIconField.text=Config.volumeMutedIcon} } }
+            SettingsTextField { id: volumeMutedIconField; width: 100; height: 30; text: Config.volumeMutedIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: "transparent"; border.color: (volumeMutedIconField.activeFocus || volumeMutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || volumeMutedIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) } onEditingFinished: { Config.volumeMutedIcon=text; settings.save() } Connections { target: Config; function onVolumeMutedIconChanged(){volumeMutedIconField.text=Config.volumeMutedIcon} } }
         }
     }
     SettingsGroup {
@@ -53,7 +53,7 @@ settingsSearchSubTabIndex: 1
             visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 1
             text: "Полоса и аудиопотоки"
             color: Config.settingsSubheading
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
         }
         SettingsRow {
@@ -311,7 +311,7 @@ settingsSearchSubTabIndex: 3
             toGeometry: Qt.rect(0, 0, parent.width, volumeStreamTrackOffsetContent.implicitHeight)
             progress: Config.volumeShowStreams ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.volumeShowStreams ? "enter" : "exit")
 
             SettingsRow {
                 id: volumeStreamTrackOffsetContent
@@ -372,7 +372,7 @@ settingsSearchSubTabIndex: 3
             toGeometry: Qt.rect(0, 0, parent.width, volumeStreamLabelFontContent.implicitHeight)
             progress: Config.volumeShowStreams ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.volumeShowStreams ? "enter" : "exit")
 
             Column {
                 id: volumeStreamLabelFontContent
@@ -461,15 +461,15 @@ settingsSearchSubTabIndex: 4
             visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             text: "Адаптивные блоки"
             color: Config.accent
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(12)
         }
 
-        Text {
-            visible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
+        SettingsDescription {
+            descriptionConditionVisible: host.currentPageId === "volume" && host.currentPageSubTabIndex === 4
             text: "Высота блока автоматически растёт по содержимому в пределах этих ограничений."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
             width: parent.width
@@ -548,7 +548,7 @@ settingsSearchSubTabIndex: 4
             width: parent.width
             showFrame: true
             heading: "Вид перехода"
-            changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle"] })
+            changeKeys: ({ keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeStreamsVisibilityProfile"] })
             padding: 8
             contentSpacing: 6
 
@@ -579,15 +579,15 @@ settingsSearchSubTabIndex: 4
                         }
                     }
                     background: Rectangle {
-                        color: Config.settingsBackground
+                        color: "transparent"
                         border.color: (volumeStreamsAnimationStyleBox.activeFocus || volumeStreamsAnimationStyleBox.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
+                        border.width: (Config.inputBordersEnabled || volumeStreamsAnimationStyleBox.activeFocus) ? 1 : 0
+                        radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                     }
                     contentItem: Text {
                         text: volumeStreamsAnimationStyleBox.currentText
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         verticalAlignment: Text.AlignVCenter
                         leftPadding: 8
@@ -595,15 +595,29 @@ settingsSearchSubTabIndex: 4
                 }
             }
 
-            Text {
+            SettingsAnimationCurveControl {
+                profile: Config.animationVolumeStreamsVisibilityProfile
+                searchId: "volume-streams-visibility-animation-curve"
+                searchLabel: "CSS-кривая раскрытия списка потоков"
+                searchKeywords: "громкость список потоков streams раскрытие сворачивание bezier"
+                onProfileEdited: function(value) {
+                    Config.animationVolumeStreamsVisibilityProfile = value
+                    root.settings.save()
+                }
+            }
+
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: "Профиль кривой и длительность управляют раскрытием и сворачиванием списка. Направление задаёт затухание или сторону сдвига. Анимация появления самого модуля остаётся независимой."
+                text: "Кривая и длительность управляют движением списка. Внутренняя перестройка высоты остаётся независимой."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }
     }
+
+
+
 
 }

@@ -20,8 +20,8 @@ const defaultOrder = registry.defaultNavigationOrder();
 assert.deepStrictEqual(Array.from(defaultOrder.groupOrder), ['appearance','modules','dashboard','launcher','notifications','general']);
 assert.deepStrictEqual(Object.keys(defaultOrder.pagesByGroup).sort(), ['appearance','dashboard','general','launcher','modules','notifications']);
 const allPages = Object.values(defaultOrder.pagesByGroup).flat();
-assert.strictEqual(allPages.length, 24);
-assert.strictEqual(new Set(allPages).size, 24, 'every stable page appears exactly once in the hierarchical default');
+assert.strictEqual(allPages.length, 26);
+assert.strictEqual(new Set(allPages).size, 26, 'every stable page appears exactly once in the hierarchical default');
 assert.deepStrictEqual(Array.from(defaultOrder.pagesByGroup.dashboard), ['dashboard'], 'Dashboard remains a movable singleton frame');
 assert.deepStrictEqual(Array.from(defaultOrder.pagesByGroup.general), ['general'], 'General remains a movable singleton frame');
 
@@ -32,10 +32,10 @@ const migrated = registry.navigationOrderFromLegacyTabOrder(legacy);
 assert.deepStrictEqual(Array.from(migrated.groupOrder), Array.from(defaultOrder.groupOrder));
 assert.deepStrictEqual(Array.from(migrated.pagesByGroup.modules.slice(0, 4)), ['weather','modules','calendar','time']);
 assert.deepStrictEqual(Array.from(migrated.pagesByGroup.notifications), ['notifications','notificationsDnd']);
-assert.deepStrictEqual(Array.from(migrated.pagesByGroup.appearance), ['settingsWindow','themes']);
+assert.deepStrictEqual(Array.from(migrated.pagesByGroup.appearance), ['settingsWindow','themes','interface']);
 assert.deepStrictEqual(Array.from(migrated.pagesByGroup.launcher.slice(0, 2)), ['launcherSearch','launcher']);
 assert.deepStrictEqual(Array.from(registry.flattenNavigationOrder(migrated)), [
-  'settingsWindow','themes','weather','modules','calendar','time','timers','player','mopidy','cava','cpuRam','network','volume',
+  'settingsWindow','themes','interface','weather','modules','calendar','time','timers','player','mopidy','cava','cpuRam','network','volume','osd',
   'dashboard','launcherSearch','launcher','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','general'
 ]);
 
@@ -50,10 +50,10 @@ const malformed = registry.normalizeNavigationOrder({
   }
 });
 assert.deepStrictEqual(Array.from(malformed.groupOrder), ['general','modules','appearance','dashboard','launcher','notifications']);
-assert.deepStrictEqual(Array.from(malformed.pagesByGroup.appearance), ['settingsWindow','themes']);
+assert.deepStrictEqual(Array.from(malformed.pagesByGroup.appearance), ['settingsWindow','themes','interface']);
 assert.deepStrictEqual(Array.from(malformed.pagesByGroup.modules.slice(0, 2)), ['weather','calendar']);
-assert.strictEqual(Object.values(malformed.pagesByGroup).flat().length, 24);
-assert.strictEqual(new Set(Object.values(malformed.pagesByGroup).flat()).size, 24);
+assert.strictEqual(Object.values(malformed.pagesByGroup).flat().length, 26);
+assert.strictEqual(new Set(Object.values(malformed.pagesByGroup).flat()).size, 26);
 
 // Exercise the actual QML controller method bodies with a tiny host stub.
 const controller = read('components/settings/SettingsNavigationController.qml');
@@ -136,7 +136,7 @@ const expanded = profiles.api.expandStoredSettings(owner, {
   profileOverrides: {}
 });
 assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.pagesByGroup.modules.slice(0, 2)), ['weather','modules']);
-assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.pagesByGroup.appearance), ['settingsWindow','themes']);
+assert.deepStrictEqual(Array.from(expanded.settingsNavigationOrder.pagesByGroup.appearance), ['settingsWindow','themes','interface']);
 assert.strictEqual('settingsTabOrder' in expanded.profiles.Work, false, 'legacy field is removed from migrated profile storage');
 const expandedProfile = profiles.api.expandStoredSettings(owner, {
   settingsPersistenceFormat: 'profile-overrides-v1', settingsSchemaVersion: 1, profileStorageFormat: 'sparse-v1',

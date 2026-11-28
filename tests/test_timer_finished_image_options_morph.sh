@@ -13,7 +13,7 @@ for token in \
     'toGeometry: Qt.rect(0, 0, parent.width, timerFinishedImageOptionsContent.implicitHeight)' \
     'progress: Config.timerFinishedImageEnabled ? 1 : 0' \
     'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", Config.timerFinishedImageEnabled ? "enter" : "exit")'; do
+    'animationEasing: Config.animationEasingType("ease-out", Config.timerFinishedImageEnabled ? "enter" : "exit")'; do
     grep -Fq "$token" "$QML" || fail "missing $token"
 done
 python3 - "$QML" <<'PYTEST'

@@ -62,7 +62,7 @@ for name in sys.argv[1:3]:
 calendar=Path(sys.argv[1]).read_text(encoding='utf-8')
 # Restrict the assertion to the month-navigation row: day cells/overlays have
 # distinct left/right click semantics and are intentionally not migrated here.
-header=calendar.index('height: 25\n                spacing: 4')
+header=calendar.index('height: root.effectiveCalendarTitleHeight\n                spacing: root.compactPresentation ? 3 : 4')
 weekdays=calendar.index('model: root.names', header)
 nav=calendar[header:weekdays]
 if nav.count('Primitives.HoverIconButton {') != 2:

@@ -37,11 +37,12 @@ Item {
         Rectangle {
             anchors.fill: parent
             z: 0
-            radius: root.cornerRadius
+            radius: Config.scaledCornerRadius(root.cornerRadius)
             color: root.hovered && root.hoverBackgroundEnabled
                 ? root.hoverBackgroundColor : root.backgroundColor
-            border.width: root.hovered && root.hoverBorderEnabled
-                ? root.hoverBorderWidth : root.borderWidth
+            border.width: Config.buttonBordersEnabled
+                ? (root.hovered && root.hoverBorderEnabled ? root.hoverBorderWidth : root.borderWidth)
+                : 0
             border.color: root.hovered && root.hoverBorderEnabled
                 ? root.hoverBorderColor : root.borderColor
         },

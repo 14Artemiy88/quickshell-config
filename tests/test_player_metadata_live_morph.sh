@@ -53,8 +53,8 @@ for i in range(opening, len(s)):
 assert end is not None, "metadata morph braces are unbalanced"
 block = s[start:end]
 for token in (
-    'parent.height - Config.playerMetadataY',
-    'parent.height - Config.playerMetadataY - root.playerMetadataMaxHeight',
+    'parent.height - root.effectivePlayerMetadataY',
+    'parent.height - root.effectivePlayerMetadataY - root.playerMetadataMaxHeight',
     'root.playerMetadataMaxHeight + root.playerMetadataClipSafety',
     'root.playerMetadataTargetHeight / root.playerMetadataMaxHeight',
     'visible: !!root.player.first_line',

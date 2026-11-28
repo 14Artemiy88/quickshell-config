@@ -9,20 +9,34 @@ Primitives.ModuleFrame {
     moduleName: "networks"
     property var monitor
     property int maxContentHeight: 171
+    // Keep the existing regular layout as the visual baseline. Compact and
+    // wide modes only adjust density and add useful state context when there
+    // is enough horizontal room.
     property int rowHeight: 32
     property int rowSpacing: 4
     property int horizontalPadding: 8
     property int verticalPadding: 8
     property int emptyStateHeight: 32
 
+    readonly property int effectiveRowHeight: root.compactPresentation ? 30
+        : root.widePresentation ? 34 : root.rowHeight
+    readonly property int effectiveRowSpacing: root.compactPresentation ? 3
+        : root.widePresentation ? 6 : root.rowSpacing
+    readonly property int effectiveHorizontalPadding: root.compactPresentation ? 6
+        : root.widePresentation ? 12 : root.horizontalPadding
+    readonly property int effectiveVerticalPadding: root.compactPresentation ? 6
+        : root.widePresentation ? 10 : root.verticalPadding
+    readonly property int effectiveEmptyStateHeight: root.compactPresentation ? 30
+        : root.widePresentation ? 34 : root.emptyStateHeight
+
     readonly property int networkCount: networkRows.count
     readonly property int contentDrivenHeight: NetworkLayout.panelHeight(
         root.networkCount,
         root.maxContentHeight,
-        root.rowHeight,
-        root.rowSpacing,
-        root.verticalPadding,
-        root.emptyStateHeight
+        root.effectiveRowHeight,
+        root.effectiveRowSpacing,
+        root.effectiveVerticalPadding,
+        root.effectiveEmptyStateHeight
     )
 
     function findNetworkRow(name) {
@@ -120,10 +134,10 @@ Primitives.ModuleFrame {
     ScrollView {
         id: networkScroll
         anchors.fill: parent
-        leftPadding: root.horizontalPadding
-        rightPadding: root.horizontalPadding
-        topPadding: root.verticalPadding
-        bottomPadding: root.verticalPadding
+        leftPadding: root.effectiveHorizontalPadding
+        rightPadding: root.effectiveHorizontalPadding
+        topPadding: root.effectiveVerticalPadding
+        bottomPadding: root.effectiveVerticalPadding
         clip: true
         contentWidth: availableWidth
         contentHeight: networkColumn.implicitHeight
@@ -135,7 +149,7 @@ Primitives.ModuleFrame {
         Column {
             id: networkColumn
             width: networkScroll.availableWidth
-            spacing: root.rowSpacing
+            spacing: root.effectiveRowSpacing
 
             move: Transition {
                 NumberAnimation {
@@ -151,9 +165,10 @@ Primitives.ModuleFrame {
 
                 delegate: NetworkConnectionButton {
                     width: networkColumn.width
-                    height: root.rowHeight
-                    implicitHeight: root.rowHeight
-                    rowHeight: root.rowHeight
+                    height: root.effectiveRowHeight
+                    implicitHeight: root.effectiveRowHeight
+                    rowHeight: root.effectiveRowHeight
+                    presentationMode: root.presentationMode
                     onRemovalFinished: function(networkName) {
                         root.finishNetworkRowRemoval(networkName);
                     }
@@ -163,10 +178,10 @@ Primitives.ModuleFrame {
             Text {
                 visible: root.networkCount === 0
                 width: networkColumn.width
-                height: visible ? root.emptyStateHeight : 0
+                height: visible ? root.effectiveEmptyStateHeight : 0
                 text: "Нет сохранённых подключений"
                 color: Config.textDisabled
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.uiFontSize(12)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

@@ -101,7 +101,3 @@ grep -Fq 'Переключать Mopidy по ПКМ на Player' "$ROOT/componen
 
 echo 'settings labels, alignment, and timer icon drag reorder: OK'
 
-# The shared arrow primitive hides unavailable directions by default.
-MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
-grep -Fq 'visible: root.morphVisibility || root.requestedVisible' "$MOVE"
-grep -Fq 'opacity: (!root.hideWhenDisabled || root.interactionEnabled) ? 1 : 0' "$MOVE"

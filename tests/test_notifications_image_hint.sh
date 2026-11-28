@@ -16,7 +16,7 @@ checks = {
     "embedded image-data still uses Quickshell Notification.image": 'return String(notification.image || "").trim()' in source,
     "body image is rendered separately from the application icon": "id: bodyImage" in source and "source: card.imageSource" in source,
     "image preview preserves aspect ratio": "fillMode: Image.PreserveAspectFit" in source,
-    "image is bounded to a compact preview height": "readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))" in source,
+    "image is bounded to a compact preview height": "readonly property int notificationImageHeight: Math.round(Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0)) * notificationUiScale)" in source,
     "image decode uses the GUI thread to avoid pixmap-reader thread warnings": "asynchronous: false" in source[source.index("id: bodyImage"):source.index("Rectangle {\n                        id: progressTrack")],
     "failed image loads stop reserving blank preview space": "if (status === Image.Error)" in source and "card.imageLoadFailed = true" in source,
     "card height accounts for optional image preview": "hasProgress, hasImage, hasLeadingVisual)" in source and "const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0" in source,

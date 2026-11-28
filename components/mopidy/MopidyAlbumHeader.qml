@@ -8,7 +8,7 @@ Rectangle {
     property var itemData: null
     property bool stickyHeader: false
     width: parent ? parent.width : 0
-    height: Math.max(26, Config.mopidyAlbumFontSize + 9)
+    height: controller.effectiveAlbumHeaderHeight
     property bool albumHovered: albumMouse.containsMouse
     color: stickyHeader ? Config.mopidyBackground : controller.hoverBackgroundColor(albumHovered)
     border.width: Config.mopidyAlbumSeparator === "frame" ? 1 : controller.hoverBorderWidth(albumHovered)
@@ -23,7 +23,7 @@ Rectangle {
         text: itemData ? ((itemData.albumYear ? itemData.albumYear + " - " : "") + (itemData.album || "")) : ""
         color: controller.hoverTextColor(albumHovered, Config.accent)
         font.family: Config.mopidyAlbumFont
-        font.pixelSize: Config.mopidyAlbumFontSize
+        font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyAlbumFontSize))
         font.bold: Config.mopidyAlbumBold
         elide: Text.ElideRight
     }
@@ -56,7 +56,7 @@ Rectangle {
         text: controller.formatDuration(controller.albumDisplayDuration(itemData), controller.albumShowsRemainingTime(itemData))
         color: controller.hoverTextColor(albumHovered, Config.accent)
         font.family: Config.mopidyDurationFont
-        font.pixelSize: Config.mopidyDurationFontSize
+        font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyDurationFontSize))
         font.bold: Config.mopidyAlbumBold
         horizontalAlignment: Text.AlignRight
     }

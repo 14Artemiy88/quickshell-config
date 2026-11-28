@@ -494,9 +494,11 @@ function migrateUniqueLegacyRules(entries, configuredIds) {
     return result
 }
 
-function mergeConfiguredEntries(observedEntries, allowedIds, blockedIds) {
+function mergeConfiguredEntries(observedEntries, allowedIds, blockedIds, historyIgnoredIds) {
     var result = valuesOf(observedEntries).slice()
-    var configured = normalizeDndRuleIds(allowedIds).concat(normalizeDndRuleIds(blockedIds))
+    var configured = normalizeDndRuleIds(allowedIds)
+        .concat(normalizeDndRuleIds(blockedIds))
+        .concat(normalizeDndRuleIds(historyIgnoredIds))
     var seen = ({})
     for (var i = 0; i < result.length; ++i) {
         var editableIds = uniqueRuleIds(result[i], result)
@@ -535,16 +537,18 @@ function mergeConfiguredEntries(observedEntries, allowedIds, blockedIds) {
 // Provide catalog-wide status counters independent of the current search,
 // Show All switch, or row limit. Counts are identity-aware and include
 // configured-only legacy rules separately from senders observed this session.
-function summarizeSenders(observedEntries, allowedIds, blockedIds) {
+function summarizeSenders(observedEntries, allowedIds, blockedIds, historyIgnoredIds) {
     var observed = valuesOf(observedEntries).filter(function(entry) {
         return !!entry && entry.notificationSender !== false && entry.configuredOnly !== true
     })
     var allowed = normalizeDndRuleIds(allowedIds)
     var blocked = normalizeDndRuleIds(blockedIds)
-    var allEntries = mergeConfiguredEntries(observed, allowed, blocked)
+    var historyIgnored = normalizeDndRuleIds(historyIgnoredIds)
+    var allEntries = mergeConfiguredEntries(observed, allowed, blocked, historyIgnored)
     var sendersWithRules = 0
     var allowedSenders = 0
     var blockedSenders = 0
+    var historyIgnoredSenders = 0
     var configuredOnly = 0
     var unresolved = 0
 
@@ -553,12 +557,14 @@ function summarizeSenders(observedEntries, allowedIds, blockedIds) {
         if (!entry) continue
         var isAllowed = matchesAnyRule(entry, allowed, allEntries)
         var isBlocked = matchesAnyRule(entry, blocked, allEntries)
+        var isHistoryIgnored = matchesAnyRule(entry, historyIgnored, allEntries)
         if (entry.configuredOnly === true) {
             configuredOnly += 1
         } else {
             if (isAllowed) allowedSenders += 1
             if (isBlocked) blockedSenders += 1
-            if (isAllowed || isBlocked) sendersWithRules += 1
+            if (isHistoryIgnored) historyIgnoredSenders += 1
+            if (isAllowed || isBlocked || isHistoryIgnored) sendersWithRules += 1
         }
         if (entry.unusableRule === true
                 || (!cleanText(entry.desktopEntry, 512)
@@ -572,6 +578,7 @@ function summarizeSenders(observedEntries, allowedIds, blockedIds) {
         senderWithoutRulesCount: Math.max(0, observed.length - sendersWithRules),
         ignoreDndCount: allowedSenders,
         disabledOutsideDndCount: blockedSenders,
+        historyIgnoredCount: historyIgnoredSenders,
         savedOnlyCount: configuredOnly,
         unresolvedCount: unresolved,
         managedEntryCount: allEntries.length

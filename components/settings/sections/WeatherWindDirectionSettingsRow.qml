@@ -28,10 +28,10 @@ SettingsRow {
         horizontalAlignment: TextInput.AlignHCenter
         activeFocusOnTab: true
         background: Rectangle {
-            color: Config.settingsBackground
+            color: "transparent"
             border.color: (iconField.activeFocus || iconField.pointerHovered) ? Config.accent : Config.baseColor
-            border.width: 1
-            radius: 4
+            border.width: (Config.inputBordersEnabled || iconField.activeFocus) ? 1 : 0
+            radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
         }
         onEditingFinished: {
             root.iconEdited(text)

@@ -45,10 +45,10 @@ for key in networkSpacing networkTopPadding networkFont networkIconSize networkI
 done
 
 # One spacing value drives both the row's vertical breathing room and Column spacing.
-grep -Fq 'anchors.topMargin: Config.networkTopPadding' "$WIDGET"
+grep -Fq 'anchors.topMargin: root.effectiveTopPadding' "$WIDGET"
 grep -Fq 'readonly property real networkStatRowGap:' "$WIDGET"
-grep -Fq 'Config.networkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' "$WIDGET"
-grep -Fq 'height: Math.max(iconPixelSize, valuePixelSize) + Config.networkSpacing * 2' "$ROW"
+grep -Fq 'root.effectiveNetworkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' "$WIDGET"
+grep -Fq 'height: Math.max(iconPixelSize, valuePixelSize) + root.effectiveNetworkSpacing * 2' "$ROW"
 ! grep -Fq 'anchors.leftMargin: Config.networkHorizontalPadding' "$WIDGET"
 ! grep -Fq 'anchors.rightMargin: Config.networkHorizontalPadding' "$WIDGET"
 

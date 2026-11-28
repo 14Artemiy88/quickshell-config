@@ -17,7 +17,7 @@ checks = {
     "foreground is mapped to CSS color": 'styles.push("color: " + foreground + ";")',
     "background is mapped to CSS background-color": 'styles.push("background-color: " + background + ";")',
     "text weight and style use bounded value sets": "^(?:normal|bold|bolder|lighter|[1-9]00)$",
-    "font-family rejects CSS delimiters": "^[a-z0-9 _,-]{1,64}$",
+    "sender-supplied font_family is deliberately ignored": "Ignore notification-supplied font_family attributes.",
     "span tags are matched for transformation": r"const markupPattern = /<\/?(?:b|strong|i|em|u|a|br|html|tt|span)",
     "ordinary text remains escaped": 'escapeNotificationText(normalized.slice(lastIndex, match.index))',
 }

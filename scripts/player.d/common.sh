@@ -569,6 +569,16 @@ get_json() {
     player_build_json_into payload \
         "$first_line" "$second_line" "$third_line" "$timeleft" \
         "$position_percent" "$status" "$image" "$artist" "$player" "$title_class" "$duration_ms" || return 1
+
+    # Normal polling returns the first source and exits, preserving the
+    # configured priority behavior. Dashboard discovery opts into collection:
+    # every valid backend contributes one object and the dispatcher emits the
+    # complete JSON array after probing the enabled sources.
+    if [[ "${PLAYER_COLLECT_MODE:-0}" == "1" ]]; then
+        PLAYER_COLLECTED_PAYLOADS+=("$payload")
+        return 0
+    fi
+
     printf '%s\n' "$payload"
     exit 0
 }

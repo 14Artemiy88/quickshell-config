@@ -28,8 +28,8 @@ assert.strictEqual(groups.length, 6, 'Settings should keep six top-level navigat
 assert.strictEqual(JSON.stringify(groups.map(item => item.id)), JSON.stringify([
   'appearance', 'modules', 'dashboard', 'launcher', 'notifications', 'general'
 ]), 'top-level group IDs/order are stable');
-assert.strictEqual(tabs.length, 24, 'all 24 settings pages are registered');
-assert.strictEqual(otherPages.length, 22, '22 pages use the shared SettingsPageHost registry');
+assert.strictEqual(tabs.length, 26, 'all 26 settings pages are registered');
+assert.strictEqual(otherPages.length, 24, '24 pages use the shared SettingsPageHost registry');
 
 const groupIds = new Set(groups.map(item => item.id));
 assert.strictEqual(groupIds.size, groups.length, 'navigation group IDs are unique');
@@ -37,8 +37,8 @@ const tabIds = new Set(tabs.map(item => item.id));
 assert.strictEqual(tabIds.size, tabs.length, 'settings page IDs are unique');
 
 const expectedGroupPages = {
-  appearance: ['themes', 'settingsWindow'],
-  modules: ['modules', 'time', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar'],
+  appearance: ['themes', 'interface', 'settingsWindow'],
+  modules: ['modules', 'time', 'timers', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'osd', 'calendar'],
   notifications: ['notifications', 'notificationsDnd'],
   dashboard: ['dashboard'],
   launcher: ['launcher', 'launcherSearch', 'launcherTabs', 'launcherProjects', 'launcherActions', 'launcherAnimation', 'launcherApplications'],
@@ -57,8 +57,8 @@ assert.strictEqual(new Set(otherPages.map(item => item.id)).size, otherPages.len
 
 let subTabCount = 0;
 for (const page of otherPages) {
-  assert.ok(typeof page.saveScope === 'string' && page.saveScope.length > 0,
-    `${page.id} has an explicit save/reset scope`);
+  assert.ok(typeof page.saveScope === 'string' && (page.id === 'general' || page.saveScope.length > 0),
+    `${page.id} has a valid save/reset scope declaration`);
   assert.ok(Array.isArray(page.subTabs), `${page.id} declares its subtab list`);
   assert.ok(page.subTabs.every(label => typeof label === 'string' && label.trim().length > 0),
     `${page.id} has no empty subtab labels`);
@@ -70,13 +70,13 @@ for (const page of otherPages) {
   assert.strictEqual(registry.saveScopeForPageId(page.id, 0), page.saveScope,
     `${page.id} routes its first subtab to the declared save scope`);
 }
-assert.strictEqual(subTabCount, 68, 'all 68 registered subtabs are accounted for');
+assert.strictEqual(subTabCount, 70, 'all 70 registered subtabs are accounted for');
 assert.ok(content.includes('settings-search-page:modules'), 'Modules special page is in search tree');
 assert.ok(content.includes('settings-search-page:themes'), 'Themes special page is in search tree');
-assert.strictEqual(registry.saveScopeForPageId('general', 1), '',
+assert.strictEqual(registry.saveScopeForPageId('general', 0), '',
   'General profile/storage subtabs do not expose a scoped save/reset action');
 
-console.log('settings page registry: 6 groups, 24 pages, 22 shared page routes, 68 subtabs: OK');
+console.log('settings page registry: 6 groups, 26 pages, 24 shared page routes, 70 subtabs: OK');
 NODE
 
 echo 'settings page registry catalogue: OK'

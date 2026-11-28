@@ -5,19 +5,13 @@ Item {
     id: root
     property bool shown: true
     property string animationStyle: "fade"
-    // Profiles control motion curves, not module-specific durations. Standard
-    // preserves the historical OutCubic behavior. Spatial also applies a
-    // restrained scale morph; Effects changes easing without geometry.
-    property string animationProfile: "standard"
+    // The profile is a CSS timing function; it changes only interpolation.
+    property string animationProfile: "ease-in-out"
     property int duration: Config.animationDuration(250, "appearance")
     // Freeze all transition parameters for each in-flight transition. Settings
     // changes must not alter the path halfway through an animation.
     property string activeAnimationStyle: "fade"
-    property string activeAnimationProfile: "standard"
-    // Spatial transitions add a restrained scale morph to the same normalized
-    // progress value. The value is frozen for each in-flight transition.
-    property real spatialScale: 0.97
-    property real activeSpatialScale: 0.97
+    property string activeAnimationProfile: "ease-in-out"
     property int activeDuration: 250
     // Reversing a transition only animates the remaining normalized distance.
     // This keeps quick toggles responsive instead of replaying a full duration.
@@ -50,8 +44,8 @@ Item {
             height: parent.height
             x: root.transitionProgress * root.activeHiddenX
             y: root.transitionProgress * root.activeHiddenY
-            opacity: root.usesOpacity() ? 1 - root.transitionProgress : 1
-            scale: root.activeAnimationProfile === "spatial" ? 1 - root.transitionProgress * (1 - root.activeSpatialScale) : 1
+            opacity: root.usesOpacity() ? Math.max(0, Math.min(1, 1 - root.transitionProgress)) : 1
+            scale: 1
             transformOrigin: Item.Center
             layer.enabled: root.cacheContent
             layer.smooth: root.cacheContent
@@ -122,19 +116,9 @@ Item {
         applyImmediate(root.shown)
     }
 
-    function normalizedSpatialScale() {
-        return Math.max(0.9, Math.min(1, Number(root.spatialScale) || 0.97))
-    }
-
     function handleAnimationProfileChange() {
         if (root.running) return
         activeAnimationProfile = root.animationProfile
-        activeSpatialScale = root.normalizedSpatialScale()
-    }
-
-    function handleSpatialScaleChange() {
-        if (root.running) return
-        activeSpatialScale = root.normalizedSpatialScale()
     }
 
     function handleDurationChange() {
@@ -151,7 +135,6 @@ Item {
             activeAnimationStyle = "none"
             activeAnimationProfile = root.animationProfile
             captureTransitionGeometry()
-            activeSpatialScale = root.normalizedSpatialScale()
             activeDuration = 0
             applyImmediate(root.shown)
             return
@@ -162,7 +145,6 @@ Item {
         if (!wasRunning) {
             activeAnimationStyle = root.animationStyle
             activeAnimationProfile = root.animationProfile
-            activeSpatialScale = root.normalizedSpatialScale()
             captureTransitionGeometry()
             activeDuration = root.duration
         }
@@ -232,13 +214,11 @@ Item {
     onShownChanged: startTransition()
     onAnimationStyleChanged: handleAnimationStyleChange()
     onAnimationProfileChanged: handleAnimationProfileChange()
-    onSpatialScaleChanged: handleSpatialScaleChange()
     onDurationChanged: handleDurationChange()
     onWidthChanged: {
         if (!root.shown && !root.running) {
             activeAnimationStyle = root.animationStyle
             activeAnimationProfile = root.animationProfile
-            activeSpatialScale = root.normalizedSpatialScale()
             captureTransitionGeometry()
             activeDuration = root.duration
             applyImmediate(false)
@@ -248,7 +228,6 @@ Item {
         if (!root.shown && !root.running) {
             activeAnimationStyle = root.animationStyle
             activeAnimationProfile = root.animationProfile
-            activeSpatialScale = root.normalizedSpatialScale()
             captureTransitionGeometry()
             activeDuration = root.duration
             applyImmediate(false)
@@ -257,7 +236,6 @@ Item {
     Component.onCompleted: {
         activeAnimationStyle = root.animationStyle
         activeAnimationProfile = root.animationProfile
-        activeSpatialScale = root.normalizedSpatialScale()
         captureTransitionGeometry()
         activeDuration = root.duration
         applyImmediate(root.shown)

@@ -16,9 +16,9 @@ for token in \
     'readonly property real networkStatRowHeight:' \
     'readonly property real networkStatRowGap:' \
     'y: uploadRowMorph.geometryHeight + root.networkStatRowGap' \
-    'Config.networkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' \
-    'anchors.topMargin: Config.networkTopPadding' \
-    'anchors.bottomMargin: 5'; do
+    'root.effectiveNetworkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' \
+    'anchors.topMargin: root.effectiveTopPadding' \
+    'anchors.bottomMargin: root.effectiveBottomPadding'; do
     grep -Fq "$token" "$QML" || fail "missing $token"
 done
 
@@ -33,7 +33,7 @@ assert 'visible: Config.networkShowUpload\n' not in qml and 'visible: Config.net
 assert qml.index('id: uploadRowMorph') < qml.index('id: downloadRowMorph'), 'upload row must remain above download row'
 assert 'y: uploadRowMorph.geometryHeight + root.networkStatRowGap' in qml, 'download row must follow the animated upload geometry'
 row=(root/'components/NetworkStatRow.qml').read_text(encoding='utf-8')
-assert 'height: Math.max(iconPixelSize, valuePixelSize) + Config.networkSpacing * 2' in row, 'row height formula changed unexpectedly'
+assert 'height: Math.max(iconPixelSize, valuePixelSize) + root.effectiveNetworkSpacing * 2' in row, 'row height formula changed unexpectedly'
 check=(root/'CHECK.sh').read_text(encoding='utf-8')
 assert 'run_test "$ROOT/tests/test_network_stat_morph_batch.sh"' in check, 'batch test is not registered'
 # Basic delimiter validation for the edited QML file.

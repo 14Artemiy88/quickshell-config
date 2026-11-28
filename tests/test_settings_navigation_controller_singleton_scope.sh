@@ -28,11 +28,11 @@ const source = fs.readFileSync(process.argv[2], 'utf8').replace(/^\.pragma libra
 const sandbox = {};
 vm.runInNewContext(source, sandbox, { filename: process.argv[2] });
 const tabs = sandbox.tabDefinitions();
-assert.strictEqual(tabs.length, 24, 'all settings tabs must be registered');
+assert.strictEqual(tabs.length, 26, 'all settings tabs must be registered');
 assert.strictEqual(tabs[0].id, 'modules');
 assert.strictEqual(tabs[tabs.length - 1].id, 'settingsWindow');
 assert.strictEqual(new Set(tabs.map(tab => tab.id)).size, tabs.length, 'tab IDs must be unique');
-console.log('Settings navigation registry: 24 unique tabs');
+console.log('Settings navigation registry: 26 unique tabs');
 NODE
 
 echo 'SettingsNavigationController singleton import scope: OK'

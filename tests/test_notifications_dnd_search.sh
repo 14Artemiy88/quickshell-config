@@ -135,6 +135,11 @@ const uniqueLegacyRows = buildRows([sameNameEntries[0]], ['Mail'], [], '', 40, t
 assert.strictEqual(uniqueLegacyRows[0].allowed, true, 'unique legacy appName alias remains checked');
 assert.deepStrictEqual(Array.from(uniqueLegacyRows[0].ruleIds), ['org.example.mail-a'], 'unique legacy alias migrates toward canonical desktop ID');
 assert.deepStrictEqual(Array.from(uniqueLegacyRows[0].legacyRuleIds), ['Mail'], 'only the unique legacy alias is removed when the canonical rule is toggled');
+const historyOnlyRows = buildRows([sameNameEntries[0]], [], [], '', 40, true, [], false, ['Mail']);
+assert.strictEqual(historyOnlyRows.length, 1, 'history-only configured application remains visible when Show All is off');
+assert.strictEqual(historyOnlyRows[0].historyIgnored, true, 'history-ignore rule is independently represented on the app row');
+assert.strictEqual(historyOnlyRows[0].allowed, false, 'history-ignore does not enable Ignore DND');
+assert.strictEqual(historyOnlyRows[0].blocked, false, 'history-ignore does not enable Disable');
 const section = fs.readFileSync(root + '/components/settings/sections/SettingsNotificationsSection.qml', 'utf8');
 assert(section.includes('NotificationAppSearch.buildRows('), 'DND app list uses its row builder');
 assert(section.includes('Config.notificationsSeenSenders || []'), 'DND app search uses only the runtime observed-sender catalog');
@@ -144,11 +149,13 @@ assert(section.includes('LauncherAppPreferences.normalizeIds(Config.launcherFavo
 assert(section.includes('function setDndApplicationRule(kind, appIds, enabled, legacyAliases)'), 'DND rule edits distinguish canonical IDs from legacy appName aliases');
 assert(section.includes('LauncherAppPreferences.setId(allowed, aliases[a], false)'), 'allow-rule toggle removes only uniquely mapped legacy aliases before writing canonical IDs');
 assert(section.includes('LauncherAppPreferences.setId(blocked, aliases[b], false)'), 'block-rule toggle removes only uniquely mapped legacy aliases before writing canonical IDs');
+assert(section.includes('LauncherAppPreferences.setId(historyIgnored, aliases[h], false)'), 'history rule edits migrate aliases independently');
+assert(section.includes('root.setDndApplicationRule("history"'), 'third per-app checkbox edits history exclusion only');
 assert(section.includes('enabled: modelData.unusableRule !== true'), 'ambiguous name-only senders cannot receive an unsafe rule');
 assert(!section.includes('Config.launcherHiddenApps'), 'DND does not inherit Launcher-only hidden-app preferences');
 assert(section.includes('onTextEdited: root.dndApplicationSearch = text'), 'search uses direct user-edit events');
 assert(section.includes('property bool dndShowAllApplications: false'), 'show-all starts disabled by default');
-assert(section.includes('root.dndShowAllApplications)'), 'the show-all toggle affects empty-query list generation');
+assert(section.includes('root.dndShowAllApplications,'), 'the show-all toggle affects empty-query list generation');
 assert(section.includes('text: "Показать все"'), 'DND search row exposes a Show All checkbox');
 assert(section.includes('function migrateLegacyDndCharacterRules()'), 'DND removes previously persisted character-split rule artifacts on load');
 assert(section.includes('Component.onCompleted: Qt.callLater(root.migrateLegacyDndCharacterRules)'), 'legacy DND rule cleanup runs on section startup');

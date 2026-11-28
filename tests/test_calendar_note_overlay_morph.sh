@@ -11,7 +11,7 @@ grep -Fq 'toGeometry: Qt.rect(0, 0, root.width, root.height)' "$QML"
 grep -Fq 'fromRadius: Config.frameRadius + 4' "$QML"
 grep -Fq 'toRadius: Config.frameRadius' "$QML"
 grep -Fq 'progress: root.noteOverlayMode !== "" ? 1 : 0' "$QML"
-grep -Fq 'visible: root.noteOverlayMode !== "" || normalizedProgress > 0.001' "$QML"
+grep -Fq 'visible: root.noteOverlayMode !== "" || root.noteOverlayOpacityProgress > 0.001' "$QML"
 grep -Fq 'animationDuration: Config.animationDurationForProfile(true, Config.animationCalendarMorphProfile, Config.animationCalendarMorphDuration, "appearance")' "$QML"
 grep -Fq 'animationProfile: Config.animationCalendarMorphProfile' "$QML"
 
@@ -19,11 +19,16 @@ python3 - "$QML" <<'PYCODE'
 from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text(encoding='utf-8')
+assert 'property real noteOverlayOpacityProgress: noteOverlayMode !== "" ? 1 : 0' in s
+assert 'Behavior on noteOverlayOpacityProgress' in s
+assert 'easing.type: Easing.Linear' in s
 start = s.index('Primitives.MorphGeometry {\n        id: noteOverlayMorph')
 end = s.index('\n    function shiftMonth', start)
 block = s[start:end]
-assert 'opacity: noteOverlayMorph.normalizedProgress' in block, 'overlay content must fade fully before exit visibility drops'
-assert 'scale: 0.97 + 0.03 * noteOverlayMorph.normalizedProgress' in block
+assert 'opacity: root.noteOverlayOpacityProgress' in block, 'linear opacity must remain visible for the full easing transition'
+assert 'scale: 0.90 + 0.10 * noteOverlayMorph.animatedProgress' in block, 'calendar note overlay scale must preserve cubic-bezier overshoot'
+assert 'animationEasing: Config.animationEasingType(Config.animationCalendarMorphProfile' in block
+assert 'animationBezierCurve: Config.animationBezierCurve(Config.animationCalendarMorphProfile' in block
 assert 'transformOrigin: Item.Center' in block
 assert 'MouseArea {' in block and 'acceptedButtons: Qt.AllButtons' in block
 assert 'color: "#e6000000"' in block

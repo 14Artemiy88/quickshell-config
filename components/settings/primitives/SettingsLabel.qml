@@ -9,7 +9,7 @@ Text {
     property real settingsFontSize: 11
 
     color: root.enabled ? Config.text : Config.textMuted
-    font.family: Config.settingsFont
+    font.family: Config.settingsFontFamily
     font.pixelSize: Config.settingsUiSize(root.settingsFontSize)
     verticalAlignment: Text.AlignVCenter
 }

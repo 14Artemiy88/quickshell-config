@@ -23,7 +23,7 @@ Column {
             Text {
                 text: "Пустая очередь / недоступен"
                 color: Config.settingsSubheading
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
             }
 
@@ -37,8 +37,8 @@ Column {
                 SettingsTextField {
                     id: mopidyEmptyQueueTextField
                     width: 180; height: 30; text: Config.mopidyEmptyQueueText; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (mopidyEmptyQueueTextField.activeFocus || mopidyEmptyQueueTextField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
+                    background: Rectangle { color: "transparent"; border.color: (mopidyEmptyQueueTextField.activeFocus || mopidyEmptyQueueTextField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || mopidyEmptyQueueTextField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyEmptyQueueText = text; settings.save() }
                     Connections { target: Config; function onMopidyEmptyQueueTextChanged() { mopidyEmptyQueueTextField.text = Config.mopidyEmptyQueueText } }
                 }
@@ -54,8 +54,8 @@ Column {
                 SettingsTextField {
                     id: mopidyUnavailableTextField
                     width: 180; height: 30; text: Config.mopidyUnavailableText; color: Config.text; activeFocusOnTab: true
-                    font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
-                    background: Rectangle { color: Config.settingsBackground; border.color: (mopidyUnavailableTextField.activeFocus || mopidyUnavailableTextField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
+                    background: Rectangle { color: "transparent"; border.color: (mopidyUnavailableTextField.activeFocus || mopidyUnavailableTextField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || mopidyUnavailableTextField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyUnavailableText = text; settings.save() }
                     Connections { target: Config; function onMopidyUnavailableTextChanged() { mopidyUnavailableTextField.text = Config.mopidyUnavailableText } }
                 }

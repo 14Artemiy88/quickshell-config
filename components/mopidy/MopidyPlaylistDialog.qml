@@ -68,7 +68,7 @@ Item {
                         height: 18
                         text: controller.playlistDialogMode === "create" ? "Новый плейлист" : (controller.playlistDialogMode === "rename" ? "Переименовать плейлист" : "Удалить плейлист")
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         font.bold: true
                         elide: Text.ElideRight
@@ -83,7 +83,7 @@ Item {
                         color: Config.text
                         placeholderText: "Название"
                         placeholderTextColor: Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         selectByMouse: true
                         onTextChanged: controller.playlistDialogInput = text
@@ -91,8 +91,8 @@ Item {
                         background: Rectangle {
                             color: Config.settingsBackground
                             border.color: playlistDialogField.activeFocus ? Config.accent : Config.baseColor
-                            border.width: 1
-                            radius: 4
+                            border.width: (Config.inputBordersEnabled || playlistDialogField.activeFocus) ? 1 : 0
+                            radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                         }
                         Keys.onEscapePressed: controller.closePlaylistDialog()
                     }
@@ -103,7 +103,7 @@ Item {
                         visible: controller.playlistDialogMode === "delete"
                         text: "Удалить «" + controller.playlistManageTitle + "»?"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
@@ -115,7 +115,7 @@ Item {
                         visible: !!controller.playlistDialogError
                         text: controller.playlistDialogError
                         color: Config.accent
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(9)
                         elide: Text.ElideRight
                     }

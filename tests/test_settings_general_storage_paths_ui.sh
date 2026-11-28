@@ -10,8 +10,8 @@ qml=(root/'components/settings/sections/SettingsGeneralSection.qml').read_text(e
 script=(root/'scripts/copy_text').read_text(encoding='utf-8')
 registry=(root/'js/settings/SettingsPageRegistry.js').read_text(encoding='utf-8')
 checks={
-    'storage paths has a separate General subtab': '{ id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] }' in registry,
-    'storage paths are not shown in General interface subtab': 'visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2' in qml,
+    'storage paths has a separate General subtab': '{ id: "general", saveScope: "", subTabs: ["Профили", "Хранилища"] }' in registry,
+    'storage paths are not shown in General interface subtab': 'visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1' in qml,
     'paths are grouped into framed sections': all(title in qml for title in ('Настройки и профили', 'Календарь', 'Данные модулей и кэши', 'Временные данные')),
     'path groups filter entries by stable ids': 'root.storagePathEntries.filter(function(entry)' in qml and 'groupEntryIds.indexOf(entry.id)' in qml,
     'paths loaded from canonical resolver script': 'scripts/storage_paths' in qml,

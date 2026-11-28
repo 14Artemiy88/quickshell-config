@@ -117,93 +117,75 @@ position() {
         exit 0
     fi
 
-    # MPRIS-плееры: всегда адресуем именно тот backend, который сейчас
-    # выбран PlayerWidget. Никакого fallback на другой MPRIS-плеер.
+    # DeaDBeeF's MPRIS service uses the canonical, case-sensitive bus name
+    # org.mpris.MediaPlayer2.DeaDBeeF. The metadata backend intentionally keeps
+    # the app's normalized internal ID ("deadbeef"), so route it to the actual
+    # MPRIS identity here.
+    # DeaDBeeF metadata is read through its CLI, where duration is milliseconds;
+    # MPRIS position commands use seconds. Convert that fallback explicitly.
+    if [[ "$player_name" == "deadbeef" ]]; then
+        if ! command -v playerctl >/dev/null 2>&1; then
+            exit 0
+        fi
+
+        local deadbeef_mpris_player="DeaDBeeF"
+        local deadbeef_length_us="" deadbeef_target_seconds=""
+        deadbeef_length_us=$(playerctl -p "$deadbeef_mpris_player" metadata mpris:length 2>/dev/null || true)
+
+        if [[ "$deadbeef_length_us" =~ ^[0-9]+$ ]] && (( deadbeef_length_us > 0 )); then
+            deadbeef_target_seconds=$(awk -v p="$pos_percent" -v l="$deadbeef_length_us" 'BEGIN {printf "%.6f", (p * l) / 100000000}')
+        elif [[ "$duration_ms" =~ ^[0-9]+([.][0-9]+)?$ ]] && \
+             awk -v d="$duration_ms" 'BEGIN {exit !(d > 0)}'; then
+            deadbeef_target_seconds=$(awk -v p="$pos_percent" -v d="$duration_ms" 'BEGIN {printf "%.6f", (p * d) / 100000}')
+        else
+            exit 0
+        fi
+
+        # playerctl sends MPRIS SetPosition with DeaDBeeF's current track ID.
+        # This avoids targeting a non-existent lowercase MPRIS player alias.
+        playerctl -p "$deadbeef_mpris_player" position "$deadbeef_target_seconds" >/dev/null 2>&1 || true
+        exit 0
+    fi
+
+    # MPRIS-плееры: Player передаёт точный backend ID, который только что
+    # использовался для чтения metadata. Не выполняем повторный discovery через
+    # playerctl -l: он может вернуть несколько alias-вариантов одного сервиса.
     if [[ -n "$player_name" ]] && command -v playerctl >/dev/null 2>&1; then
-        normalize_player_name() {
-            local value="$1"
-            value="${value#org.mpris.MediaPlayer2.}"
-            value="${value#org.mpris.MediaPlayer2.}"
-            value="${value//[^[:alnum:]]/}"
-            printf '%s' "${value,,}"
-        }
-
-        mpris_player=""
-        wanted_norm=$(normalize_player_name "$player_name")
-        while IFS= read -r candidate; do
-            [[ -z "$candidate" ]] && continue
-            candidate_norm=$(normalize_player_name "$candidate")
-            if [[ "$candidate_norm" == "$wanted_norm" ]]; then
-                mpris_player="$candidate"
-                break
-            fi
-        done < <(playerctl -l 2>/dev/null || true)
-
-        # Известные варианты имён DeaDBeeF/Spotify.
-        if [[ -z "$mpris_player" ]]; then
-            case "${player_name,,}" in
-                deadbeef|deadbeef-player)
-                    for candidate in "DeaDBeeF" "deadbeef" "org.mpris.MediaPlayer2.DeaDBeeF" "org.mpris.MediaPlayer2.deadbeef"; do
-                        if playerctl -p "$candidate" status >/dev/null 2>&1; then
-                            mpris_player="$candidate"
-                            break
-                        fi
-                    done
-                    ;;
-                spotify|spotify-client)
-                    for candidate in "spotify" "Spotify" "org.mpris.MediaPlayer2.spotify"; do
-                        if playerctl -p "$candidate" status >/dev/null 2>&1; then
-                            mpris_player="$candidate"
-                            break
-                        fi
-                    done
-                    ;;
-            esac
-        fi
-
-        if [[ -n "$mpris_player" ]]; then
-            length_us=$(playerctl -p "$mpris_player" metadata mpris:length 2>/dev/null || true)
-            if [[ ! "$length_us" =~ ^[0-9]+$ ]] || (( length_us <= 0 )); then
-                length_us=""
-            fi
-
-            # Если MPRIS length недоступен (например, у конкретного backend),
-            # используем длительность, которую Player уже получил от своего
-            # собственного backend.
-            if [[ -z "$length_us" && "$duration_ms" =~ ^[0-9]+$ ]] && (( duration_ms > 0 )); then
-                length_us=$((duration_ms * 1000))
-            fi
-
-            if [[ "$length_us" =~ ^[0-9]+$ ]] && (( length_us > 0 )); then
-                target_seconds=$(awk -v p="$pos_percent" -v l="$length_us" 'BEGIN {printf "%.6f", (p * l) / 100000000}')
-
-                if playerctl -p "$mpris_player" position "$target_seconds" >/dev/null 2>&1; then
-                    exit 0
-                fi
-
-                # Fallback: относительный Seek. Берём текущую позицию самой
-                # командой playerctl, а не mpris:position metadata.
-                current_seconds=$(playerctl -p "$mpris_player" position 2>/dev/null || true)
-                if [[ "$current_seconds" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
-                    delta_seconds=$(awk -v target="$target_seconds" -v current="$current_seconds" 'BEGIN { printf "%.3f", target - current }')
-                    if ! awk -v d="$delta_seconds" 'BEGIN { exit !(d > -0.005 && d < 0.005) }'; then
-                        if [[ "$delta_seconds" == -* ]]; then
-                            seek_value="${delta_seconds#-}-"
-                        else
-                            seek_value="${delta_seconds}+"
-                        fi
-                        if playerctl -p "$mpris_player" position "$seek_value" >/dev/null 2>&1; then
-                            exit 0
-                        fi
-                    else
-                        exit 0
-                    fi
-                fi
+        local length_us target_seconds current_seconds delta_seconds seek_value
+        length_us=$(playerctl -p "$player_name" metadata mpris:length 2>/dev/null || true)
+        if [[ ! "$length_us" =~ ^[0-9]+$ ]] || (( length_us <= 0 )); then
+            # The MPRIS backend stores mpris:length in root.player.duration
+            # in microseconds. Preserve that unit rather than multiplying by
+            # 1000, which would place the target far beyond the track.
+            if [[ "$duration_ms" =~ ^[0-9]+$ ]] && (( duration_ms > 0 )); then
+                length_us="$duration_ms"
+            else
+                exit 0
             fi
         fi
 
-        # ВАЖНО: когда Player явно передал backend, не трогаем другой MPRIS
-        # player только потому, что выбранный backend не поддержал seek.
+        target_seconds=$(awk -v p="$pos_percent" -v l="$length_us" 'BEGIN {printf "%.6f", (p * l) / 100000000}')
+
+        # A bare playerctl position argument sets an absolute position in
+        # seconds; +/- suffixes are reserved for relative seeks.
+        if playerctl -p "$player_name" position "$target_seconds" >/dev/null 2>&1; then
+            exit 0
+        fi
+
+        # Fallback for players that reject absolute position commands but
+        # implement MPRIS Seek: calculate a relative offset from fresh position.
+        current_seconds=$(playerctl -p "$player_name" position 2>/dev/null || true)
+        if [[ "$current_seconds" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            delta_seconds=$(awk -v target="$target_seconds" -v current="$current_seconds" 'BEGIN { printf "%.3f", target - current }')
+            if ! awk -v d="$delta_seconds" 'BEGIN { exit !(d > -0.005 && d < 0.005) }'; then
+                if [[ "$delta_seconds" == -* ]]; then
+                    seek_value="${delta_seconds#-}-"
+                else
+                    seek_value="${delta_seconds}+"
+                fi
+                playerctl -p "$player_name" position "$seek_value" >/dev/null 2>&1 || true
+            fi
+        fi
         exit 0
     fi
 

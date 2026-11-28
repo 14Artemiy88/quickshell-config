@@ -479,7 +479,7 @@ QtObject {
                 calendar: ["calendar", "animationCalendar"], cpu: ["cpu"], cpuGraph: ["cpuGraph"],
                 topAppsCpu: ["topApps"], topAppsRam: ["topApps"], networkStat: ["network", "systemMonitor"], networks: ["network", "systemMonitor"],
                 weatherNow: ["weather", "animationWeather"], weatherHourly: ["weather", "animationWeather"], weatherDaily: ["weather", "animationWeather"], timer: ["timer"],
-                volumes: ["volume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications", "animationNotifications"],
+                volumes: ["volume", "animationVolume"], player: ["player"], cava: ["cava"], mopidy: ["mopidy", "animationMopidy"], notifications: ["notifications", "animationNotifications"],
                 time: ["clock"]
             }[moduleName] || [moduleName]
             // The individual CPU row resets shared graph geometry but not the
@@ -503,12 +503,15 @@ QtObject {
         if (scope === "all") {
             // A theme can change its identity while producing the same effective
             // palette, so activeTheme must be considered in addition to colors.
-            return hasAny(["activeTheme"]) || ["general", "clock", "timer", "player", "weather", "cava", "cpu", "network", "volume", "calendar", "settingsWindow", "mopidy", "launcher", "dashboard", "notifications", "modules"].some(function(item) {
+            return hasAny(["activeTheme"]) || ["general", "clock", "timer", "player", "weather", "cava", "cpu", "network", "volume", "osd", "calendar", "settingsWindow", "mopidy", "launcher", "dashboard", "notifications", "modules"].some(function(item) {
                 return hasResetChanges(item)
             }) || hasResetChanges("colors", colorNames)
         }
         if (scope === "general")
-            return hasAny(["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"])
+            return hasAny(["font", "fontSize", "fontScale", "uiScale", "ledFont", "frameBorderWidth", "frameRadius", "cornerRadiusScale", "buttonBordersEnabled", "inputBordersEnabled", "popupBordersEnabled", "cardBordersEnabled", "backgroundBlurRadius"])
+        if (scope === "osd")
+            return hasAny(["osdIntegrateWithNotifications"])
+                || hasPrefixed(["volumeOsd", "animationVolumeOsd", "playerOsd", "animationPlayerOsd", "notificationsDndOsd", "animationNotificationsDndOsd"])
 
         // Top Apps bar colors are stored in the nested `colors` palette map,
         // not as top-level `topApps*` settings. Include those four palette
@@ -519,13 +522,19 @@ QtObject {
                 "topAppsRamBarColor", "topAppsRamBarTrackColor"
             ].some(function(key) { return hasNested("colors", key) })) return true
 
+        if (scope === "player")
+            return hasPrefixed(["player", "animationPlayer"], ["playerOsdEnabled", "playerOsdHideDelay", "playerOsdAnimationDuration", "animationPlayerOsdMorphProfile"])
+        if (scope === "volume")
+            return hasPrefixed(["volume", "animationVolume"], ["volumeOsdEnabled", "volumeOsdHideDelay", "volumeOsdAnimationDuration", "animationVolumeOsdMorphProfile"])
+        if (scope === "notifications")
+            return hasPrefixed(["notifications", "animationNotifications"], ["notificationsDndOsdEnabled", "notificationsDndOsdHideDelay", "notificationsDndOsdAnimationDuration", "animationNotificationsDndOsdMorphProfile"])
+
         var prefixesByScope = {
-            timer: ["timer", "animationTimer"], player: ["player"], weather: ["weather", "animationWeather"], cava: ["cava"],
-            cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"], volume: ["volume"],
+            timer: ["timer", "animationTimer"], weather: ["weather", "animationWeather"], cava: ["cava"],
+            cpu: ["cpu", "cpuGraph", "topApps"], network: ["network", "systemMonitor"],
             calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
             dashboard: ["dashboard"],
-            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsNavigationOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
-            notifications: ["notifications", "animationNotifications"],
+            settingsWindow: ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsShowDescriptions", "settingsPadding", "settingsSpacing", "settingsNavigationOrder", "settingsTabLabels", "animationSettings", "settingsBackground", "settingsBorder"],
             clock: ["clock"]
         }
         if (scope === "settingsWindow") {
@@ -560,6 +569,7 @@ QtObject {
     function resetNetworkSettings() { SettingsResets.resetNetworkSettings(root, Config) }
 
     function resetVolumeSettings() { SettingsResets.resetVolumeSettings(root, Config) }
+    function resetOsdSettings() { SettingsResets.resetOsdSettings(root, Config) }
 
     function resetTimerSettings() { SettingsResets.resetTimerSettings(root, Config) }
 

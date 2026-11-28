@@ -156,7 +156,7 @@ Item {
             height: 30
             text: root.formatValue(root.value)
             color: Config.text
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.fieldFontSize)
             horizontalAlignment: Text.AlignHCenter
             activeFocusOnTab: true

@@ -2,6 +2,8 @@ import QtQuick
 import ".."
 import Quickshell
 import Quickshell.Wayland
+import "../js/ModulePresentation.js" as ModulePresentation
+import "../js/AnimationCurves.js" as AnimationCurves
 
 PanelWindow {
     id: root
@@ -9,6 +11,21 @@ PanelWindow {
     property int offsetY: 0
     property int contentWidth: 315
     property int contentHeight: 100
+    // Directional entry/exit animations may legitimately overshoot their
+    // nominal geometry. Expand the transparent layer-shell surface only by
+    // the curve's measured overflow, while keeping visible content at the
+    // configured coordinates and preserving the original input geometry.
+    property string visibilityAnimationStyle: "none"
+    property string visibilityAnimationProfile: "ease-out"
+    readonly property real visibilityOvershootFactor: AnimationCurves.overshootFactor(root.visibilityAnimationProfile)
+    readonly property real visibilityOverscanX: (root.visibilityAnimationStyle === "slideLeft" || root.visibilityAnimationStyle === "slideRight")
+        ? Math.ceil(Math.max(0, Number(root.contentWidth) || 0) * root.visibilityOvershootFactor) : 0
+    readonly property real visibilityOverscanY: (root.visibilityAnimationStyle === "slideUp" || root.visibilityAnimationStyle === "slideDown")
+        ? Math.ceil(Math.max(0, Number(root.contentHeight) || 0) * root.visibilityOvershootFactor) : 0
+    readonly property real visualContentWidth: Math.max(1, Math.round(root.contentWidth * root.surfaceScale))
+    readonly property real visualContentHeight: Math.max(1, Math.round(root.contentHeight * root.surfaceScale))
+    readonly property real visibilityOverscanPhysicalX: Math.round(root.visibilityOverscanX * root.surfaceScale)
+    readonly property real visibilityOverscanPhysicalY: Math.round(root.visibilityOverscanY * root.surfaceScale)
     property bool bottomLayer: true
     property bool keyboardEnabled: false
     property bool backgroundBlurEnabled: root.moduleName !== "" && Settings.moduleBlurEnabled[root.moduleName] === true
@@ -25,6 +42,20 @@ PanelWindow {
     property bool layoutEditMode: false
     property bool settingsDragMode: false
     property int normalWlrLayer: bottomLayer ? WlrLayer.Bottom : WlrLayer.Top
+    readonly property real surfaceScale: root.moduleName === "settings"
+        ? Config.settingsUiScaleFactor() : Config.moduleUiScale()
+    // Built-in modules share one width-to-presentation contract. The default
+    // breakpoints use logical pixels, before surfaceScale is applied; modules
+    // may opt into a fixed mode when their content requires it.
+    property string presentationModeOverride: "auto"
+    property int compactWidthBreakpoint: 260
+    property int wideWidthBreakpoint: 420
+    readonly property string presentationMode: ModulePresentation.resolveMode(
+        root.contentWidth,
+        root.presentationModeOverride,
+        root.compactWidthBreakpoint,
+        root.wideWidthBreakpoint
+    )
     property int editWlrLayer: WlrLayer.Top
     property bool liveDragging: false
     signal layoutDragFinished()
@@ -93,15 +124,15 @@ PanelWindow {
     }
 
     screen: root.resolveScreen(root.screenName || Config.monitorName)
-    implicitWidth: contentWidth
-    implicitHeight: contentHeight
+    implicitWidth: Math.max(1, root.visualContentWidth + root.visibilityOverscanPhysicalX * 2)
+    implicitHeight: Math.max(1, root.visualContentHeight + root.visibilityOverscanPhysicalY * 2)
     color: Config.transparent
     focusable: keyboardEnabled
     exclusionMode: ExclusionMode.Ignore
     anchors.left: true
     anchors.top: true
-    margins.left: root.offsetX
-    margins.top: root.offsetY
+    margins.left: root.offsetX - root.visibilityOverscanPhysicalX
+    margins.top: root.offsetY - root.visibilityOverscanPhysicalY
     WlrLayershell.layer: root.layoutEditMode ? root.editWlrLayer : root.normalWlrLayer
     mask: root.manageInputMask ? managedInputMask : null
 
@@ -117,13 +148,29 @@ PanelWindow {
 
     Item {
         id: contentHost
-        anchors.fill: parent
+        // Read-only host context consumed by the root item of a built-in module.
+        // `active` follows the owning layer-shell surface; hidden modules can
+        // pause view-only work without destroying their persistent state.
+        readonly property string presentationMode: root.presentationMode
+        readonly property real widthBudget: root.contentWidth
+        readonly property bool active: root.visible
+        x: root.visibilityOverscanPhysicalX
+        y: root.visibilityOverscanPhysicalY
+        // Children keep their stored/logical dimensions; only the rendered
+        // subtree and its input coordinates are scaled as one surface.
+        width: root.contentWidth
+        height: root.contentHeight
+        scale: root.surfaceScale
+        transformOrigin: Item.TopLeft
         z: 0
     }
 
     Item {
         id: editOverlay
-        anchors.fill: parent
+        x: root.visibilityOverscanPhysicalX
+        y: root.visibilityOverscanPhysicalY
+        width: root.visualContentWidth
+        height: root.visualContentHeight
         visible: root.layoutEditMode && root.moduleName !== "" && !root.settingsDragMode
         z: 10000
 
@@ -133,8 +180,8 @@ PanelWindow {
             visible: !root.liveDragging
             color: "transparent"
             border.color: Config.accent
-            border.width: Math.max(2, Config.frameBorderWidth + 1)
-            radius: Config.frameRadius
+            border.width: Math.max(2, Math.round((Config.frameBorderWidth + 1) * root.surfaceScale))
+            radius: Math.round(Config.scaledCornerRadius(Config.frameRadius) * root.surfaceScale)
             antialiasing: true
         }
 
@@ -142,21 +189,21 @@ PanelWindow {
             id: editLabelBox
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.margins: 5
+            anchors.margins: Math.round(5 * root.surfaceScale)
             visible: !root.liveDragging
-            width: editLabel.implicitWidth + 14
-            height: editLabel.implicitHeight + 8
-            radius: 4
+            width: editLabel.implicitWidth + Math.round(14 * root.surfaceScale)
+            height: editLabel.implicitHeight + Math.round(8 * root.surfaceScale)
+            radius: Math.round(4 * root.surfaceScale)
             color: Config.accent
             border.color: Config.accent
-            border.width: 1
+            border.width: Math.max(1, Math.round(root.surfaceScale))
 
             Text {
                 id: editLabel
                 anchors.centerIn: parent
                 text: root.moduleName
                 color: Config.black
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 font.bold: true
             }
@@ -176,8 +223,8 @@ PanelWindow {
                 var currentGlobalX = root.dragBaseGlobalX + (Number(mouseX) - root.dragPressX)
                 var currentGlobalY = root.dragBaseGlobalY + (Number(mouseY) - root.dragPressY)
                 var currentScreen = root.findScreenForGlobalPoint(
-                    currentGlobalX + root.width / 2,
-                    currentGlobalY + root.height / 2
+                    currentGlobalX + root.visualContentWidth / 2,
+                    currentGlobalY + root.visualContentHeight / 2
                 )
                 var targetName = root.screenStorageName(currentScreen)
                 var localX = currentGlobalX - Number(currentScreen && currentScreen.x || 0)
@@ -215,8 +262,8 @@ PanelWindow {
                         root.moduleName,
                         startGlobalX,
                         startGlobalY,
-                        root.width,
-                        root.height
+                        root.visualContentWidth,
+                        root.visualContentHeight
                     )
                 }
 
@@ -228,7 +275,7 @@ PanelWindow {
                     contentHost.opacity = 0
                     if (root.layoutEditor)
                         root.layoutEditor.setProxySource(result.url)
-                }, Qt.size(Math.max(1, Math.round(root.width)), Math.max(1, Math.round(root.height))))
+                }, Qt.size(Math.max(1, Math.round(root.visualContentWidth)), Math.max(1, Math.round(root.visualContentHeight))))
             }
 
             onPositionChanged: function(mouse) {
@@ -241,8 +288,8 @@ PanelWindow {
                     root.layoutEditor.updateProxyDrag(
                         currentGlobalX,
                         currentGlobalY,
-                        root.width,
-                        root.height
+                        root.visualContentWidth,
+                        root.visualContentHeight
                     )
             }
 

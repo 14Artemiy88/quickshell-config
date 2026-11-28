@@ -47,7 +47,7 @@ Item {
             text: root.iconText
             color: root.hovered && root.hoverMode === "text" ? root.hoverColor : root.baseColor
             font.family: root.iconFontFamily
-            font.pixelSize: root.iconSize
+            font.pixelSize: Config.uiFontSize(root.iconSize)
             y: root.iconY
             transform: Translate { x: root.iconX }
             horizontalAlignment: Text.AlignHCenter

@@ -23,7 +23,7 @@ from pathlib import Path
 import sys
 root = Path(sys.argv[1])
 s = (root / "components/WeatherNow.qml").read_text(encoding="utf-8")
-start = s.find("Primitives.MorphGeometry {\n            id: weatherComfortMorph")
+start = s.find("Primitives.MorphGeometry {\n                id: weatherComfortMorph")
 assert start >= 0, "comfort label is not wrapped in MorphGeometry"
 opening = s.find("{", start)
 stack = []

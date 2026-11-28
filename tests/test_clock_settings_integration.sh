@@ -59,14 +59,14 @@ assert.ok(settings.includes('function resetClockSettings()'), 'Settings must exp
 
 assert.match(timeWidget, /font\.family: Config\.clockFont \|\| Config\.ledFont/,
   'time and date must inherit the shared LED family when no override is set');
-assert.match(timeWidget, /font\.pixelSize: Config\.clockFontSize/,
-  'time must use its independent font size');
-assert.match(timeWidget, /font\.pixelSize: Config\.clockDateFontSize/,
-  'date must use its independent font size');
+assert.match(timeWidget, /effectiveTimeFontSize: Math\.max\(1, Math\.round\(\s*Config\.uiFontSize\(Config\.clockFontSize\) \* timePresentationScale \* effectiveCompactScale\)\)/,
+  'time must retain its independent font size with presentation scaling');
+assert.match(timeWidget, /effectiveDateFontSize: Math\.max\(1, Math\.round\(\s*Config\.uiFontSize\(Config\.clockDateFontSize\) \* datePresentationScale\s*\* \(root\.compactPresentation \? effectiveCompactScale : effectiveDateLayoutScale\)\)\)/,
+  'date must retain its independent font size with presentation scaling');
 assert.match(timeWidget, /font\.family: Config\.clockWeekdayFont \|\| "Ubuntu"/,
   'weekday must use its independent font family');
-assert.match(timeWidget, /font\.pixelSize: Config\.clockWeekdayFontSize/,
-  'weekday must use its independent font size');
+assert.match(timeWidget, /effectiveWeekdayFontSize: Math\.max\(1, Math\.round\(\s*Config\.uiFontSize\(Config\.clockWeekdayFontSize\) \* datePresentationScale \* effectiveCompactScale\)\)/,
+  'weekday must retain its independent font size with presentation scaling');
 
 for (const id of ['clock-font', 'clock-time-size', 'clock-date-size', 'clock-weekday-font', 'clock-weekday-size'])
   assert.ok(timeSettings.includes(`settingsSearchId: "${id}"`), `${id} must be discoverable through Settings search`);

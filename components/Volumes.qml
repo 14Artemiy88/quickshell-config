@@ -33,10 +33,27 @@ Primitives.ModuleFrame {
     property bool streamsExpanded: Config.volumeShowStreams
     readonly property int streamCount: streamRepeater.count
     readonly property int effectiveStreamCount: streamsExpanded ? streamCount : 0
-    readonly property int effectiveStreamRowHeight: Math.max(Config.volumeStreamRowHeight, Config.volumeStreamTrackHeight)
+    // Adapt only the rendered geometry; Config remains the saved user preference.
+    readonly property real presentationScale: VolumeLayout.presentationScale(root.presentationMode)
+    readonly property int effectiveHorizontalPadding: Math.max(0, Config.volumeHorizontalPadding)
+    readonly property int effectiveVerticalPadding: VolumeLayout.verticalPadding(root.presentationMode, Config.volumeVerticalPadding)
+    readonly property int effectiveMainTrackWidth: VolumeLayout.mainTrackWidth(
+        root.presentationMode, root.width, root.effectiveHorizontalPadding,
+        Config.volumeMainIconWidth, Config.volumeMainTrackWidth
+    )
+    readonly property int effectiveMainTrackHeight: VolumeLayout.trackHeight(root.presentationMode, Config.volumeMainTrackHeight)
+    readonly property int effectiveStreamTrackHeight: VolumeLayout.trackHeight(root.presentationMode, Config.volumeStreamTrackHeight)
+    readonly property int effectiveStreamRowHeight: VolumeLayout.streamRowHeight(
+        root.presentationMode, Config.volumeStreamRowHeight, root.effectiveStreamTrackHeight
+    )
+    readonly property int effectiveStreamListSpacing: VolumeLayout.streamListSpacing(root.presentationMode)
+    readonly property int effectiveStreamLabelSpacing: VolumeLayout.streamLabelSpacing(root.presentationMode, Config.volumeStreamSpacing)
+    readonly property real effectiveStreamLabelFontSize: root.regularPresentation
+        ? Config.uiFontSize(Config.volumeStreamLabelFontSize)
+        : Math.max(9, Config.uiFontSize(Config.volumeStreamLabelFontSize) * root.presentationScale)
     readonly property int streamListContentHeight: Math.ceil(streamListContent.implicitHeight)
-    readonly property int streamListGapHeight: streamsExpanded && streamCount > 0 ? 7 : 0
-    readonly property int mainContentHeight: 2 * Config.volumeVerticalPadding + Config.volumeMainRowHeight
+    readonly property int streamListGapHeight: streamsExpanded && streamCount > 0 ? root.effectiveStreamListSpacing : 0
+    readonly property int mainContentHeight: 2 * root.effectiveVerticalPadding + Config.volumeMainRowHeight
     // Use the actual stream-list geometry so the window and clipped content
     // grow/shrink together without leaving unused space below a short list.
     readonly property int adaptiveHeight: VolumeLayout.adaptiveHeight(
@@ -50,6 +67,8 @@ Primitives.ModuleFrame {
     )
     readonly property int streamAnimationDuration: Config.animationDurationForProfile(
         true, Config.animationVolumeMorphProfile, Config.volumeStreamsAnimationDuration, "appearance")
+    readonly property int streamVisibilityDuration: Config.animationDuration(
+        Config.volumeStreamsAnimationDuration, "appearance")
     readonly property string streamAnimationPhase: root.streamsExpanded ? "enter" : "exit"
     property real animatedAdaptiveHeight: adaptiveHeight
     Behavior on animatedAdaptiveHeight {
@@ -229,10 +248,10 @@ Primitives.ModuleFrame {
 
     Column {
         anchors.fill: parent
-        anchors.leftMargin: Config.volumeHorizontalPadding
-        anchors.rightMargin: Config.volumeHorizontalPadding
-        anchors.topMargin: Config.volumeVerticalPadding
-        anchors.bottomMargin: Config.volumeVerticalPadding
+        anchors.leftMargin: root.effectiveHorizontalPadding
+        anchors.rightMargin: root.effectiveHorizontalPadding
+        anchors.topMargin: root.effectiveVerticalPadding
+        anchors.bottomMargin: root.effectiveVerticalPadding
         spacing: 0
 
         Row {
@@ -256,23 +275,23 @@ Primitives.ModuleFrame {
                     anchors.fill: parent
                     text: root.mainDragging ? ((root.mainMuted || root.mainDragValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon) : ((root.mainMuted || root.mainDisplayedValue <= 0) ? Config.volumeMutedIcon : Config.volumeIcon)
                     color: Config.text
-                    font.pixelSize: Config.uiFontSize(16)
+                    font.pixelSize: Config.uiFontSize(16) * root.presentationScale
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
             Item {
                 id: mainTrack
-                width: Config.volumeMainTrackWidth
+                width: root.effectiveMainTrackWidth
                 height: 32
                 property real shownValue: root.mainDragging ? root.mainDragValue : root.mainDisplayedValue
 
                 Primitives.ProgressTrack {
                     id: mainProgressTrack
                     x: 0
-                    y: (parent.height - Config.volumeMainTrackHeight) / 2 + Config.volumeMainTrackOffsetY
+                    y: (parent.height - root.effectiveMainTrackHeight) / 2 + Math.round(Config.volumeMainTrackOffsetY * root.presentationScale)
                     width: parent.width
-                    height: Config.volumeMainTrackHeight
+                    height: root.effectiveMainTrackHeight
                     radius: Config.volumeTrackRadius
                     value: root.mainMuted && !root.mainDragging ? 0 : root.clampVolume(mainTrack.shownValue)
                     fillColor: Config.volumeFill
@@ -327,25 +346,24 @@ Primitives.ModuleFrame {
 
             Behavior on height {
                 NumberAnimation {
-                    duration: root.streamAnimationDuration
-                    easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
-                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    duration: root.streamVisibilityDuration
+                    easing.type: Config.animationEasingType(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
                 }
             }
             Behavior on opacity {
                 NumberAnimation {
-                    duration: Config.animationVolumeStreamsVisibilityStyle === "fade" ? root.streamAnimationDuration : 0
-                    easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
-                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                    duration: Config.animationVolumeStreamsVisibilityStyle === "fade" ? root.streamVisibilityDuration : 0
+                    easing.type: Config.animationEasingType(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
+                    easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
                 }
             }
 
             Column {
                 id: streamListContent
                 width: parent.width
-                // Match the previous outer Column spacing between stream rows;
-                // each delegate keeps its own label-to-track spacing below.
-                spacing: 7
+                // The stream-list gap follows the same density as the inter-row spacing.
+                spacing: root.effectiveStreamListSpacing
                 x: {
                     if (root.streamsExpanded) return 0
                     if (Config.animationVolumeStreamsVisibilityStyle === "slideLeft") return -width
@@ -360,16 +378,16 @@ Primitives.ModuleFrame {
                 }
                 Behavior on x {
                     NumberAnimation {
-                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideLeft" || Config.animationVolumeStreamsVisibilityStyle === "slideRight" ? root.streamAnimationDuration : 0
-                        easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
-                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideLeft" || Config.animationVolumeStreamsVisibilityStyle === "slideRight" ? root.streamVisibilityDuration : 0
+                        easing.type: Config.animationEasingType(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
                     }
                 }
                 Behavior on y {
                     NumberAnimation {
-                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideUp" || Config.animationVolumeStreamsVisibilityStyle === "slideDown" ? root.streamAnimationDuration : 0
-                        easing.type: Config.animationEasingType(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
-                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeMorphProfile, root.streamAnimationPhase)
+                        duration: Config.animationVolumeStreamsVisibilityStyle === "slideUp" || Config.animationVolumeStreamsVisibilityStyle === "slideDown" ? root.streamVisibilityDuration : 0
+                        easing.type: Config.animationEasingType(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
+                        easing.bezierCurve: Config.animationBezierCurve(Config.animationVolumeStreamsVisibilityProfile, root.streamAnimationPhase)
                     }
                 }
 
@@ -380,7 +398,7 @@ Primitives.ModuleFrame {
                     delegate: Column {
                         id: streamColumn
                         width: streamListContent.width
-                        spacing: Config.volumeStreamSpacing
+                        spacing: root.effectiveStreamLabelSpacing
                         property real backendValue: Number(modelData.value ?? 0)
                         property var pendingVolume: root.streamPendingValues[String(modelData.num)] ?? null
                         property real dragValue: displayedValue
@@ -397,8 +415,8 @@ Primitives.ModuleFrame {
                         Text {
                             text: modelData.name
                             color: Config.text
-                            font.family: Config.volumeStreamLabelFont.trim() === "" ? Qt.application.font.family : Config.volumeStreamLabelFont
-                            font.pixelSize: Config.uiFontSize(Config.volumeStreamLabelFontSize)
+                            font.family: Config.resolveFontFamily(Config.volumeStreamLabelFont)
+                            font.pixelSize: root.effectiveStreamLabelFontSize
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                             width: parent.width
@@ -411,9 +429,9 @@ Primitives.ModuleFrame {
 
                             Primitives.ProgressTrack {
                                 x: 0
-                                y: Math.max(0, (parent.height - Config.volumeStreamTrackHeight) / 2 + Config.volumeStreamTrackOffsetY)
+                                y: Math.max(0, (parent.height - root.effectiveStreamTrackHeight) / 2 + Math.round(Config.volumeStreamTrackOffsetY * root.presentationScale))
                                 width: parent.width
-                                height: Config.volumeStreamTrackHeight
+                                height: root.effectiveStreamTrackHeight
                                 radius: Config.volumeTrackRadius
                                 value: root.clampVolume(streamColumn.displayedValue)
                                 fillColor: Config.volumeFill

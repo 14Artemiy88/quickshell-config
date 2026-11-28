@@ -71,7 +71,7 @@ assert(nav.includes('SettingsSubTab {\n                        id: navigationGro
   'standalone pages use the shared tab component rather than the folder header');
 assert(nav.includes('visible: navigationGroupDelegate.modelData.items.length > 1'),
   'folder header is only rendered for multi-page groups');
-assert(folder.includes('border.width: root.searchMatchCount > 0\n                ? Config.settingsSearchHighlightBorderWidth\n                : ((folderHeader.activeFocus || folderHover.hovered) ? 1 : 0)'),
+assert(folder.includes('border.width: root.searchMatchCount > 0\n                ? Config.settingsSearchHighlightBorderWidth\n                : (folderHeader.activeFocus || (Config.cardBordersEnabled && folderHover.hovered) ? 1 : 0)'),
   'collapsed folder header remains thin; expanded card uses its own outer frame');
 assert(widget.includes('function toggleSettingsNavigationGroup(id)'), 'group collapse remains an independent navigation action');
 console.log('settings collapsed active-page indicator: group lookup, custom labels, visibility and header layout: OK');

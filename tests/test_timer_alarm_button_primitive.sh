@@ -13,7 +13,7 @@ grep -Fq 'wheelEnabled: root.wheelEnabled' "$ALARM_BUTTON"
 grep -Fq 'onButtonClicked: button => root.buttonClicked(button)' "$ALARM_BUTTON"
 grep -Fq 'onWheelRequested: wheelEvent => root.wheelRequested(wheelEvent)' "$ALARM_BUTTON"
 grep -Fq 'font.family: Config.settingsFont' "$ALARM_BUTTON"
-grep -Fq 'font.pixelSize: 11' "$ALARM_BUTTON"
+grep -Fq 'font.pixelSize: Config.uiFontSize(11)' "$ALARM_BUTTON"
 
 grep -Fq 'function scheduleAlarmTarget()' "$TIMER"
 grep -Fq 'function adjustAlarmTarget(unit, wheelEvent)' "$TIMER"

@@ -26,7 +26,22 @@ Primitives.ModuleFrame {
     // Include outgoing delegates until their MorphGeometry collapse finishes;
     // shell.qml uses adaptiveHeight as the timer surface's content height.
     readonly property int layoutTimerCount: Math.min(5, Math.max(visibleTimerCount, timerModel.count))
-    readonly property int timerRowHeight: visibleTimerCount >= 5 ? 26 : 30
+    readonly property real timerPresentationScale: root.compactPresentation ? 0.9
+        : root.widePresentation ? 1.05 : 1
+    readonly property int timerRowHeight: Math.max(22, Math.round((visibleTimerCount >= 5 ? 26 : 30) * timerPresentationScale))
+    readonly property int effectiveTimerRowSpacing: root.compactPresentation
+        ? Math.max(0, Math.round(Config.timerRowSpacing * 0.75))
+        : root.widePresentation ? Math.round(Config.timerRowSpacing * 1.15) : Config.timerRowSpacing
+    readonly property int effectiveTimerTopMargin: root.compactPresentation
+        ? Math.max(4, Math.round(Config.timerRowTopMargin * 0.7)) : Config.timerRowTopMargin
+    readonly property int effectiveTimerRightMargin: root.compactPresentation
+        ? Math.max(4, Math.round(Config.timerRowRightMargin * 0.7)) : Config.timerRowRightMargin
+    readonly property int effectiveTimerCommentGap: root.compactPresentation
+        ? Math.max(5, Math.round(Config.timerCommentGap * 0.7))
+        : root.widePresentation ? Math.round(Config.timerCommentGap * 1.1) : Config.timerCommentGap
+    readonly property int effectiveTimerCommentWidth: root.compactPresentation
+        ? Math.min(Config.timerCommentWidth, Math.max(34, Math.round((root.width - 150) * 0.42)))
+        : Config.timerCommentWidth
     readonly property int timerRowMorphDuration: Config.animationDurationForProfile(
         Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile,
         Config.animationTimerMorphDuration, "appearance")
@@ -35,7 +50,7 @@ Primitives.ModuleFrame {
         const baseSize = Number(Config.timerElapsedFontSize)
         const safeBase = isFinite(baseSize) ? Math.max(8, Math.min(60, baseSize)) : 35
         const densityScale = root.timers.length >= 5 ? 25 / 35 : (root.timers.length >= 4 ? 30 / 35 : 1)
-        return Math.max(8, Math.round(safeBase * densityScale))
+        return Math.max(8, Config.uiFontSize(safeBase * densityScale * root.timerPresentationScale))
     }
     // The timer module Height setting is the minimum height. It is not a cap;
     // the block grows automatically when more timers need to be displayed.
@@ -45,7 +60,7 @@ Primitives.ModuleFrame {
     }
     readonly property int adaptiveHeight: Math.max(
         configuredMinHeight,
-        14 + layoutTimerCount * timerRowHeight + Math.max(0, layoutTimerCount - 1) * Config.timerRowSpacing
+        14 + layoutTimerCount * timerRowHeight + Math.max(0, layoutTimerCount - 1) * effectiveTimerRowSpacing
     )
 
     // Alarm target is kept at minute precision. It starts at the current
@@ -401,7 +416,7 @@ Primitives.ModuleFrame {
                 anchors.fill: parent
                 text: Config.timerIcon
                 color: Config.text
-                font.pixelSize: Config.timerIconSize
+                font.pixelSize: Config.uiFontSize(Config.timerIconSize)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 opacity: timerIconMorph.normalizedProgress
@@ -426,7 +441,7 @@ Primitives.ModuleFrame {
                 anchors.fill: parent
                 text: Config.timerAlarmIcon
                 color: Config.text
-                font.pixelSize: Config.timerAlarmIconSize
+                font.pixelSize: Config.uiFontSize(Config.timerAlarmIconSize)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 opacity: alarmIconMorph.normalizedProgress
@@ -441,9 +456,9 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 1
-            animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"
-            animationProfile: Config.animationTimerMorphProfile
-            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile, Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
+            animationStyle: Config.animationTimerVisibilityStyle
+            animationProfile: Config.animationTimerVisibilityProfile
+            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Flickable {
                 id: timerButtons
@@ -493,9 +508,9 @@ Primitives.ModuleFrame {
             height: 33
             anchors.verticalCenter: parent.verticalCenter
             shown: root.controlsMode === 2
-            animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"
-            animationProfile: Config.animationTimerMorphProfile
-            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile, Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
+            animationStyle: Config.animationTimerVisibilityStyle
+            animationProfile: Config.animationTimerVisibilityProfile
+            duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationTimerVisibilityStyle === "fade" ? Config.timerButtonFadeDuration : Config.timerButtonSlideDuration, "appearance")
 
             Item {
                 id: alarmButtons
@@ -531,8 +546,8 @@ Primitives.ModuleFrame {
                     height: 33
                     text: ":"
                     color: Config.textDim
-                    font.family: Config.settingsFont
-                    font.pixelSize: 13
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(13)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -603,10 +618,10 @@ Primitives.ModuleFrame {
         Column {
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.topMargin: Config.timerRowTopMargin
-            anchors.rightMargin: Config.timerRowRightMargin
+            anchors.topMargin: root.effectiveTimerTopMargin
+            anchors.rightMargin: root.effectiveTimerRightMargin
             width: parent.width - anchors.leftMargin - anchors.rightMargin
-            spacing: Config.timerRowSpacing
+            spacing: root.effectiveTimerRowSpacing
 
             Repeater {
                 id: timerRowsRepeater
@@ -738,19 +753,19 @@ Primitives.ModuleFrame {
                                 anchors.right: parent.right
                                 anchors.rightMargin: 0
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: Config.timerCommentGap
+                                spacing: root.effectiveTimerCommentGap
                                 height: parent.height
 
                                 Text {
                                     // Keep the original timer value/comment directly next
                                     // to the live countdown. Limit it to 10 characters so
                                     // long timers can never collide with the countdown.
-                                    width: Config.timerCommentWidth
+                                    width: root.effectiveTimerCommentWidth
                                     height: parent.height
                                     text: String(timerData.comment || "").slice(0, Config.timerCommentMaxLength)
                                     color: timerData.color || Config.text
                                     font.family: "Pixel LCD7"
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15 * root.timerPresentationScale)
                                     horizontalAlignment: Text.AlignRight
                                     verticalAlignment: Text.AlignVCenter
                                 }

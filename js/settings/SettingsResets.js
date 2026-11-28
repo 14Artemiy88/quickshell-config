@@ -142,7 +142,15 @@ function applyConfigKeysFromProfile(owner, config, profile, names) {
     if (!profile || !(names instanceof Array)) return
     for (var i = 0; i < names.length; ++i) {
         var name = names[i]
-        if (profile[name] !== undefined) config[name] = profile[name]
+        if (profile[name] !== undefined) {
+            config[name] = profile[name]
+        } else if (/^animation[A-Za-z]+VisibilityProfile$/.test(String(name))
+                && owner && owner.defaultConfig && owner.defaultConfig[name] !== undefined) {
+            // Profiles saved before visibility curves existed use the current
+            // default curve when that scope is reset, rather than retaining a
+            // stale value from a different profile.
+            config[name] = owner.defaultConfig[name]
+        }
     }
 
     // Older profiles stored an independent master checkbox. Translate a
@@ -186,7 +194,7 @@ function resetSettingsWindowFromProfile(owner, config) {
         owner.settingsMonitorName = String(profile.settingsMonitorName)
     else
         owner.settingsMonitorName = config.monitorName
-    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationSettingsVisibilityStyle", "animationSettingsVisibilityProfile", "settingsFont", "settingsFontSize", "settingsFontScale", "settingsUiScale", "settingsShowDescriptions", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels"])
     if (profile.settingsNavigationOrder !== undefined)
         config.settingsNavigationOrder = owner && typeof owner.normalizeSettingsNavigationOrder === "function"
             ? owner.normalizeSettingsNavigationOrder(profile.settingsNavigationOrder) : profile.settingsNavigationOrder
@@ -201,6 +209,8 @@ function resetSettingsWindowFromProfile(owner, config) {
         config.settingsSearchMatchCountFontSize = owner.defaultConfig.settingsSearchMatchCountFontSize
     if (profile.settingsSearchVisible === undefined)
         config.settingsSearchVisible = owner.defaultConfig.settingsSearchVisible
+    if (profile.settingsShowDescriptions === undefined)
+        config.settingsShowDescriptions = owner.defaultConfig.settingsShowDescriptions !== false
     if (profile.colors && profile.colors.settingsBackground !== undefined)
         config.settingsBackground = profile.colors.settingsBackground
     if (profile.colors && profile.colors.settingsBorder !== undefined)
@@ -275,7 +285,7 @@ function resetModule(owner, config, moduleName) {
     if (moduleName === "time") {
         applyConfigKeysFromProfile(owner, config, profile, ["clockFont", "clockFontSize", "clockDateFontSize", "clockWeekdayFont", "clockWeekdayFontSize"])
     } else if (moduleName === "calendar") {
-        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
+        applyConfigKeysFromProfile(owner, config, profile, ["animationCalendarVisibilityStyle", "animationCalendarVisibilityProfile", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor"])
     } else if (moduleName === "cpu") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "cpuUpdateInterval", "cpuBarThickness", "cpuBarWidth", "cpuRowHeight", "cpuRowSpacing",
@@ -293,7 +303,7 @@ function resetModule(owner, config, moduleName) {
             "networkIconLeftPadding", "networkFont"
         ])
         if (moduleName === "networks")
-            applyConfigKeysFromProfile(owner, config, profile, ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"])
+            applyConfigKeysFromProfile(owner, config, profile, ["animationNetworkVisibilityStyle", "animationNetworkVisibilityProfile", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"])
     } else if (moduleName === "weatherNow" || moduleName === "weatherHourly" || moduleName === "weatherDaily") {
         applyConfigKeysFromProfile(owner, config, profile, [
             "animationWeatherMorphEnabled", "animationWeatherMorphDuration", "animationWeatherHourlyDuration", "animationWeatherMorphProfile",
@@ -340,7 +350,7 @@ function resetModule(owner, config, moduleName) {
             "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY",
             "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFont", "volumeStreamLabelFontSize",
             "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight",
-            "animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"
+            "animationVolumeStreamsVisibilityStyle", "animationVolumeStreamsVisibilityProfile", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"
         ])
     } else if (moduleName === "player") {
         applyConfigKeysFromProfile(owner, config, profile, [
@@ -362,9 +372,9 @@ function resetModule(owner, config, moduleName) {
         ])
     } else if (moduleName === "notifications") {
         applyConfigKeysFromProfile(owner, config, profile, [
-            "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
-            "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress",
-            "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
+            "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardWidth", "notificationsCardSpacing",
+            "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages", "notificationsShowProgress",
+            "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"
         ])
         resetNotificationDndDefaults(owner, config, profile)
         resetNotificationTimeoutIndicatorDefaults(owner, config, profile)
@@ -453,17 +463,50 @@ function resetCpuSettings(owner, config) {
 
 function resetNetworkSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont", "animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["systemMonitorInterval", "networkShowUpload", "networkShowDownload", "networksAlwaysVisible", "networkSpacing", "networkTopPadding", "networkIconSize", "networkValueFontSize", "networkRightPadding", "networkIconLeftPadding", "networkFont", "animationNetworkVisibilityStyle", "animationNetworkVisibilityProfile", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"]); owner.save()
+}
+
+function resetOsdDefaults(owner, config, profile) {
+    var defaults = owner && owner.defaultConfig ? owner.defaultConfig : ({})
+    var keys = [
+        "volumeOsdEnabled", "volumeOsdHideDelay", "volumeOsdAnimationDuration", "animationVolumeOsdMorphProfile",
+        "playerOsdEnabled", "playerOsdHideDelay", "playerOsdAnimationDuration", "animationPlayerOsdMorphProfile",
+        "notificationsDndOsdEnabled", "notificationsDndOsdHideDelay", "notificationsDndOsdAnimationDuration", "animationNotificationsDndOsdMorphProfile",
+        "osdIntegrateWithNotifications"
+    ]
+    var fallback = {
+        volumeOsdEnabled: true, volumeOsdHideDelay: 1400, volumeOsdAnimationDuration: 180, animationVolumeOsdMorphProfile: "ease-out",
+        playerOsdEnabled: true, playerOsdHideDelay: 3200, playerOsdAnimationDuration: 220, animationPlayerOsdMorphProfile: "ease-out",
+        notificationsDndOsdEnabled: true, notificationsDndOsdHideDelay: 1800, notificationsDndOsdAnimationDuration: 180, animationNotificationsDndOsdMorphProfile: "ease-out",
+        osdIntegrateWithNotifications: false
+    }
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i]
+        if (!profile || profile[key] === undefined)
+            config[key] = defaults[key] !== undefined ? defaults[key] : fallback[key]
+    }
+}
+
+function resetOsdSettings(owner, config) {
+    var profile = activeProfileData(owner); if (!profile) return
+    applyConfigKeysFromProfile(owner, config, profile, [
+        "volumeOsdEnabled", "volumeOsdHideDelay", "volumeOsdAnimationDuration", "animationVolumeOsdMorphProfile",
+        "playerOsdEnabled", "playerOsdHideDelay", "playerOsdAnimationDuration", "animationPlayerOsdMorphProfile",
+        "notificationsDndOsdEnabled", "notificationsDndOsdHideDelay", "notificationsDndOsdAnimationDuration", "animationNotificationsDndOsdMorphProfile",
+        "osdIntegrateWithNotifications"
+    ])
+    resetOsdDefaults(owner, config, profile)
+    owner.save()
 }
 
 function resetVolumeSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFont", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight", "animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["volumeUpdateInterval", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeShowStreams", "volumeHorizontalPadding", "volumeVerticalPadding", "volumeMainTrackWidth", "volumeMainTrackHeight", "volumeStreamTrackHeight", "volumeMainTrackOffsetY", "volumeStreamTrackOffsetY", "volumeMainIconWidth", "volumeIcon", "volumeMutedIcon", "volumeStreamLabelFont", "volumeStreamLabelFontSize", "volumeTrackRadius", "volumeMinHeight", "volumeMaxHeight", "animationVolumeStreamsVisibilityStyle", "animationVolumeStreamsVisibilityProfile", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"]); owner.save()
 }
 
 function resetTimerSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerMorphEnabled", "animationTimerMorphDuration", "animationTimerMorphProfile", "animationTimerVisibilityStyle", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration", "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize", "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationTimerMorphEnabled", "animationTimerMorphDuration", "animationTimerMorphProfile", "animationTimerVisibilityStyle", "animationTimerVisibilityProfile", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsVisibilityProfile", "animationTimerOptionsDuration", "timerElapsedFont", "timerElapsedFontSize", "timerWheelStep", "timerCommentWidth", "timerCommentMaxLength", "timerCommentGap", "timerCommentAlignFurthest", "timerRowSpacing", "timerIcon", "timerIconEnabled", "timerIconOrder", "timerIconSize", "timerIconX", "timerIconY", "timerAlarmIcon", "timerAlarmIconEnabled", "timerAlarmIconSize", "timerAlarmIconX", "timerAlarmIconY", "timerOptionsCommentIcon", "timerOptionsCommentIconEnabled", "timerOptionsCommentIconSize", "timerOptionsDurationIcon", "timerOptionsDurationIconEnabled", "timerOptionsDurationIconSize", "timerOptionsRefreshIcon", "timerOptionsRefreshIconEnabled", "timerOptionsRefreshIconSize", "timerOptionsPauseIcon", "timerOptionsPauseIconEnabled", "timerOptionsPauseIconSize", "timerOptionsColorIcon", "timerOptionsColorIconEnabled", "timerOptionsColorIconSize", "timerOptionsActionIconOrder", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax", "timerFinishedImageEnabled", "timerFinishedImagePath", "timerFinishedBorderUsesTimerColor", "timerFinishedBackgroundUsesTimerColor", "timerFinishedBackgroundColor", "timerFinishedImageWidth", "timerFinishedImageMargin", "timerFinishedTitleUsesTimerColor", "timerFinishedTitleColor", "timerFinishedTitleFontSize", "timerFinishedTitleFont", "timerFinishedTitleAlignment", "timerRowTopMargin", "timerRowRightMargin", "timerButtonFadeDuration", "timerButtonSlideDuration", "timerButtonIconFadeDuration", "timerMinHeight"])
     if (profile.timerOptionsActionIconOrder === undefined)
         config.timerOptionsActionIconOrder = ["comment", "duration", "refresh", "toggle_pause", "color"]
     if (profile.timerIconOrder === undefined) {
@@ -488,7 +531,7 @@ function resetPlayerSettings(owner, config) {
 
 function resetMopidySettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "animationMopidyMorphEnabled", "animationMopidyMorphDuration", "animationMopidyMorphProfile", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyBrowseCoverMode", "mopidyBrowseCoverKeepSelectedVisible", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyTrackRowHeight", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistGap", "mopidyTrackArtistSeparator", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyQueueDurationAlignment", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["animationMopidyVisibilityStyle", "animationMopidyVisibilityProfile", "animationMopidyMorphEnabled", "animationMopidyMorphDuration", "animationMopidyMorphProfile", "mopidyShowTrackNumbers", "mopidyTopIconOrder", "mopidyMoveUpIcon", "mopidyMoveUpIconSize", "mopidyMoveUpIconX", "mopidyMoveUpIconY", "mopidyShowMoveUpIcon", "mopidyMoveDownIcon", "mopidyMoveDownIconSize", "mopidyMoveDownIconX", "mopidyMoveDownIconY", "mopidyShowMoveDownIcon", "mopidyGroupAlbums", "mopidyBrowseCoverMode", "mopidyBrowseCoverKeepSelectedVisible", "mopidyAlbumFont", "mopidyAlbumFontSize", "mopidyAlbumBold", "mopidyTrackFont", "mopidyTrackFontSize", "mopidyTrackRowHeight", "mopidyArtistFont", "mopidyArtistFontSize", "mopidyArtistBold", "mopidyArtistItalic", "mopidyTrackArtistDisplayMode", "mopidyTrackArtistGap", "mopidyTrackArtistSeparator", "mopidyDurationFont", "mopidyDurationFontSize", "mopidyAlbumSeparator", "mopidyBackground", "mopidyToggleWithPlayerRightClick", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyTopPanelBackground", "mopidyHoverMode", "mopidyHoverColor", "mopidyStopIcon", "mopidyStopIconSize", "mopidyStopIconX", "mopidyStopIconY", "mopidyRefreshIcon", "mopidyRefreshIconSize", "mopidyRefreshIconX", "mopidyRefreshIconY", "mopidyClearIcon", "mopidyClearIconSize", "mopidyClearIconX", "mopidyClearIconY", "mopidyControlIconColor", "mopidyShowStopIcon", "mopidyShowRefreshIcon", "mopidyShowClearIcon", "mopidyShowQueueTotalDuration", "mopidyQueueDurationMode", "mopidyQueueDurationFont", "mopidyQueueDurationFontSize", "mopidyQueueDurationColor", "mopidyQueueDurationX", "mopidyQueueDurationY", "mopidyQueueDurationAlignment", "mopidyShowAlbumRemaining", "mopidyShowTrackRemaining", "mopidyShuffleIcon", "mopidyShuffleIconSize", "mopidyShuffleIconX", "mopidyShuffleIconY", "mopidyShowShuffleIcon", "mopidyRepeatIcon", "mopidyRepeatIconSize", "mopidyRepeatIconX", "mopidyRepeatIconY", "mopidyShowRepeatIcon", "mopidyOpenAddIcon", "mopidyOpenAddIconSize", "mopidyOpenAddIconX", "mopidyOpenAddIconY", "mopidyShowOpenAddIcon", "mopidyAddIcon", "mopidyAddIconSize", "mopidyAddIconX", "mopidyAddIconY", "mopidyShowAddIcon", "mopidySwitchPlaylistIcon", "mopidySwitchPlaylistIconSize", "mopidySwitchPlaylistIconX", "mopidySwitchPlaylistIconY", "mopidyShowSwitchPlaylistIcon", "mopidyPlaylistDeleteIcon", "mopidyPlaylistDeleteIconSize", "mopidyPlaylistDeleteIconX", "mopidyPlaylistDeleteIconY", "mopidyShowPlaylistDeleteIcon", "mopidyVolumeIcon", "mopidyMutedIcon", "mopidyVolumeIconSize", "mopidyVolumeIconX", "mopidyVolumeIconY", "mopidyMutedIconSize", "mopidyMutedIconX", "mopidyMutedIconY", "mopidyShowVolumeIcon", "mopidyShowVolumePercent", "mopidyVolumeStep", "mopidyEmptyQueueText", "mopidyUnavailableText", "mopidyStatusFont", "mopidyStatusFontSize", "mopidyStatusLongFontSize", "mopidyStatusWidth"]); owner.save()
 }
 
 function resetWeatherSettings(owner, config) {
@@ -500,7 +543,7 @@ function resetWeatherSettings(owner, config) {
 
 function resetCalendarSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor", "animationCalendarVisibilityStyle", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["calendarPreviousIcon", "calendarNextIcon", "calendarPreviousSize", "calendarNextSize", "calendarArrowY", "calendarPreviousX", "calendarNextX", "calendarTitleFontSize", "calendarTitleY", "calendarTitleFont", "calendarWeekdayFontSize", "calendarWeekdayY", "calendarWeekdayFont", "calendarDayFontSize", "calendarDayY", "calendarDayFont", "calendarNoteMarkerStyle", "calendarNoteMarkerPosition", "calendarNoteFrameColor", "calendarAdjacentDaysColor", "calendarWeekendColor", "calendarPastDaysColorEnabled", "calendarPastDaysColor", "animationCalendarVisibilityStyle", "animationCalendarVisibilityProfile", "animationCalendarSlideDuration", "animationCalendarFadeDuration", "animationCalendarMorphDuration", "animationCalendarMorphProfile"]); owner.save()
 }
 
 function resetCavaSettings(owner, config) {
@@ -516,7 +559,7 @@ function resetClockSettings(owner, config) {
 
 function resetGeneralSettings(owner, config) {
     var profile = activeProfileData(owner); if (!profile) return
-    applyConfigKeysFromProfile(owner, config, profile, ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"]); owner.save()
+    applyConfigKeysFromProfile(owner, config, profile, ["font", "fontSize", "fontScale", "uiScale", "ledFont", "frameBorderWidth", "frameRadius", "cornerRadiusScale", "buttonBordersEnabled", "inputBordersEnabled", "popupBordersEnabled", "cardBordersEnabled", "backgroundBlurRadius"]); owner.save()
 }
 
 function resetSettingsWindow(owner, config) {
@@ -531,6 +574,8 @@ function resetNotificationDndDefaults(owner, config, profile) {
         config.notificationsDndAllowedApps = String(defaults.notificationsDndAllowedApps || "")
     if (!profile || profile.notificationsDndBlockedApps === undefined)
         config.notificationsDndBlockedApps = String(defaults.notificationsDndBlockedApps || "")
+    if (!profile || profile.notificationsHistoryIgnoredApps === undefined)
+        config.notificationsHistoryIgnoredApps = String(defaults.notificationsHistoryIgnoredApps || "")
     if (!profile || profile.notificationsHistoryLimit === undefined)
         config.notificationsHistoryLimit = Math.max(1, Math.min(200, Number(defaults.notificationsHistoryLimit) || 30))
     if (!profile || profile.notificationsHistoryRetentionDays === undefined)
@@ -554,9 +599,9 @@ function resetNotificationsSettings(owner, config) {
     var profile = activeProfileData(owner)
     if (!profile) return
     applyConfigKeysFromProfile(owner, config, profile, [
-        "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardSpacing",
-        "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages",
-        "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"
+        "notificationsDoNotDisturb", "notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps", "notificationsHistoryLimit", "notificationsHistoryRetentionDays", "notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection", "notificationsVerticalAnchor", "notificationsCardSpacing",
+        "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages",
+        "notificationsShowProgress", "animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"
     ])
     resetNotificationDndDefaults(owner, config, profile)
     resetNotificationTimeoutIndicatorDefaults(owner, config, profile)
@@ -595,7 +640,7 @@ function resetDashboardSettings(owner, config, includeModule) {
     config.dashboardCardSizes = normalizeDashboardCardSizes(
         profile.dashboardCardSizes === undefined ? owner.defaultConfig.dashboardCardSizes : profile.dashboardCardSizes
     )
-    applyConfigKeysFromProfile(owner, config, profile, ["animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"])
+    applyConfigKeysFromProfile(owner, config, profile, ["animationDashboardVisibilityStyle", "animationDashboardVisibilityProfile", "animationDashboardVisibilityDuration"])
     if (profile.animationDashboardVisibilityStyle === undefined)
         config.animationDashboardVisibilityStyle = owner.defaultConfig.animationDashboardVisibilityStyle !== undefined
             ? owner.defaultConfig.animationDashboardVisibilityStyle : "auto"

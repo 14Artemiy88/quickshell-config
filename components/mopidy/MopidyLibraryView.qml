@@ -102,7 +102,7 @@ Column {
         visible: controller.libraryMode === "browse" && !controller.browseBusy && controller.browseEntries.length === 0 && !controller.fileFilterQuery.trim()
         text: "Папка пуста"
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -114,7 +114,7 @@ Column {
         visible: controller.libraryMode === "browse" && !controller.browseBusy && controller.fileFilterQuery.trim().length > 0 && controller.filteredBrowseDisplayEntries.length === 0
         text: "Совпадений нет"
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -137,7 +137,7 @@ Column {
                 text: controller.playlistsBusy ? "Загрузка…" : "Плейлисты"
                 color: Config.accent
                 font.family: Config.mopidyAlbumFont
-                font.pixelSize: Config.mopidyAlbumFontSize
+                font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyAlbumFontSize))
                 font.bold: Config.mopidyAlbumBold
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
@@ -158,13 +158,13 @@ Column {
             width: parent.width
             height: Math.max(0, parent.height - 26)
             clip: true
-            spacing: 2
+            spacing: controller.effectiveQueueRowSpacing
             model: controller.playlists
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             delegate: Rectangle {
                 width: parent ? parent.width : 0
-                height: Config.mopidyTrackRowHeight
+                height: controller.effectiveTrackRowHeight
                 radius: 4
                 property bool addButtonVisible: Config.mopidyShowAddIcon
                 property bool switchButtonVisible: Config.mopidyShowSwitchPlaylistIcon
@@ -193,7 +193,7 @@ Column {
                     text: modelData.name || "Без названия"
                     color: controller.hoverTextColor(playlistMouse.containsMouse, Config.text)
                     font.family: Config.mopidyTrackFont
-                    font.pixelSize: Config.mopidyTrackFontSize
+                    font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyTrackFontSize))
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -223,7 +223,7 @@ Column {
                         text: Config.mopidyPlaylistDeleteIcon
                         color: controller.playlistDeleteIconColor(playlistListDeleteButton.hovered)
                         font.family: Config.font
-                        font.pixelSize: Config.mopidyPlaylistDeleteIconSize
+                        font.pixelSize: Config.uiFontSize(Config.mopidyPlaylistDeleteIconSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -254,7 +254,7 @@ Column {
                         text: Config.mopidySwitchPlaylistIcon
                         color: controller.hoverTextColor(playlistSwitchButton.hovered, Config.mopidyControlIconColor)
                         font.family: Config.font
-                        font.pixelSize: Config.mopidySwitchPlaylistIconSize
+                        font.pixelSize: Config.uiFontSize(Config.mopidySwitchPlaylistIconSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -285,7 +285,7 @@ Column {
                         text: Config.mopidyAddIcon
                         color: controller.hoverTextColor(playlistAddButton.hovered, Config.mopidyControlIconColor)
                         font.family: Config.font
-                        font.pixelSize: Config.mopidyAddIconSize
+                        font.pixelSize: Config.uiFontSize(Config.mopidyAddIconSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -321,7 +321,7 @@ Column {
         visible: controller.libraryMode === "playlists" && !controller.playlistsBusy && controller.playlists.length === 0
         text: "Плейлистов нет"
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -358,7 +358,7 @@ Column {
             anchors.fill: parent
             text: "Плейлист пуст"
             color: controller.hoverTextColor(emptyPlaylistHover.containsMouse, Config.textMuted)
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -390,14 +390,14 @@ Column {
                 color: Config.text
                 placeholderText: "Поиск в Mopidy…"
                 placeholderTextColor: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 selectByMouse: true
                 background: Rectangle {
                     color: Config.settingsBackground
                     border.color: searchField.activeFocus ? Config.accent : Config.baseColor
-                    border.width: 1
-                    radius: 4
+                    border.width: (Config.inputBordersEnabled || searchField.activeFocus) ? 1 : 0
+                    radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                 }
                 onTextChanged: controller.searchQuery = text
                 onAccepted: controller.searchLibrary()
@@ -418,14 +418,14 @@ Column {
             width: parent.width
             height: Math.max(0, parent.height - 35)
             clip: true
-            spacing: 2
+            spacing: controller.effectiveQueueRowSpacing
             model: controller.searchResults
             visible: controller.searchResults.length > 0
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
             delegate: Rectangle {
                 width: parent ? parent.width : 0
-                height: Config.mopidyTrackRowHeight
+                height: controller.effectiveTrackRowHeight
                 radius: 4
                 color: controller.hoverBackgroundColor(resultMouse.containsMouse)
                 border.width: controller.hoverBorderWidth(resultMouse.containsMouse)
@@ -447,7 +447,7 @@ Column {
                         text: modelData.name || "Без названия"
                         color: Config.text
                         font.family: Config.mopidyTrackFont
-                        font.pixelSize: Config.mopidyTrackFontSize
+                        font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyTrackFontSize))
                         elide: Text.ElideRight
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -471,7 +471,7 @@ Column {
                             text: searchResultTextArea.metadataText
                             color: Config.textMuted
                             font.family: Config.mopidyArtistFont
-                            font.pixelSize: Config.mopidyArtistFontSize
+                            font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyArtistFontSize))
                             elide: Text.ElideRight
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -486,7 +486,7 @@ Column {
                     text: controller.formatDuration(modelData.duration)
                     color: controller.hoverTextColor(resultMouse.containsMouse, Config.textMuted)
                     font.family: Config.mopidyDurationFont
-                    font.pixelSize: Config.mopidyDurationFontSize
+                    font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyDurationFontSize))
                     horizontalAlignment: Text.AlignRight
                 }
 
@@ -509,7 +509,7 @@ Column {
             visible: !controller.searchBusy && controller.searchQuery.trim().length > 0 && controller.searchResults.length === 0
             text: "Ничего не найдено"
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter

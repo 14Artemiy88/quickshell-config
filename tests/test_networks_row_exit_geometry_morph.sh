@@ -17,7 +17,7 @@ checks = {
     "row content retains natural height during collapse": "height: root.rowHeight" in row and "y: (networkRowMorph.height - height) / 2" in row,
     "morph viewport reveals fixed content geometrically": "id: rowContent" in row and "clip: true" in row,
     "row does not use fade or scale for disappearance": "opacity: networkRowMorph.normalizedProgress" not in row and "scale: 0.96 + 0.04 * networkRowMorph.normalizedProgress" not in row,
-    "delegate height stays fixed during inner morph": "height: root.rowHeight" in widget and "implicitHeight: 32" in row,
+    "delegate height stays fixed during inner morph": "height: root.effectiveRowHeight" in widget and "implicitHeight: 32" in row,
     "row remains in ListModel until exit callback": 'networkRows.setProperty(i, "removing", true)' in widget and 'networkRows.remove(index)' in widget and 'onRemovalFinished: function(networkName)' in widget,
 }
 failed = [name for name, ok in checks.items() if not ok]

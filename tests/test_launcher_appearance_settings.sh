@@ -17,8 +17,9 @@ for key in launcherTitleText launcherTitleFont launcherTitleFontSize launcherTit
   grep -Fq "$key" "$SECTION"
 done
 grep -Fq 'text: Config.launcherTitleText' "$LAUNCHER"
-grep -Fq 'font.pixelSize: Config.launcherTitleFontSize' "$LAUNCHER"
-grep -Fq 'font.family: Config.launcherSearchFont.trim() === "" ? "" : Config.launcherSearchFont' "$LAUNCHER"
+grep -Fq 'font.pixelSize: Config.uiFontSize(Config.launcherTitleFontSize)' "$LAUNCHER"
+grep -Fq 'font.family: Config.resolveFontFamily(Config.launcherTitleFont)' "$LAUNCHER"
+grep -Fq 'font.family: Config.resolveFontFamily(Config.launcherSearchFont)' "$LAUNCHER"
 grep -Fq 'text: Config.launcherSearchPlaceholder' "$ROOT/components/settings/sections/SettingsLauncherSection.qml"
 grep -Fq 'return Config.launcherSearchPlaceholder' "$LAUNCHER"
 grep -Fq 'visible: root.mode !== root.modePower' "$LAUNCHER"

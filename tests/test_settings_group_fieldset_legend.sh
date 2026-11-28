@@ -17,7 +17,7 @@ checks = {
         and 'root.renderedHeading.trim().length > 0' in s
         and 'root.headingSource.visible' in s
         and "visible: root.hasHeading" in s
-        and "(root.hasHeading ? 8 : 0)" in s
+        and "(root.hasHeading ? root.headingContentGap : 0)" in s
     ),
     "legend width is measured separately and constrained by group width": (
         "TextMetrics {" in s
@@ -25,10 +25,15 @@ checks = {
         and "root.width - root.padding * 2 - 16" in s
         and "root.parent ? root.parent.width" not in s
     ),
-    "legend sits inside frame without a masking backdrop": "y: 2" in s and "headingBackground" not in s,
+    "legend interrupts the top frame edge with a surface-colored cutout": (
+        "anchors.topMargin: root.hasHeading ? 8 : 0" in s
+        and "id: headingBorderCutout" in s
+        and "color: root.headingBackgroundColor" in s
+        and "y: 8 - root.borderWidth" in s
+    ),
     "settings groups default to transparent surfaces": "property color backgroundColor: Config.transparent" in s and "color: root.backgroundColor" in s,
-    "frame outline remains visible": "border.color: root.borderColor" in s and "border.width: root.borderWidth" in s,
-    "content is offset only below a visible non-empty legend": "root.padding + (root.hasHeading ? 8 : 0)" in s,
+    "frame outline remains visible unless disabled globally": "border.color: root.borderColor" in s and "border.width: Config.cardBordersEnabled ? root.borderWidth : 0" in s,
+    "content is offset only below a visible non-empty legend": "root.padding + (root.hasHeading ? root.headingContentGap : 0)" in s,
     "existing no-frame groups remain unaffected": "if (!root.showFrame || root.headingSource || root.adoptingHeading)" in s,
 }
 for label, ok in checks.items():

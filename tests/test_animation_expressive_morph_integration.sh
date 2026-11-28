@@ -12,14 +12,15 @@ weather = (root / "components/WeatherPlaceholder.qml").read_text(encoding="utf-8
 network = (root / "components/NetworkStat.qml").read_text(encoding="utf-8")
 assert 'import "js/AnimationCurves.js" as AnimationCurves' in config
 assert 'import "../.."' in morph
-assert 'property string animationProfile: "standard"' in morph
+assert 'property string animationProfile: "ease-in-out"' in morph
 assert 'property string animationPhase: "enter"' in morph
 assert 'property var animationBezierCurve: Config.animationBezierCurve(root.animationProfile, root.animationPhase)' in morph
+assert 'easing.type: root.animationEasing' in morph
 assert 'easing.bezierCurve: root.animationBezierCurve' in morph
 assert 'easing.bezierCurve: Config.animationBezierCurve(root.activeAnimationProfile, "enter")' in visibility
 assert 'easing.bezierCurve: Config.animationBezierCurve(root.activeAnimationProfile, "exit")' in visibility
 assert 'animationProfile: Config.animationWeatherMorphProfile' in weather and 'animationPhase: root.active ? "enter" : "exit"' in weather
-assert network.count('animationProfile: "expressive"') == 2
+assert network.count('animationProfile: Config.animationNetworkMorphProfile') == 2
 assert 'animationPhase: Config.networkShowUpload ? "enter" : "exit"' in network
 assert 'animationPhase: Config.networkShowDownload ? "enter" : "exit"' in network
 # Keep the existing morph progress and visibility lifecycle as the sole drivers.

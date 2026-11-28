@@ -9,7 +9,7 @@ config = (root / "Config.qml").read_text(encoding="utf-8")
 settings = (root / "Settings.qml").read_text(encoding="utf-8")
 metadata = (root / "js/settings/SettingsMetadata.js").read_text(encoding="utf-8")
 modules = (root / "components/settings/sections/SettingsModulesSection.qml").read_text(encoding="utf-8")
-general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text(encoding="utf-8")
+general = (root / "components/settings/sections/SettingsInterfaceSection.qml").read_text(encoding="utf-8")
 player = (root / "components/settings/sections/SettingsPlayerSection.qml").read_text(encoding="utf-8")
 window = (root / "components/settings/sections/SettingsWindowSection.qml").read_text(encoding="utf-8")
 widget_window = (root / "components/WidgetWindow.qml").read_text(encoding="utf-8")
@@ -46,8 +46,8 @@ notifications = (root / "components/notifications/Notifications.qml").read_text(
 assert 'item: Settings.moduleBlurEnabled.notifications === true' in notifications
 assert '? notificationList' in notifications and 'root.layoutEditMode ? layoutEditPreview : null' in notifications, 'notification blur must follow the visible list or edit preview'
 assert 'radius: Math.max(0, Config.backgroundBlurRadius)' in notifications
-assert 'Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent' in notifications
-assert 'Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0' in notifications
+assert 'Settings.moduleBackgrounds.notifications !== false ? Config.notificationsBackgroundColor : Config.transparent' in notifications
+assert 'notificationFrameBorderWidth' in notifications and 'Settings.moduleFrames.notifications !== false' in notifications
 assert 'Settings.moduleBlurEnabled.launcher === true ? launcherBox : null' in launcher
 assert 'radius: Math.max(0, Config.backgroundBlurRadius)' in launcher
 assert 'backgroundBlurRadius: config.backgroundBlurRadius' in persist

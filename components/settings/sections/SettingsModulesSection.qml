@@ -232,7 +232,9 @@ Item {
     SettingsGroup {
         visible: host && host.currentPageId === "modules"
         width: parent.width
-        showFrame: true
+        // The Modules page is a compact control table, not a framed settings card.
+        // Keep the same content inset while removing the outer outline.
+        showFrame: false
         padding: 8
         contentSpacing: 6
 
@@ -251,18 +253,16 @@ Item {
                                 height: 18
                                 text: modelData
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(10)
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
                         }
 
-                        Text { width: 30; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 30; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 30; height: 18; text: "Блюр"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 30; height: 18; text: "Сохр."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                        Text { width: 30; height: 18; text: "Сброс"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Рамка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Фон"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        Text { width: 30; height: 18; text: "Блюр"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(9); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                     }
 
                     Repeater {
@@ -608,12 +608,12 @@ Item {
                             textColor: Config.accent
                             onClicked: host.layoutEditRequested()
                         }
-                        Text {
+                        SettingsDescription {
                             width: parent.width - 280
                             height: 46
                             text: "Скрывает окно настроек и позволяет перетаскивать видимые модули, включая Dashboard, мышью.\nEsc — завершить редактирование и вернуться сюда."
                             color: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(10)
                             wrapMode: Text.WordWrap
                             verticalAlignment: Text.AlignVCenter

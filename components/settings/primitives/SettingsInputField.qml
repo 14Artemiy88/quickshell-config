@@ -70,7 +70,7 @@ TextField {
             text: "×"
             color: clearButton.hovered ? Config.accent : Config.baseColor
             font.family: root.font.family
-            font.pixelSize: Math.max(14, root.font.pixelSize + 2)
+            font.pixelSize: Config.settingsUiSize(Math.max(14, root.font.pixelSize + 2))
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
@@ -81,14 +81,16 @@ TextField {
     }
 
     background: Rectangle {
-        color: Config.settingsBackground
+        color: "transparent"
         border.color: root.settingsSearchCurrentMatch ? Config.accent
             : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightColor
             : (root.validationFailed
                 ? ((root.activeFocus || root.pointerHovered) ? "#ff6666" : "#ff9999")
                 : ((root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor)))
         border.width: root.settingsSearchCurrentMatch ? Config.settingsSearchHighlightBorderWidth + 1
-            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightBorderWidth : (root.validationFailed ? Math.max(1, Config.frameBorderWidth) : 1))
-        radius: 4
+            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightBorderWidth
+            : (root.validationFailed ? Math.max(1, Config.frameBorderWidth)
+            : ((root.activeFocus || Config.inputBordersEnabled) ? 1 : 0)))
+        radius: Config.scaledCornerRadius(4)
     }
 }

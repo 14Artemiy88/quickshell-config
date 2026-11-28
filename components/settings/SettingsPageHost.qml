@@ -65,6 +65,9 @@ Item {
                             ? (parent.width - (root.host.currentPageSubTabs.length - 1) * 5) / root.host.currentPageSubTabs.length
                             : parent.width
                         selected: root.host && root.host.currentPageSubTabIndex === index
+                        // Selection is a persistent page state, not a focus state:
+                        // clicking the sidebar must not make the active subtab look idle.
+                        persistentSelectionHighlight: true
                         modified: root.host && root.host.settingsSubTabHasChanges(root.host.currentPageId, index)
                         settingsSearchMatched: root.host && root.host.settingsSearchSubTabHasMatches(root.host.currentPageId, index)
                         settingsSearchMatchHint: root.host

@@ -8,14 +8,31 @@ Configurable desktop widgets, a dashboard, and a keyboard-driven launcher for **
 
 ### Возможности
 
-- **Уведомления:** режим DND с каталогом фактических отправителей уведомлений, независимыми правилами по desktop ID или точному имени приложения и удалением отправителя вместе с обоими правилами; исключённые приложения продолжают показывать всплывающие уведомления. История последних уведомлений открывается прямо в окне Dashboard, поддерживает поиск по приложению, заголовку и тексту, фильтрацию по одному или нескольким приложениям, удаление отдельных записей и целых групп приложений и хранится только в оперативной памяти; её размер настраивается в параметрах Notifications (1–200 записей, по умолчанию 30). Параметры уведомлений, включая индивидуальные DND-правила, также доступны через общий поиск настроек с переходом прямо к нужной подвкладке и контролу.
+- **Уведомления:** текст заголовка и тела всплывающих уведомлений можно выделять мышью/клавиатурой и копировать через Ctrl+C; клавиатурный фокус включается только при взаимодействии с текстом, чтобы обычные уведомления не перехватывали фокус; потеря фокуса отслеживается по `TextEdit.activeFocus` с короткой задержкой для передачи фокуса между заголовком и телом (у `PanelWindow/QsWindow` Quickshell 0.3.1 нет `activeChanged`); ПКМ по карточке закрывает уведомление без контекстного меню; отдельные кнопки действий приложения во всплывающей карточке не отображаются, стандартное действие по клику карточки и закрытие сохранены. Режим DND с каталогом фактических отправителей уведомлений, независимыми правилами по desktop ID или точному имени приложения и удалением отправителя вместе со всеми правилами. Помимо «Игнор DND» и «Отключить» есть независимое «Игнорировать в истории»: оно исключает будущие уведомления приложения из истории, не влияя на всплывающие карточки и DND-подавление; уже записанные события остаются. Все три списка правил хранятся в профилях и настройках. История последних уведомлений открывается прямо в окне Dashboard, поддерживает поиск по приложению, заголовку и тексту, фильтрацию по одному или нескольким приложениям, удаление отдельных записей и целых групп приложений и хранится только в оперативной памяти; её размер настраивается в параметрах Notifications (1–200 записей, по умолчанию 30). Параметры уведомлений, включая индивидуальные DND-правила, также доступны через общий поиск настроек с переходом прямо к нужной подвкладке и контролу.
 - **Виджеты рабочего стола:** часы с отдельными настройками шрифта и размеров времени, даты и дня недели, CPU/RAM и Top Apps, сетевой трафик и подключения, громкость и аудиопотоки, CAVA, календарь с заметками и метками, текущая погода и прогнозы, таймеры и будильники, Player, Mopidy и собственные уведомления.
 - **Dashboard:** карточки «Сегодня», «Система», «Сеть», «Погода» и «Медиа». Видимость, порядок и размер карточек настраиваются независимо; есть адаптивная одно- и двухколоночная раскладка и встроенный режим редактирования.
 - **Launcher:** приложения, Run, окна, буфер обмена, питание, сеть, пакеты, Pass, проекты и калькулятор. Поддерживаются пользовательские действия, поиск по нескольким источникам, избранные приложения, проекты, палитра команд и каталог эмодзи. В настройках **Настройки → Лаунчер → Действия → Переходы** можно независимо скрывать встроенные команды из палитры `>`; каталог сохранённых пользовательских действий открывается отдельным префиксом `:` и не смешивается с этой палитрой.
-- **Общие настройки:** группы «Внешний вид», «Модули», «Dashboard», «Лаунчер», «Уведомления» и «Общие»; вложенные страницы и подразделы можно искать и упорядочивать перетаскиванием.
+- **Общие настройки:** группы «Внешний вид», «Модули», «Dashboard», «Лаунчер», «Уведомления» и «Общие»; вложенные страницы и подразделы можно искать и упорядочивать перетаскиванием. Для окна настроек можно выбрать явный шрифт или вернуть системный generic Sans Serif; все пустые необязательные шрифтовые overrides также разрешаются через generic Sans Serif, а разметка входящего тела уведомления не может подменить его семейством шрифта. Активные вкладки отличаются от обычных тонкой рамкой и едва заметной заливкой без дополнительного жирного начертания. Заголовки рамочных групп размещаются на верхней линии и визуально прерывают её, как легенда fieldset. Поясняющие описания параметров глобально скрываются отдельным переключателем (по умолчанию включены), при этом подписи, ошибки, статусы и подсказки остаются доступными.
 - **Профили и темы:** именованные профили, сохранение и сброс отдельных разделов, встроенные и пользовательские цветовые схемы.
+- **OSD:** общие экранные индикаторы системной громкости/Mute, смены композиции и состояния DND; время показа и анимация настраиваются отдельно для каждого сценария.
+- **Масштабирование:** независимые UI Scale и Font Scale для модулей и окна настроек (75–150%); индивидуальные базовые размеры шрифтов и сохранённые координаты модулей остаются независимыми от глобального масштаба.
 - **Анимации:** независимые настройки модулей, профили кривых и длительность переходов; анимации можно отключать отдельно.
 - **Drag & Drop:** единый механизм изменения порядка используется в настройках, Launcher, Dashboard, Player, Timer и Mopidy, включая очередь и сохранённые плейлисты.
+
+### Адаптивное представление встроенных модулей
+
+Общие окна `WidgetWindow` передают корневому элементу встроенного модуля единый контекст представления: `presentationMode` (`compact`, `regular`, `wide`), `widthBudget` в логических пикселях и `active` для видимого состояния поверхности. `ModuleFrame` наследует этот контекст и дополнительно предоставляет `compactPresentation`, `regularPresentation`, `widePresentation` и `presentationActive`. По умолчанию режим определяется по логической ширине: до 260 px включительно — `compact`, от 420 px — `wide`, между ними — `regular`. Модуль или конкретное окно могут явно переопределить режим; существующее свойство `compact` в `ModuleFrame` сохранено для совместимости.
+
+Контракт отделяет содержимое модуля от размеров и состояния его host-поверхности: модуль выбирает раскладку по полученному режиму и ширине, а `WidgetWindow` продолжает владеть окном, масштабированием, геометрией и взаимодействием. Включение контракта само по себе не меняет текущую компоновку модулей: адаптивные варианты переводятся на него последовательно, по одному модулю, без массовой перестройки. Это внутренняя основа для дальнейшей адаптации встроенных виджетов; сторонний plugin runtime не добавляется.
+
+
+Адаптивная компоновка встроена в Networks, Network traffic, WeatherList, WeatherNow, Player, Volumes, Calendar, Timer, CPU/CPU Graph, TimeWidget, Mopidy и TopApps. Для них сохранён `regular` как исходная компоновка; компактный и широкий режимы меняют только представление и не должны менять источники данных, сохранённую геометрию или действия пользователя. Проверки `test_module_presentation_contract.sh` фиксируют граничные значения 260/420 px, режимы при ещё не заданной геометрии, явные overrides и передачу контекста от `WidgetWindow` через `ModuleFrame`.
+
+Cava не получила отдельную адаптивную раскладку: график уже растягивается на всю выделенную поверхность, а число столбцов, интервалы и размеры управляются настройками. TopApps сохраняет пользовательские координаты и настройки базовой длины полосы, но её отображаемая длина, стартовая позиция и колонка значений теперь совместно подстраиваются под фактическую ширину окна. При сужении окна его рамка также сужается — размер настроенной полосы больше не удерживает прозрачную host-поверхность шире пользовательской геометрии. Dashboard Bento и его карточки относятся к отдельной системе размеров и не входят в контракт `ModuleFrame`.
+
+Ручная проверка v1539 обнаружила визуальные дефекты, которые статические проверки не могли воспроизвести: дата в TimeWidget, отступы CPU-полос, остаточное пустое место справа у CPU Graph, минимальная ширина TopApps и исчезающие температуры в компактном прогнозе по дням. Корректировки этих случаев вынесены в v1540; адаптация WeatherNow не менялась — ручная оценка пользователя подтвердила, что она работает отлично. Автоматические проверки остаются статическими и fixture-based: фактическое QML-отображение и взаимодействия при реальных ширинах требуют ручной проверки в Quickshell.
+
+В v1541 обычный режим TimeWidget снова использует полный заданный размер основного шрифта часов: при нехватке места адаптируется только дата, а компактный режим пропорционально уменьшает всю композицию времени и даты. В CPU Graph ширина самих сегментов теперь растёт пропорционально шагу между ними при расширении окна; плотность сегментов на базовой ширине остаётся прежней, а 51 историческая точка и плавная прокрутка сохраняются.
 
 ### Каталог отправителей DND
 
@@ -42,6 +59,8 @@ QML-мост `NotificationServer` остаётся загруженным пос
 
 Quickshell сам повторно регистрирует NotificationServer после того, как предыдущий владелец D-Bus-имени освобождает его. Это внутреннее поведение сервера; QML-компонент не пытается вручную регистрировать то же имя или запускать конкурирующий watcher. Есть ограничение старта: если при первоначальном создании сервера session bus ещё не подключён или регистрация D-Bus-объекта завершается ошибкой, конструктор выходит до настройки watcher. В таком случае служба может не восстановиться сама, и после готовности пользовательской D-Bus-сессии потребуется перезапустить Quickshell. Если же session bus доступен, но имя временно занято другим сервером, watcher ожидает освобождения имени и повторяет регистрацию.
 
+В заголовке и теле карточки используется read-only `TextEdit` для выделения и Ctrl+C. Не назначать на `TextEdit` `acceptedMouseButtons`: это не QML-свойство данного типа. Qt Quick `TextEdit` принимает левую кнопку (и среднюю при поддержке selection clipboard), поэтому ПКМ остаётся доступен карточному `MouseArea` и закрывает уведомление.
+
 Реализация сверялась с [документацией NotificationServer для Quickshell 0.3.1](https://quickshell.org/docs/v0.3.1/types/Quickshell.Services.Notifications/NotificationServer/) и [исходником NotificationServer](https://git.outfoxxed.me/quickshell/quickshell/src/commit/b909b4e3eae14f2f003557ba4117c459cccf8a31/src/services/notifications/server.cpp).
 
 ### Идентичность отправителей и правила DND
@@ -51,7 +70,7 @@ Quickshell сам повторно регистрирует NotificationServer �
 - Уведомление без `desktopEntry` можно связать с единственной уже известной desktop-записью с таким именем. Если несколько desktop ID имеют одинаковое имя, name-only отправитель остаётся отдельной неоднозначной записью и не объединяется наугад.
 - Правила по `appName` применяются к desktop-backed отправителю только пока имя однозначно. При совпадении нескольких идентичностей старое правило показывается отдельно как неоднозначное, его можно удалить, но оно не включается сразу для нескольких приложений. Неоднозначные name-only строки не позволяют включать или подавлять приложения до появления надёжного desktop ID.
 - При отсутствии `desktopEntry` и совпадающем `appName` у нескольких отправителей система не может доказать, какое именно приложение отправило событие. В таком случае DND не угадывает отправителя. Это ограничение протокольных данных, а не ошибка fuzzy-поиска.
-- В настройках рядом с каталогом отображается общая сводка: число отправителей текущего сеанса, число отправителей с/без правил, количество правил «Игнор DND» и «Отключить», сохранённые правила без текущего отправителя и неоднозначные записи. Сводка считается по всему каталогу и не зависит от текстового поиска, «Показать все» или лимита результатов.
+- В настройках рядом с каталогом отображается общая сводка: число отправителей текущего сеанса, число отправителей с/без правил, количество правил «Игнор DND», «Отключить» и «Игнор истории», сохранённые правила без текущего отправителя и неоднозначные записи. Сводка считается по всему каталогу и не зависит от текстового поиска, «Показать все» или лимита результатов.
 - Подсказки у двух независимых флагов отражают текущее состояние конкретного правила, а не только его назначение.
 - История aliases `appName` хранится только в runtime-каталоге текущего сеанса. После перезапуска сам каталог снова собирается по новым уведомлениям; уже сохранённое неоднозначное или устаревшее имя остаётся отдельным правилом, доступным для ручного удаления.
 - При первом однозначном наблюдении старое правило по `appName` автоматически переносится на стабильный desktop ID и сохраняется, поэтому последующие изменения отображаемого имени больше не влияют на новое правило.
@@ -157,8 +176,11 @@ MIT — см. [`LICENSE`](LICENSE).
 - **Dashboard:** configurable Today, System, Network, Weather, and Media cards with independent visibility, ordering, sizing, responsive columns, and an in-panel editing mode.
 - **Launcher:** applications, Run, windows, clipboard, power, network, packages, Pass, projects, and calculator, plus custom actions and multi-source search. Built-in navigation entries can be independently hidden from the `>` palette. Saved custom actions use the separate `:` prefix (bare `:` lists all complete records), and the palette stays dedicated to built-in navigation.
 - **Settings:** grouped navigation, searchable controls, draggable page ordering, reusable controls, and module-specific pages.
-- **Notification sender identity:** DND rules prefer exact desktop IDs; legacy app-name aliases are retained only while uniquely resolvable. Different desktop IDs with the same app name remain independent, and ambiguous name-only senders are not guessed.
+- **Notification sender identity:** DND and history-exclusion rules prefer exact desktop IDs; legacy app-name aliases are retained only while uniquely resolvable. Different desktop IDs with the same app name remain independent, and ambiguous name-only senders are not guessed. The per-app `notificationsHistoryIgnoredApps` rule affects only history snapshots (including `replacesId` updates), never popup visibility or the two DND suppression rules; existing history entries are not retroactively deleted.
 - **Profiles and themes:** named profiles, scoped Save/Reset, built-in palettes, and custom color themes.
+- **OSD:** shared on-screen indicators for system volume/mute, media track changes, and DND state, with independent display duration and animation settings.
+- **Scaling:** independent 75–150% UI and font scales for desktop modules and the Settings window; per-widget base font sizes and stored module coordinates remain independent.
+- **Global appearance:** a proportional corner-radius scale (50–150%) plus independent border toggles for buttons, input controls, popups, and cards. Defaults preserve the established look; keyboard focus, validation, and settings-search highlights remain visible when ordinary borders are disabled.
 - **Motion:** per-module animation styles, easing profiles, and durations.
 - **Drag and drop:** shared reordering for Settings, Launcher, Dashboard, Player, Timer, and Mopidy queues/playlists.
 
@@ -217,3 +239,24 @@ Test dependencies: `jq`, `curl`, `file`, Python 3, Node.js, and `gawk`. The suit
 ### License
 
 MIT — see [`LICENSE`](LICENSE).
+
+#### Notification app-icon surface and bounds
+
+The Notifications appearance settings include `notificationsShowAppIconBackground` (enabled by default to preserve the existing appearance). Disabling it removes only the `Config.baseColor` surface behind desktop application icons; messenger avatars and notification-provided leading images retain their existing frame surface. The leading visual now renders through a clipped viewport, with the icon `Image` constrained to the viewport's smaller dimension and its source size derived from its final bounds. This prevents oversized or non-square icon sources from painting outside their allocated area while retaining aspect-fit rendering for application icons.
+
+
+### Adaptive presentation: Networks
+
+The Networks panel now consumes the shared `compact` / `regular` / `wide` presentation contract.
+- Compact mode tightens row spacing, padding, icon column and label typography while keeping connection names visible.
+- Regular mode preserves the previous row composition and dimensions.
+- Wide mode provides more generous spacing and shows an explicit connected/disconnected status label for each profile.
+- Network rows receive the host presentation mode from `ModuleFrame`; no backend, connection discovery, or stored geometry behavior changes.
+
+### Adaptive presentation: Network traffic
+
+The upload/download traffic widget also consumes the shared `compact` / `regular` / `wide` presentation contract.
+- Compact mode trims row density and prioritizes current transfer speed, hiding accumulated byte totals when horizontal space is tight.
+- Regular mode preserves the previous combined `speed / total` value and the existing settings-backed typography.
+- Wide mode separates live speed and accumulated total into aligned columns, with the total visually de-emphasized for easier scanning.
+- The module keeps its original click-through-to-Networks action, per-direction visibility settings, transfer colors, and MorphGeometry enter/exit animations. No traffic-monitoring backend or stored geometry behavior changes.

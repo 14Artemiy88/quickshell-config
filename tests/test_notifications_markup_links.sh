@@ -9,7 +9,7 @@ source = Path(sys.argv[1]).read_text(encoding="utf-8")
 checks = {
     "markup is advertised": "bodyMarkupSupported: true",
     "hyperlinks are advertised": "bodyHyperlinksSupported: true",
-    "formatted body uses RichText for functional anchors": "textFormat: Text.RichText",
+    "formatted body uses RichText in the selectable editor": "textFormat: TextEdit.RichText",
     "popup viewport clips overflow rather than cutting off card body text": "clip: true",
     "links receive visible accent color and underline": "text-decoration: underline;",
     "explicit newlines become markup line breaks": 'replace(/\\r\\n|\\r|\\n/g, "<br>")',
@@ -20,7 +20,7 @@ checks = {
     "link attributes are escaped before writing rich text": "escapeNotificationAttribute(href)",
     "link activation still has a handler": "onLinkActivated: function(link)",
     "only web and mail links are opened externally": "if (/^(https?:|mailto:)/i.test(url))",
-    "height uses actual Text layout": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
+    "height uses actual Text layout": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
 }
 for description, needle in checks.items():
     assert needle in source, f"{description}: missing {needle!r}"

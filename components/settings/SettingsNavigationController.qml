@@ -11,7 +11,7 @@ Item {
 
     property var host: null
     property var settings: Settings
-    property string currentPageId: "general"
+    property string currentPageId: "interface"
     property int currentPageSubTabIndex: 0
 
     // Stable page IDs, labels and non-core routes are owned by a dedicated
@@ -56,18 +56,13 @@ Item {
     // sibling fields don't light up every subtab.
     function settingsSubTabChangeSpec(pageId, sub) {
         var specs = {
-            "general": [
-                { keys: ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"] },
-                null,
-                null
-            ],
             "timers": [
                 { keys: ["timerWheelStep", "timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerPresetDefaults", "timerRandomColorMode", "timerRandomColorMin", "timerRandomColorMax"] },
                 { prefixes: ["timerFinished"] },
                 { prefixes: ["timerIcon", "timerAlarmIcon"], keys: ["timerIconOrder"] },
                 { keys: ["timerMinHeight", "timerRowRightMargin", "timerRowSpacing", "timerRowTopMargin", "timerCommentAlignFurthest", "timerCommentGap", "timerCommentMaxLength", "timerCommentWidth"] },
-                { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerMorphEnabled", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] },
-                { prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"] }
+                { prefixes: ["animationTimer", "timerButton"], exclude: ["animationTimerMorphEnabled", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsVisibilityProfile", "animationTimerOptionsDuration"] },
+                { prefixes: ["timerOptionsCommentIcon", "timerOptionsDurationIcon", "timerOptionsRefreshIcon", "timerOptionsPauseIcon", "timerOptionsColorIcon"], keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsVisibilityProfile", "animationTimerOptionsDuration"] }
             ],
             "player": [
                 { keys: ["playerPriority", "playerFont", "playerBoldArtist", "playerUpdateInterval"] },
@@ -100,7 +95,7 @@ Item {
             "network": [
                 { keys: ["systemMonitorInterval"] },
                 { prefixes: ["network"], keys: ["networksAlwaysVisible"] },
-                { keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"] }
+                { keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityProfile", "animationNetworkVisibilityDuration", "animationNetworkMorphDuration", "animationNetworkMorphProfile"] }
             ],
             "volume": [
                 { keys: ["volumeIcon", "volumeMutedIcon"] },
@@ -108,7 +103,12 @@ Item {
                 { prefixes: ["volumeMainTrack", "volumeStreamTrack", "volumeTrack"], keys: ["volumeMainIconWidth", "volumeMainRowHeight", "volumeStreamRowHeight", "volumeStreamSpacing", "volumeStreamLabelFont", "volumeStreamLabelFontSize"], nested: { colors: ["volumeTrack", "volumeFill"] } },
                 { prefixes: ["volumeStream"] , keys: ["volumeShowStreams"] },
                 { keys: ["volumeMinHeight", "volumeMaxHeight", "volumeHorizontalPadding", "volumeVerticalPadding"] },
-                { keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] }
+                { keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeStreamsVisibilityProfile", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] }
+            ],
+            "osd": [
+                { keys: ["volumeOsdEnabled", "volumeOsdHideDelay", "volumeOsdAnimationDuration", "animationVolumeOsdMorphProfile"] },
+                { keys: ["playerOsdEnabled", "playerOsdHideDelay", "playerOsdAnimationDuration", "animationPlayerOsdMorphProfile"] },
+                { keys: ["notificationsDndOsdEnabled", "notificationsDndOsdHideDelay", "notificationsDndOsdAnimationDuration", "animationNotificationsDndOsdMorphProfile"] }
             ],
             "calendar": [
                 { keys: ["calendarAlwaysVisible", "calendarArrowY", "calendarNextIcon", "calendarNextSize", "calendarNextX", "calendarPreviousIcon", "calendarPreviousSize", "calendarPreviousX", "calendarTitleFont", "calendarTitleFontSize", "calendarTitleY", "calendarDayFont", "calendarDayFontSize", "calendarDayY", "calendarWeekdayFont", "calendarWeekdayFontSize", "calendarWeekdayY"] },
@@ -118,7 +118,7 @@ Item {
             ],
             "settingsWindow": [
                 { keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize"] },
-                { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
+                { keys: ["settingsGeometry", "settingsMonitorName", "settingsBackground", "settingsBorder", "animationSettingsVisibilityStyle", "animationSettingsVisibilityProfile"], nested: { colors: ["settingsBackground", "settingsBorder"], moduleBlurEnabled: ["settings"] } },
                 { keys: ["settingsNavigationOrder", "settingsTabLabels"] }
             ],
             "mopidy": [
@@ -126,7 +126,7 @@ Item {
                 { prefixes: ["mopidyTrack", "mopidyArtist", "mopidyAlbum", "mopidyDuration", "mopidyQueueDuration"], keys: ["mopidyShowAlbumRemaining", "mopidyShowQueueTotalDuration", "mopidyShowTrackRemaining"] },
                 { prefixes: ["mopidyAddIcon", "mopidyClearIcon", "mopidyOpenAddIcon", "mopidyPlaylistDeleteIcon", "mopidyRefreshIcon", "mopidyRepeatIcon", "mopidyShuffleIcon", "mopidyStopIcon", "mopidySwitchPlaylistIcon", "mopidyVolumeIcon"], keys: ["mopidyTopIconOrder", "mopidyHideTopPanel", "mopidyTopPanelHoverHeight", "mopidyTopPanelOffsetY", "mopidyControlIconColor"] },
                 { prefixes: ["mopidyStatus"], keys: ["mopidyEmptyQueueText", "mopidyUnavailableText"] },
-                { keys: ["animationMopidyVisibilityStyle", "animationMopidyMorphDuration", "animationMopidyMorphProfile"] }
+                { keys: ["animationMopidyVisibilityStyle", "animationMopidyVisibilityProfile", "animationMopidyMorphDuration", "animationMopidyMorphProfile"] }
             ],
             "launcher": [
                 { keys: ["launcherDefaultMode", "launcherShowResultCount"] },
@@ -152,14 +152,14 @@ Item {
             ],
             "notificationsDnd": [
                 { keys: ["notificationsDoNotDisturb"] },
-                { keys: ["notificationsDndAllowedApps", "notificationsDndBlockedApps"] },
+                { keys: ["notificationsDndAllowedApps", "notificationsDndBlockedApps", "notificationsHistoryIgnoredApps"] },
                 { keys: ["notificationsHistoryLimit", "notificationsHistoryRetentionDays"] }
             ],
             "notifications": [
                 { keys: ["notificationsDefaultTimeout", "notificationsCriticalTimeout", "notificationsShowTimeoutIndicator", "notificationsTimeoutIndicatorColor", "notificationsTimeoutIndicatorStyle", "notificationsTimeoutIndicatorDirection"] },
-                { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowBodyImages", "notificationsShowProgress"] },
+                { keys: ["notificationsCardSpacing", "notificationsImageHeight", "notificationsBackgroundColor", "notificationsSummaryFont", "notificationsSummaryFontSize", "notificationsSummaryColor", "notificationsAppNameFont", "notificationsAppNameFontSize", "notificationsAppNameColor", "notificationsAppNameBold", "notificationsLeadingVisualSize", "notificationsLeadingVisualRadius", "notificationsCardPadding", "notificationsBodyFont", "notificationsBodyFontSize", "notificationsBodyColor", "notificationsShowAppIcon", "notificationsShowAppIconBackground", "notificationsShowBodyImages", "notificationsShowProgress"] },
                 { keys: ["notificationsVerticalAnchor"] },
-                { keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] }
+                { keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"] }
             ]
         }
         var row = specs[String(pageId)]
@@ -217,10 +217,10 @@ Item {
         }
 
         var scopes = {
-            modules: "modules", dashboard: "dashboard", themes: "themes", general: "general",
+            modules: "modules", dashboard: "dashboard", themes: "themes", interface: "general",
             timers: "timer", player: "player", mopidy: "mopidy",
             weather: "weather", cava: "cava", cpuRam: "cpu",
-            network: "network", volume: "volume", calendar: "calendar",
+            network: "network", volume: "volume", osd: "osd", calendar: "calendar",
             time: "clock", notifications: "notifications", notificationsDnd: "notifications", settingsWindow: "settingsWindow"
         }
         var scope = scopes[pageId] || ""
@@ -241,7 +241,7 @@ Item {
         switch (root.currentPageId) {
         case "time": settings.resetClockSettings(); break
         case "dashboard": settings.resetDashboardSettings(); break
-        case "general": settings.resetGeneralSettings(); break
+        case "interface": settings.resetGeneralSettings(); break
         case "timers": settings.resetTimerSettings(); break
         case "player": settings.resetPlayerSettings(); break
         case "weather": settings.resetWeatherSettings(); break
@@ -249,6 +249,7 @@ Item {
         case "cpuRam": settings.resetCpuSettings(); break
         case "network": settings.resetNetworkSettings(); break
         case "volume": settings.resetVolumeSettings(); break
+        case "osd": settings.resetOsdSettings(); break
         case "calendar": settings.resetCalendarSettings(); break
         case "settingsWindow": settings.resetSettingsWindow(); break
         case "mopidy": settings.resetMopidySettings(); break

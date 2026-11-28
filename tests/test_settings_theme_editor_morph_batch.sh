@@ -51,7 +51,7 @@ def verify_morph(block: str, state: str, height: str, name: str) -> None:
         f"toGeometry: Qt.rect(0, 0, parent.width, {height})",
         f"progress: {state} ? 1 : 0",
         'animationDuration: Config.animationDuration(180, "appearance")',
-        f'animationEasing: Config.animationEasingType("standard", {state} ? "enter" : "exit")',
+        f'animationEasing: Config.animationEasingType("ease-out", {state} ? "enter" : "exit")',
     )
     for token in checks:
         assert token in block, f"{name} morph missing or altered: {token}"
@@ -120,7 +120,7 @@ assert delegate_end is not None, "palette SettingsGroup delegate braces are unba
 delegate_block = palette[delegate_start:delegate_end]
 assert 'width: parent.width' in delegate_block and 'contentSpacing: 5' in delegate_block, "palette delegate layout changed"
 assert 'visible: root.editingColors' not in delegate_block, "palette delegates must stay alive while wrapper collapses"
-assert 'height: visible ? implicitHeight : 0' not in delegate_block, "palette delegates must not collapse before wrapper animation"
+assert delegate_block.count('height: visible ? implicitHeight : 0') <= 1, "only the optional palette helper text may collapse; the framed color groups must remain in the morph"
 
 # Existing theme-list expansion and its compact-selector handoff must remain intact.
 assert 'progress: root.themesExpanded ? 1 : 0' in source

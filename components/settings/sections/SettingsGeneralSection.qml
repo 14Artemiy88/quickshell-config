@@ -119,254 +119,41 @@ Column {
     width: parent ? parent.width : 0
     spacing: 10
 
-    SettingsGroup {
-                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-settingsSearchSubTabIndex: 0
-        width: parent.width
-        showFrame: true
-        changeKeys: ({ keys: ["font", "fontSize", "ledFont"] })
-        padding: 8
-        contentSpacing: 6
-
-        Text {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            text: "Шрифты интерфейса"
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
-            wrapMode: Text.WordWrap
-            width: parent.width
-        }
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 34
-            spacing: 8
-            labelWidth: 210
-            label: "Основной шрифт интерфейса"
-            SettingsFontField {
-                width: parent.width
-                height: 30
-                compact: true
-                fieldWidth: 160
-                fieldFontSize: 11
-                value: Config.font
-                targetObject: Config
-                targetProperty: "font"
-                settingsObject: settings
-                saveOnEdit: true
-            }
-        }
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 34
-            spacing: 8
-            labelWidth: 210
-            label: "Размер шрифта интерфейса"
-            SettingsNumberField {
-                id: generalFontSizeField
-                width: 100
-                height: 30
-                value: Config.fontSize
-                minimum: 6
-                maximum: 32
-                step: 1
-                wheelStep: 1
-                decimals: 0
-                compact: true
-                fieldWidth: 100
-                fieldFontSize: 11
-                inputMethodHints: Qt.ImhDigitsOnly
-                targetObject: Config
-                targetProperty: "fontSize"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
-        }
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 34
-            spacing: 8
-            labelWidth: 210
-            label: "LED-шрифт"
-            SettingsFontField {
-                width: parent.width
-                height: 30
-                compact: true
-                fieldWidth: 160
-                fieldFontSize: 11
-                value: Config.ledFont
-                targetObject: Config
-                targetProperty: "ledFont"
-                settingsObject: settings
-                saveOnEdit: true
-            }
-        }
-    }
-    SettingsGroup {
-                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-settingsSearchSubTabIndex: 0
-        width: parent.width
-        showFrame: true
-        changeKeys: ({ keys: ["backgroundBlurRadius"] })
-        heading: "Размытие фона"
-        padding: 8
-        contentSpacing: 6
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 30
-            spacing: 8
-            labelWidth: 210
-            label: "Радиус области блюра (0–40)"
-            SettingsNumberField {
-                id: backgroundBlurRadiusField
-                width: 72
-                height: 30
-                value: Config.backgroundBlurRadius
-                minimum: 0
-                maximum: 40
-                step: 1
-                wheelStep: 1
-                decimals: 0
-                compact: true
-                fieldWidth: 72
-                fieldFontSize: 11
-                inputMethodHints: Qt.ImhDigitsOnly
-                targetObject: Config
-                targetProperty: "backgroundBlurRadius"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
-        }
-        Text {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            text: "Для работы блюра требуется поддержка композитора."
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(9)
-            wrapMode: Text.WordWrap
-        }
-    }
-
-    SettingsGroup {
-                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-settingsSearchSubTabIndex: 0
-        width: parent.width
-        showFrame: true
-        changeKeys: ({ keys: ["frameBorderWidth", "frameRadius"] })
-        padding: 8
-        contentSpacing: 6
-
-        Text {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            text: "Рамки виджетов"
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
-            wrapMode: Text.WordWrap
-            width: parent.width
-        }
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 30
-            spacing: 8
-            labelWidth: 210
-            label: "Толщина рамки (0 = выкл.)"
-            SettingsNumberField {
-                id: frameBorderWidthField
-                width: 100
-                height: 30
-                value: Config.frameBorderWidth
-                minimum: 0
-                maximum: 20
-                step: 1
-                wheelStep: 1
-                decimals: 0
-                compact: true
-                fieldWidth: 100
-                fieldFontSize: 11
-                inputMethodHints: Qt.ImhDigitsOnly
-                targetObject: Config
-                targetProperty: "frameBorderWidth"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
-        }
-
-        SettingsRow {
-            visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
-            width: parent.width
-            height: 30
-            spacing: 8
-            labelWidth: 210
-            label: "Радиус скругления рамки"
-            SettingsNumberField {
-                id: frameRadiusField
-                width: 100
-                height: 30
-                value: Config.frameRadius
-                minimum: 0
-                maximum: 50
-                step: 1
-                wheelStep: 1
-                decimals: 0
-                compact: true
-                fieldWidth: 100
-                fieldFontSize: 11
-                inputMethodHints: Qt.ImhDigitsOnly
-                targetObject: Config
-                targetProperty: "frameRadius"
-                settingsObject: root.settings
-                saveOnEdit: true
-            }
-        }
-    }
-
-    Text {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2
+    SettingsDescription {
+        descriptionConditionVisible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
         width: parent.width
         text: "Пути вычисляются автоматически. Перемещать можно settings.json, profiles.json, calendar-notes.json и calendar-marks.json. Файл переносится с проверкой JSON; старый вариант сохраняется как резервная копия. После смены расположения рекомендуется перезапустить Quickshell."
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         wrapMode: Text.WordWrap
     }
 
     Text {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && !root.storagePathsLoaded
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && !root.storagePathsLoaded
         width: parent.width
         text: "Определение путей хранения…"
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
     }
 
     Text {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && root.storagePathsError.length > 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && root.storagePathsError.length > 0
         width: parent.width
         text: root.storagePathsError
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         wrapMode: Text.WordWrap
     }
 
     Text {
-        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2 && root.storagePathApplyMessage.length > 0
+        visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && root.storagePathApplyMessage.length > 0
         width: parent.width
         text: root.storagePathApplyMessage
         color: root.storagePathApplyError ? "#e06c75" : Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         wrapMode: Text.WordWrap
     }
@@ -375,12 +162,12 @@ settingsSearchSubTabIndex: 0
         model: root.storagePathGroups
 
         delegate: SettingsGroup {
-        settingsSearchSubTabIndex: 2
+        settingsSearchSubTabIndex: 1
             id: storagePathsGroup
             required property var modelData
             property var groupEntryIds: modelData.entryIds
 
-            visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 2
+            visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
             width: parent.width
             showFrame: true
             heading: modelData.title
@@ -407,7 +194,7 @@ settingsSearchSubTabIndex: 0
                             height: parent.height
                             text: modelData.label
                             color: Config.text
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             font.bold: true
                             verticalAlignment: Text.AlignVCenter
@@ -434,7 +221,7 @@ settingsSearchSubTabIndex: 0
                         color: Config.textMuted
                         selectionColor: Config.baseColor
                         selectedTextColor: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         wrapMode: TextArea.WrapAnywhere
                         padding: 0
@@ -450,7 +237,7 @@ settingsSearchSubTabIndex: 0
                             width: parent.width
                             text: "Новое расположение (имя файла не меняется)"
                             color: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(9)
                         }
 
@@ -466,7 +253,7 @@ settingsSearchSubTabIndex: 0
                                 text: root.storagePathDrafts[modelData.id] || ""
                                 placeholderText: "Абсолютный путь к " + String(modelData.path || "").split("/").pop()
                                 selectByMouse: true
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(10)
                                 enabled: !storagePathApplyProcess.running
                                 onTextChanged: root.updateStoragePathDraft(modelData.id, text)
@@ -491,7 +278,7 @@ settingsSearchSubTabIndex: 0
                         width: parent.width
                         text: String(modelData.description || "")
                         color: Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(9)
                         wrapMode: Text.WordWrap
                     }

@@ -14,6 +14,9 @@ Item {
     property bool removalSignalSent: false
     property bool transitionInitialized: false
     property int rowHeight: 32
+    property string presentationMode: "regular"
+    readonly property bool compactPresentation: root.presentationMode === "compact"
+    readonly property bool widePresentation: root.presentationMode === "wide"
     readonly property bool active: root.status === "on"
     readonly property bool hovered: buttonSurface.hovered
     readonly property string rowAnimationProfile: Config.animationNetworkMorphProfile
@@ -115,8 +118,8 @@ Item {
 
     Primitives.MorphGeometry {
         id: networkRowMorph
-        // Keep the delegate's 32px slot stable while its visible content
-        // expands from / collapses toward the vertical center line.
+        // Keep the delegate slot stable while its visible content expands
+        // from / collapses toward the vertical center line in each mode.
         fromGeometry: Qt.rect(0, parent.height / 2, parent.width, 0)
         toGeometry: Qt.rect(0, 0, parent.width, parent.height)
         progress: root.rowProgress
@@ -125,8 +128,8 @@ Item {
         animationDuration: 0
         clip: true
 
-        // Keep the row content at its natural 32px height. Only the MorphGeometry
-        // viewport changes size, clipping the fixed content from its center line.
+        // Keep the row content at its natural mode-specific height. Only the
+        // MorphGeometry viewport changes size, clipping content from its center line.
         // This gives a true geometric collapse/expand instead of fading or
         // scaling the button surface itself.
         Item {
@@ -149,30 +152,51 @@ Item {
                 onClicked: root.toggleConnection()
 
                 Row {
+                    id: rowLayout
                     anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
-                    spacing: 7
+                    anchors.leftMargin: root.compactPresentation ? 6 : root.widePresentation ? 12 : 8
+                    anchors.rightMargin: root.compactPresentation ? 6 : root.widePresentation ? 12 : 8
+                    spacing: root.widePresentation ? 8 : 0
 
-                    Text {
-                        id: typeIcon
-                        width: 27
+                    Row {
+                        id: connectionIdentity
+                        width: Math.max(0, rowLayout.width - rowStatus.width - (root.widePresentation ? rowLayout.spacing : 0))
                         height: parent.height
-                        text: root.type
-                        color: root.active ? Config.accent : Config.textDisabled
-                        font.pixelSize: Config.uiFontSize(20)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                        spacing: root.compactPresentation ? 4 : 7
+
+                        Text {
+                            id: typeIcon
+                            width: root.compactPresentation ? 22 : 27
+                            height: parent.height
+                            text: root.type
+                            color: root.active ? Config.accent : Config.textDisabled
+                            font.pixelSize: Config.uiFontSize(root.compactPresentation ? 18 : 20)
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        Text {
+                            width: Math.max(0, parent.width - typeIcon.width - parent.spacing)
+                            height: parent.height
+                            text: root.name
+                            color: root.active ? Config.textMuted : Config.textDisabled
+                            font.pixelSize: Config.uiFontSize(root.compactPresentation ? 13 : 14)
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
                     }
 
                     Text {
-                        width: Math.max(0, parent.width - typeIcon.width - parent.spacing)
+                        id: rowStatus
+                        readonly property bool hasStatusLabel: root.widePresentation
+                        width: hasStatusLabel ? implicitWidth : 0
                         height: parent.height
-                        text: root.name
-                        color: root.active ? Config.textMuted : Config.textDisabled
-                        font.pixelSize: Config.uiFontSize(14)
+                        visible: hasStatusLabel
+                        text: root.active ? "Подключено" : "Отключено"
+                        color: root.active ? Config.accent : Config.textDisabled
+                        font.pixelSize: Config.uiFontSize(11)
                         verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignRight
                     }
                 }
             }

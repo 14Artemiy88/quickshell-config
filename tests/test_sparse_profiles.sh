@@ -22,7 +22,7 @@ const defaults = {
   settingsNavigationOrder: {
     groupOrder: ['appearance','modules','dashboard','launcher','notifications','general'],
     pagesByGroup: {
-      appearance: ['themes','settingsWindow'],
+      appearance: ['themes','interface','settingsWindow'],
       modules: ['modules','time','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar'],
       dashboard: ['dashboard'],
       launcher: ['launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications'],

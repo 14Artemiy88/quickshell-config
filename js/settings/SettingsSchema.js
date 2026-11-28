@@ -11,6 +11,33 @@ function setOwn(object, key, value) {
     })
 }
 
+
+function normalizeAnimationProfileValue(value) {
+    var name = String(value === undefined || value === null ? "" : value).trim().toLowerCase()
+    var legacy = {
+        standard: "ease-out", spatial: "ease-out", effects: "ease-in",
+        expressive: "ease-in-out", expressivespatial: "ease-out", expressiveeffects: "ease-in"
+    }
+    if (name === "none" || name === "linear" || name === "ease" || name === "ease-in"
+            || name === "ease-out" || name === "ease-in-out")
+        return name
+    if (Object.prototype.hasOwnProperty.call(legacy, name)) return legacy[name]
+    var match = name.match(/^cubic-bezier\(\s*([^)]*)\s*\)$/i)
+    if (!match) return ""
+    var parts = match[1].split(",")
+    if (parts.length !== 4) return ""
+    var values = []
+    for (var i = 0; i < 4; ++i) {
+        var number = Number(String(parts[i]).trim())
+        if (!isFinite(number)) return ""
+        values.push(number)
+    }
+    if (values[0] < 0 || values[0] > 1 || values[2] < 0 || values[2] > 1) return ""
+    var formatted = []
+    for (var j = 0; j < 4; ++j) formatted.push(String(Math.round(values[j] * 1000) / 1000))
+    return "cubic-bezier(" + formatted.join(", ") + ")"
+}
+
 function normalizeSavedColor(value, fallback) {
     if (typeof value === "string") {
         var text = value.trim()
@@ -103,9 +130,49 @@ function splitLegacyTopAppsGeometry(geometry) {
     return [[x, y, width, sectionHeight], [x, y + sectionHeight + gap, width, sectionHeight]]
 }
 
+function normalizeProfileScale(p, key, isSparse) {
+    if (p[key] === undefined || p[key] === null || !isFinite(Number(p[key]))) {
+        if (isSparse) delete p[key]
+        else p[key] = 100
+        return
+    }
+    p[key] = Math.max(75, Math.min(150, Math.round(Number(p[key]))))
+}
+
+function normalizeProfileCornerScale(p, isSparse) {
+    if (p.cornerRadiusScale === undefined || p.cornerRadiusScale === null || !isFinite(Number(p.cornerRadiusScale))) {
+        if (isSparse) delete p.cornerRadiusScale
+        else p.cornerRadiusScale = 100
+        return
+    }
+    p.cornerRadiusScale = Math.max(50, Math.min(150, Math.round(Number(p.cornerRadiusScale))))
+}
+
+function normalizeProfileBorderToggle(p, key, isSparse) {
+    if (p[key] === undefined || p[key] === null) {
+        if (isSparse) delete p[key]
+        else p[key] = true
+        return
+    }
+    p[key] = p[key] !== false
+}
+
 function normalizeProfile(profile, isSparse) {
     if (!profile || typeof profile !== "object" || Array.isArray(profile)) return null
     var p = JSON.parse(JSON.stringify(profile))
+
+    // New global scales must not leak from the previously active profile when
+    // loading an older full snapshot. Sparse profiles omit absent keys and
+    // inherit the active profile baseline instead.
+    normalizeProfileScale(p, "uiScale", !!isSparse)
+    normalizeProfileScale(p, "fontScale", !!isSparse)
+    normalizeProfileScale(p, "settingsUiScale", !!isSparse)
+    normalizeProfileScale(p, "settingsFontScale", !!isSparse)
+    normalizeProfileCornerScale(p, !!isSparse)
+    normalizeProfileBorderToggle(p, "buttonBordersEnabled", !!isSparse)
+    normalizeProfileBorderToggle(p, "inputBordersEnabled", !!isSparse)
+    normalizeProfileBorderToggle(p, "popupBordersEnabled", !!isSparse)
+    normalizeProfileBorderToggle(p, "cardBordersEnabled", !!isSparse)
 
     p.modules = migrateLegacyTopAppsMap(p.modules)
     p.moduleFrames = migrateLegacyTopAppsMap(p.moduleFrames)
@@ -196,6 +263,91 @@ function normalizeProfile(profile, isSparse) {
         p.notificationsDoNotDisturb = false
     }
 
+    if (p.osdIntegrateWithNotifications !== undefined) {
+        if (typeof p.osdIntegrateWithNotifications === "boolean") p.osdIntegrateWithNotifications = p.osdIntegrateWithNotifications
+        else if (isSparse) delete p.osdIntegrateWithNotifications
+        else p.osdIntegrateWithNotifications = false
+    } else if (!isSparse) {
+        p.osdIntegrateWithNotifications = false
+    }
+
+    if (p.notificationsDndOsdEnabled !== undefined) {
+        if (typeof p.notificationsDndOsdEnabled === "boolean") p.notificationsDndOsdEnabled = p.notificationsDndOsdEnabled
+        else if (isSparse) delete p.notificationsDndOsdEnabled
+        else p.notificationsDndOsdEnabled = true
+    } else if (!isSparse) {
+        p.notificationsDndOsdEnabled = true
+    }
+
+    if (p.notificationsDndOsdHideDelay !== undefined) {
+        var notificationsDndOsdHideDelay = Number(p.notificationsDndOsdHideDelay)
+        if (isFinite(notificationsDndOsdHideDelay)) p.notificationsDndOsdHideDelay = Math.max(500, Math.min(10000, Math.round(notificationsDndOsdHideDelay)))
+        else if (isSparse) delete p.notificationsDndOsdHideDelay
+        else p.notificationsDndOsdHideDelay = 1800
+    } else if (!isSparse) {
+        p.notificationsDndOsdHideDelay = 1800
+    }
+
+    if (p.notificationsDndOsdAnimationDuration !== undefined) {
+        var notificationsDndOsdAnimationDuration = Number(p.notificationsDndOsdAnimationDuration)
+        if (isFinite(notificationsDndOsdAnimationDuration)) p.notificationsDndOsdAnimationDuration = Math.max(0, Math.min(1500, Math.round(notificationsDndOsdAnimationDuration)))
+        else if (isSparse) delete p.notificationsDndOsdAnimationDuration
+        else p.notificationsDndOsdAnimationDuration = 180
+    } else if (!isSparse) {
+        p.notificationsDndOsdAnimationDuration = 180
+    }
+
+    if (p.animationNotificationsDndOsdMorphProfile === undefined && !isSparse)
+        p.animationNotificationsDndOsdMorphProfile = "ease-in-out"
+
+    // Module entrance curves are independent of each module's internal morph
+    // curve. Older full profiles did not store these fields, so give them the
+    // current default instead of leaking the previous profile's active value.
+    // Sparse profiles deliberately omit absent keys and inherit their baseline.
+    var visibilityAnimationProfileKeys = [
+        "animationDashboardVisibilityProfile", "animationCalendarVisibilityProfile",
+        "animationMopidyVisibilityProfile", "animationNetworkVisibilityProfile",
+        "animationTimerVisibilityProfile", "animationTimerOptionsVisibilityProfile",
+        "animationSettingsVisibilityProfile", "animationVolumeStreamsVisibilityProfile",
+        "animationNotificationsVisibilityProfile"
+    ]
+    for (var visibilityIndex = 0; visibilityIndex < visibilityAnimationProfileKeys.length; ++visibilityIndex) {
+        var visibilityKey = visibilityAnimationProfileKeys[visibilityIndex]
+        if (p[visibilityKey] === undefined || p[visibilityKey] === null) {
+            if (isSparse) delete p[visibilityKey]
+            else p[visibilityKey] = "ease-out"
+        } else {
+            var normalizedVisibility = normalizeAnimationProfileValue(p[visibilityKey])
+            if (normalizedVisibility !== "") p[visibilityKey] = normalizedVisibility
+            else if (isSparse) delete p[visibilityKey]
+            else p[visibilityKey] = "ease-out"
+        }
+    }
+
+    // Normalize all saved easing fields before the profile is restored.
+    var animationProfileKeys = [
+        "animationNotificationsDndOsdMorphProfile", "animationNotificationsMorphProfile",
+        "animationMopidyMorphProfile", "animationPlayerMorphProfile",
+        "animationWeatherMorphProfile", "animationTimerMorphProfile",
+        "animationNetworkMorphProfile", "animationCavaMorphProfile",
+        "animationCalendarMorphProfile", "animationCpuMorphProfile",
+        "animationLauncherMorphProfile", "animationVolumeMorphProfile",
+        "animationVolumeOsdMorphProfile", "animationPlayerOsdMorphProfile",
+        "animationDashboardVisibilityProfile", "animationCalendarVisibilityProfile",
+        "animationMopidyVisibilityProfile", "animationNetworkVisibilityProfile",
+        "animationTimerVisibilityProfile", "animationTimerOptionsVisibilityProfile",
+        "animationSettingsVisibilityProfile", "animationVolumeStreamsVisibilityProfile",
+        "animationNotificationsVisibilityProfile"
+    ]
+    for (var animationIndex = 0; animationIndex < animationProfileKeys.length; ++animationIndex) {
+        var animationKey = animationProfileKeys[animationIndex]
+        if (p[animationKey] === undefined) continue
+        var normalizedAnimation = normalizeAnimationProfileValue(p[animationKey])
+        if (normalizedAnimation !== "") p[animationKey] = normalizedAnimation
+        else if (isSparse) delete p[animationKey]
+        else p[animationKey] = "ease-in-out"
+    }
+
     if (p.notificationsDndAllowedApps !== undefined) {
         if (typeof p.notificationsDndAllowedApps === "string") p.notificationsDndAllowedApps = p.notificationsDndAllowedApps.slice(0, 4096)
         else if (isSparse) delete p.notificationsDndAllowedApps
@@ -210,6 +362,14 @@ function normalizeProfile(profile, isSparse) {
         else p.notificationsDndBlockedApps = ""
     } else if (!isSparse) {
         p.notificationsDndBlockedApps = ""
+    }
+
+    if (p.notificationsHistoryIgnoredApps !== undefined) {
+        if (typeof p.notificationsHistoryIgnoredApps === "string") p.notificationsHistoryIgnoredApps = p.notificationsHistoryIgnoredApps.slice(0, 4096)
+        else if (isSparse) delete p.notificationsHistoryIgnoredApps
+        else p.notificationsHistoryIgnoredApps = ""
+    } else if (!isSparse) {
+        p.notificationsHistoryIgnoredApps = ""
     }
 
     if (p.notificationsHistoryLimit !== undefined) {
@@ -301,6 +461,13 @@ function normalizeProfile(profile, isSparse) {
 
     if (p.notificationsAppNameBold !== undefined) p.notificationsAppNameBold = !!p.notificationsAppNameBold
     else if (!isSparse) p.notificationsAppNameBold = false
+
+    if (p.notificationsShowAppIconBackground !== undefined) {
+        if (typeof p.notificationsShowAppIconBackground !== "boolean") {
+            if (isSparse) delete p.notificationsShowAppIconBackground
+            else p.notificationsShowAppIconBackground = true
+        }
+    } else if (!isSparse) p.notificationsShowAppIconBackground = true
 
     if (p.notificationsLeadingVisualSize !== undefined) {
         var leadingVisualSize = Number(p.notificationsLeadingVisualSize)

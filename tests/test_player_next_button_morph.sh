@@ -11,8 +11,8 @@ end = source.index('property real pendingSeekPercent', start)
 block = source[start:end]
 checks = {
     'shared MorphGeometry wrapper': 'id: playerNextMorph' in block,
-    'fixed target geometry': 'Config.playerNextIconSize + 2' in block,
-    'small inset start geometry': 'Config.playerNextIconSize),' in block,
+    'fixed target geometry': 'root.effectivePlayerNextIconSize + 2' in block,
+    'small inset start geometry': 'Math.max(0, root.effectivePlayerNextIconSize),' in block,
     'supported backends are unchanged': 'deadbeef' in source and 'mopidy' in source and 'spotify' in source,
     'exit remains visible through transition': 'root.playerNextSupported || normalizedProgress > 0.001' in block,
     'button interaction is gated by backend support': 'interactionEnabled: root.playerNextSupported' in block,

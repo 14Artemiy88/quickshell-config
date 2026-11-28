@@ -30,18 +30,18 @@ for key, text in {
     assert "animationNotificationsMorphProfile" in text, f"{key} misses notification animation profile"
 
 assert 'animationNotificationsMorphDuration: 180' in config
-assert 'animationNotificationsMorphProfile: "expressive"' in config
+assert 'animationNotificationsMorphProfile: "ease-in-out"' in config
 assert 'animationNotificationsMorphDuration: 180' in defaults
-assert 'animationNotificationsMorphProfile: "expressive"' in defaults
+assert 'animationNotificationsMorphProfile: "ease-in-out"' in defaults
 assert 'Math.max(0, Math.min(5000, Math.round(notificationsMorphDuration)))' in apply_behaviour
-assert 'allowedNotificationsMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply_behaviour
+assert 'applyMorphProfile(Config, o, "animationNotificationsMorphProfile")' in apply_behaviour
 
 assert 'notifications: ["notifications", "animationNotifications"]' in profiles
-assert profiles.count('notifications: ["notifications", "animationNotifications"]') == 2
-assert resets.count('"animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"') >= 2
+assert profiles.count('notifications: ["notifications", "animationNotifications"]') == 1
+assert resets.count('"animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"') >= 2
 
 assert 'subTabs: ["Поведение", "Внешний вид", "Размещение", "Анимация"]' in registry
-assert '{ keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle"] }' in navigation
+assert '{ keys: ["animationNotificationsMorphDuration", "animationNotificationsMorphProfile", "animationNotificationsVisibilityStyle", "animationNotificationsVisibilityProfile"] }' in navigation
 assert 'SettingsAnimationGroup {' in settings_ui
 assert 'currentPageSubTabIndex === 3' in settings_ui
 assert 'onDurationEdited:' in settings_ui and 'onProfileEdited:' in settings_ui
@@ -53,6 +53,7 @@ assert 'function startNotificationEntry()' in notifications
 assert 'ListView.onAdd: card.startNotificationEntry()' in notifications
 assert 'id: entryAnimation' in notifications
 assert 'NotificationAnimation.effectiveStyle(' in notifications
+assert 'Config.animationNotificationsVisibilityProfile' in notifications
 assert 'NotificationAnimation.visibilityDuration(' in notifications
 assert 'property string activeTransitionStyle: \"none\"' in notifications
 assert 'activeTransitionDuration = root.notificationCardVisibilityDuration' in notifications
@@ -84,9 +85,12 @@ const vm = require('vm');
 const root = process.argv[2];
 const source = fs.readFileSync(root + '/js/settings/SettingsApplyBehaviour.js', 'utf8')
   .replace(/^\.pragma library\s*/m, '');
+const curveSource = fs.readFileSync(root + '/js/AnimationCurves.js', 'utf8').replace(/^\.pragma library\s*/m, '');
+const curves = {}; vm.createContext(curves); vm.runInContext(curveSource, curves);
 const context = { Config: {
   animationNotificationsMorphDuration: 180,
-  animationNotificationsMorphProfile: 'expressive'
+  animationNotificationsMorphProfile: 'expressive',
+  normalizeAnimationProfile: curves.normalizeProfile
 } };
 vm.createContext(context);
 vm.runInContext(source + '\nthis.applyForTest = apply;', context);

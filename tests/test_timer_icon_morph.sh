@@ -20,7 +20,7 @@ for morph_id, enabled_key, size_key, x_key in (
     assert "normalizedProgress > 0.001" in block, f"{morph_id} must stay alive through exit"
     assert "Config.animationDuration(Config.timerButtonIconFadeDuration, \"appearance\")" in block
     assert f"opacity: {morph_id}.normalizedProgress" in block
-    assert f"font.pixelSize: Config.{size_key}" in block
+    assert f"font.pixelSize: Config.uiFontSize(Config.{size_key})" in block
     assert "clip:" not in block, f"{morph_id} must not clip its glyph"
 assert "Behavior on opacity" not in source, "legacy fade-only icon behavior must be removed"
 print("Timer/alarm icon MorphGeometry transitions: OK")

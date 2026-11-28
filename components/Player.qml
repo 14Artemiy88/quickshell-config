@@ -10,12 +10,218 @@ Primitives.ModuleFrame {
     id: root
     moduleName: "player"
     signal mopidyToggleRequested()
+    signal mediaTrackChanged(var snapshot)
     property var player: ({})
+    property bool mediaOsdSnapshotInitialized: false
+    property string mediaOsdTrackSignature: ""
+
+    function mediaOsdSignature(snapshot) {
+        var data = snapshot && typeof snapshot === "object" ? snapshot : ({})
+        var backend = String(data.player || "").trim().toLowerCase()
+        if (!backend)
+            return ""
+        var title = backend === "deadbeef"
+            ? String(data.third_line || data.first_line || "")
+            : String(data.first_line || "")
+        if (!title.trim())
+            return ""
+        var artist = (backend === "deadbeef" || backend === "mopidy")
+            ? String(data.text || "") : String(data.second_line || "")
+        var album = (backend === "deadbeef" || backend === "mopidy")
+            ? String(data.second_line || "") : ""
+        return [backend, title, artist, album].join("\u001f")
+    }
+
+    function acceptPlayerSnapshot(snapshot) {
+        var data = snapshot && typeof snapshot === "object" ? snapshot : ({})
+        var previousSignature = root.mediaOsdTrackSignature
+        var nextSignature = root.mediaOsdSignature(data)
+        var wasInitialized = root.mediaOsdSnapshotInitialized
+        root.player = data
+        root.mediaOsdSnapshotInitialized = true
+        if (!nextSignature)
+            return
+        root.mediaOsdTrackSignature = nextSignature
+        if (wasInitialized && nextSignature !== previousSignature)
+            root.mediaTrackChanged(data)
+    }
     property string imagePath: root.player.image || ""
+
+    // Preserve the configured 315 px regular composition. Compact surfaces
+    // scale the visual metrics down to fit; wide surfaces use spare width for
+    // slightly larger typography and controls without changing backend state
+    // or the user's saved geometry values.
+    readonly property real playerPresentationScale: root.compactPresentation
+        ? Math.max(0.72, Math.min(1, Number(root.width) / 315))
+        : root.widePresentation ? Math.min(1.16, Math.max(1, Number(root.width) / 420)) : 1
+
+    function scaledPlayerSize(value, minimumValue) {
+        var raw = Number(value)
+        if (!isFinite(raw) || raw <= 0)
+            return isFinite(raw) ? raw : 0
+        var minimum = minimumValue === undefined ? 1 : Number(minimumValue)
+        return Math.max(minimum, Math.round(raw * root.playerPresentationScale))
+    }
+
+    function scaledPlayerOffset(value) {
+        var raw = Number(value)
+        return isFinite(raw) ? Math.round(raw * root.playerPresentationScale) : 0
+    }
+
+    readonly property int effectivePlayerSilenceFontSize: root.scaledPlayerSize(Config.playerSilenceFontSize, 8)
+    readonly property int effectivePlayerSilenceLongFontSize: root.scaledPlayerSize(Config.playerSilenceLongFontSize, 8)
+    readonly property int effectivePlayerMetaFontSize: root.scaledPlayerSize(Config.playerMetaFontSize, 8)
+    readonly property int effectivePlayerMetaSecondaryFontSize: root.scaledPlayerSize(Config.playerMetaSecondaryFontSize, 8)
+    readonly property int effectivePlayerMetaLineSpacing: root.scaledPlayerSize(Config.playerMetaLineSpacing, 1)
+    readonly property int effectivePlayerPlayingIconSize: root.scaledPlayerSize(Config.playerPlayingIconSize, 8)
+    readonly property int effectivePlayerPausedIconSize: root.scaledPlayerSize(Config.playerPausedIconSize, 8)
+    readonly property int effectivePlayerNextIconSize: root.scaledPlayerSize(Config.playerNextIconSize, 8)
+    readonly property int effectivePlayerTimeFontSize: root.scaledPlayerSize(Config.playerTimeFontSize, 8)
+    readonly property int effectivePlayerMetadataXPadding: root.scaledPlayerSize(Config.playerMetadataXPadding, 0)
+    readonly property int effectivePlayerMetadataY: root.scaledPlayerOffset(Config.playerMetadataY)
+    readonly property int effectivePlayerProgressY: root.scaledPlayerOffset(Config.playerProgressY)
+    readonly property int effectivePlayerProgressTrackHeight: root.scaledPlayerSize(Config.playerProgressTrackHeight, 1)
+    readonly property int effectivePlayerProgressTrackOffsetY: root.scaledPlayerOffset(Config.playerProgressTrackOffsetY)
+    readonly property int effectivePlayerControlTopMargin: root.scaledPlayerOffset(Config.playerControlTopMargin)
+    readonly property int effectivePlayerControlGap: root.scaledPlayerSize(Config.playerControlGap, 0)
+    readonly property int effectivePlayerTimeY: root.scaledPlayerOffset(Config.playerTimeY)
+    readonly property int effectivePlayerTimeRightPadding: root.scaledPlayerSize(Config.playerTimeRightPadding, 0)
+    readonly property int effectivePlayerPlayingIconY: root.scaledPlayerOffset(Config.playerPlayingIconY)
+    readonly property int effectivePlayerPausedIconY: root.scaledPlayerOffset(Config.playerPausedIconY)
+    readonly property int effectivePlayerNextIconY: root.scaledPlayerOffset(Config.playerNextIconY)
+    readonly property int effectivePlayerSilenceWidth: {
+        var configured = root.scaledPlayerSize(Config.playerSilenceWidth, 1)
+        return root.compactPresentation ? Math.min(configured, Math.max(1, root.width - 12)) : configured
+    }
+
+    // The Dashboard can inspect every currently usable backend while it is
+    // open and select one independently of the main Player widget's priority.
+    property bool dashboardActive: false
+    property var dashboardPlayers: []
+    property string dashboardSelectedBackend: ""
+    property var dashboardSelectedSnapshot: null
+    property int dashboardSelectedMissingPolls: 0
+    readonly property var dashboardPlayer: {
+        var sources = Array.isArray(root.dashboardPlayers) ? root.dashboardPlayers : []
+        var wanted = String(root.dashboardSelectedBackend || "").trim().toLowerCase()
+        var current = String(root.player.player || "").trim().toLowerCase()
+        for (var i = 0; i < sources.length; ++i) {
+            var id = String(sources[i] && sources[i].player || "").trim().toLowerCase()
+            if (wanted !== "" && id === wanted)
+                return sources[i]
+        }
+        if (wanted === "") {
+            for (var j = 0; j < sources.length; ++j) {
+                var sourceId = String(sources[j] && sources[j].player || "").trim().toLowerCase()
+                if (current !== "" && sourceId === current)
+                    return sources[j]
+            }
+            if (sources.length > 0)
+                return sources[0]
+            return root.player
+        }
+        return root.player
+    }
+    readonly property int dashboardPlayerCount: Array.isArray(root.dashboardPlayers)
+        ? root.dashboardPlayers.length : 0
+
+    function setDashboardPlayers(value) {
+        var incoming = Array.isArray(value) ? value : []
+        var cleaned = []
+        var seen = ({})
+        for (var i = 0; i < incoming.length; ++i) {
+            var item = incoming[i]
+            var backend = String(item && item.player || "").trim().toLowerCase()
+            if (!item || backend === "" || seen[backend])
+                continue
+            seen[backend] = true
+            cleaned.push(item)
+        }
+        var selected = String(root.dashboardSelectedBackend || "").trim().toLowerCase()
+        if (selected !== "" && seen[selected]) {
+            for (var j = 0; j < cleaned.length; ++j) {
+                if (String(cleaned[j].player || "").trim().toLowerCase() === selected) {
+                    root.dashboardSelectedSnapshot = cleaned[j]
+                    break
+                }
+            }
+            root.dashboardSelectedMissingPolls = 0
+        } else if (selected !== "" && root.dashboardSelectedSnapshot) {
+            // A single backend probe can fail transiently (e.g. playerctl or
+            // a CLI request races a track transition). Keep the last selected
+            // payload for one scan so the selector and transport controls do
+            // not disappear immediately after a successful switch.
+            root.dashboardSelectedMissingPolls += 1
+            if (root.dashboardSelectedMissingPolls <= 1) {
+                cleaned.push(root.dashboardSelectedSnapshot)
+                seen[selected] = true
+            } else {
+                root.dashboardSelectedBackend = ""
+                root.dashboardSelectedSnapshot = null
+                root.dashboardSelectedMissingPolls = 0
+            }
+        }
+        root.dashboardPlayers = cleaned
+    }
+
+    function selectDashboardPlayer(backendValue) {
+        var target = String(backendValue || "").trim().toLowerCase()
+        if (target === "")
+            return false
+        for (var i = 0; i < root.dashboardPlayers.length; ++i) {
+            if (String(root.dashboardPlayers[i].player || "").trim().toLowerCase() === target) {
+                root.dashboardSelectedBackend = target
+                root.dashboardSelectedSnapshot = root.dashboardPlayers[i]
+                root.dashboardSelectedMissingPolls = 0
+                return true
+            }
+        }
+        return false
+    }
 
     // Share the exact local-path/URL normalization used by Dashboard artwork.
     function imageSourceForPath(value) {
         return PlayerImage.imageSourceForPath(value, Quickshell.shellDir)
+    }
+
+    // Expose the same selected-backend play/pause action to Dashboard without
+    // duplicating backend routing or bypassing this shared Player source.
+    function togglePlayback() {
+        return root.togglePlaybackForBackend(root.player.player)
+    }
+
+    function togglePlaybackForBackend(backendValue) {
+        var backend = String(backendValue || "").trim().toLowerCase()
+        if (backend === "")
+            return false
+        Quickshell.execDetached([
+            Quickshell.shellDir + "/scripts/player_pausing",
+            "pause",
+            backend
+        ])
+        return true
+    }
+
+    function seekToPercentForBackend(backendValue, percent, durationValue) {
+        var backend = String(backendValue || "").trim().toLowerCase()
+        var target = Number(percent)
+        var duration = Number(durationValue)
+        if (backend === "" || !isFinite(target) || !isFinite(duration) || duration <= 0)
+            return false
+        target = Math.max(0, Math.min(100, target))
+        // Retain the established optimistic seek path when the Dashboard is
+        // controlling the same source as the main Player widget. Other active
+        // sources are addressed explicitly and refreshed by the Dashboard scan.
+        if (backend === String(root.player.player || "").trim().toLowerCase())
+            return root.seekToPercent(target)
+        Quickshell.execDetached([
+            Quickshell.shellDir + "/scripts/player_pausing",
+            "position",
+            String(Math.round(target)),
+            backend,
+            String(duration)
+        ])
+        return true
     }
 
     Process {
@@ -36,21 +242,81 @@ Primitives.ModuleFrame {
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
-                try { root.player = JSON.parse(this.text) } catch(e) {}
+                try { root.acceptPlayerSnapshot(JSON.parse(this.text)) } catch(e) {}
                 proc.running = false
             }
         }
     }
     Timer { interval: Config.playerUpdateInterval; running: Settings.loaded && Settings.player; repeat: true; triggeredOnStart: true; onTriggered: if (Settings.player && !proc.running) proc.running = true }
 
+    Process {
+        id: dashboardPlayersProc
+        command: {
+            var args = [Quickshell.shellDir + "/scripts/player", "--all", "--priority"]
+            var priority = Config.playerPriority || []
+            for (var i = 0; i < priority.length; ++i) {
+                var item = priority[i]
+                if (!item || item.enabled === false)
+                    continue
+                var backendId = String(item.id || "")
+                if (backendId !== "")
+                    args.push(backendId)
+            }
+            return args
+        }
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    if (root.dashboardActive && Settings.player)
+                        root.setDashboardPlayers(JSON.parse(this.text))
+                } catch (e) {
+                    // Retain the previous usable snapshot if a backend emits
+                    // malformed output during a transient service transition.
+                }
+                dashboardPlayersProc.running = false
+            }
+        }
+    }
+    Timer {
+        interval: Math.max(1600, Number(Config.playerUpdateInterval || 1000) * 2)
+        running: Settings.loaded && Settings.player && root.dashboardActive
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: if (Settings.player && root.dashboardActive && !dashboardPlayersProc.running)
+                         dashboardPlayersProc.running = true
+    }
+    onDashboardActiveChanged: {
+        if (!root.dashboardActive) {
+            root.dashboardPlayers = []
+            root.dashboardSelectedBackend = ""
+            root.dashboardSelectedSnapshot = null
+            root.dashboardSelectedMissingPolls = 0
+        } else if (Settings.player && !dashboardPlayersProc.running) {
+            dashboardPlayersProc.running = true
+        }
+    }
+
     Connections {
         target: Settings
         function onPlayerChanged() {
             if (Settings.player && !proc.running) proc.running = true
             else if (!Settings.player && proc.running) proc.running = false
+            if (!Settings.player) {
+                root.mediaOsdSnapshotInitialized = false
+                root.mediaOsdTrackSignature = ""
+                root.dashboardPlayers = []
+                root.dashboardSelectedBackend = ""
+                root.dashboardSelectedSnapshot = null
+                root.dashboardSelectedMissingPolls = 0
+            } else if (root.dashboardActive && !dashboardPlayersProc.running) {
+                dashboardPlayersProc.running = true
+            }
         }
         function onLoadedChanged() {
             if (Settings.loaded && Settings.player && !proc.running) proc.running = true
+            if (Settings.loaded && Settings.player && root.dashboardActive && !dashboardPlayersProc.running)
+                dashboardPlayersProc.running = true
         }
     }
 
@@ -76,7 +342,7 @@ Primitives.ModuleFrame {
     TextMetrics {
         id: silenceMetrics
         font.family: Config.playerFont
-        font.pixelSize: Config.playerSilenceLongFontSize
+        font.pixelSize: Config.uiFontSize(root.effectivePlayerSilenceLongFontSize)
         text: silenceText.text
     }
 
@@ -87,7 +353,7 @@ Primitives.ModuleFrame {
         property bool needsMultiline: text.length > 0 && silenceMetrics.advanceWidth > width
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        width: Config.playerSilenceWidth
+        width: root.effectivePlayerSilenceWidth
         maximumLineCount: needsMultiline ? 3 : 1
         // A stale/unreadable path used to suppress the fallback text even when
         // QtQuick could not load the cover. Use the actual Image status too.
@@ -95,9 +361,9 @@ Primitives.ModuleFrame {
               ? (root.player.player ? (root.player.text || Config.playerSilenceText) : Config.playerSilenceText) : ""
         color: Config.text
         font.family: Config.playerFont
-        font.pixelSize: needsMultiline ? Config.playerSilenceLongFontSize : Config.playerSilenceFontSize
+        font.pixelSize: Config.uiFontSize(needsMultiline ? root.effectivePlayerSilenceLongFontSize : root.effectivePlayerSilenceFontSize)
         fontSizeMode: needsMultiline ? Text.FixedSize : Text.HorizontalFit
-        minimumPixelSize: Config.playerSilenceLongFontSize
+        minimumPixelSize: root.effectivePlayerSilenceLongFontSize
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         wrapMode: needsMultiline ? Text.Wrap : Text.NoWrap
@@ -109,15 +375,15 @@ Primitives.ModuleFrame {
     // Metadata grows upward from a fixed bottom edge. The progress value is the
     // desired content height divided by the maximum three-line height, so changes
     // between one, two and three lines share the same geometry animation.
-    readonly property real playerMetadataSpacing: Math.max(0, Config.playerMetaLineSpacing - Config.playerMetaSecondaryFontSize)
+    readonly property real playerMetadataSpacing: Math.max(0, root.effectivePlayerMetaLineSpacing - root.effectivePlayerMetaSecondaryFontSize)
     readonly property int playerMetadataLineCount: (root.player.first_line ? 1 : 0)
                                                    + (root.player.second_line ? 1 : 0)
                                                    + (root.player.third_line ? 1 : 0)
-    readonly property real playerMetadataTargetHeight: (root.player.first_line ? Math.max(0, Config.playerMetaFontSize) : 0)
-                                                      + ((root.player.second_line ? 1 : 0) + (root.player.third_line ? 1 : 0)) * Math.max(0, Config.playerMetaSecondaryFontSize)
+    readonly property real playerMetadataTargetHeight: (root.player.first_line ? Math.max(0, root.effectivePlayerMetaFontSize) : 0)
+                                                      + ((root.player.second_line ? 1 : 0) + (root.player.third_line ? 1 : 0)) * Math.max(0, root.effectivePlayerMetaSecondaryFontSize)
                                                       + Math.max(0, playerMetadataLineCount - 1) * playerMetadataSpacing
-    readonly property real playerMetadataMaxHeight: Math.max(0, Config.playerMetaFontSize)
-                                                    + 2 * Math.max(0, Config.playerMetaSecondaryFontSize)
+    readonly property real playerMetadataMaxHeight: Math.max(0, root.effectivePlayerMetaFontSize)
+                                                    + 2 * Math.max(0, root.effectivePlayerMetaSecondaryFontSize)
                                                     + 2 * playerMetadataSpacing
     // Text glyphs (especially font descenders and Text.Outline) can paint a few
     // pixels below their nominal item height. Keep a small trailing clip buffer
@@ -135,14 +401,14 @@ Primitives.ModuleFrame {
         clip: true
         visible: root.playerMetadataTargetHeight > 0 || normalizedProgress > 0.001
         fromGeometry: Qt.rect(
-            Config.playerMetadataXPadding,
-            parent.height - Config.playerMetadataY,
-            Math.max(0, parent.width - Config.playerMetadataXPadding * 2),
+            root.effectivePlayerMetadataXPadding,
+            parent.height - root.effectivePlayerMetadataY,
+            Math.max(0, parent.width - root.effectivePlayerMetadataXPadding * 2),
             0)
         toGeometry: Qt.rect(
-            Config.playerMetadataXPadding,
-            parent.height - Config.playerMetadataY - root.playerMetadataMaxHeight,
-            Math.max(0, parent.width - Config.playerMetadataXPadding * 2),
+            root.effectivePlayerMetadataXPadding,
+            parent.height - root.effectivePlayerMetadataY - root.playerMetadataMaxHeight,
+            Math.max(0, parent.width - root.effectivePlayerMetadataXPadding * 2),
             root.playerMetadataMaxHeight + root.playerMetadataClipSafety)
         progress: root.playerMetadataMaxHeight > 0 ? root.playerMetadataTargetHeight / root.playerMetadataMaxHeight : 0
         animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")
@@ -157,11 +423,11 @@ Primitives.ModuleFrame {
             Text {
                 visible: !!root.player.first_line
                 width: parent.width
-                height: Config.playerMetaFontSize
+                height: root.effectivePlayerMetaFontSize
                 text: root.player.first_line || ""
                 color: Config.text
                 font.family: Config.playerMetaFont
-                font.pixelSize: Config.playerMetaFontSize
+                font.pixelSize: Config.uiFontSize(root.effectivePlayerMetaFontSize)
                 font.bold: Config.playerBoldArtist || !!root.player.first_line
                 elide: Text.ElideRight
                 style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
@@ -170,11 +436,11 @@ Primitives.ModuleFrame {
             Text {
                 visible: !!root.player.second_line
                 width: parent.width
-                height: Config.playerMetaSecondaryFontSize
+                height: root.effectivePlayerMetaSecondaryFontSize
                 text: root.player.second_line || ""
                 color: Config.text
                 font.family: Config.playerMetaFont
-                font.pixelSize: Config.playerMetaSecondaryFontSize
+                font.pixelSize: Config.uiFontSize(root.effectivePlayerMetaSecondaryFontSize)
                 elide: Text.ElideRight
                 style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
                 styleColor: Config.playerTextOutlineColor
@@ -182,11 +448,11 @@ Primitives.ModuleFrame {
             Text {
                 visible: !!root.player.third_line
                 width: parent.width
-                height: Config.playerMetaSecondaryFontSize
+                height: root.effectivePlayerMetaSecondaryFontSize
                 text: root.player.third_line || ""
                 color: Config.text
                 font.family: Config.playerMetaFont
-                font.pixelSize: Config.playerMetaSecondaryFontSize
+                font.pixelSize: Config.uiFontSize(root.effectivePlayerMetaSecondaryFontSize)
                 elide: Text.ElideRight
                 style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
                 styleColor: Config.playerTextOutlineColor
@@ -195,21 +461,21 @@ Primitives.ModuleFrame {
     }
     Text {
         id: pauseButton
-        x: Config.playerControlTopMargin; y: Config.playerControlTopMargin + (root.player.status === "\uF04C" ? Config.playerPlayingIconY : Config.playerPausedIconY); width: (root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize) + 2; height: (root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize) + 2
+        x: root.effectivePlayerControlTopMargin; y: root.effectivePlayerControlTopMargin + (root.player.status === "\uF04C" ? root.effectivePlayerPlayingIconY : root.effectivePlayerPausedIconY); width: (root.player.status === "\uF04C" ? root.effectivePlayerPlayingIconSize : root.effectivePlayerPausedIconSize) + 2; height: (root.player.status === "\uF04C" ? root.effectivePlayerPlayingIconSize : root.effectivePlayerPausedIconSize) + 2
         text: root.player.status === "\uF04C" ? Config.playerPlayingIcon : (root.player.status === "\uF04B" ? Config.playerPausedIcon : (root.player.status || ""))
         color: Config.text
-        font.pixelSize: root.player.status === "\uF04C" ? Config.playerPlayingIconSize : Config.playerPausedIconSize
+        font.pixelSize: Config.uiFontSize(root.player.status === "\uF04C" ? root.effectivePlayerPlayingIconSize : root.effectivePlayerPausedIconSize)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }
     Text {
-        x: 0; y: Config.playerControlTopMargin + Config.playerTimeY
-        width: parent.width - Config.playerTimeRightPadding
+        x: 0; y: root.effectivePlayerControlTopMargin + root.effectivePlayerTimeY
+        width: parent.width - root.effectivePlayerTimeRightPadding
         horizontalAlignment: Text.AlignRight
         text: root.player.timeleft || ""
         color: Config.text
         font.family: Config.playerTimeFont
-        font.pixelSize: Config.playerTimeFontSize
+        font.pixelSize: Config.uiFontSize(root.effectivePlayerTimeFontSize)
         style: Config.playerTextOutlineEnabled ? Text.Outline : Text.Normal
         styleColor: Config.playerTextOutlineColor
     }
@@ -222,9 +488,7 @@ Primitives.ModuleFrame {
         // slider are later/higher interactive children, while plain metadata and
         // cover areas still toggle play/pause.
         onClicked: {
-            var backend = String(root.player.player || "").trim().toLowerCase()
-            if (backend !== "")
-                Quickshell.execDetached([Quickshell.shellDir + "/scripts/player_pausing", "pause", backend])
+            root.togglePlayback()
         }
     }
     readonly property bool playerNextSupported: ["deadbeef", "mopidy", "spotify"].indexOf(String(root.player.player || "").toLowerCase()) !== -1
@@ -244,15 +508,15 @@ Primitives.ModuleFrame {
     Primitives.MorphGeometry {
         id: playerNextMorph
         fromGeometry: Qt.rect(
-            Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap + 1,
-            Config.playerControlTopMargin + Config.playerNextIconY + 1,
-            Math.max(0, Config.playerNextIconSize),
-            Math.max(0, Config.playerNextIconSize))
+            root.effectivePlayerControlTopMargin + Math.max(root.effectivePlayerPlayingIconSize, root.effectivePlayerPausedIconSize) + root.effectivePlayerControlGap + 1,
+            root.effectivePlayerControlTopMargin + root.effectivePlayerNextIconY + 1,
+            Math.max(0, root.effectivePlayerNextIconSize),
+            Math.max(0, root.effectivePlayerNextIconSize))
         toGeometry: Qt.rect(
-            Config.playerControlTopMargin + Math.max(Config.playerPlayingIconSize, Config.playerPausedIconSize) + Config.playerControlGap,
-            Config.playerControlTopMargin + Config.playerNextIconY,
-            Config.playerNextIconSize + 2,
-            Config.playerNextIconSize + 2)
+            root.effectivePlayerControlTopMargin + Math.max(root.effectivePlayerPlayingIconSize, root.effectivePlayerPausedIconSize) + root.effectivePlayerControlGap,
+            root.effectivePlayerControlTopMargin + root.effectivePlayerNextIconY,
+            root.effectivePlayerNextIconSize + 2,
+            root.effectivePlayerNextIconSize + 2)
         progress: root.playerNextMorphProgress
         visible: root.playerNextSupported || normalizedProgress > 0.001
         animationDuration: Config.animationDurationForProfile(Config.animationPlayerMorphEnabled, Config.animationPlayerMorphProfile, Config.animationPlayerMorphDuration, "appearance")
@@ -266,7 +530,7 @@ Primitives.ModuleFrame {
             scale: 0.96 + 0.04 * playerNextMorph.normalizedProgress
             transformOrigin: Item.Center
             iconText: Config.playerNextIcon
-            iconSize: Config.playerNextIconSize
+            iconSize: root.effectivePlayerNextIconSize
             baseColor: Config.text
             iconFontFamily: Config.font
             hoverMode: "none"
@@ -315,6 +579,18 @@ Primitives.ModuleFrame {
         }
     }
 
+    // Public seek entry point shared with Dashboard. Keep all optimistic
+    // position state and backend routing inside the owning Player module.
+    function seekToPercent(percent) {
+        var duration = Number(root.player.duration || 0)
+        var backend = String(root.player.player || "").trim()
+        var target = Number(percent)
+        if (backend === "" || !isFinite(duration) || duration <= 0 || !isFinite(target))
+            return false
+        root.requestSeek(Math.max(0, Math.min(100, target)))
+        return true
+    }
+
     function requestSeek(percent) {
         var target = Math.max(0, Math.min(100, Number(percent)))
         root.pendingSeekPercent = target
@@ -335,13 +611,13 @@ Primitives.ModuleFrame {
         ])
     }
 
-    readonly property real playerProgressHeight: Math.max(1, Config.playerProgressTrackHeight)
+    readonly property real playerProgressHeight: root.effectivePlayerProgressTrackHeight
     Primitives.MorphGeometry {
         id: playerProgressMorph
         // The outer slot remains fixed; only the live slider content scales and
         // fades with the shared transition progress, so the player layout never shifts.
         z: 1
-        fromGeometry: Qt.rect(0, root.height - Config.playerProgressY - root.playerProgressHeight, root.width, root.playerProgressHeight)
+        fromGeometry: Qt.rect(0, root.height - root.effectivePlayerProgressY - root.playerProgressHeight, root.width, root.playerProgressHeight)
         toGeometry: fromGeometry
         progress: Config.playerShowProgress ? 1 : 0
         visible: Config.playerShowProgress || normalizedProgress > 0.001
@@ -379,9 +655,9 @@ Primitives.ModuleFrame {
                 }
                 background: Rectangle {
                     x: 0
-                    y: Config.playerProgressTrackOffsetY
+                    y: root.effectivePlayerProgressTrackOffsetY
                     width: parent.width
-                    height: Config.playerProgressTrackHeight
+                    height: root.effectivePlayerProgressTrackHeight
                     color: Config.playerProgressTrack
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(100, progress.value)) / 100

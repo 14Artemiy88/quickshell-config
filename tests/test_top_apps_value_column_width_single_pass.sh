@@ -5,7 +5,7 @@ fail() { echo "Top Apps value width single pass: FAIL: $*" >&2; exit 1; }
 ui="$ROOT/components/TopApps.qml"
 
 grep -Fq 'readonly property int sectionValueColumnWidth: root.valueColumnWidth(root.sectionEntries)' "$ui" || fail "section-level cached width is missing"
-grep -Fq 'property int valueWidth: root.sectionValueColumnWidth' "$ui" || fail "delegate does not reuse cached width"
+grep -Fq 'property int valueWidth: root.effectiveValueColumnWidth' "$ui" || fail "delegate does not use the responsive cached width"
 if grep -Fq 'root.valueColumnWidth(root.sectionEntries)' <(sed -n '/Repeater {/,/^[[:space:]]*}/p' "$ui"); then
     fail "value width is still recalculated within a Repeater"
 fi

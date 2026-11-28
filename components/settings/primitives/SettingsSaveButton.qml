@@ -12,7 +12,7 @@ Item {
     property string iconText: "\uf0c7"
     property string iconFontFamily: "Symbols Nerd Font Mono"
     property string tooltip: "Сохранить"
-    property color backgroundColor: Config.settingsBackground
+    property color backgroundColor: "transparent"
     property real radius: 4
     property real borderWidth: Math.max(1, Config.frameBorderWidth)
     property real fontSize: 11

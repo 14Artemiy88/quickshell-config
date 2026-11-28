@@ -14,6 +14,7 @@ ComboBox {
     property string settingsSearchLabel: ""
     property string settingsSearchKeywords: ""
 
+    readonly property real popupUiScale: Config.settingsUiScaleFactor()
     property bool pointerHovered: comboHoverArea.containsMouse
     signal itemChosen(int index)
 
@@ -32,27 +33,28 @@ ComboBox {
     }
 
     background: Rectangle {
-        color: Config.settingsBackground
+        color: "transparent"
         border.color: root.settingsSearchCurrentMatch ? Config.accent
             : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightColor
             : ((root.activeFocus || root.pointerHovered) ? Config.accent : Config.baseColor))
         border.width: root.settingsSearchCurrentMatch ? Config.settingsSearchHighlightBorderWidth + 1
-            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightBorderWidth : 1)
-        radius: Config.frameRadius
+            : (root.settingsSearchHighlighted ? Config.settingsSearchHighlightBorderWidth
+            : ((root.activeFocus || Config.inputBordersEnabled) ? 1 : 0))
+        radius: Config.scaledCornerRadius(Config.frameRadius)
     }
 
     popup: Popup {
         id: comboPopup
         y: parent.height
-        width: parent.width
-        padding: 2
+        width: parent.width * root.popupUiScale
+        padding: Math.round(2 * root.popupUiScale)
         implicitHeight: popupList.contentHeight + padding * 2
 
         background: Rectangle {
             color: Config.settingsBackground
             border.color: Config.baseColor
-            border.width: 1
-            radius: Config.frameRadius
+            border.width: Config.popupBordersEnabled ? Math.max(1, Math.round(root.popupUiScale)) : 0
+            radius: Math.round(Config.scaledCornerRadius(Config.frameRadius) * root.popupUiScale)
         }
 
         contentItem: ListView {
@@ -66,23 +68,23 @@ ComboBox {
             delegate: ItemDelegate {
                 id: comboDelegate
                 width: popupList.width
-                height: 30
+                height: Math.round(30 * root.popupUiScale)
                 text: ListView.view.comboBoxControl.textAt(index)
                 highlighted: ListView.view.comboBoxControl.currentIndex === index
 
                 contentItem: Text {
                     text: comboDelegate.text
                     color: comboDelegate.hovered || comboDelegate.highlighted ? Config.black : Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
-                    leftPadding: 8
+                    leftPadding: Math.round(8 * root.popupUiScale)
                     elide: Text.ElideRight
                 }
 
                 background: Rectangle {
                     color: comboDelegate.hovered || comboDelegate.highlighted ? Config.accent : Config.settingsBackground
-                    radius: 2
+                    radius: Math.round(2 * root.popupUiScale)
                 }
 
                 onClicked: {

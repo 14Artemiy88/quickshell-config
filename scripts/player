@@ -23,7 +23,9 @@ run_player_backend() {
 }
 
 # Player.qml passes the enabled priority directly. A direct script invocation
-# without arguments keeps a safe built-in order for compatibility.
+# without arguments keeps a safe built-in order for compatibility. Dashboard
+# discovery uses --all to collect every valid source instead of stopping at the
+# first one; normal Player polling keeps its original single-source behavior.
 player_priority=(
     deadbeef
     mopidy
@@ -32,9 +34,33 @@ player_priority=(
     plasma-browser-integration
     org.telegram.desktop
 )
+collect_all_players=false
+if [[ "${1:-}" == "--all" ]]; then
+    collect_all_players=true
+    shift
+fi
 if [[ "${1:-}" == "--priority" ]]; then
     shift
     player_priority=("$@")
+elif (( $# > 0 )); then
+    player_priority=("$@")
+fi
+
+if [[ "$collect_all_players" == true ]]; then
+    declare -ag PLAYER_COLLECTED_PAYLOADS=()
+    declare -g PLAYER_COLLECT_MODE=1
+    for backend in "${player_priority[@]}"; do
+        [[ -n "$backend" ]] || continue
+        run_player_backend "$backend"
+    done
+
+    printf '['
+    for ((i = 0; i < ${#PLAYER_COLLECTED_PAYLOADS[@]}; i++)); do
+        (( i > 0 )) && printf ','
+        printf '%s' "${PLAYER_COLLECTED_PAYLOADS[$i]}"
+    done
+    printf ']\n'
+    exit 0
 fi
 
 # An active Jitsi/Talk call from KDE's browser integration must not be hidden

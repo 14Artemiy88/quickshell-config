@@ -24,8 +24,8 @@ assert.match(dash, /details\.push\("Карточка предназначена 
 const cardStart = dash.indexOf('component InfoCard: Rectangle {');
 const cardEnd = dash.indexOf('\n    // In Smart Editing, the fullscreen Dashboard surface', cardStart);
 const card = dash.slice(cardStart, cardEnd);
-assert(!card.includes('MouseArea {') && !card.includes('Keys.onPressed:'),
-  'pointer click and Enter/Space no longer open module settings from the card surface');
+assert(!card.includes('cardMouse'),
+  'no whole-card click catcher activates module settings; media seek controls remain local');
 assert.match(card, /HoverHandler\s*\{[\s\S]*?id: cardHover/,
   'cards retain a passive hover treatment without an activation surface');
 assert.match(dash, /MouseArea\s*\{\s*anchors\.fill: parent\s*z: 0\s*acceptedButtons: Qt\.AllButtons[\s\S]*?mouse\.accepted = true/,

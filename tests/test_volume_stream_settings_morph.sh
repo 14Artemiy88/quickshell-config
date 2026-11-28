@@ -14,7 +14,7 @@ done
 [ "$(grep -Fc 'progress: Config.volumeShowStreams ? 1 : 0' "$QML")" -ge 2 ] || fail "both stream-specific rows must follow the stream visibility toggle"
 [ "$(grep -Fc 'Config.volumeShowStreams || normalizedProgress > 0.001' "$QML")" -ge 2 ] || fail "both rows must remain visible during their exit morph"
 [ "$(grep -Fc 'animationDuration: Config.animationDuration(180, "appearance")' "$QML")" -ge 2 ] || fail "shared animation duration missing"
-[ "$(grep -Fc 'animationEasing: Config.animationEasingType("standard", Config.volumeShowStreams ? "enter" : "exit")' "$QML")" -ge 2 ] || fail "shared enter/exit easing missing"
+[ "$(grep -Fc 'animationEasing: Config.animationEasingType("ease-out", Config.volumeShowStreams ? "enter" : "exit")' "$QML")" -ge 2 ] || fail "shared enter/exit easing missing"
 for key in volumeStreamTrackOffsetY volumeStreamLabelFont volumeStreamLabelFontSize; do
     grep -Fq "targetProperty: \"$key\"" "$QML" || fail "$key editor missing"
 done

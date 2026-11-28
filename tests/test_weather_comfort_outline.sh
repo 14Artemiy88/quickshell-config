@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 s = Path(sys.argv[1]).read_text()
 start = s.index('id: weatherComfortLabel')
-end = s.index('        }\n    }\n\n    Primitives.MorphGeometry {\n        id: weatherIconMorph', start)
+end = s.index('        }\n\n        Primitives.MorphGeometry {\n            id: weatherIconMorph', start)
 block = s[start:end]
 assert 'property string comfortValue:' in block
 assert 'property var outlineOffsets:' in block

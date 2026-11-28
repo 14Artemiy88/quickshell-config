@@ -46,7 +46,7 @@ function body(name) {
 let order = registry.defaultNavigationOrder();
 const flat = registry.flattenNavigationOrder(order);
 const items = registry.navigationItemsForOrder(flat, {});
-assert.strictEqual(items.length, 24, 'all pages are available in the editor model');
+assert.strictEqual(items.length, 26, 'all 26 pages are available in the editor model');
 for (const item of items) {
   assert.strictEqual(item.groupId, registry.navigationGroupIdForTabId(item.id), `${item.id} carries its canonical group ID`);
 }
@@ -80,7 +80,7 @@ move('modules', 'timers', -1, fakeRoot, config, registry, dragReorder);
 order = JSON.parse(JSON.stringify(config.settingsNavigationOrder));
 assert.deepStrictEqual(Array.from(order.pagesByGroup.modules.slice(0, 3)), ['modules', 'timers', 'time'],
   "valid move changes only the selected group's page order");
-assert.deepStrictEqual(Array.from(order.pagesByGroup.appearance), ['themes', 'settingsWindow'],
+assert.deepStrictEqual(Array.from(order.pagesByGroup.appearance), ['themes', 'interface', 'settingsWindow'],
   'appearance page order remains unchanged');
 assert.deepStrictEqual(Array.from(order.pagesByGroup.dashboard), ['dashboard'],
   'singleton Dashboard frame remains unchanged');
@@ -97,7 +97,7 @@ assert.strictEqual(saveCount, 1, 'rejected page move is not persisted');
 const groups = registry.navigationGroupsForOrder(order, {});
 const modules = groups.find(group => group.id === 'modules');
 const notifications = groups.find(group => group.id === 'notifications');
-assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'calendar'],
+assert.deepStrictEqual(Array.from(modules.items.map(item => item.id)), ['modules', 'timers', 'time', 'player', 'mopidy', 'weather', 'cava', 'cpuRam', 'network', 'volume', 'osd', 'calendar'],
   'sidebar model reflects the customized page order inside its own group');
 assert.deepStrictEqual(Array.from(notifications.items.map(item => item.id)), ['notifications', 'notificationsDnd'], 'notification pages stay together in their dedicated folder');
 assert.strictEqual(groups.find(group => group.id === 'appearance').items[0].id, 'themes',

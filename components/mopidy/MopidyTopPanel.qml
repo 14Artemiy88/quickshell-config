@@ -167,7 +167,7 @@ Item {
                         text: Config.mopidyQueueDurationMode === "remaining" ? controller.formatDuration(controller.queueRemainingDuration, true) : controller.formatDuration(controller.queueTotalDuration, false)
                         color: Config.mopidyQueueDurationColor
                         font.family: Config.mopidyQueueDurationFont
-                        font.pixelSize: Config.mopidyQueueDurationFontSize
+                        font.pixelSize: Config.uiFontSize(Config.mopidyQueueDurationFontSize)
                         horizontalAlignment: Config.mopidyQueueDurationAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideNone
@@ -235,7 +235,7 @@ Item {
                     text: controller.mopidyMuted ? Config.mopidyMutedIcon : Config.mopidyVolumeIcon
                     color: controller.hoverTextColor(volumeControlMouse.containsMouse, controller.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
                     font.family: Config.font
-                    font.pixelSize: controller.mopidyMuted ? Config.mopidyMutedIconSize : Config.mopidyVolumeIconSize
+                    font.pixelSize: Config.uiFontSize(controller.mopidyMuted ? Config.mopidyMutedIconSize : Config.mopidyVolumeIconSize)
                     y: controller.mopidyMuted ? Config.mopidyMutedIconY : Config.mopidyVolumeIconY
                     transform: Translate { x: controller.mopidyMuted ? Config.mopidyMutedIconX : Config.mopidyVolumeIconX }
                     horizontalAlignment: Text.AlignHCenter
@@ -253,7 +253,7 @@ Item {
                         : (controller.mopidyVolume >= 0 ? String(controller.mopidyVolume) + "%" : "--")
                     color: controller.hoverTextColor(volumeControlMouse.containsMouse, controller.mixerAvailable ? Config.mopidyControlIconColor : Config.textDisabled)
                     font.family: Config.mopidyDurationFont
-                    font.pixelSize: Config.mopidyDurationFontSize
+                    font.pixelSize: Config.uiFontSize(Config.mopidyDurationFontSize)
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }

@@ -69,7 +69,7 @@ Column {
         showFrame: true
         settings: root.settings
         heading: "Появление Dashboard"
-        changeKeys: ({ keys: ["animationDashboardVisibilityStyle", "animationDashboardVisibilityDuration"] })
+        changeKeys: ({ keys: ["animationDashboardVisibilityStyle", "animationDashboardVisibilityProfile", "animationDashboardVisibilityDuration"] })
         padding: 8
         contentSpacing: 6
 
@@ -105,15 +105,26 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             wrapMode: Text.WordWrap
             text: Config.animationDashboardVisibilityStyle === "auto"
                 ? "Автоматический режим выбирает ближайший горизонтальный край монитора: Dashboard справа появляется справа, а Dashboard слева — слева. При закрытии он уходит в ту же сторону."
                 : "Выбранное направление используется и при появлении, и при исчезновении Dashboard."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationDashboardVisibilityProfile
+            searchId: "dashboard-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления Dashboard"
+            searchKeywords: "dashboard панель drawer появление закрытие пружина bezier"
+            onProfileEdited: function(value) {
+                Config.animationDashboardVisibilityProfile = value
+                root.settings.save()
+            }
         }
 
         SettingsRow {
@@ -185,11 +196,11 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Выбирай карточки независимо от включения соответствующих модулей. Настрой количество колонок, порядок и размер каждой карточки отдельно. Расширенный размер показывает дополнительные данные модуля, а компактный сохраняет короткую сводку. В двухколоночном режиме карточки размещаются в независимых вертикальных колонках, сбалансированных по общей высоте: расширенная карточка не оставляет пустую полосу под соседней. В режиме «Автоматически» две колонки включаются при ширине области карточек от 500 px. Режим «2 колонки» допускает ширину от 470 px (не менее 230 px на карточку с учётом промежутка); ниже этого порога используется одна колонка, чтобы содержимое не сжималось."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }

@@ -37,7 +37,7 @@ vm.runInNewContext(registrySource, registry, { filename: 'SettingsPageRegistry.j
 const windowSection = read('components/settings/sections/SettingsWindowSection.qml');
 const pageEditor = windowSection.slice(
   windowSection.indexOf('text: "Вкладки панели настроек"'),
-  windowSection.indexOf('visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1')
+  windowSection.indexOf('visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0')
 );
 assert(pageEditor.includes('delegate: SettingsGroup {'), 'each navigation group has its own framed page editor');
 assert(pageEditor.includes('heading: groupData.label'), 'frame heading comes from the matching navigation group');
@@ -50,7 +50,7 @@ const customOrder = {
   groupOrder: ['general', 'launcher', 'dashboard', 'modules', 'appearance', 'notifications'],
   pagesByGroup: JSON.parse(JSON.stringify(defaultOrder.pagesByGroup))
 };
-customOrder.pagesByGroup.modules = ['weather', 'modules', 'time', 'timers', 'player', 'mopidy', 'cava', 'cpuRam', 'network', 'volume', 'calendar'];
+customOrder.pagesByGroup.modules = ['weather', 'modules', 'time', 'timers', 'player', 'mopidy', 'cava', 'cpuRam', 'network', 'volume', 'calendar', 'osd'];
 customOrder.pagesByGroup.notifications = ['notifications', 'notificationsDnd'];
 customOrder.pagesByGroup.appearance = ['settingsWindow', 'themes'];
 const labels = { general: 'Мои настройки', dashboard: 'Обзор', weather: 'Прогноз' };
@@ -59,8 +59,8 @@ assert.deepStrictEqual(groups.map(group => group.id), customOrder.groupOrder,
   'framed editor follows the current frame order');
 assert.strictEqual(groups.length, 6, 'all six frames remain independently represented');
 const allIds = groups.flatMap(group => group.items.map(item => item.id));
-assert.strictEqual(allIds.length, 24, 'all 24 settings pages are represented');
-assert.strictEqual(new Set(allIds).size, 24, 'no page is duplicated across frames');
+assert.strictEqual(allIds.length, 26, 'all 26 settings pages are represented');
+assert.strictEqual(new Set(allIds).size, 26, 'no page is duplicated across frames');
 for (const group of groups) {
   assert(group.items.length >= 1, `${group.id} frame is not empty`);
   assert(group.items.every(item => item.groupId === group.id), `${group.id} editor contains only its own pages`);
@@ -68,14 +68,14 @@ for (const group of groups) {
 assert.deepStrictEqual(Array.from(groups.find(group => group.id === 'modules').items.map(item => item.id)),
   customOrder.pagesByGroup.modules, 'custom page order is reflected inside the Modules frame');
 assert.deepStrictEqual(Array.from(groups.find(group => group.id === 'appearance').items.map(item => item.id)),
-  ['settingsWindow', 'themes'], 'Appearance maintains its own independently editable page order');
+  ['settingsWindow', 'themes', 'interface'], 'Appearance maintains its own independently editable page order');
 assert.strictEqual(groups.find(group => group.id === 'general').items[0].label, 'Мои настройки',
   'singleton General remains editable inside its own frame');
 assert.strictEqual(groups.find(group => group.id === 'dashboard').items[0].label, 'Обзор',
   'singleton Dashboard remains editable inside its own frame');
 assert.strictEqual(groups.find(group => group.id === 'modules').items[0].label, 'Прогноз',
   'page labels remain editable without affecting frame membership');
-console.log('Settings framed page editor: six frames, 24 unique pages, local order, singleton frames and editable labels: OK');
+console.log('Settings framed page editor: six frames, 26 unique pages, local order, singleton frames and editable labels: OK');
 NODE
 
 echo 'settings framed page editor: OK'

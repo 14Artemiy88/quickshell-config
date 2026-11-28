@@ -7,7 +7,7 @@ test ! -e "$ROOT/components/Frame.qml"
 grep -Fq 'property string moduleName' "$FRAME"
 grep -Fq 'Settings.moduleFrames[moduleName] !== false' "$FRAME"
 grep -Fq 'Settings.moduleBackgrounds[moduleName] !== false' "$FRAME"
-grep -Fq 'border.width: moduleFrameVisible ? Config.frameBorderWidth : 0' "$FRAME"
+grep -Fq 'border.width: moduleFrameVisible && Config.cardBordersEnabled ? Config.frameBorderWidth : 0' "$FRAME"
 modules=(CalendarWidget Cava CpuGraph CpuWidget NetworkStat Networks Player TimeWidget TimerWidget Volumes WeatherList WeatherNow TopApps)
 for module in "${modules[@]}"; do
     file="$ROOT/components/$module.qml"

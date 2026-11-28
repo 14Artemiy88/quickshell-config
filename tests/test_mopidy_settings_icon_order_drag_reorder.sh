@@ -2,17 +2,14 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SECTION="$ROOT/components/settings/sections/mopidy/SettingsMopidyIconsSection.qml"
-MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
 QUEUE="$ROOT/components/mopidy/MopidyQueueTrackRow.qml"
 PLAYLIST="$ROOT/components/mopidy/MopidyPlaylistContents.qml"
 
-for file in "$SECTION" "$MOVE" "$QUEUE" "$PLAYLIST"; do
+for file in "$SECTION" "$QUEUE" "$PLAYLIST"; do
     test -f "$file"
 done
 
 grep -Fq 'import "../../../primitives" as Primitives' "$SECTION"
-grep -Fq 'visible: root.morphVisibility || root.requestedVisible' "$MOVE"
-grep -Fq 'property bool hideWhenDisabled: true' "$MOVE"
 
 python3 - "$SECTION" <<'PY'
 from pathlib import Path

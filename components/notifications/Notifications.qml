@@ -48,6 +48,14 @@ Item {
     // NotificationServer.notification again. Coalesce its property-change signals
     // so history, sender metadata and DND are refreshed once per update batch.
     property var pendingNotificationRefreshIds: ({})
+    // Notification surfaces normally do not take keyboard focus. Enable it only
+    // while a user is interacting with selectable notification text, so Ctrl+C
+    // reaches TextEdit without making passive toasts steal focus.
+    property var notificationTextFocusCard: null
+    // Avoid immediately re-requesting focus after the user switches to another
+    // window while the pointer is still over a toast. Re-arm only after leaving
+    // the text area and entering it again.
+    property var notificationTextFocusDeniedCard: null
     // Keep the layer-surface mapped for the lifetime of the Notifications module.
     // Mapping/unmapping PanelWindow for every toast triggers the compositor's
     // own window open/close fade, which is independent of the selected card style.
@@ -168,7 +176,7 @@ Item {
             current = NotificationsGeometry.migrateLegacyPlacement(
                 legacyPosition, Config.notificationsLegacyOffsetX, Config.notificationsLegacyOffsetY,
                 target ? target.width : 1920, target ? target.height : 1080,
-                Config.notificationsCardWidth, popupWindow.implicitHeight
+                root.notificationCardBaseWidth, Math.round(popupWindow.implicitHeight / root.notificationUiScale)
             )
             // Keep only vertical edge anchoring from the former four-corner mode.
             // The X coordinate remains absolute from the left; Y is now an inset
@@ -216,18 +224,30 @@ Item {
             senders, Config.notificationsDndAllowedApps)
         var blocked = NotificationAppCatalog.migrateUniqueLegacyRules(
             senders, Config.notificationsDndBlockedApps)
+        var historyIgnored = NotificationAppCatalog.migrateUniqueLegacyRules(
+            senders, Config.notificationsHistoryIgnoredApps)
         var nextAllowed = allowed.join(";")
         var nextBlocked = blocked.join(";")
+        var nextHistoryIgnored = historyIgnored.join(";")
         var rulesChanged = nextAllowed !== String(Config.notificationsDndAllowedApps || "")
             || nextBlocked !== String(Config.notificationsDndBlockedApps || "")
+            || nextHistoryIgnored !== String(Config.notificationsHistoryIgnoredApps || "")
         if (nextAllowed !== String(Config.notificationsDndAllowedApps || ""))
             Config.notificationsDndAllowedApps = nextAllowed
         if (nextBlocked !== String(Config.notificationsDndBlockedApps || ""))
             Config.notificationsDndBlockedApps = nextBlocked
+        if (nextHistoryIgnored !== String(Config.notificationsHistoryIgnoredApps || ""))
+            Config.notificationsHistoryIgnoredApps = nextHistoryIgnored
         if (rulesChanged) Settings.save()
     }
 
     function recordNotificationHistory(notification, receivedAt) {
+        // This third per-app rule affects history only. It never changes popup
+        // visibility or either DND suppression mode; already stored entries are
+        // retained, while new/replaced events are not inserted or updated.
+        if (NotificationDnd.isHistoryIgnored(
+                    notification, Config.notificationsHistoryIgnoredApps, Config.notificationsSeenSenders))
+            return false
         var snapshot = NotificationDnd.snapshot(notification, receivedAt || Date.now())
         if (!snapshot) return
         snapshot.unread = true
@@ -235,6 +255,7 @@ Item {
             root.notificationHistory, snapshot, root.notificationHistoryLimit
         )
         root.pruneNotificationHistory()
+        return true
     }
 
     function findTrackedNotification(notificationId) {
@@ -505,7 +526,6 @@ Item {
             const styleMatch = /\bstyle\s*=\s*(["'])(.*?)\1/i.exec(attributes)
             const underlineMatch = /\bunderline\s*=\s*(["'])(.*?)\1/i.exec(attributes)
             const strikeMatch = /\bstrikethrough\s*=\s*(["'])(.*?)\1/i.exec(attributes)
-            const familyMatch = /\bfont_family\s*=\s*(["'])(.*?)\1/i.exec(attributes)
 
             const foreground = foregroundMatch ? root.safeNotificationColor(foregroundMatch[2]) : ""
             const background = backgroundMatch ? root.safeNotificationColor(backgroundMatch[2]) : ""
@@ -522,11 +542,10 @@ Item {
                 if (/^(?:normal|italic|oblique)$/.test(fontStyle))
                     styles.push("font-style: " + fontStyle + ";")
             }
-            if (familyMatch) {
-                const family = String(familyMatch[2] || "").trim()
-                if (/^[a-z0-9 _,-]{1,64}$/i.test(family))
-                    styles.push("font-family: " + family + ";")
-            }
+            // Ignore notification-supplied font_family attributes. Body typography
+            // is controlled by the Notifications setting (or the system fallback);
+            // otherwise a sender can accidentally force an icon-only family such as
+            // Arrows over the entire message. The explicit <tt> tag remains monospace.
 
             const decorations = []
             if (underlineMatch) {
@@ -629,21 +648,6 @@ Item {
                 return action
         }
         return null
-    }
-
-    function notificationButtonActions(notification) {
-        const visibleActions = []
-        if (!notification || !notification.actions) return visibleActions
-
-        const actions = notification.actions
-        for (let index = 0; index < actions.length; index++) {
-            const action = actions[index]
-            // Freedesktop defines "default" as the action invoked by clicking
-            // the notification itself, not as a visible action button.
-            if (action && String(action.identifier || "") !== "default")
-                visibleActions.push(action)
-        }
-        return visibleActions
     }
 
     function notificationBodyImageSource(notification) {
@@ -781,15 +785,23 @@ Item {
         return root.defaultNotificationTimeout
     }
 
-    readonly property int notificationCardWidth: Math.max(280, Math.min(600,
+    readonly property real notificationUiScale: Config.moduleUiScale()
+    readonly property int notificationCardBaseWidth: Math.max(280, Math.min(600,
         Number(Settings.geometry && Settings.geometry.notifications && Settings.geometry.notifications[2])
             || Number(Config.notificationsCardWidth) || 380))
-    readonly property int notificationMaxHeight: Math.max(0, Math.min(10000,
-        Math.round(Number(Settings.geometry && Settings.geometry.notifications && Settings.geometry.notifications[3]) || 0)))
-    readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))
-    readonly property int notificationLeadingVisualSize: Math.max(24, Math.min(72, Number(Config.notificationsLeadingVisualSize) || 48))
-    readonly property int notificationLeadingVisualRadius: Math.max(0, Math.min(notificationLeadingVisualSize / 2, Number(Config.notificationsLeadingVisualRadius)))
-    readonly property int notificationCardPadding: Math.max(0, Math.min(32, Number(Config.notificationsCardPadding)))
+    readonly property int notificationCardWidth: Math.round(notificationCardBaseWidth * notificationUiScale)
+    readonly property int notificationMaxHeight: Math.round(Math.max(0, Math.min(10000,
+        Number(Settings.geometry && Settings.geometry.notifications && Settings.geometry.notifications[3]) || 0)) * notificationUiScale)
+    readonly property int notificationImageHeight: Math.round(Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0)) * notificationUiScale)
+    readonly property int notificationLeadingVisualSize: Math.round(Math.max(24, Math.min(72, Number(Config.notificationsLeadingVisualSize) || 48)) * notificationUiScale)
+    readonly property int notificationLeadingVisualRadius: Math.max(0, Math.min(notificationLeadingVisualSize / 2, Math.round(Number(Config.notificationsLeadingVisualRadius) * notificationUiScale)))
+    readonly property int notificationCardPadding: Math.round(Math.max(0, Math.min(32, Number(Config.notificationsCardPadding))) * notificationUiScale)
+    readonly property int notificationCardSpacing: Math.max(0, Math.round(Number(Config.notificationsCardSpacing) * notificationUiScale))
+    readonly property int notificationFrameRadius: Math.max(0, Math.round(Config.scaledCornerRadius(Config.frameRadius) * notificationUiScale))
+    readonly property int notificationFrameBorderWidth: Settings.moduleFrames.notifications !== false && Config.cardBordersEnabled
+        ? Math.max(1, Math.round(Config.frameBorderWidth * notificationUiScale)) : 0
+    readonly property int notificationScrollbarWidth: Math.max(4, Math.round(6 * notificationUiScale))
+    readonly property int notificationTimeoutIndicatorHeight: Math.max(1, Math.round(3 * notificationUiScale))
     readonly property int notificationSummaryFontSize: Math.max(8, Math.min(32, Number(Config.notificationsSummaryFontSize) || 14))
     readonly property int notificationAppNameFontSize: Math.max(8, Math.min(24, Number(Config.notificationsAppNameFontSize) || 11))
     readonly property int notificationBodyFontSize: Math.max(8, Math.min(32, Number(Config.notificationsBodyFontSize) || 12))
@@ -798,40 +810,39 @@ Item {
     // Card entrance/exit direction is independent from queue reflow. A disabled
     // shared profile always wins and makes both transitions immediate.
     readonly property string notificationCardAnimationStyle: NotificationAnimation.effectiveStyle(
-        Config.animationNotificationsMorphProfile, Config.animationNotificationsVisibilityStyle)
+        Config.animationNotificationsVisibilityProfile, Config.animationNotificationsVisibilityStyle)
     readonly property int notificationCardVisibilityDuration: NotificationAnimation.visibilityDuration(
-        notificationCardAnimationStyle, notificationTransitionDuration)
+        notificationCardAnimationStyle, Config.animationDuration(Config.animationNotificationsMorphDuration, "appearance"))
 
-    readonly property int notificationImageGap: 8
-    readonly property int progressBarHeight: 5
-    readonly property int progressBarGap: 8
+    readonly property int notificationImageGap: Math.round(8 * root.notificationUiScale)
+    readonly property int progressBarHeight: Math.max(1, Math.round(5 * root.notificationUiScale))
+    readonly property int progressBarGap: Math.round(8 * root.notificationUiScale)
 
-    function notificationCardHeight(summaryHeight, bodyHeight, hasActions, hasBody, hasProgress, hasImage, hasLeadingVisual) {
+    function notificationCardHeight(summaryHeight, bodyHeight, hasBody, hasProgress, hasImage, hasLeadingVisual) {
         // Summary/body text and the optional image preview are measured or capped
         // independently from the delegate geometry, avoiding height-binding loops.
         const measuredSummaryHeight = Math.max(0, Number(summaryHeight) || 0)
-        const appNameBottomOffset = root.notificationCardPadding + root.notificationAppNameFontSize + 2
-        const summaryTopOffset = appNameBottomOffset + 3
+        const appNameBottomOffset = root.notificationCardPadding + root.notificationAppNameFontSize + Math.round(2 * root.notificationUiScale)
+        const summaryTopOffset = appNameBottomOffset + Math.round(3 * root.notificationUiScale)
         const progressSpace = hasProgress ? progressBarGap + progressBarHeight : 0
         const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0
 
         if (!hasBody && !hasImage) {
-            // Keep a small bottom inset for a summary-only card. When action
-            // buttons exist, reserve their full row below even a multi-line title.
-            const summaryBottomSpace = hasActions ? 34 : root.notificationCardPadding
-            const actionMinimum = hasActions ? 76 : 52
+            // With app-provided action buttons removed, summary-only cards keep
+            // the same compact minimum and a consistent bottom inset.
+            const summaryBottomSpace = root.notificationCardPadding
             const leadingVisualMinimum = hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2 : 0
-            return Math.max(leadingVisualMinimum, actionMinimum, Math.ceil(summaryTopOffset + measuredSummaryHeight + summaryBottomSpace + progressSpace))
+            return Math.max(leadingVisualMinimum, Math.round(52 * root.notificationUiScale), Math.ceil(summaryTopOffset + measuredSummaryHeight + summaryBottomSpace + progressSpace))
         }
 
         const measuredBodyHeight = Math.max(0, Number(bodyHeight) || 0)
         // An empty summary contributes no row or extra gap: start the body
         // directly below the app/source label instead of reserving phantom space.
-        const bodyTopOffset = summaryTopOffset + measuredSummaryHeight + (measuredSummaryHeight > 0 ? 3 : 0)
+        const bodyTopOffset = summaryTopOffset + measuredSummaryHeight + (measuredSummaryHeight > 0 ? Math.round(3 * root.notificationUiScale) : 0)
         const contentBottomOffset = hasBody
             ? bodyTopOffset + measuredBodyHeight
             : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight : appNameBottomOffset)
-        const bottomSpace = root.notificationCardPadding + (hasActions ? 28 : 0)
+        const bottomSpace = root.notificationCardPadding
         // Reserve image height only when an image hint is present and successfully
         // loadable. Long bodies still grow according to their independent Text measure.
         const minimumCardHeight = hasLeadingVisual
@@ -970,6 +981,11 @@ Item {
             return Math.min(contentHeight, configuredLimit)
         }
         WlrLayershell.layer: WlrLayer.Overlay
+        // PanelWindow is intentionally non-focusable for ordinary toasts. A text
+        // hover/selection temporarily enables OnDemand focus through this property.
+        // QsWindow in Quickshell 0.3.1 does not expose Window.active/activeChanged;
+        // focus loss is tracked on the actual TextEdit focus targets below.
+        focusable: root.notificationTextFocusCard !== null
 
         // Apply the shared per-module blur only behind the notification queue.
         // The transparent PanelWindow surface lets the compositor blur the area
@@ -1004,7 +1020,7 @@ Item {
                             : currentHeight
                     }
                 }
-                spacing: Config.notificationsCardSpacing
+                spacing: root.notificationCardSpacing
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -1032,7 +1048,7 @@ Item {
                 ScrollBar.vertical: ScrollBar {
                     policy: notificationList.contentHeight > notificationList.height
                         ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
-                    width: 6
+                    width: root.notificationScrollbarWidth
                     background: Rectangle {
                         color: Config.baseColor
                         radius: width / 2
@@ -1080,7 +1096,7 @@ Item {
                     // Style/profile/duration are snapshotted per transition so editing
                     // settings cannot mutate a card while it is already animating.
                     property string activeTransitionStyle: "none"
-                    property string activeTransitionProfile: "expressive"
+                    property string activeTransitionProfile: Config.animationNotificationsVisibilityProfile
                     property string activeTransitionPhase: "enter"
                     property int activeTransitionDuration: 0
                     property real transitionProgress: 1
@@ -1093,7 +1109,9 @@ Item {
                     property bool entryAnimationStarted: false
                     property bool exitKeepsWindowAlive: false
                     property var defaultAction: root.notificationDefaultAction(notification)
-                    property var buttonActions: root.notificationButtonActions(notification)
+                    property bool summaryTextHovered: false
+                    property bool bodyTextHovered: false
+                    property bool notificationTextFocusSessionHadFocus: false
                     property string formattedBody: notification ? root.formatNotificationBody(notification.body) : ""
                     // Keep imageSource empty until a local path is confirmed readable.
                     // Assigning a missing file directly would make QQuickImage emit a
@@ -1114,6 +1132,80 @@ Item {
                             + "\u001f" + String(notification.image || "")
                     }
                     property bool imageLoadFailed: false
+
+                    function notificationTextKeyboardFocusIsActive() {
+                        return summaryText.activeFocus || bodyText.activeFocus
+                    }
+
+                    function handleNotificationTextKeyboardFocusChanged() {
+                        if (notificationTextKeyboardFocusIsActive()) {
+                            notificationTextFocusLossTimer.stop()
+                            notificationTextFocusSessionHadFocus = true
+                            root.notificationTextFocusCard = card
+                        } else if (notificationTextFocusSessionHadFocus) {
+                            // Allow focus to move between the summary and body editors
+                            // before deciding the notification has lost keyboard focus.
+                            notificationTextFocusLossTimer.restart()
+                        } else {
+                            updateNotificationTextKeyboardFocus()
+                        }
+                    }
+
+                    function updateNotificationTextKeyboardFocus() {
+                        const pointerInsideText = summaryTextHovered || bodyTextHovered
+                        if (root.notificationTextFocusDeniedCard === card) {
+                            if (!pointerInsideText)
+                                root.notificationTextFocusDeniedCard = null
+                            else {
+                                if (root.notificationTextFocusCard === card)
+                                    root.notificationTextFocusCard = null
+                                return
+                            }
+                        }
+
+                        // A focus-loss timer is pending. Do not reacquire focus just
+                        // because the pointer is still over the text; wait for the
+                        // deferred check to distinguish a focus handoff from a blur.
+                        if (notificationTextFocusSessionHadFocus && !notificationTextKeyboardFocusIsActive()) {
+                            if (!pointerInsideText) {
+                                notificationTextFocusLossTimer.stop()
+                                notificationTextFocusSessionHadFocus = false
+                                if (root.notificationTextFocusCard === card)
+                                    root.notificationTextFocusCard = null
+                            }
+                            return
+                        }
+
+                        const wantsKeyboard = pointerInsideText || notificationTextKeyboardFocusIsActive()
+                        if (wantsKeyboard) {
+                            root.notificationTextFocusCard = card
+                        } else if (root.notificationTextFocusCard === card) {
+                            root.notificationTextFocusCard = null
+                        }
+                    }
+
+                    Timer {
+                        id: notificationTextFocusLossTimer
+                        interval: 100
+                        repeat: false
+                        onTriggered: {
+                            if (!card.notificationTextFocusSessionHadFocus
+                                    || card.notificationTextKeyboardFocusIsActive())
+                                return
+
+                            card.notificationTextFocusSessionHadFocus = false
+                            // Deny immediate focus reacquisition only if the pointer
+                            // is still over this card's text when focus is actually lost.
+                            if (card.summaryTextHovered || card.bodyTextHovered)
+                                root.notificationTextFocusDeniedCard = card
+                            else if (root.notificationTextFocusDeniedCard === card)
+                                root.notificationTextFocusDeniedCard = null
+
+                            if (root.notificationTextFocusCard === card)
+                                root.notificationTextFocusCard = null
+                        }
+                    }
+
                     // React to intrinsic image dimensions so compact square image-data
                     // (for example a GitLab project logo emitted by a browser) can be
                     // displayed beside the message instead of after the body text.
@@ -1144,7 +1236,7 @@ Item {
 
                         entryAnimationStarted = true
                         activeTransitionStyle = root.notificationCardAnimationStyle
-                        activeTransitionProfile = String(Config.animationNotificationsMorphProfile || "standard")
+                        activeTransitionProfile = Config.normalizeAnimationProfile(Config.animationNotificationsVisibilityProfile) || "ease-out"
                         activeTransitionDuration = root.notificationCardVisibilityDuration
                         activeTransitionPhase = "enter"
                         // Starting from zero lets a single progress animation drive
@@ -1175,7 +1267,7 @@ Item {
                         exitAnimation.stop()
 
                         activeTransitionStyle = root.notificationCardAnimationStyle
-                        activeTransitionProfile = String(Config.animationNotificationsMorphProfile || "standard")
+                        activeTransitionProfile = Config.normalizeAnimationProfile(Config.animationNotificationsVisibilityProfile) || "ease-out"
                         activeTransitionDuration = root.notificationCardVisibilityDuration
                         activeTransitionPhase = "exit"
                         transitionProgress = 0
@@ -1293,6 +1385,14 @@ Item {
                     readonly property int textColumnWidth: Math.max(0, root.notificationCardWidth
                         - (hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 3 : root.notificationCardPadding * 2))
                     onNotificationChanged: {
+                        if (root.notificationTextFocusCard === card)
+                            root.notificationTextFocusCard = null
+                        if (root.notificationTextFocusDeniedCard === card)
+                            root.notificationTextFocusDeniedCard = null
+                        notificationTextFocusLossTimer.stop()
+                        notificationTextFocusSessionHadFocus = false
+                        summaryTextHovered = false
+                        bodyTextHovered = false
                         visibleTimeoutElapsed = 0
                         visibleTimeoutLastTick = 0
                         removalPending = false
@@ -1312,6 +1412,12 @@ Item {
                     }
                     ListView.onRemove: card.startNotificationExit("listview-remove")
                     onImageHintsSnapshotChanged: resolveNotificationImageSource()
+                    Component.onDestruction: {
+                        if (root.notificationTextFocusCard === card)
+                            root.notificationTextFocusCard = null
+                        if (root.notificationTextFocusDeniedCard === card)
+                            root.notificationTextFocusDeniedCard = null
+                    }
                     Component.onCompleted: {
                         // Existing tracked notifications can be created by the
                         // ListView populate path instead of its add signal.
@@ -1327,10 +1433,10 @@ Item {
                     // Measure body text in a separate, unconstrained Text item. Measuring
                     // bodyText itself while the card height is derived from that measurement
                     // can form a QML height-binding cycle with RichText layout.
-                    height: notification !== null ? root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual) : 0
-                    radius: Config.frameRadius
+                    height: notification !== null ? root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual) : 0
+                    radius: root.notificationFrameRadius
                     color: Settings.moduleBackgrounds.notifications !== false ? Config.notificationsBackgroundColor : Config.transparent
-                    border.width: Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0
+                    border.width: root.notificationFrameBorderWidth
                     border.color: card.notification && card.notification.urgency === NotificationUrgency.Critical ? "#e05b64" : Config.baseColor
                     transform: Translate {
                         x: card.motionOffsetX
@@ -1435,8 +1541,8 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: root.notificationCardPadding
                         anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 3
-                        height: 3
+                        anchors.bottomMargin: root.notificationTimeoutIndicatorHeight
+                        height: root.notificationTimeoutIndicatorHeight
                         visible: Config.notificationsShowTimeoutIndicator
                             && String(Config.notificationsTimeoutIndicatorStyle || "bar") !== "border"
                             && card.notification !== null && !card.removalPending && card.effectiveTimeout > 0
@@ -1478,7 +1584,7 @@ Item {
                         onPaint: {
                             var ctx = getContext("2d")
                             ctx.clearRect(0, 0, width, height)
-                            ctx.lineWidth = 2
+                            ctx.lineWidth = Math.max(1, 2 * root.notificationUiScale)
                             ctx.lineCap = "round"
                             ctx.lineJoin = "round"
                             var radius = Math.max(0, Number(card.radius) - 1)
@@ -1514,26 +1620,36 @@ Item {
                         width: root.notificationLeadingVisualSize
                         height: root.notificationLeadingVisualSize
                         radius: root.notificationLeadingVisualRadius
-                        color: Config.baseColor
+                        color: card.hasAppIcon && !Config.notificationsShowAppIconBackground
+                            ? "transparent" : Config.baseColor
                         clip: true
                         visible: card.hasLeadingVisual
 
-                        Image {
-                            id: notificationVisualImage
-                            anchors.centerIn: parent
-                            width: card.hasLeadingImage ? parent.width : Math.round(root.notificationLeadingVisualSize * 7 / 12)
-                            height: card.hasLeadingImage ? parent.height : Math.round(root.notificationLeadingVisualSize * 7 / 12)
-                            source: card.hasLeadingImage ? card.imageSource : card.appIconSource
-                            sourceSize: card.hasLeadingImage
-                                ? Qt.size(root.notificationLeadingVisualSize * 2, root.notificationLeadingVisualSize * 2)
-                                : Qt.size(Math.round(root.notificationLeadingVisualSize * 7 / 6), Math.round(root.notificationLeadingVisualSize * 7 / 6))
-                            fillMode: card.hasLeadingImage && root.notificationIsMessenger(card.notification)
-                                ? Image.PreserveAspectCrop : Image.PreserveAspectFit
-                            smooth: true
-                            asynchronous: false
-                            onStatusChanged: {
-                                if (card.hasLeadingImage && status === Image.Error)
-                                    card.imageLoadFailed = true
+                        // Keep both app icons and notification avatars inside a dedicated
+                        // viewport. Some SVG/icon sources contain content extending beyond
+                        // their nominal bounds; clipping at both the frame and viewport
+                        // prevents that content from escaping the allocated visual area.
+                        Item {
+                            id: notificationVisualViewport
+                            anchors.fill: parent
+                            clip: true
+
+                            Image {
+                                id: notificationVisualImage
+                                anchors.centerIn: parent
+                                width: card.hasLeadingImage ? parent.width : Math.max(1, Math.round(Math.min(parent.width, parent.height) * 7 / 12))
+                                height: card.hasLeadingImage ? parent.height : Math.max(1, Math.round(Math.min(parent.width, parent.height) * 7 / 12))
+                                source: card.hasLeadingImage ? card.imageSource : card.appIconSource
+                                sourceSize: Qt.size(Math.max(1, Math.round(width * 2)), Math.max(1, Math.round(height * 2)))
+                                fillMode: card.hasLeadingImage && root.notificationIsMessenger(card.notification)
+                                    ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+                                clip: true
+                                smooth: true
+                                asynchronous: false
+                                onStatusChanged: {
+                                    if (card.hasLeadingImage && status === Image.Error)
+                                        card.imageLoadFailed = true
+                                }
                             }
                         }
                     }
@@ -1547,8 +1663,8 @@ Item {
                         anchors.right: closeButton.left
                         text: card.notification ? String(card.notification.appName || "Уведомление") : ""
                         color: Config.notificationsAppNameColor || Config.text
-                        font.family: Config.notificationsAppNameFont
-                        font.pixelSize: root.notificationAppNameFontSize
+                        font.family: Config.resolveFontFamily(Config.notificationsAppNameFont)
+                        font.pixelSize: Config.uiFontSize(root.notificationAppNameFontSize)
                         font.bold: Config.notificationsAppNameBold
                         elide: Text.ElideRight
                     }
@@ -1558,12 +1674,12 @@ Item {
                         anchors.right: parent.right
                         anchors.rightMargin: root.notificationCardPadding
                         anchors.top: parent.top
-                        anchors.topMargin: Math.max(0, root.notificationCardPadding - 7)
-                        width: 24
-                        height: 24
+                        anchors.topMargin: Math.max(0, root.notificationCardPadding - Math.round(7 * root.notificationUiScale))
+                        width: Math.round(24 * root.notificationUiScale)
+                        height: Math.round(24 * root.notificationUiScale)
                         text: "×"
                         color: Config.text
-                        font.pixelSize: 20
+                        font.pixelSize: Config.uiFontSize(20)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         MouseArea {
@@ -1582,29 +1698,51 @@ Item {
                         // displayed summary, independently of card/delegate geometry.
                         width: card.textColumnWidth
                         text: card.notification ? String(card.notification.summary || "") : ""
-                        font.family: Config.notificationsSummaryFont
-                        font.pixelSize: root.notificationSummaryFontSize
+                        font.family: Config.resolveFontFamily(Config.notificationsSummaryFont)
+                        font.pixelSize: Config.uiFontSize(root.notificationSummaryFontSize)
                         font.bold: true
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
                     }
 
-                    Text {
+                    TextEdit {
                         id: summaryText
                         anchors.left: parent.left
                         anchors.leftMargin: card.textColumnLeftMargin
                         anchors.right: parent.right
                         anchors.rightMargin: root.notificationCardPadding
                         anchors.top: appLabel.bottom
-                        anchors.topMargin: 3
+                        anchors.topMargin: Math.round(3 * root.notificationUiScale)
                         text: card.notification ? String(card.notification.summary || "") : ""
                         visible: root.notificationHasSummary(card.notification)
                         color: Config.notificationsSummaryColor || Config.text
-                        font.family: Config.notificationsSummaryFont
-                        font.pixelSize: root.notificationSummaryFontSize
+                        font.family: Config.resolveFontFamily(Config.notificationsSummaryFont)
+                        font.pixelSize: Config.uiFontSize(root.notificationSummaryFontSize)
                         font.bold: true
-                        wrapMode: Text.Wrap
-                        textFormat: Text.PlainText
+                        wrapMode: TextEdit.Wrap
+                        textFormat: TextEdit.PlainText
+                        readOnly: true
+                        selectByMouse: true
+                        selectByKeyboard: true
+                        persistentSelection: true
+                        activeFocusOnPress: true
+                        padding: 0
+                        onActiveFocusChanged: card.handleNotificationTextKeyboardFocusChanged()
+                        Keys.priority: Keys.BeforeItem
+                        Keys.onPressed: function(event) {
+                            const copyShortcut = (event.modifiers & Qt.ControlModifier) !== 0
+                                && (event.key === Qt.Key_C || event.key === Qt.Key_Insert)
+                            if (!copyShortcut) return
+                            if (String(selectedText || "").length > 0) copy()
+                            event.accepted = true
+                        }
+                        HoverHandler {
+                            id: summaryTextHoverHandler
+                            onHoveredChanged: {
+                                card.summaryTextHovered = hovered
+                                card.updateNotificationTextKeyboardFocus()
+                            }
+                        }
                     }
 
                     Text {
@@ -1615,33 +1753,55 @@ Item {
                         width: card.textColumnWidth
                         text: card.formattedBody
                         color: Config.notificationsBodyColor || Config.text
-                        font.family: Config.notificationsBodyFont
-                        font.pixelSize: root.notificationBodyFontSize
+                        font.family: Config.resolveFontFamily(Config.notificationsBodyFont)
+                        font.pixelSize: Config.uiFontSize(root.notificationBodyFontSize)
                         wrapMode: Text.Wrap
                         textFormat: Text.RichText
                     }
 
-                    Text {
+                    TextEdit {
                         id: bodyText
                         anchors.left: parent.left
                         anchors.leftMargin: card.textColumnLeftMargin
                         anchors.right: parent.right
                         anchors.rightMargin: root.notificationCardPadding
                         anchors.top: root.notificationHasSummary(card.notification) ? summaryText.bottom : appLabel.bottom
-                        anchors.topMargin: 3
+                        anchors.topMargin: Math.round(3 * root.notificationUiScale)
                         text: card.formattedBody
                         visible: root.notificationHasBody(card.notification)
                         color: Config.notificationsBodyColor || Config.text
-                        font.family: Config.notificationsBodyFont
-                        font.pixelSize: root.notificationBodyFontSize
-                        wrapMode: Text.Wrap
-                        // Its implicit height is measured from the wrapped rich text;
-                        // the card grows to fit instead of constraining and clipping it.
-                        textFormat: Text.RichText
+                        font.family: Config.resolveFontFamily(Config.notificationsBodyFont)
+                        font.pixelSize: Config.uiFontSize(root.notificationBodyFontSize)
+                        wrapMode: TextEdit.Wrap
+                        // Read-only TextEdit keeps rich links interactive while allowing
+                        // normal mouse/keyboard selection and Ctrl+C without editing.
+                        textFormat: TextEdit.RichText
+                        readOnly: true
+                        selectByMouse: true
+                        selectByKeyboard: true
+                        persistentSelection: true
+                        activeFocusOnPress: true
+                        padding: 0
+                        onActiveFocusChanged: card.handleNotificationTextKeyboardFocusChanged()
+                        Keys.priority: Keys.BeforeItem
+                        Keys.onPressed: function(event) {
+                            const copyShortcut = (event.modifiers & Qt.ControlModifier) !== 0
+                                && (event.key === Qt.Key_C || event.key === Qt.Key_Insert)
+                            if (!copyShortcut) return
+                            if (String(selectedText || "").length > 0) copy()
+                            event.accepted = true
+                        }
                         onLinkActivated: function(link) {
                             const url = String(link || "")
                             if (/^(https?:|mailto:)/i.test(url))
                                 Qt.openUrlExternally(url)
+                        }
+                        HoverHandler {
+                            id: bodyTextHoverHandler
+                            onHoveredChanged: {
+                                card.bodyTextHovered = hovered
+                                card.updateNotificationTextKeyboardFocus()
+                            }
                         }
                     }
 
@@ -1699,48 +1859,6 @@ Item {
                         }
                     }
 
-                    Row {
-                        id: actionRow
-                        anchors.left: parent.left
-                        anchors.leftMargin: 8
-                        anchors.right: parent.right
-                        anchors.rightMargin: 8
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 6
-                        height: 24
-                        spacing: 6
-                        visible: card.buttonActions.length > 0
-
-                        Repeater {
-                            model: card.buttonActions
-                            delegate: Rectangle {
-                                required property var modelData
-                                width: Math.min(150, actionText.implicitWidth + 18)
-                                height: 24
-                                radius: 4
-                                color: actionMouse.containsMouse ? Config.accent : "transparent"
-                                border.width: 1
-                                border.color: Config.baseColor
-                                Text {
-                                    id: actionText
-                                    anchors.centerIn: parent
-                                    text: modelData ? String(modelData.text || "") : ""
-                                    color: Config.text
-                                    font.pixelSize: 11
-                                    elide: Text.ElideRight
-                                }
-                                MouseArea {
-                                    id: actionMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    enabled: !card.removalPending
-                                    onClicked: {
-                                        if (!card.removalPending && modelData && typeof modelData.invoke === "function") modelData.invoke()
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
             }
 
@@ -1748,23 +1866,23 @@ Item {
                 id: layoutEditPreview
                 anchors.fill: parent
                 visible: root.layoutEditMode && root.visibleNotificationCount === 0
-                radius: Config.frameRadius
+                radius: root.notificationFrameRadius
                 color: Settings.moduleBackgrounds.notifications !== false ? Config.background : Config.transparent
-                border.width: Settings.moduleFrames.notifications !== false ? Math.max(1, Config.frameBorderWidth) : 0
+                border.width: root.notificationFrameBorderWidth
                 border.color: Config.baseColor
 
                 Column {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: 12
-                    spacing: 5
+                    anchors.margins: Math.round(12 * root.notificationUiScale)
+                    spacing: Math.round(5 * root.notificationUiScale)
 
                     Text {
                         width: parent.width
                         text: "Предварительный просмотр уведомления"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(12)
                         font.bold: true
                         elide: Text.ElideRight
@@ -1773,7 +1891,7 @@ Item {
                         width: parent.width
                         text: "Здесь будут отображаться входящие уведомления"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         wrapMode: Text.WordWrap
                     }
@@ -1792,29 +1910,29 @@ Item {
                 visible: !root.layoutDragging
                 color: "transparent"
                 border.color: Config.accent
-                border.width: Math.max(2, Config.frameBorderWidth + 1)
-                radius: Config.frameRadius
+                border.width: Math.max(2, Math.round((Config.frameBorderWidth + 1) * root.notificationUiScale))
+                radius: root.notificationFrameRadius
                 antialiasing: true
             }
 
             Rectangle {
                 anchors.left: parent.left
                 anchors.top: parent.top
-                anchors.margins: 5
+                anchors.margins: Math.round(5 * root.notificationUiScale)
                 visible: !root.layoutDragging
-                width: layoutEditLabel.implicitWidth + 14
-                height: layoutEditLabel.implicitHeight + 8
-                radius: 4
+                width: layoutEditLabel.implicitWidth + Math.round(14 * root.notificationUiScale)
+                height: layoutEditLabel.implicitHeight + Math.round(8 * root.notificationUiScale)
+                radius: Math.round(4 * root.notificationUiScale)
                 color: Config.accent
                 border.color: Config.accent
-                border.width: 1
+                border.width: Math.max(1, Math.round(root.notificationUiScale))
 
                 Text {
                     id: layoutEditLabel
                     anchors.centerIn: parent
                     text: "notifications"
                     color: Config.black
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     font.bold: true
                 }

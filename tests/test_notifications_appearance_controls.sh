@@ -38,14 +38,14 @@ assert(section.includes('heading: "Название приложения"'), 'ap
 assert(section.includes('heading: "Скругление иконки / аватара"'), 'leading visual radius group is missing');
 assert(section.includes('heading: "Внутренние отступы карточки"'), 'card padding group is missing');
 assert(section.includes('heading: "Основной текст уведомления"'), 'body typography group is missing');
-assert(runtime.includes('font.family: Config.notificationsAppNameFont'), 'app label font family is not applied');
+assert(runtime.includes('font.family: Config.resolveFontFamily(Config.notificationsAppNameFont)'), 'app label font family is not applied');
 assert(runtime.includes('font.bold: Config.notificationsAppNameBold'), 'app label weight is not applied');
 assert(runtime.includes('Config.notificationsAppNameColor || Config.text'), 'app label must inherit the active theme color when unset');
 assert(runtime.includes('root.notificationLeadingVisualRadius'), 'icon/avatar radius is not applied');
 assert(runtime.includes('root.notificationCardPadding'), 'card padding is not applied to layout');
 assert(runtime.includes('? root.notificationImageGap : root.notificationCardPadding'), 'standalone body image respects the configured top inset');
 assert(runtime.includes('root.notificationCardWidth - root.notificationCardPadding * 2'), 'body image decode width follows the configured horizontal insets');
-assert(runtime.includes('font.pixelSize: root.notificationBodyFontSize'), 'body font size is not applied');
+assert(runtime.includes('font.pixelSize: Config.uiFontSize(root.notificationBodyFontSize)'), 'body font size is not routed through the global module font scale');
 assert(runtime.includes('Config.notificationsBodyColor || Config.text'), 'body color must inherit the active theme when unset');
 
 let full = schema.normalizeProfile({}, false);

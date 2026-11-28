@@ -9,7 +9,7 @@ Item {
 
     property real value: 0
     property int valueAnimationDuration: 0
-    property string valueAnimationProfile: "standard"
+    property string valueAnimationProfile: "ease-out"
     property real displayedValue: value
     property color fillColor: "white"
     property color trackColor: "transparent"

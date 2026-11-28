@@ -18,7 +18,7 @@ checks = {
     "row removed only after explicit exit completion": "function finishNetworkRowRemoval(name)" in qml and "onRemovalFinished: function(networkName)" in qml and "onFinished: root.finishExitTransition()" in row,
     "column displaced rows move smoothly": "move: Transition" in qml and 'properties: "x,y"' in qml,
     "displaced rows use shared duration": 'duration: root.internalAnimationDuration' in qml,
-    "row outer slot remains fixed": "height: root.rowHeight" in qml and "implicitHeight: 32" in row,
+    "row outer slot remains fixed": "height: root.effectiveRowHeight" in qml and "implicitHeight: 32" in row,
     "row geometry follows delegate-local progress": "id: networkRowMorph" in row and "property real rowProgress: 0" in row and "progress: root.rowProgress" in row,
     "row click behavior remains": "onClicked: root.toggleConnection()" in row,
 }

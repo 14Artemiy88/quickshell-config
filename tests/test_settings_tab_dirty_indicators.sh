@@ -16,7 +16,7 @@ modules = (root / 'components/settings/sections/SettingsModulesSection.qml').rea
 colors = (root / 'components/settings/sections/SettingsColorsSection.qml').read_text(encoding='utf-8')
 
 expected_scopes = {
-    'modules': 'modules', 'themes': 'themes', 'general': 'general',
+    'modules': 'modules', 'themes': 'themes', 'interface': 'general',
     'timers': 'timer', 'player': 'player', 'mopidy': 'mopidy',
     'weather': 'weather', 'cava': 'cava', 'cpuRam': 'cpu',
     'network': 'network', 'volume': 'volume', 'calendar': 'calendar',
@@ -34,7 +34,7 @@ for tab_id, scope in expected_scopes.items():
 
 assert 'property bool modified: false' in tab_base
 assert 'visible: root.modified' in tab_base, 'dirty marker should only render when the section has changes'
-assert 'color: root.selected ? root.selectedTextColor : root.modifiedColor' in tab_base, 'marker must remain visible on the selected tab'
+assert 'color: root.selected ? root.effectiveSelectedTextColor : root.modifiedColor' in tab_base, 'marker must remain visible on the selected tab'
 assert 'anchors.rightMargin: root.horizontalPadding + (root.modified ? 10 : 0)' in tab_base, 'tab label must not overlap the dirty marker'
 
 # Nerd Font Material Design Icon md-content_save_all (U+F0194), visually the paired diskettes.

@@ -48,7 +48,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: root.radius
+        radius: Config.scaledCornerRadius(root.radius)
         color: !root.enabled
             ? root.backgroundColor
             : (root.fillOnHover && mouse.containsMouse
@@ -59,7 +59,9 @@ Item {
             : (root.activeFocus || root.emphasized || (root.borderOnHover && mouse.containsMouse)
                 ? root.accentColor
                 : root.outlineColor)
-        border.width: root.activeFocus ? Math.max(2, root.borderWidth) : root.borderWidth
+        border.width: root.activeFocus
+            ? Math.max(2, root.borderWidth)
+            : (Config.buttonBordersEnabled ? root.borderWidth : 0)
 
         Text {
             anchors.fill: parent
@@ -72,7 +74,7 @@ Item {
                 : (root.fillOnHover && mouse.containsMouse
                     ? root.hoverTextColor
                     : (root.emphasized ? root.accentColor : root.textColor))
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.fontSize)
             font.bold: root.fontBold || root.emphasized
             horizontalAlignment: Text.AlignHCenter
@@ -98,7 +100,7 @@ Item {
                 color: !root.enabled ? root.disabledTextColor
                     : (root.fillOnHover && mouse.containsMouse ? root.hoverTextColor
                        : (root.emphasized ? root.accentColor : root.textColor))
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(root.fontSize)
                 font.bold: root.fontBold || root.emphasized
                 verticalAlignment: Text.AlignVCenter

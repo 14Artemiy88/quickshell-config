@@ -31,12 +31,12 @@ const mopidyPage = fs.readFileSync(path.join(root, 'components/settings/pages/Se
 const searchController = fs.readFileSync(path.join(root, 'components/settings/SettingsSearchController.qml'), 'utf8');
 const navigationController = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 const pageSources = content + playerPage + mopidyPage;
-for (const page of ['modules','themes','calendar','weather','general','player','mopidy','cava','cpuRam','network','volume','timers','launcher','settingsWindow','notifications','notificationsDnd']) {
+for (const page of ['modules','themes','interface','calendar','weather','general','player','mopidy','cava','cpuRam','network','volume','timers','launcher','settingsWindow','notifications','notificationsDnd']) {
   assert(pageSources.includes(`settings-search-page:${page}`), `${page} search root remains discoverable`);
 }
 const navigation = fs.readFileSync(path.join(root, 'components/settings/SettingsNavigationController.qml'), 'utf8');
 assert(widget.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'stable page ID is exposed by SettingsWidget');
-assert(navigation.includes('property string currentPageId: "general"'), 'stable page ID state is owned by navigation controller with General as the fallback');
+assert(navigation.includes('property string currentPageId: "interface"'), 'stable page ID state is owned by navigation controller with General as the fallback');
 assert(content.includes('host: root.host'), 'page sections receive the settings controller explicitly');
 assert(content.includes('root.host.currentPageId'), 'page declarations route through stable controller IDs');
 assert(registry.includes('function tabDefinitions'), 'page registry remains the source of page metadata');

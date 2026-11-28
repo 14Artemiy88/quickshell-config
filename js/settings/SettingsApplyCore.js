@@ -1,19 +1,19 @@
 .pragma library
 
 .import "SettingsSchema.js" as Schema
-var SETTINGS_TAB_IDS = ["modules", "time", "dashboard", "themes", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "notificationsDnd", "settingsWindow"]
-var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", notificationsDnd:"Не беспокоить", settingsWindow:"Окно настроек"})
+var SETTINGS_TAB_IDS = ["modules", "time", "dashboard", "themes", "interface", "general", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "osd", "calendar", "launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications", "notifications", "notificationsDnd", "settingsWindow"]
+var DEFAULT_SETTINGS_TAB_LABELS = ({modules:"Модули", time:"Часы", dashboard:"Dashboard", themes:"Темы", interface:"Интерфейс", general:"Общие", timers:"Таймеры", player:"Плеер", mopidy:"Mopidy", weather:"Погода", cava:"CAVA", cpuRam:"CPU/RAM", network:"Сеть", volume:"Громкость", osd:"OSD", calendar:"Календарь", launcher:"Общее", launcherSearch:"Поиск", launcherTabs:"Вкладки", launcherProjects:"Проекты", launcherActions:"Действия", launcherAnimation:"Анимация", launcherApplications:"Приложения", notifications:"Уведомления", notificationsDnd:"Не беспокоить", settingsWindow:"Окно настроек"})
 
 function normalizeSettingsLastActivePageId(value) {
     var pageId = typeof value === "string" ? value.trim() : ""
-    return SETTINGS_TAB_IDS.indexOf(pageId) >= 0 ? pageId : "general"
+    return SETTINGS_TAB_IDS.indexOf(pageId) >= 0 ? pageId : "interface"
 }
 
 function fallbackNavigationOrder(source) {
     var groupOrder = ["appearance", "modules", "dashboard", "launcher", "notifications", "general"]
     var defaults = {
-        appearance: ["themes", "settingsWindow"],
-        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
+        appearance: ["themes", "interface", "settingsWindow"],
+        modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "osd", "calendar"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
         notifications: ["notifications", "notificationsDnd"],
@@ -117,10 +117,37 @@ function apply(owner, Config, o) {
             if (isFinite(fs)) Config.fontSize = Math.max(6, Math.min(32, Math.round(fs)))
         }
         if (o.settingsFont !== undefined) Config.settingsFont = String(o.settingsFont)
+        if (o.settingsShowDescriptions !== undefined) Config.settingsShowDescriptions = o.settingsShowDescriptions !== false
         if (o.settingsFontSize !== undefined) {
             var sfs = Number(o.settingsFontSize)
             if (isFinite(sfs)) Config.settingsFontSize = Math.max(6, Math.min(32, Math.round(sfs)))
         }
+        // Global UI/font scales are percentage multipliers. Clamp persisted or
+        // hand-edited profile values so malformed data cannot collapse a surface.
+        if (o.uiScale !== undefined) {
+            var moduleUiScale = Number(o.uiScale)
+            if (isFinite(moduleUiScale)) Config.uiScale = Math.max(75, Math.min(150, Math.round(moduleUiScale)))
+        }
+        if (o.fontScale !== undefined) {
+            var moduleFontScale = Number(o.fontScale)
+            if (isFinite(moduleFontScale)) Config.fontScale = Math.max(75, Math.min(150, Math.round(moduleFontScale)))
+        }
+        if (o.settingsUiScale !== undefined) {
+            var settingsUiScale = Number(o.settingsUiScale)
+            if (isFinite(settingsUiScale)) Config.settingsUiScale = Math.max(75, Math.min(150, Math.round(settingsUiScale)))
+        }
+        if (o.settingsFontScale !== undefined) {
+            var settingsFontScale = Number(o.settingsFontScale)
+            if (isFinite(settingsFontScale)) Config.settingsFontScale = Math.max(75, Math.min(150, Math.round(settingsFontScale)))
+        }
+        if (o.cornerRadiusScale !== undefined) {
+            var cornerRadiusScale = Number(o.cornerRadiusScale)
+            if (isFinite(cornerRadiusScale)) Config.cornerRadiusScale = Math.max(50, Math.min(150, Math.round(cornerRadiusScale)))
+        }
+        if (o.buttonBordersEnabled !== undefined) Config.buttonBordersEnabled = o.buttonBordersEnabled !== false
+        if (o.inputBordersEnabled !== undefined) Config.inputBordersEnabled = o.inputBordersEnabled !== false
+        if (o.popupBordersEnabled !== undefined) Config.popupBordersEnabled = o.popupBordersEnabled !== false
+        if (o.cardBordersEnabled !== undefined) Config.cardBordersEnabled = o.cardBordersEnabled !== false
         if (o.settingsPadding !== undefined) {
             var sp = Number(o.settingsPadding)
             if (isFinite(sp)) Config.settingsPadding = Math.max(0, Math.min(40, Math.round(sp)))
@@ -164,6 +191,7 @@ function apply(owner, Config, o) {
         if (o.notificationsDoNotDisturb !== undefined) Config.notificationsDoNotDisturb = o.notificationsDoNotDisturb === true
         if (o.notificationsDndAllowedApps !== undefined) Config.notificationsDndAllowedApps = String(o.notificationsDndAllowedApps || "").slice(0, 4096)
         if (o.notificationsDndBlockedApps !== undefined) Config.notificationsDndBlockedApps = String(o.notificationsDndBlockedApps || "").slice(0, 4096)
+        if (o.notificationsHistoryIgnoredApps !== undefined) Config.notificationsHistoryIgnoredApps = String(o.notificationsHistoryIgnoredApps || "").slice(0, 4096)
         if (o.notificationsHistoryLimit !== undefined) {
             var notificationHistoryLimit = Number(o.notificationsHistoryLimit)
             if (isFinite(notificationHistoryLimit)) Config.notificationsHistoryLimit = Math.max(1, Math.min(200, Math.round(notificationHistoryLimit)))
@@ -277,6 +305,7 @@ function apply(owner, Config, o) {
             Config.notificationsBodyColor = bodyColor === "" ? "" : Schema.normalizeSavedColor(bodyColor, "")
         }
         if (o.notificationsShowAppIcon !== undefined) Config.notificationsShowAppIcon = !!o.notificationsShowAppIcon
+        if (o.notificationsShowAppIconBackground !== undefined) Config.notificationsShowAppIconBackground = !!o.notificationsShowAppIconBackground
         if (o.notificationsShowBodyImages !== undefined) Config.notificationsShowBodyImages = !!o.notificationsShowBodyImages
         if (o.notificationsShowProgress !== undefined) Config.notificationsShowProgress = !!o.notificationsShowProgress
         if (o.ledFont !== undefined) Config.ledFont = String(o.ledFont)

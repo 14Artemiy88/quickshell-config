@@ -26,7 +26,7 @@ settingsSearchSubTabIndex: 0
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 0
                 text: "Полосы CPU и RAM"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
 
@@ -366,17 +366,17 @@ settingsSearchSubTabIndex: 2
                 visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 text: "Top Apps — отображение"
                 color: Config.accent
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(14)
             }
 
-            Text {
-                visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+            SettingsDescription {
+                descriptionConditionVisible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Дополнительные параметры раскрываются сразу под соответствующим переключателем."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
     }
@@ -417,7 +417,7 @@ settingsSearchSubTabIndex: 2
             toGeometry: Qt.rect(0, 0, parent.width, topAppsHeadersContent.implicitHeight)
             progress: Config.topAppsShowHeaders ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.topAppsShowHeaders ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.topAppsShowHeaders ? "enter" : "exit")
 
             Column {
                 id: topAppsHeadersContent
@@ -427,7 +427,7 @@ settingsSearchSubTabIndex: 2
                 Text {
                     text: "CPU"
                     color: Config.settingsSubheading
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
@@ -440,7 +440,7 @@ settingsSearchSubTabIndex: 2
                         id: topAppsCpuHeaderTitleField
                         width: 180; height: 30
                         text: Config.topAppsCpuHeaderTitle
-                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+                        color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
                         placeholderText: "CPU"
                         activeFocusOnTab: true
                         onEditingFinished: { Config.topAppsCpuHeaderTitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsCpuHeaderTitle; settings.save() }
@@ -457,7 +457,7 @@ settingsSearchSubTabIndex: 2
                         id: topAppsCpuHeaderSubtitleField
                         width: 180; height: 30
                         text: Config.topAppsCpuHeaderSubtitle
-                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+                        color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
                         placeholderText: "ДОЛЯ ОТ ВСЕГО CPU"
                         activeFocusOnTab: true
                         onEditingFinished: { Config.topAppsCpuHeaderSubtitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsCpuHeaderSubtitle; settings.save() }
@@ -468,7 +468,7 @@ settingsSearchSubTabIndex: 2
                 Text {
                     text: "Память"
                     color: Config.settingsSubheading
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                 }
 
@@ -481,7 +481,7 @@ settingsSearchSubTabIndex: 2
                         id: topAppsRamHeaderTitleField
                         width: 180; height: 30
                         text: Config.topAppsRamHeaderTitle
-                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+                        color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
                         placeholderText: "ПАМЯТЬ"
                         activeFocusOnTab: true
                         onEditingFinished: { Config.topAppsRamHeaderTitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsRamHeaderTitle; settings.save() }
@@ -498,7 +498,7 @@ settingsSearchSubTabIndex: 2
                         id: topAppsRamHeaderSubtitleField
                         width: 180; height: 30
                         text: Config.topAppsRamHeaderSubtitle
-                        color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11)
+                        color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11)
                         placeholderText: "ТОП ПРОЦЕССОВ"
                         activeFocusOnTab: true
                         onEditingFinished: { Config.topAppsRamHeaderSubtitle = text.replace(/[\r\n\t]/g, " ").trim().slice(0, 64); text = Config.topAppsRamHeaderSubtitle; settings.save() }
@@ -572,7 +572,7 @@ settingsSearchSubTabIndex: 2
                 toGeometry: Qt.rect(0, 0, parent.width, topAppsBarGeometryContent.implicitHeight)
                 progress: Config.topAppsShowBars ? 1 : 0
                 animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", Config.topAppsShowBars ? "enter" : "exit")
+                animationEasing: Config.animationEasingType("ease-out", Config.topAppsShowBars ? "enter" : "exit")
 
                 Column {
                     id: topAppsBarGeometryContent
@@ -691,7 +691,7 @@ settingsSearchSubTabIndex: 2
         toGeometry: Qt.rect(0, 0, parent.width, topAppsBarColorsGroup.implicitHeight)
         progress: Config.topAppsShowBars ? 1 : 0
         animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", Config.topAppsShowBars ? "enter" : "exit")
+        animationEasing: Config.animationEasingType("ease-out", Config.topAppsShowBars ? "enter" : "exit")
 
         SettingsGroup {
         settingsSearchSubTabIndex: 2
@@ -705,13 +705,13 @@ settingsSearchSubTabIndex: 2
             contentSpacing: 6
 
 
-                Text {
-                    visible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
+                SettingsDescription {
+                    descriptionConditionVisible: host.currentPageId === "cpuRam" && host.currentPageSubTabIndex === 2
                     width: parent.width
                     wrapMode: Text.WordWrap
                     text: "Отдельные цвета для заполнения полос CPU и RAM."
                     color: Config.textMuted
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(9)
                 }
 
@@ -811,7 +811,7 @@ settingsSearchSubTabIndex: 2
             toGeometry: Qt.rect(0, 0, parent.width, topAppsSystemRemainderContent.implicitHeight)
             progress: Config.topAppsShowSystemRemainder ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.topAppsShowSystemRemainder ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.topAppsShowSystemRemainder ? "enter" : "exit")
 
             Column {
                 id: topAppsSystemRemainderContent
@@ -828,7 +828,7 @@ settingsSearchSubTabIndex: 2
                         id: topAppsSystemRemainderLabelField
                         width: 180; height: 30
                         text: Config.topAppsSystemRemainderLabel
-                        color: Config.text; font.family: Config.settingsFont
+                        color: Config.text; font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         placeholderText: "Система/прочее"
                         activeFocusOnTab: true
@@ -948,17 +948,18 @@ settingsSearchSubTabIndex: 2
         }
 
         SettingsGroup {
+            visible: Config.settingsShowDescriptions
             width: parent.width
             showFrame: true
             heading: "Что управляется"
             padding: 8
             contentSpacing: 4
-            Text {
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Профиль управляет кривой сглаживания загрузки ядер CPU в горизонтальном и вертикальном режимах. Фактическая длительность автоматически подстраивается под интервал обновления CPU и не превышает заданный предел. Полоса RAM сохраняет мгновенное обновление, а график истории CPU продолжает прокручиваться с собственной частотой. Анимация появления самого модуля остаётся независимой."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }

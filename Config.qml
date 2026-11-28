@@ -66,10 +66,18 @@ QtObject {
     property int notificationsDefaultTimeout: 5000
     // DND suppresses visible toasts while keeping received items in a bounded in-memory buffer.
     property bool notificationsDoNotDisturb: false
+    // A compact OSD confirms runtime changes to the DND state.
+    property bool notificationsDndOsdEnabled: true
+    property int notificationsDndOsdHideDelay: 1800
+    property int notificationsDndOsdAnimationDuration: 180
+    property string animationNotificationsDndOsdMorphProfile: "ease-in-out"
     // Comma/semicolon-separated desktop-entry IDs or exact app names allowed through DND.
     property string notificationsDndAllowedApps: ""
     // Applications suppressed while DND is off; desktop-entry IDs or exact app names.
     property string notificationsDndBlockedApps: ""
+    // Applications whose notifications must not be added to in-memory history.
+    // This is independent of popup visibility and both DND rule sets.
+    property string notificationsHistoryIgnoredApps: ""
     // Runtime-only sender catalog populated by actual NotificationServer events.
     // Deliberately excluded from settings persistence: only app identifiers and
     // desktop metadata live in memory, never notification contents.
@@ -115,19 +123,21 @@ QtObject {
     property int notificationsBodyFontSize: 12
     property string notificationsBodyColor: ""
     property bool notificationsShowAppIcon: true
+    property bool notificationsShowAppIconBackground: true
     property bool notificationsShowBodyImages: true
     property bool notificationsShowProgress: true
     // Notification cards animate independently when the queue changes.
     property int animationNotificationsMorphDuration: 180
-    property string animationNotificationsMorphProfile: "expressive"
+    property string animationNotificationsMorphProfile: "ease-in-out"
     property string animationNotificationsVisibilityStyle: "fade"
+    property string animationNotificationsVisibilityProfile: "ease-out"
 
     // Customizable Settings sidebar names/order. Stable IDs keep internal section routing unchanged.
     // Hierarchical navigation order: independent frame order and per-frame page order.
     property var settingsNavigationOrder: ({
         groupOrder: ["appearance", "modules", "dashboard", "launcher", "notifications", "general"],
         pagesByGroup: ({
-            appearance: ["themes", "settingsWindow"],
+            appearance: ["themes", "interface", "settingsWindow"],
             modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
             dashboard: ["dashboard"],
             launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
@@ -136,15 +146,15 @@ QtObject {
         })
     })
     property var settingsTabLabels: ({
-        modules: "Модули", time: "Часы", dashboard: "Dashboard", themes: "Темы", general: "Общие", timers: "Таймеры",
+        modules: "Модули", time: "Часы", dashboard: "Dashboard", themes: "Темы", interface: "Интерфейс", general: "Общие", timers: "Таймеры",
         player: "Плеер", mopidy: "Mopidy", weather: "Погода", cava: "CAVA",
-        cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", calendar: "Календарь",
+        cpuRam: "CPU/RAM", network: "Сеть", volume: "Громкость", osd: "OSD", calendar: "Календарь",
         launcher: "Общее", launcherSearch: "Поиск", launcherTabs: "Вкладки", launcherProjects: "Проекты", launcherActions: "Действия", launcherAnimation: "Анимация", launcherApplications: "Приложения", notifications: "Уведомления", notificationsDnd: "Не беспокоить", settingsWindow: "Окно настроек"
     })
     // Remember expanded/collapsed state for the multi-page sidebar groups.
     property var settingsNavigationCollapsedGroups: ({ appearance: false, modules: false, launcher: false, notifications: false })
     // Last selected Settings page is a standalone UI preference, not a profile setting.
-    property string settingsLastActivePageId: "general"
+    property string settingsLastActivePageId: "interface"
     // Shared compositor blur radius used by every independently enabled module.
     property int backgroundBlurRadius: 10
 
@@ -227,39 +237,47 @@ QtObject {
     // Dashboard defaults to the nearest horizontal edge so its drawer enters
     // from the side where it is placed on the selected monitor.
     property string animationDashboardVisibilityStyle: "auto"
+    property string animationDashboardVisibilityProfile: "ease-out"
     property int animationDashboardVisibilityDuration: 300
     property string animationCalendarVisibilityStyle: "fade"
+    property string animationCalendarVisibilityProfile: "ease-out"
     property string animationMopidyVisibilityStyle: "fade"
+    property string animationMopidyVisibilityProfile: "ease-out"
     property bool animationMopidyMorphEnabled: true
     property int animationMopidyMorphDuration: 180
-    property string animationMopidyMorphProfile: "expressive"
+    property string animationMopidyMorphProfile: "ease-in-out"
     property bool animationPlayerMorphEnabled: true
     property int animationPlayerMorphDuration: 180
-    property string animationPlayerMorphProfile: "expressive"
+    property string animationPlayerMorphProfile: "ease-in-out"
     property bool animationWeatherMorphEnabled: true
     property int animationWeatherMorphDuration: 180
     property int animationWeatherHourlyDuration: 220
-    property string animationWeatherMorphProfile: "expressive"
+    property string animationWeatherMorphProfile: "ease-in-out"
     property bool animationTimerMorphEnabled: true
     property int animationTimerMorphDuration: 220
-    property string animationTimerMorphProfile: "expressive"
+    property string animationTimerMorphProfile: "ease-in-out"
     property string animationNetworkVisibilityStyle: "fade"
+    property string animationNetworkVisibilityProfile: "ease-out"
     property int animationNetworkVisibilityDuration: 250
     property int animationNetworkMorphDuration: 220
-    property string animationNetworkMorphProfile: "expressive"
+    property string animationNetworkMorphProfile: "ease-in-out"
     property int animationCavaMorphDuration: 180
-    property string animationCavaMorphProfile: "expressive"
+    property string animationCavaMorphProfile: "ease-in-out"
     property int animationCalendarMorphDuration: 180
-    property string animationCalendarMorphProfile: "expressive"
+    property string animationCalendarMorphProfile: "ease-in-out"
     property int animationCpuMorphDuration: 260
-    property string animationCpuMorphProfile: "expressive"
+    property string animationCpuMorphProfile: "ease-in-out"
     property int animationLauncherMorphDuration: 120
-    property string animationLauncherMorphProfile: "expressive"
+    property string animationLauncherMorphProfile: "ease-in-out"
     property string animationTimerVisibilityStyle: "fade"
+    property string animationTimerVisibilityProfile: "ease-out"
     property string animationTimerOptionsVisibilityStyle: "fade"
+    property string animationTimerOptionsVisibilityProfile: "ease-out"
     property string animationSettingsVisibilityStyle: "fade"
+    property string animationSettingsVisibilityProfile: "ease-out"
     property string animationVolumeStreamsVisibilityStyle: "fade"
-    property string animationVolumeMorphProfile: "expressive"
+    property string animationVolumeStreamsVisibilityProfile: "ease-out"
+    property string animationVolumeMorphProfile: "ease-in-out"
     property int animationTimerOptionsDuration: 280
     property int volumeStreamsAnimationDuration: 250
     property int animationCalendarSlideDuration: 350
@@ -391,6 +409,18 @@ QtObject {
 
     // Volume tuning
     property int volumeUpdateInterval: 500
+    // Compact system OSD shown for default output volume and mute changes.
+    property bool volumeOsdEnabled: true
+    property int volumeOsdHideDelay: 1400
+    property int volumeOsdAnimationDuration: 180
+    property string animationVolumeOsdMorphProfile: "ease-in-out"
+    property bool playerOsdEnabled: true
+    // When enabled, all system OSD modes use the notification card appearance
+    // and occupy the same notification stack lane instead of the centered overlay.
+    property bool osdIntegrateWithNotifications: false
+    property int playerOsdHideDelay: 3200
+    property int playerOsdAnimationDuration: 220
+    property string animationPlayerOsdMorphProfile: "ease-in-out"
     property int volumeMainRowHeight: 32
     property int volumeStreamRowHeight: 20
     property int volumeStreamSpacing: 1
@@ -704,8 +734,25 @@ QtObject {
     property string font: "JetBrainsMono Nerd Font"
     // Base size for ordinary interface text; specialized widgets keep their own sizes.
     property int fontSize: 12
+    // Global module typography multiplier; individual font-size settings remain relative overrides.
+    property int fontScale: 100
+    // Geometry scale is applied by shared window hosts and the main floating surfaces.
+    property int uiScale: 100
     property string settingsFont: "JetBrainsMono Nerd Font"
+    // Empty optional font overrides must resolve through Qt's generic system UI
+    // family, never through an arbitrary application/inherited face such as an
+    // icon-only font. "Sans Serif" is resolved by Qt using the active desktop font config.
+    function resolveFontFamily(overrideFamily) {
+        var family = String(overrideFamily === undefined || overrideFamily === null ? "" : overrideFamily)
+            .replace(/[\r\n\t]/g, " ").trim()
+        return family.length > 0 ? family : "Sans Serif"
+    }
+    readonly property string settingsFontFamily: resolveFontFamily(settingsFont)
     property int settingsFontSize: 12
+    // Settings have independent geometry and typography scaling.
+    property int settingsFontScale: 100
+    property int settingsUiScale: 100
+    property bool settingsShowDescriptions: true
     property int settingsPadding: 10
     property int settingsSpacing: 8
     property string ledFont: "LED"
@@ -718,6 +765,14 @@ QtObject {
     property string playerFont: "HARDBOR"
     property string playerMetaFont: "Ubuntu Mono Nerd Font"
     property string playerSilenceText: "silence"
+    // Shared appearance controls. Percentage scaling preserves each component's
+    // existing radius proportions at 100%, while allowing one global adjustment.
+    property int cornerRadiusScale: 100
+    property bool buttonBordersEnabled: true
+    property bool inputBordersEnabled: true
+    property bool popupBordersEnabled: true
+    property bool cardBordersEnabled: true
+
     // Outer frame appearance
     property int frameBorderWidth: 1
     property int frameRadius: 7
@@ -725,12 +780,24 @@ QtObject {
     // Legacy/general corner radius used by small controls
     property int radius: 7
 
+    function scaledCornerRadius(baseRadius) {
+        var base = Number(baseRadius)
+        if (!isFinite(base) || base < 0) base = 0
+        var scale = Number(cornerRadiusScale)
+        if (!isFinite(scale)) scale = 100
+        scale = Math.max(50, Math.min(150, scale))
+        return Math.max(0, Math.round(base * scale / 100))
+    }
+
     function uiFontSize(baseSize) {
         var base = Number(baseSize)
         if (!isFinite(base) || base <= 0) base = 12
         var size = Number(fontSize)
         if (!isFinite(size) || size <= 0) size = 12
-        return Math.max(6, Math.round(base * size / 12))
+        var scale = Number(fontScale)
+        if (!isFinite(scale)) scale = 100
+        scale = Math.max(75, Math.min(150, scale))
+        return Math.max(6, Math.round(base * size / 12 * scale / 100))
     }
 
     function settingsUiSize(baseSize) {
@@ -738,7 +805,22 @@ QtObject {
         if (!isFinite(base) || base <= 0) base = 12
         var size = Number(settingsFontSize)
         if (!isFinite(size) || size <= 0) size = 12
-        return Math.max(6, Math.round(base * size / 12))
+        var scale = Number(settingsFontScale)
+        if (!isFinite(scale)) scale = 100
+        scale = Math.max(75, Math.min(150, scale))
+        return Math.max(6, Math.round(base * size / 12 * scale / 100))
+    }
+
+    function moduleUiScale() {
+        var value = Number(uiScale)
+        if (!isFinite(value)) value = 100
+        return Math.max(75, Math.min(150, value)) / 100
+    }
+
+    function settingsUiScaleFactor() {
+        var value = Number(settingsUiScale)
+        if (!isFinite(value)) value = 100
+        return Math.max(75, Math.min(150, value)) / 100
     }
 
     // Durations are controlled by each module's own animation settings.
@@ -750,36 +832,38 @@ QtObject {
         return Math.max(0, Math.round(ms))
     }
 
-    // A module's "none" profile disables its internal transitions without
+    // Normalize CSS timing functions and legacy motion-profile tokens. The
+    // stored value is now a CSS easing name or a cubic-bezier() expression.
+    function normalizeAnimationProfile(profile) {
+        return AnimationCurves.normalizeProfile(profile)
+    }
+
+    // A module's "none" option disables its internal transitions without
     // changing the independent appearance/disappearance animation of the module itself.
     function animationProfileIsEnabled(enabled, profile) {
-        return enabled === true && String(profile || "standard").toLowerCase() !== "none"
+        return enabled === true && AnimationCurves.normalizeProfile(profile) !== "none"
     }
 
     function animationDurationForProfile(enabled, profile, baseMs, category) {
         return animationProfileIsEnabled(enabled, profile) ? animationDuration(baseMs, category) : 0
     }
 
-    // Shared motion profiles inspired by Caelestia's token-based animation
-    // system. Existing call sites keep the historical OutCubic curve through
-    // easingType(); new components can opt into a profile explicitly.
-    // Durations remain owned by each module so this layer never overrides
-    // carefully tuned per-module timing.
+    // CSS easing functions are shared by every module. Custom cubic-bezier()
+    // values are kept in the existing per-module profile field for compatibility.
     function animationEasingType(profile, phase) {
-        var name = String(profile || "standard").toLowerCase()
-        var direction = String(phase || "enter").toLowerCase()
-        if (name === "none") return Easing.Linear
-        if (name === "expressive" || name === "expressivespatial" || name === "expressiveeffects")
-            return Easing.BezierSpline
-        if (name === "spatial")
-            return direction === "exit" ? Easing.InCubic : Easing.OutCubic
-        if (name === "effects")
-            return direction === "exit" ? Easing.InQuad : Easing.OutQuad
-        return Easing.OutCubic
+        var name = AnimationCurves.normalizeProfile(profile)
+        if (name === "none" || name === "linear" || name === "")
+            return Easing.Linear
+        return Easing.BezierSpline
     }
 
     function animationBezierCurve(profile, phase) {
         return AnimationCurves.forProfile(profile, phase)
+    }
+
+    function animationBezierValues(profile) {
+        var values = AnimationCurves.parseBezier(profile)
+        return values ? values : [0.25, 0.1, 0.25, 1]
     }
 
     function animationCurveByName(name) {
@@ -790,7 +874,7 @@ QtObject {
         return AnimationCurves.names()
     }
 
-    function easingType() { return animationEasingType("standard", "enter") }
+    function easingType() { return animationEasingType("ease-out", "enter") }
 
     property string monitorName: "LCD195VXM+"
 }

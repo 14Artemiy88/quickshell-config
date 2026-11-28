@@ -33,6 +33,6 @@ Item {
             : Config.settingsSearchHighlightColor
         border.width: Config.settingsSearchHighlightBorderWidth
             + (root.currentMatch ? 1 : 0)
-        radius: root.cornerRadius
+        radius: Config.scaledCornerRadius(root.cornerRadius)
     }
 }

@@ -17,7 +17,8 @@ grep -Fq 'screen.height - root.notificationCoordinate(1) - 16' "$NOTIFS" || fail
 if grep -Fq 'notificationServer.trackedNotifications.count' "$NOTIFS"; then fail 'ObjectModel has no count property; use values.length'; fi
 grep -Fq 'card.notification.expire()' "$NOTIFS" || fail 'notification timeout handling missing'
 grep -Fq 'card.notification.dismiss()' "$NOTIFS" || fail 'notification dismiss handling missing'
-grep -Fq 'modelData.invoke()' "$NOTIFS" || fail 'notification actions are not invoked'
+grep -Fq 'card.defaultAction.invoke()' "$NOTIFS" || fail 'default notification action remains available on card click'
+grep -Fq 'id: actionRow' "$NOTIFS" && fail 'application action buttons must not be rendered'
 grep -Fq 'active: Settings.loaded' "$SHELL" || fail 'NotificationServer bridge must remain loaded after settings initialize'
 grep -Fq 'process-wide C++ singleton' "$SHELL" || fail 'shell must document process-wide D-Bus server lifetime'
 grep -Fq 'notificationSurfaceActive: notificationsModuleEnabled' "$NOTIFS" || fail 'disabled module must hide the notification surface'

@@ -77,7 +77,7 @@ Column {
             activeFocusOnTab: true
             Accessible.name: "Поиск настроек"
             Accessible.description: "Поиск по страницам, подразделам и параметрам. Enter открывает первый результат, Escape очищает поиск."
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 9 : 10)
             onTextChanged: root.searchQueryEdited(text)
             onActiveFocusChanged: if (activeFocus) Qt.callLater(root.host.rebuildSettingsSearchIndex)
@@ -119,7 +119,7 @@ Column {
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignLeft
             elide: Text.ElideRight
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(8)
             color: root.searchResults.length > 0 ? Config.textMuted : Config.accent
             text: root.searchResults.length > 0
@@ -166,6 +166,9 @@ Column {
                         settingsNavigationPageId: visible ? String(modelData.items[0].id) : ""
                         settingsNavigationHost: root.host
                         selected: visible && root.host.isSettingsTabSelected(modelData.items[0].id)
+                        // Keep the active sidebar page highlighted even when a
+                        // horizontal subtab owns keyboard focus.
+                        persistentSelectionHighlight: true
                         normalBackground: Config.transparent
                         normalBorderColor: Config.transparent
                         modified: visible && root.host.settingsTabHasChanges(modelData.items[0].id)
@@ -220,6 +223,9 @@ Column {
                                     normalBackground: Config.transparent
                                     normalBorderColor: Config.transparent
                                     selected: root.host.isSettingsTabSelected(parent.modelData.id)
+                                    // Sidebar page selection and horizontal subtab
+                                    // selection are independent visual states.
+                                    persistentSelectionHighlight: true
                                     modified: root.host.settingsTabHasChanges(parent.modelData.id)
                                     settingsSearchMatched: root.host.settingsSearchPageHasMatches(parent.modelData.id)
                                     settingsSearchMatchHint: root.host.settingsSearchPageMatchHint(parent.modelData.id)

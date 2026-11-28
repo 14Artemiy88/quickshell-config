@@ -46,9 +46,9 @@ CheckBox {
         height: 18
         anchors.verticalCenter: parent.verticalCenter
         x: root.indicatorOnly ? Math.round((root.width - width) / 2) : 0
-        radius: 4
-        color: root.checked ? Config.accent : Config.settingsBackground
-        border.width: 1
+        radius: Config.scaledCornerRadius(4)
+        color: root.checked ? Config.accent : "transparent"
+        border.width: Config.inputBordersEnabled || root.activeFocus ? 1 : 0
         border.color: root.enabled && (root.pointerHovered || root.activeFocus)
             ? Config.accent : Config.baseColor
 
@@ -57,7 +57,7 @@ CheckBox {
             text: "✓"
             visible: root.checked
             color: Config.black
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(11)
             font.bold: true
         }
@@ -70,7 +70,7 @@ CheckBox {
         color: "transparent"
         border.color: root.settingsSearchCurrentMatch ? Config.accent : Config.settingsSearchHighlightColor
         border.width: Config.settingsSearchHighlightBorderWidth + (root.settingsSearchCurrentMatch ? 1 : 0)
-        radius: 4
+        radius: Config.scaledCornerRadius(4)
     }
 
     contentItem: SettingsLabel {

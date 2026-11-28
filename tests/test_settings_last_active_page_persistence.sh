@@ -22,20 +22,20 @@ const controllerSource = read(controllerPath);
 const widgetSource = read(widgetPath);
 const registrySource = read(registryPath).replace(/^\.pragma library\s*$/gm, '');
 
-assert(configSource.includes('property string settingsLastActivePageId: "general"'), 'first-run fallback is General');
-assert(controllerSource.includes('property string currentPageId: "general"'), 'controller fallback is General');
+assert(configSource.includes('property string settingsLastActivePageId: "interface"'), 'first-run fallback is Interface');
+assert(controllerSource.includes('property string currentPageId: "interface"'), 'controller fallback is Interface');
 
 const core = {};
 vm.runInNewContext(coreSource, core, { filename: corePath });
 assert.strictEqual(core.normalizeSettingsLastActivePageId('weather'), 'weather', 'known active page is retained');
 assert.strictEqual(core.normalizeSettingsLastActivePageId('  player  '), 'player', 'saved page is trimmed');
-assert.strictEqual(core.normalizeSettingsLastActivePageId('not-a-page'), 'general', 'unknown page falls back to General');
-assert.strictEqual(core.normalizeSettingsLastActivePageId({ id: 'weather' }), 'general', 'malformed non-string page falls back to General');
+assert.strictEqual(core.normalizeSettingsLastActivePageId('not-a-page'), 'interface', 'unknown page falls back to Interface');
+assert.strictEqual(core.normalizeSettingsLastActivePageId({ id: 'weather' }), 'interface', 'malformed non-string page falls back to Interface');
 const appliedConfig = { settingsLastActivePageId: 'general' };
 core.apply({}, appliedConfig, { settingsLastActivePageId: 'weather' });
 assert.strictEqual(appliedConfig.settingsLastActivePageId, 'weather', 'settings apply restores the root page preference');
 core.apply({}, appliedConfig, { settingsLastActivePageId: 'removed-page' });
-assert.strictEqual(appliedConfig.settingsLastActivePageId, 'general', 'settings apply normalizes removed page IDs');
+assert.strictEqual(appliedConfig.settingsLastActivePageId, 'interface', 'settings apply normalizes removed page IDs');
 
 const registry = {};
 vm.runInNewContext(registrySource, registry, { filename: registryPath });
@@ -81,8 +81,8 @@ const invalidRoot = {
   expandSettingsNavigationGroupForPage() { throw new Error('restore must not expand folders'); }
 };
 restore(invalidRoot, invalidConfig, registry);
-assert.strictEqual(invalidRoot.currentPageId, 'general', 'removed page falls back to General');
-assert.strictEqual(invalidConfig.settingsLastActivePageId, 'general', 'invalid root preference is repaired');
+assert.strictEqual(invalidRoot.currentPageId, 'interface', 'removed page falls back to General');
+assert.strictEqual(invalidConfig.settingsLastActivePageId, 'interface', 'invalid root preference is repaired');
 assert.strictEqual(saves, 1, 'repaired page preference is persisted once');
 
 // A later user selection persists the new page and only expands its destination group.

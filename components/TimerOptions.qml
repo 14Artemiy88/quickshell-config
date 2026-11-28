@@ -92,7 +92,7 @@ Item {
         parent: slideContent
         anchors.fill: parent
         color: Config.background
-        radius: Config.frameRadius
+        radius: Config.scaledCornerRadius(Config.frameRadius)
         antialiasing: true
         z: -2
     }
@@ -104,8 +104,8 @@ Item {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0)
         border.color: Config.baseColor
-        border.width: Config.frameBorderWidth
-        radius: Config.frameRadius
+        border.width: Config.popupBordersEnabled ? Config.frameBorderWidth : 0
+        radius: Config.scaledCornerRadius(Config.frameRadius)
         antialiasing: true
         z: -1
     }
@@ -116,25 +116,29 @@ Item {
             id: showOpacityAnimation
             target: root
             property: "opacity"
-            easing.type: Config.easingType()
+            easing.type: Config.animationEasingType(Config.animationTimerOptionsVisibilityProfile, "enter")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerOptionsVisibilityProfile, "enter")
         }
         NumberAnimation {
             id: showScaleAnimation
             target: root
             property: "scale"
-            easing.type: Config.easingType()
+            easing.type: Config.animationEasingType(Config.animationTimerOptionsVisibilityProfile, "enter")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerOptionsVisibilityProfile, "enter")
         }
         NumberAnimation {
             id: slideXAnimation
             target: root
             property: "slideOffsetX"
-            easing.type: Config.easingType()
+            easing.type: Config.animationEasingType(Config.animationTimerOptionsVisibilityProfile, "enter")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerOptionsVisibilityProfile, "enter")
         }
         NumberAnimation {
             id: slideYAnimation
             target: root
             property: "slideOffsetY"
-            easing.type: Config.easingType()
+            easing.type: Config.animationEasingType(Config.animationTimerOptionsVisibilityProfile, "enter")
+            easing.bezierCurve: Config.animationBezierCurve(Config.animationTimerOptionsVisibilityProfile, "enter")
         }
         onFinished: root.finishCloseOnce()
     }
@@ -258,8 +262,8 @@ Item {
             height: 16
             text: "Комментарий"
             color: Config.text
-            font.family: Config.settingsFont
-            font.pixelSize: 11
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(11)
             horizontalAlignment: Text.AlignHCenter
         }
 
@@ -268,10 +272,10 @@ Item {
             y: 28
             width: parent.width - 14
             height: 27
-            radius: 4
+            radius: Config.scaledCornerRadius(4)
             color: Config.settingsBackground
             border.color: Config.settingsBorder
-            border.width: 1
+            border.width: Config.inputBordersEnabled ? 1 : 0
 
             TextInput {
                 id: commentInput
@@ -280,8 +284,8 @@ Item {
                 anchors.rightMargin: 5
                 color: Config.text
                 selectionColor: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: 11
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(11)
                 verticalAlignment: TextInput.AlignVCenter
                 text: root.commentText
                 focus: root.commentMode
@@ -317,8 +321,8 @@ Item {
             height: 15
             text: "Enter — сохранить"
             color: Config.textDim
-            font.family: Config.settingsFont
-            font.pixelSize: 9
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(9)
             horizontalAlignment: Text.AlignHCenter
         }
 
@@ -329,8 +333,8 @@ Item {
             height: 14
             text: "Esc — отменить"
             color: Config.textDim
-            font.family: Config.settingsFont
-            font.pixelSize: 9
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(9)
             horizontalAlignment: Text.AlignHCenter
         }
     }
@@ -351,8 +355,8 @@ Item {
             height: 15
             text: "Длительность, мин"
             color: Config.text
-            font.family: Config.settingsFont
-            font.pixelSize: 10
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(10)
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
@@ -362,10 +366,10 @@ Item {
             y: 27
             width: parent.width - 14
             height: 28
-            radius: 4
+            radius: Config.scaledCornerRadius(4)
             color: Config.settingsBackground
             border.color: Config.settingsBorder
-            border.width: 1
+            border.width: Config.inputBordersEnabled ? 1 : 0
 
             TextInput {
                 id: durationInput
@@ -374,8 +378,8 @@ Item {
                 anchors.rightMargin: 5
                 color: Config.text
                 selectionColor: Config.accent
-                font.family: Config.settingsFont
-                font.pixelSize: 13
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(13)
                 horizontalAlignment: TextInput.AlignHCenter
                 verticalAlignment: TextInput.AlignVCenter
                 inputMethodHints: Qt.ImhDigitsOnly
@@ -440,8 +444,8 @@ Item {
             height: 11
             text: "1–10080 мин · Enter — сохранить"
             color: Config.textDim
-            font.family: Config.settingsFont
-            font.pixelSize: 7
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(7)
             horizontalAlignment: Text.AlignHCenter
         }
     }
@@ -460,8 +464,8 @@ Item {
             height: 15
             text: "Цвет таймера"
             color: Config.text
-            font.family: Config.settingsFont
-            font.pixelSize: 10
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(10)
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
@@ -477,21 +481,21 @@ Item {
                 width: 23
                 height: 23
                 anchors.verticalCenter: parent.verticalCenter
-                radius: 4
+                radius: Config.scaledCornerRadius(4)
                 color: /^#?[0-9a-fA-F]{6}$/.test(root.colorInputText)
                     ? (root.colorInputText.charAt(0) === "#" ? root.colorInputText : "#" + root.colorInputText)
                     : Config.settingsBackground
                 border.color: Config.baseColor
-                border.width: 1
+                border.width: Config.inputBordersEnabled ? 1 : 0
             }
 
             Rectangle {
                 width: parent.width - 28
                 height: 27
-                radius: 4
+                radius: Config.scaledCornerRadius(4)
                 color: Config.settingsBackground
                 border.color: colorInput.activeFocus ? Config.accent : Config.settingsBorder
-                border.width: 1
+                border.width: colorInput.activeFocus || Config.inputBordersEnabled ? 1 : 0
 
                 TextInput {
                     id: colorInput
@@ -500,8 +504,8 @@ Item {
                     anchors.rightMargin: 5
                     color: Config.text
                     selectionColor: Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: 11
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(11)
                     horizontalAlignment: TextInput.AlignHCenter
                     verticalAlignment: TextInput.AlignVCenter
                     text: root.colorInputText
@@ -570,8 +574,8 @@ Item {
             height: 10
             text: "HEX · #RRGGBB · Enter — сохранить"
             color: Config.textDim
-            font.family: Config.settingsFont
-            font.pixelSize: 7
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(7)
             horizontalAlignment: Text.AlignHCenter
         }
     }
@@ -588,7 +592,7 @@ Item {
             text: root.selected ? (root.selected.time_passed || "") : ""
             color: root.selected && root.selected.color ? root.selected.color : Config.text
             font.family: Config.ledFont
-            font.pixelSize: 27
+            font.pixelSize: Config.uiFontSize(27)
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
         }

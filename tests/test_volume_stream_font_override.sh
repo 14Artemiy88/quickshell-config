@@ -23,8 +23,10 @@ assert.match(config, /property string volumeStreamLabelFont: ""/,
   'new font family must default to the application/system family');
 assert.match(defaults, /volumeStreamLabelFont: ""/,
   'new font family must have a profile default');
-assert.match(volumeQml, /font\.family: Config\.volumeStreamLabelFont\.trim\(\) === "" \? Qt\.application\.font\.family : Config\.volumeStreamLabelFont/,
-  'stream labels must use the optional override without changing the default family');
+assert.match(volumeQml, /font\.family: Config\.resolveFontFamily\(Config\.volumeStreamLabelFont\)/,
+  'stream labels must use the optional override and a generic system fallback');
+assert.ok(!volumeQml.includes('Qt.application.font.family'),
+  'stream labels must not inherit an arbitrary application font such as an icon-only face');
 assert.match(volumeSettings, /targetProperty: "volumeStreamLabelFont"/,
   'volume Settings must expose the family field');
 assert.match(volumeSettings, /settingsSearchId: "volume-stream-font"/,

@@ -72,6 +72,13 @@ Item {
                 settings: root.settings
             }
 
+            SettingsInterfaceSection {
+                id: interfaceSectionSettingsSection
+                objectName: "settings-search-page:interface"
+                host: root.host
+                settings: root.settings
+            }
+
             SettingsGeneralSection {
                 id: generalSectionSettingsSection
                 objectName: "settings-search-page:general"
@@ -108,6 +115,12 @@ Item {
             SettingsVolumeSection {
                 id: volumeSectionSettingsSection
                 objectName: "settings-search-page:volume"
+                host: root.host
+                settings: root.settings
+            }
+            SettingsOsdSection {
+                id: osdSectionSettingsSection
+                objectName: "settings-search-page:osd"
                 host: root.host
                 settings: root.settings
             }

@@ -21,10 +21,11 @@ for source in (config, defaults):
     assert 'animationNetworkVisibilityDuration: 250' in source
 assert 'animationNetworkVisibilityStyle: config.animationNetworkVisibilityStyle' in persist
 assert 'animationNetworkVisibilityDuration: config.animationNetworkVisibilityDuration' in persist
+assert 'animationNetworkVisibilityProfile: config.animationNetworkVisibilityProfile' in persist
 assert '"animationNetworkVisibilityStyle"' in apply
 assert '["animationNetworkVisibilityDuration", 0, 5000]' in apply
-assert 'animationNetworkVisibilityStyle' in nav and 'animationNetworkVisibilityDuration' in nav
-assert '"animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration"' in resets
+assert 'animationNetworkVisibilityStyle' in nav and 'animationNetworkVisibilityProfile' in nav and 'animationNetworkVisibilityDuration' in nav
+assert '"animationNetworkVisibilityStyle", "animationNetworkVisibilityProfile", "animationNetworkVisibilityDuration"' in resets
 assert 'network: ["network", "systemMonitor", "animationNetwork"]' in profiles
 assert 'visible: root.host && root.host.currentPageId === "network"' in section
 assert 'root.host.currentPageSubTabIndex === 2 && !Config.networksAlwaysVisible' in section
@@ -32,6 +33,7 @@ assert 'heading: "Появление модуля"' in section
 assert 'property var values: ["none", "fade", "slideLeft", "slideRight", "slideUp", "slideDown"]' in section
 assert 'targetProperty: "animationNetworkVisibilityDuration"' in section
 assert 'animationStyle: Config.animationNetworkVisibilityStyle' in shell
+assert 'animationProfile: Config.animationNetworkVisibilityProfile' in shell
 assert 'duration: Config.animationNetworkVisibilityDuration' in shell
 assert 'shown: Config.networksAlwaysVisible || shell.networksVisible || shell.layoutEditMode' in shell
 assert 'test_network_visibility_animation_settings.sh' in check

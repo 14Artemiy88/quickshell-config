@@ -37,11 +37,13 @@ grep -Fq 'targetProperty: "topAppsTopOffset"' "$settings" || fail "top offset fi
 
 grep -Fq 'height: Config.topAppsShowHeaders ? 12 : 0' "$ui" || fail "hidden headers still reserve vertical space"
 grep -Fq 'clip: true' "$ui" || fail "Top Apps rows/header should be clipped within their layout containers"
-grep -Fq 'readonly property int displayFontSize: Math.max(1, Math.round(Number(Config.topAppsFontSize)' "$ui" || fail "font size is still clamped by the generic UI font helper"
+grep -Fq 'readonly property int displayFontSize: Config.uiFontSize(Config.topAppsFontSize)' "$ui" || fail "configured font size does not follow the shared UI scale"
 grep -Fq 'y: Math.min(Math.max(0, Config.topAppsTopOffset)' "$ui" || fail "configurable top offset is not applied safely"
 grep -Fq 'font.family: root.displayFontFamily' "$ui" || fail "configurable font family is not applied to labels"
+grep -Fq 'Config.resolveFontFamily(Config.topAppsFont)' "$ui" || fail "empty override does not use generic system family"
+! grep -Fq 'Qt.application.font.family' "$ui" || fail "display must not inherit an arbitrary application font"
 grep -Fq 'spacing: Config.topAppsRowSpacing' "$ui" || fail "configurable row spacing is not applied"
-grep -Fq 'readonly property int displayRowHeight: Math.max(1, displayFontSize + 2)' "$ui" || fail "row height does not follow configured font size"
+grep -Fq 'readonly property int displayRowHeight: Math.max(1, root.effectiveDisplayFontSize + 2)' "$ui" || fail "row height does not follow the responsive font size"
 grep -Fq 'height: root.displayRowHeight' "$ui" || fail "rows do not use the calculated row height"
 
 grep -Fq 'moduleName === "topAppsCpu" || moduleName === "topAppsRam"' "$resets" || fail "Top Apps CPU/RAM module reset branch is missing"

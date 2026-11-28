@@ -20,6 +20,10 @@ assert 'SettingsPageHeading {' in themes and 'saveScope: "themes"' in themes, 'T
 for path, source in [('Modules', modules), ('Themes', themes)]:
     assert 'heading: "Модули и их расположение"' not in source, f'{path}: small frame legend must be removed'
     assert 'heading: "Темы"' not in source, f'{path}: small frame legend must be removed'
-    assert 'SettingsGroup {' in source and 'showFrame: true' in source, f'{path}: content frame remains separate from page title'
-print('Modules and Themes use the same large page heading and profile actions as all other settings pages: OK')
+assert 'SettingsGroup {' in modules and 'showFrame: true' not in modules, 'Modules content must remain grouped but without the outer frame'
+assert 'showFrame: false' in modules and 'padding: 8' in modules, 'Modules keeps its existing content inset without drawing an outline'
+assert 'SettingsGroup {' in themes and 'showFrame: true' in themes, 'Themes retains its content frame'
+assert 'heading: modelData.title' in themes, 'each theme color category must expose its own frame legend'
+assert 'delegate: SettingsGroup {' in themes, 'theme palette groups must use the shared framed group primitive'
+print('Modules keeps its shared page heading and actions without an outer frame; Themes remains framed: OK')
 PY

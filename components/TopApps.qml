@@ -18,19 +18,29 @@ Item {
     readonly property color sectionFillColor: sectionType === "ram" ? Config.topAppsRamBarColor : Config.topAppsCpuBarColor
     readonly property color sectionTrackColor: sectionType === "ram" ? Config.topAppsRamBarTrackColor : Config.topAppsCpuBarTrackColor
     readonly property string sectionModuleName: sectionType === "ram" ? "topAppsRam" : "topAppsCpu"
-    readonly property string displayFontFamily: String(Config.topAppsFont || "").trim() !== ""
-                                                  ? String(Config.topAppsFont).trim()
-                                                  : Qt.application.font.family
-    readonly property int displayFontSize: Math.max(1, Math.round(Number(Config.topAppsFontSize) * (Number(Config.fontSize) > 0 ? Number(Config.fontSize) : 12) / 12))
-    readonly property int displayRowHeight: Math.max(1, displayFontSize + 2)
-    // The host window may extend to show the entire bar, but the logical row
-    // width stays tied to the configured module width. This keeps the value
-    // column fixed while a longer or right-shifted bar is drawn underneath it.
-    readonly property int layoutContentWidth: Math.max(1, Number(
-        sectionType === "ram" ? Settings.geometry.topAppsRam[2] : Settings.geometry.topAppsCpu[2]) || 315)
+    // Forward the host context through this wrapper so the nested ModuleFrame
+    // and the row layout see the same logical width and presentation mode.
+    readonly property real widthBudget: parent && parent.widthBudget !== undefined
+        ? Number(parent.widthBudget) : Number(root.width)
+    readonly property string presentationMode: parent && parent.presentationMode !== undefined
+        ? String(parent.presentationMode) : "regular"
+    readonly property string displayFontFamily: Config.resolveFontFamily(Config.topAppsFont)
+    readonly property int displayFontSize: Config.uiFontSize(Config.topAppsFontSize)
+    readonly property int effectiveDisplayFontSize: Math.max(6, Math.min(root.displayFontSize,
+        Math.floor(root.displayFontSize * Math.max(0.5, Math.min(1, root.layoutRowWidth / 260)))))
+    readonly property int displayRowHeight: Math.max(1, root.effectiveDisplayFontSize + 2)
+    // The contents now follow the actual host width. Bars and values are
+    // compressed together when the module is narrower than the saved default.
+    readonly property int layoutContentWidth: Math.max(1, Math.round(root.widthBudget))
     readonly property int layoutRowWidth: Math.max(1, root.layoutContentWidth - 20)
-    readonly property int requiredContentWidth: Config.topAppsShowBars ? Math.ceil(
-        Number(Config.topAppsBarX) + Number(Config.topAppsBarWidth) + 20) : 0
+    readonly property int effectiveHorizontalGap: Math.max(2, Math.min(5, Math.round(root.layoutRowWidth * 0.02)))
+    readonly property int effectiveValueColumnWidth: Math.max(1, Math.min(root.sectionValueColumnWidth,
+        root.layoutRowWidth, Math.max(28, Math.floor(root.layoutRowWidth * 0.34))))
+    readonly property int effectiveBarMinimumWidth: Math.max(1, Math.min(18, Math.floor(root.layoutRowWidth * 0.10)))
+    readonly property int effectiveBarStartX: Math.max(0, Math.min(Math.max(0, Number(Config.topAppsBarX)),
+        Math.max(0, root.layoutRowWidth - root.effectiveValueColumnWidth - root.effectiveHorizontalGap - root.effectiveBarMinimumWidth)))
+    readonly property int effectiveBarWidth: Math.max(0, Math.min(Number(Config.topAppsBarWidth),
+        root.layoutRowWidth - root.effectiveValueColumnWidth - root.effectiveHorizontalGap - root.effectiveBarStartX))
     // Calculate the widest value once per data/font update, not once per row.
     // The old per-delegate scan made each refresh O(rows²) for no visual benefit.
     readonly property int sectionValueColumnWidth: root.valueColumnWidth(root.sectionEntries)
@@ -105,11 +115,9 @@ Item {
                         delegate: Item {
                             id: appRow
                             property real relativeUsage: Math.max(0, Math.min(1, Number(modelData.ratio ?? 0)))
-                            property int horizontalGap: 5
-                            property int valueWidth: root.sectionValueColumnWidth
-                            // X and length only affect bar placement; the value column
-                            // stays anchored to the logical module width and is painted above it.
-                            property int barStartX: Math.max(45, Number(Config.topAppsBarX))
+                            property int horizontalGap: root.effectiveHorizontalGap
+                            property int valueWidth: root.effectiveValueColumnWidth
+                            property int barStartX: root.effectiveBarStartX
                             property int effectiveBarHeight: Math.max(1, Math.min(root.displayRowHeight, Number(Config.topAppsBarHeight)))
                             width: parent.width
                             height: root.displayRowHeight
@@ -121,22 +129,22 @@ Item {
                                 width: Config.topAppsShowBars
                                        ? Math.max(0, Math.min(appRow.barStartX - appRow.horizontalGap,
                                                               parent.width - appRow.valueWidth - 2 * appRow.horizontalGap))
-                                       : Math.max(40, root.layoutRowWidth - appRow.valueWidth - 2 * appRow.horizontalGap)
+                                       : Math.max(0, root.layoutRowWidth - appRow.valueWidth - 2 * appRow.horizontalGap)
                                 height: parent.height
                                 text: modelData.name ?? ""
                                 color: Config.text
                                 font.family: root.displayFontFamily
-                                font.pixelSize: root.displayFontSize
+                                font.pixelSize: root.effectiveDisplayFontSize
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
                             }
 
                             Item {
                                 id: usageBar
-                                visible: Config.topAppsShowBars
+                                visible: Config.topAppsShowBars && root.effectiveBarWidth > 0
                                 x: appRow.barStartX
                                 y: Math.round((appRow.height - height) / 2) + Number(Config.topAppsBarY)
-                                width: Math.max(1, Number(Config.topAppsBarWidth))
+                                width: root.effectiveBarWidth
                                 height: appRow.effectiveBarHeight
                                 clip: true
 
@@ -150,8 +158,7 @@ Item {
                             }
 
                             Text {
-                                // Keep the numeric column anchored to the original
-                                // module width even if the transparent host window grows.
+                                // Keep the numeric column anchored to the live module width.
                                 x: root.layoutRowWidth - width
                                 y: 0
                                 width: appRow.valueWidth
@@ -159,11 +166,11 @@ Item {
                                 text: modelData.value ?? ""
                                 color: Config.text
                                 font.family: root.displayFontFamily
-                                font.pixelSize: root.displayFontSize
+                                font.pixelSize: root.effectiveDisplayFontSize
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
-                                // The column above is sized for all values in this section;
-                                // don't replace leading digits with an ellipsis.
+                                // Keep values right-aligned; the column and font contract
+                                // shrink together before they can collide with the bar.
                                 elide: Text.ElideNone
                             }
                         }

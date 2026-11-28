@@ -13,7 +13,7 @@ checks = {
         ('animationPhase: root.hasData ? "enter" : "exit"', 1),
     ],
     "components/TimerWidget.qml": [
-        ('animationProfile: Config.animationTimerMorphProfile', 5),
+        ('animationProfile: Config.animationTimerMorphProfile', 3),
         ('animationPhase: Config.timerIconEnabled && root.controlsMode === 0 ? "enter" : "exit"', 1),
         ('animationPhase: Config.timerAlarmIconEnabled && root.controlsMode === 0 ? "enter" : "exit"', 1),
     ],
@@ -27,9 +27,12 @@ for name, entries in checks.items():
     for token, count in entries:
         actual = data.count(token)
         assert actual == count, f"{name}: {token!r}: expected {count}, got {actual}"
+# Timer row/button visibility has its own appearance profile, independent of internal morphs.
+timer = (root / "components/TimerWidget.qml").read_text(encoding="utf-8")
+assert timer.count('animationProfile: Config.animationTimerVisibilityProfile') == 2
 # Existing pilot migrations remain intact and unrelated MorphGeometry instances are untouched.
 network = (root / "components/NetworkStat.qml").read_text(encoding="utf-8")
-assert network.count('animationProfile: "expressive"') == 2
+assert network.count('animationProfile: Config.animationNetworkMorphProfile') == 2
 for name, token, count in (
     ("components/WeatherPlaceholder.qml", "animationProfile: Config.animationWeatherMorphProfile", 1),
     ("components/WeatherForecastItem.qml", "animationProfile: Config.animationWeatherMorphProfile", 2),

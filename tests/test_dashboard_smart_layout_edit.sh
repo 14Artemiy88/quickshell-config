@@ -34,7 +34,7 @@ assert(dashboard.includes('visible: root.layoutEditMode')
 assert(dashboard.includes('Settings.beginGeometryDrag("dashboard")')
   && dashboard.includes('root.layoutEditor.beginProxyDrag(\n            "dashboard"'),
   'Dashboard starts the same proxy drag transaction used by other modules');
-assert(dashboard.includes('root.layoutEditor.updateProxyDrag(globalX, globalY, drawer.width, drawer.height)'),
+assert(dashboard.includes('root.layoutEditor.updateProxyDrag(globalX, globalY, drawer.width * root.drawerUiScale, drawer.height * root.drawerUiScale)'),
   'the shared editor tracks the Dashboard drawer and its actual size');
 assert(dashboard.includes('Settings.endGeometryDrag("dashboard", root.screenStorageName(targetScreen), localX, localY)'),
   'dropping commits local coordinates and the destination monitor to Settings');

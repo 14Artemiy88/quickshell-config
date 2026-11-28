@@ -19,6 +19,6 @@ const cardEnd = qml.indexOf('\n    // In Smart Editing, the fullscreen Dashboard
 const card = qml.slice(cardStart, cardEnd);
 assert(card.includes('HoverHandler {') && card.includes('id: cardHover'), 'passive cards keep a non-clickable hover handler');
 assert(!card.includes('forceActiveFocus()') && !card.includes('cardMouse'), 'pointer interaction does not force focus on a card');
-assert(!card.includes('MouseArea {'), 'the whole card surface has no click-catching MouseArea');
+assert(!card.includes('cardMouse'), 'the whole card surface has no activation MouseArea; local media seek areas are allowed');
 console.log('Dashboard Settings icon and passive card pointer/focus behavior: PASS');
 NODE

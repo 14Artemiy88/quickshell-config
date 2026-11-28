@@ -101,10 +101,10 @@ Item {
         Rectangle {
             width: root.swatchSize
             height: root.swatchSize
-            radius: 4
+            radius: Config.scaledCornerRadius(4)
             color: root.value || "transparent"
             border.color: Config.baseColor
-            border.width: 1
+            border.width: Config.inputBordersEnabled ? 1 : 0
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -114,7 +114,7 @@ Item {
             height: root.fieldHeight
             text: String(root.value)
             color: Config.text
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.fieldFontSize)
             horizontalAlignment: Text.AlignHCenter
             activeFocusOnTab: true

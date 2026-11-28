@@ -35,13 +35,13 @@ settingsSearchSubTabIndex: 0
                             selectedTextColor: Config.black
                             placeholderText: "Введите токен Gismeteo"
                             placeholderTextColor: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(12)
                             activeFocusOnTab: true
                             background: Rectangle {
-                                color: Config.settingsBackground
+                                color: "transparent"
                                 border.color: (token.activeFocus || token.pointerHovered) ? Config.accent : Config.baseColor
-                                border.width: 1
+                                border.width: (Config.inputBordersEnabled || token.activeFocus) ? 1 : 0
                                 radius: Config.radius
                             }
                             onEditingFinished: {
@@ -124,10 +124,10 @@ settingsSearchSubTabIndex: 1
                             visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
                             width: parent.width
                             height: 34
-                            radius: Config.radius
-                            color: Config.settingsBackground
+                            radius: Config.scaledCornerRadius(Config.settingsUiSize(Config.radius))
+                            color: "transparent"
                             border.color: windDirectionSettingsMouse.containsMouse ? Config.accent : Config.baseColor
-                            border.width: 1
+                            border.width: Config.cardBordersEnabled ? 1 : 0
 
                             Row {
                                 anchors.fill: parent
@@ -139,7 +139,7 @@ settingsSearchSubTabIndex: 1
                                     height: parent.height
                                     text: weatherSection.windDirectionSettingsExpanded ? "▾" : "▸"
                                     color: windDirectionSettingsMouse.containsMouse ? Config.accent : Config.text
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(17)
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignHCenter
@@ -149,7 +149,7 @@ settingsSearchSubTabIndex: 1
                                     width: Math.max(0, parent.width - 32)
                                     text: "Иконки направления ветра"
                                     color: Config.text
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     elide: Text.ElideRight
                                 }
@@ -172,7 +172,7 @@ settingsSearchSubTabIndex: 1
                             toGeometry: Qt.rect(0, 0, parent.width, windDirectionRowsContent.implicitHeight)
                             progress: weatherSection.windDirectionSettingsExpanded ? 1 : 0
                             animationDuration: Config.animationDuration(180, "appearance")
-                            animationEasing: Config.animationEasingType("standard", weatherSection.windDirectionSettingsExpanded ? "enter" : "exit")
+                            animationEasing: Config.animationEasingType("ease-out", weatherSection.windDirectionSettingsExpanded ? "enter" : "exit")
 
                             Column {
                                 id: windDirectionRowsContent
@@ -183,9 +183,9 @@ settingsSearchSubTabIndex: 1
                                 width: parent.width
                                 height: 22
                                 spacing: 6
-                                Text { width: 130; text: "Направление"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
-                                Text { width: 55; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                                Text { width: 150; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                Text { width: 130; text: "Направление"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter }
+                                Text { width: 55; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                                Text { width: 150; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                             }
                             WeatherWindDirectionSettingsRow {
                                 label: "Без направления (0)"
@@ -263,11 +263,11 @@ settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Используется для температуры, ощущаемой температуры, скорости ветра и давления. Пустое поле наследует общий LED-шрифт."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
@@ -423,9 +423,9 @@ settingsSearchSubTabIndex: 1
         }
         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
-            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         SettingsRow {
             label: "Иконка"
@@ -454,8 +454,8 @@ settingsSearchSubTabIndex: 1
 
         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
-            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         SettingsRow {
             label: "Описание"
@@ -496,9 +496,9 @@ settingsSearchSubTabIndex: 1
 
         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
-            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         Row {            visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1
             width: parent.width
@@ -548,7 +548,7 @@ settingsSearchSubTabIndex: 1
             toGeometry: Qt.rect(0, 0, parent.width, weatherComfortOptionsContent.implicitHeight)
             progress: Config.weatherShowComfort ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.weatherShowComfort ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.weatherShowComfort ? "enter" : "exit")
 
             Column {
                 id: weatherComfortOptionsContent
@@ -602,8 +602,8 @@ settingsSearchSubTabIndex: 1
 
         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 6
             Item { width: 210; height: 24 }
-            Text { width: 62; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 62; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 62; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 62; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         SettingsRow {
             label: "Температура"
@@ -691,8 +691,8 @@ settingsSearchSubTabIndex: 1
 
         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 1; width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: 24 }
-            Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-            Text { width: 70; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Ширина"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            Text { width: 70; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
         }
         SettingsRow {
             label: "Значение давления"
@@ -744,8 +744,8 @@ settingsSearchSubTabIndex: 2
                         }
                         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 2; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
-                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         SettingsRow {
             label: "Время"
@@ -801,8 +801,8 @@ settingsSearchSubTabIndex: 3
                         }
                         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
-                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         SettingsRow {
             label: "День"
@@ -824,9 +824,9 @@ settingsSearchSubTabIndex: 3
                         }
                         Row { visible: host.currentPageId === "weather" && host.currentPageSubTabIndex === 3; width: parent.width; height: 24; spacing: 8
                             Item { width: 210; height: 24 }
-                            Text { width: 58; y: 4; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                            Text { width: 58; y: 4; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            Text { width: 58; y: 4; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         SettingsRow {
             label: "Дневная температура"

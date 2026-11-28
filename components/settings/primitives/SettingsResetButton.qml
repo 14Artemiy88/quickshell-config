@@ -17,7 +17,7 @@ Item {
     property color emphasizedHoverColor: "#ff6666"
     property bool fillOnHover: false
     property bool borderOnHover: true
-    property color backgroundColor: Config.settingsBackground
+    property color backgroundColor: "transparent"
     property real radius: 4
     property real borderWidth: Math.max(1, Config.frameBorderWidth)
     property real fontSize: 12

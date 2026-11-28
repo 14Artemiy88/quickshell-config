@@ -11,10 +11,20 @@ Item {
     property int fontPixelSize: 10
     property bool leftAligned: false
     property int horizontalPadding: 6
-    property bool boldWhenSelected: true
-    property color selectedBackground: Config.accent
-    property color normalBackground: Config.settingsBackground
-    property color selectedTextColor: Config.black
+    // Selection should read as a subtle state change, not a filled button.
+    property bool boldWhenSelected: false
+    // Horizontal page subtabs retain a distinct selected treatment even after
+    // focus moves to the sidebar. Focus remains a separate keyboard indicator.
+    property bool persistentSelectionHighlight: false
+    property color persistentSelectedBackground: "transparent"
+    property color persistentSelectedTextColor: Config.accent
+    property color persistentSelectedBorderColor: Config.accent
+    readonly property bool persistentSelectionActive: root.persistentSelectionHighlight && root.selected
+    readonly property color effectiveSelectedTextColor: root.persistentSelectionActive
+        ? root.persistentSelectedTextColor : root.selectedTextColor
+    property color selectedBackground: "transparent"
+    property color normalBackground: "transparent"
+    property color selectedTextColor: Config.text
     property color normalTextColor: Config.text
     property color normalBorderColor: Config.baseColor
     property color hoverBorderColor: Config.accent
@@ -63,15 +73,32 @@ Item {
     ToolTip.delay: 450
 
 
+    readonly property real visualBorderWidth: root.activeFocus ? 1
+        : (root.settingsSearchMatched ? Config.settingsSearchHighlightBorderWidth
+            : (Config.buttonBordersEnabled ? 1 : 0))
+
+    // The selected fill sits inside the frame, but stays translucent so the
+    // active tab has roughly the same visual weight as a simple outlined tab.
     Rectangle {
         anchors.fill: parent
-        radius: root.cornerRadius
-        color: root.selected ? root.selectedBackground : root.normalBackground
+        anchors.margins: root.selected ? root.visualBorderWidth : 0
+        radius: Math.max(0, Config.scaledCornerRadius(root.cornerRadius) - (root.selected ? root.visualBorderWidth : 0))
+        color: root.persistentSelectionActive ? root.persistentSelectedBackground
+            : (root.selected ? root.selectedBackground : root.normalBackground)
+        border.width: 0
+        antialiasing: true
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: Config.scaledCornerRadius(root.cornerRadius)
+        color: "transparent"
         border.color: root.activeFocus ? Config.accent
             : (root.hovered ? root.hoverBorderColor
-                : (root.settingsSearchMatched ? Config.settingsSearchHighlightColor : root.normalBorderColor))
-        border.width: root.activeFocus ? 2
-            : (root.settingsSearchMatched ? Config.settingsSearchHighlightBorderWidth : 1)
+                : (root.settingsSearchMatched ? Config.settingsSearchHighlightColor
+                    : (root.persistentSelectionActive
+                        ? root.persistentSelectedBorderColor : root.normalBorderColor)))
+        border.width: root.visualBorderWidth
         antialiasing: true
 
         Text {
@@ -82,8 +109,8 @@ Item {
                 + (root.modified ? 10 : 0)
                 + (root.settingsSearchMatchCount > 0 ? 30 : 0)
             text: root.text
-            color: root.selected ? root.selectedTextColor : root.normalTextColor
-            font.family: Config.settingsFont
+            color: root.selected ? root.effectiveSelectedTextColor : root.normalTextColor
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(root.fontPixelSize)
             font.bold: root.selected && root.boldWhenSelected
             horizontalAlignment: root.leftAligned ? Text.AlignLeft : Text.AlignHCenter
@@ -100,8 +127,8 @@ Item {
             width: 26
             height: 14
             text: root.settingsSearchMatchCount > 99 ? "99+" : String(root.settingsSearchMatchCount)
-            color: root.selected ? root.selectedTextColor : Config.settingsSearchHighlightColor
-            font.family: Config.settingsFont
+            color: root.selected ? root.effectiveSelectedTextColor : Config.settingsSearchHighlightColor
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(Config.settingsSearchMatchCountFontSize)
             font.bold: true
             horizontalAlignment: Text.AlignRight
@@ -115,7 +142,7 @@ Item {
             radius: width / 2
             x: parent.width - width - 5
             y: 5
-            color: root.selected ? root.selectedTextColor : root.modifiedColor
+            color: root.selected ? root.effectiveSelectedTextColor : root.modifiedColor
             border.width: 0
             antialiasing: true
         }

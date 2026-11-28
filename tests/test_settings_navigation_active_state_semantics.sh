@@ -44,9 +44,18 @@ assert(nav.includes('visible: modelData.items.length === 1'), 'shared standalone
 assert(nav.includes('selected: visible && root.host.isSettingsTabSelected(modelData.items[0].id)'), 'standalone tab uses the canonical selected state');
 assert(nav.includes('onClicked: {') && nav.includes('root.host.selectSettingsTab(modelData.items[0].id)'), 'standalone tab routes through the same page selection path');
 assert(subtab.includes('SettingsTabBase {'), 'SettingsSubTab must inherit the shared tab visual primitive');
-assert(base.includes('color: root.selected ? root.selectedBackground : root.normalBackground'), 'selected fill is shared with every other tab');
-assert(base.includes('color: root.selected ? root.selectedTextColor : root.normalTextColor'), 'selected text color is shared with every other tab');
-assert(base.includes('border.width: root.activeFocus ? 2'), 'keyboard focus treatment is inherited from the standard tab primitive');
+assert(base.includes('property color persistentSelectedBackground: \"transparent\"'), 'selected tabs have no resting fill');
+assert(base.includes('root.selected ? root.effectiveSelectedTextColor : root.normalTextColor'), 'persistent selected text treatment remains visible after focus moves');
+assert(base.includes('readonly property real visualBorderWidth: root.activeFocus ? 1'), 'keyboard focus thickness stays at the same one-pixel outline as hover');
+assert(base.includes('property color selectedBackground: \"transparent\"'), 'selected tabs remain transparent');
+assert(base.includes('readonly property bool persistentSelectionActive: root.persistentSelectionHighlight && root.selected'), 'persistent selection does not depend on activeFocus');
+assert(base.includes('border.width: root.visualBorderWidth'), 'keyboard focus treatment uses the shared tab border width');
+
+// Horizontal subtabs opt into the persistent selected treatment; sidebar rows do not.
+const pageHost = fs.readFileSync(require('path').join(require('path').dirname(navPath), 'SettingsPageHost.qml'), 'utf8');
+assert(pageHost.includes('persistentSelectionHighlight: true'), 'horizontal subtabs keep their selected appearance after sidebar clicks');
+assert(pageHost.includes('selected: root.host && root.host.currentPageSubTabIndex === index'), 'horizontal selection still follows the canonical subtab index');
+assert((nav.match(/persistentSelectionHighlight: true/g) || []).length === 2, 'standalone and nested sidebar page tabs preserve their selected state independently of focus');
 
 // Folder header is an expansion control only; actual child page owns selection.
 assert(nav.includes('SettingsNavigationFolder {') && nav.includes('visible: navigationGroupDelegate.modelData.items.length > 1'), 'multi-page groups must use the reusable folder primitive');
@@ -56,7 +65,7 @@ assert(!folder.includes('folderHeader.forceActiveFocus(Qt.MouseFocusReason)'), '
 assert(!nav.includes('standalonePageSelected'), 'standalone tabs must not have a parallel custom visual state');
 assert(folder.includes('text: "Страница: " + root.currentPageLabel'), 'collapsed folder hint remains neutral');
 assert(folder.includes('color: Config.textMuted'), 'collapsed folder hint remains neutral');
-assert(folder.includes('border.width: root.searchMatchCount > 0\n                ? Config.settingsSearchHighlightBorderWidth\n                : ((folderHeader.activeFocus || folderHover.hovered) ? 1 : 0)'), 'collapsed header outline stays thin and expanded header relies on the outer card frame');
+assert(folder.includes('border.width: root.searchMatchCount > 0\n                ? Config.settingsSearchHighlightBorderWidth\n                : (folderHeader.activeFocus || (Config.cardBordersEnabled && folderHover.hovered) ? 1 : 0)'), 'folder hover outline respects card-border settings');
 console.log('settings active state semantics: standalone pages share standard tab visuals; folders remain independent expansion controls: OK');
 NODE
 echo 'settings navigation active state semantics: OK'

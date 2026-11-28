@@ -81,8 +81,8 @@ for (const key of ['notificationsSummaryFont', 'notificationsSummaryFontSize', '
 assert(section.includes('SettingsFontField') && section.includes('heading: "Заголовок и иконка"'), 'appearance group uses the shared font field primitive');
 assert(section.includes('SettingsColorField') && section.includes('label: "Цвет заголовка"'), 'appearance group uses the shared color field primitive');
 assert(section.includes('label: "Размер иконки / аватара"'), 'appearance group exposes a shared leading visual size control');
-assert(runtime.includes('font.family: Config.notificationsSummaryFont'), 'summary measurement uses the selected font family');
-assert(runtime.includes('font.pixelSize: root.notificationSummaryFontSize'), 'summary display and measurement use selected size');
+assert(runtime.includes('font.family: Config.resolveFontFamily(Config.notificationsSummaryFont)'), 'summary measurement uses the selected font family');
+assert(runtime.includes('font.pixelSize: Config.uiFontSize(root.notificationSummaryFontSize)'), 'summary display and measurement use selected size');
 assert(runtime.includes('color: Config.notificationsSummaryColor || Config.text'), 'summary display uses custom color or inherits the active theme text color');
 assert(runtime.includes('width: root.notificationLeadingVisualSize') && runtime.includes('height: root.notificationLeadingVisualSize'), 'leading visual frame uses configured size');
 assert(runtime.includes('card.textColumnLeftMargin') && runtime.includes('root.notificationLeadingVisualSize + root.notificationCardPadding * 3'), 'text column and measured width follow the configured leading size');

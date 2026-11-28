@@ -70,7 +70,7 @@ Item {
                 text: controller.browseBusy ? "Загрузка…" : controller.browseTitle
                 color: Config.accent
                 font.family: Config.mopidyAlbumFont
-                font.pixelSize: Config.mopidyAlbumFontSize
+                font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyAlbumFontSize))
                 font.bold: Config.mopidyAlbumBold
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
@@ -109,7 +109,7 @@ Item {
                         text: "/"
                         color: Config.accent
                         font.family: Config.font
-                        font.pixelSize: Config.fontSize
+                        font.pixelSize: Config.uiFontSize(Config.fontSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -121,7 +121,7 @@ Item {
                         text: controller.fileFilterQuery
                         placeholderText: "Фильтр файлов…"
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         selectByMouse: true
                         leftPadding: 6
@@ -130,8 +130,8 @@ Item {
                         bottomPadding: 2
                         background: Rectangle {
                             color: Config.settingsBackground
-                            radius: 4
-                            border.width: 1
+                            radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
+                            border.width: (Config.inputBordersEnabled || fileFilterField.activeFocus) ? 1 : 0
                             border.color: fileFilterField.activeFocus ? Config.accent : Config.baseColor
                         }
                         onTextChanged: controller.fileFilterQuery = text
@@ -155,7 +155,7 @@ Item {
             width: parent.width
             height: Math.max(0, parent.height - 26 - fileFilterMorph.geometryHeight)
             clip: true
-            spacing: 2
+            spacing: controller.effectiveQueueRowSpacing
             model: controller.filteredBrowseDisplayEntries
             cacheBuffer: 0
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
@@ -163,7 +163,7 @@ Item {
             delegate: Rectangle {
                 id: browseRow
                 width: parent ? parent.width : 0
-                height: Config.mopidyTrackRowHeight
+                height: controller.effectiveTrackRowHeight
                 radius: 4
                 property bool rowInViewport: y + height > browseListView.contentY && y < browseListView.contentY + browseListView.height
                 property bool coverWanted: fileBrowser.visible && !controller.browseBusy
@@ -218,7 +218,7 @@ Item {
                     text: modelData.type === "parent" ? "" : (modelData.type === "directory" ? "" : "")
                     color: controller.hoverTextColor(rowHovered && modelData.type !== "parent", modelData.type === "parent" || modelData.type === "directory" ? Config.accent : Config.textMuted)
                     font.family: Config.font
-                    font.pixelSize: Config.fontSize
+                    font.pixelSize: Config.uiFontSize(Config.fontSize)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -231,7 +231,7 @@ Item {
                     text: modelData.name || "Без названия"
                     color: controller.hoverTextColor(rowHovered && modelData.type !== "parent", Config.text)
                     font.family: modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumFont : Config.mopidyTrackFont
-                    font.pixelSize: modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumFontSize : Config.mopidyTrackFontSize
+                    font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(modelData.type === "parent" || modelData.type === "directory" ? Config.mopidyAlbumFontSize : Config.mopidyTrackFontSize))
                     font.bold: false
                     elide: Text.ElideRight
                     verticalAlignment: Text.AlignVCenter
@@ -258,7 +258,7 @@ Item {
                         text: Config.mopidyAddIcon
                         color: controller.hoverTextColor(browseAddMouse.containsMouse, Config.mopidyControlIconColor)
                         font.family: Config.font
-                        font.pixelSize: Config.mopidyAddIconSize
+                        font.pixelSize: Config.uiFontSize(Config.mopidyAddIconSize)
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }

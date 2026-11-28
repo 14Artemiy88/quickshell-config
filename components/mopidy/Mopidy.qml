@@ -6,11 +6,20 @@ import "." as MopidyWidgets
 import "../primitives" as Primitives
 import "../.."
 import "../../js/mopidy/QueueReorderGeometry.js" as QueueReorderGeometry
+import "../../js/mopidy/MopidyPresentation.js" as MopidyPresentation
 
 Primitives.ModuleFrame {
     id: root
     moduleName: "mopidy"
     moduleBackgroundColor: Config.mopidyBackground
+
+    readonly property int effectiveTrackRowHeight: MopidyPresentation.trackRowHeight(root.presentationMode, Config.mopidyTrackRowHeight)
+    readonly property int effectiveAlbumHeaderHeight: MopidyPresentation.albumHeaderHeight(root.presentationMode, Config.mopidyAlbumFontSize)
+    readonly property int effectiveQueueRowSpacing: MopidyPresentation.queueSpacing(root.presentationMode)
+
+    function mopidyFontSize(configuredSize) {
+        return MopidyPresentation.fontSize(root.presentationMode, configuredSize)
+    }
 
     property bool externalTopPanelHover: false
     signal topPanelHideRequested()
@@ -129,9 +138,9 @@ Primitives.ModuleFrame {
         var albumIndices = []
         var trackDisplayIndices = []
         var y = 0
-        var spacing = 2
-        var albumHeight = Math.max(26, Config.mopidyAlbumFontSize + 9)
-        var trackHeight = Config.mopidyTrackRowHeight
+        var spacing = root.effectiveQueueRowSpacing
+        var albumHeight = root.effectiveAlbumHeaderHeight
+        var trackHeight = root.effectiveTrackRowHeight
 
         for (var i = 0; i < items.length; ++i) {
             tops.push(y)
@@ -212,7 +221,7 @@ Primitives.ModuleFrame {
 
         var albumPosition = Math.max(0, lo - 1)
         var albumIndex = albumIndices[albumPosition]
-        var headerHeight = Math.max(26, Config.mopidyAlbumFontSize + 9)
+        var headerHeight = root.effectiveAlbumHeaderHeight
 
         root.stickyAlbumIndex = albumIndex
         root.stickyAlbumData = root.queueItems[albumIndex]
@@ -235,11 +244,11 @@ Primitives.ModuleFrame {
     }
 
     function hoverBorderWidth(hovered) {
-        return hovered && Config.mopidyHoverMode === "frame" ? 1 : 0
+        return hovered && Config.buttonBordersEnabled && Config.mopidyHoverMode === "frame" ? 1 : 0
     }
 
     function hoverBorderColor(hovered) {
-        return hovered && Config.mopidyHoverMode === "frame" ? Config.mopidyHoverColor : Config.transparent
+        return hovered && Config.buttonBordersEnabled && Config.mopidyHoverMode === "frame" ? Config.mopidyHoverColor : Config.transparent
     }
 
     function escapeRichText(value) {
@@ -1209,7 +1218,7 @@ Primitives.ModuleFrame {
     QtObject {
         id: queueReorderAdapterObject
         readonly property int count: root.tracks.length
-        readonly property int spacing: 2
+        readonly property int spacing: root.effectiveQueueRowSpacing
         function geometryAt(index, host) { return root.queueTrackGeometry(index) }
         function insertionSlotGeometry(sourceIndex, destination, host, anchorInfo) {
             return root.queueTrackInsertionSlotGeometry(sourceIndex, destination, host, anchorInfo)
@@ -1989,7 +1998,7 @@ Primitives.ModuleFrame {
                 text: root.queueAvailable ? Config.mopidyEmptyQueueText : Config.mopidyUnavailableText
                 color: Config.textMuted
                 font.family: Config.mopidyStatusFont
-                font.pixelSize: Config.mopidyStatusFontSize
+                font.pixelSize: Config.uiFontSize(Config.mopidyStatusFontSize)
                 fontSizeMode: Text.HorizontalFit
                 minimumPixelSize: Config.mopidyStatusLongFontSize
                 horizontalAlignment: Text.AlignHCenter
@@ -2007,7 +2016,7 @@ Primitives.ModuleFrame {
                 id: queueView
                 anchors.fill: parent
                 clip: true
-                spacing: 2
+                spacing: root.effectiveQueueRowSpacing
                 boundsBehavior: Flickable.StopAtBounds
                 // Keep the source delegate alive while edge auto-scroll moves
                 // the list across long queues; restore normal virtualization
@@ -2146,7 +2155,7 @@ Primitives.ModuleFrame {
                 anchors.rightMargin: 10
                 text: root.addNoticeText
                 color: root.addNoticeError ? "#ff5555" : Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter

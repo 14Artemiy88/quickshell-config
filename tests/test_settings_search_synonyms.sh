@@ -23,7 +23,7 @@ const Registry = require(process.argv[2]);
 const Search = require(process.argv[3]);
 const controller = fs.readFileSync(process.argv[4], 'utf8');
 const pages = Registry.pageMetadataCatalog();
-assert.strictEqual(pages.length, 24, 'all pages participate in synonym search');
+assert.strictEqual(pages.length, 26, 'all pages participate in synonym search');
 
 const entries = [];
 let subtabCount = 0;
@@ -55,7 +55,7 @@ for (const page of pages) {
     subtabCount++;
   }
 }
-assert.strictEqual(subtabCount, 68, 'all existing subtabs expose targeted synonyms');
+assert.strictEqual(subtabCount, 70, 'all existing subtabs expose targeted synonyms');
 assert.ok(keywordPageCount >= 90, 'page synonym catalogue has broad coverage');
 
 function ids(query) { return Search.search(entries, query, 50).map(item => item.id); }
@@ -68,6 +68,10 @@ assert(ids('визуализатор').some(id => id.startsWith('cava.')), 'audi
 assert(ids('всплывающие сообщения').some(id => id.startsWith('notifications.')), 'popup synonym finds Notifications settings');
 const playerTabs = Registry.pageMetadataForId('player').subTabs;
 assert(ids('время до конца').includes(playerTabs.find(tab => tab.label === 'Оставшееся время').id), 'specific subtab alias finds remaining-time section');
+const osdTabs = Registry.pageMetadataForId('osd').subTabs;
+assert(ids('экранный индикатор громкости').includes(osdTabs.find(tab => tab.label === 'Громкость').id), 'volume OSD synonym opens the dedicated OSD volume subtab');
+assert(ids('смена трека osd').includes(osdTabs.find(tab => tab.label === 'Плеер').id), 'media OSD synonym opens the dedicated OSD player subtab');
+assert(ids('индикатор dnd').includes(osdTabs.find(tab => tab.label === 'Не беспокоить').id), 'DND OSD synonym opens its dedicated subtab');
 const cpuTabs = Registry.pageMetadataForId('cpuRam').subTabs;
 assert(ids('топ процессов').includes(cpuTabs.find(tab => tab.label === 'Top Apps').id), 'specific Top Apps alias finds its subsection');
 assert(ids('полоса воспроизведения').includes(playerTabs.find(tab => tab.label === 'Прогресс').id), 'specific progress alias finds Player progress section');

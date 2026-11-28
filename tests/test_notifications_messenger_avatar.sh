@@ -11,7 +11,7 @@ checks = {
     "any application image-path is promoted to the common leading visual": "function notificationHasImagePath(notification)" in source and "root.notificationHasImagePath(notification)" in source and "root.notificationIsMessenger(notification)" in source and "imageDataLooksLikeLeadingIcon" in source,
     "leading image and app icon share one frame": "id: notificationVisualFrame" in source and "visible: card.hasLeadingVisual" in source,
     "leading image frame uses the configured square size": "width: root.notificationLeadingVisualSize\n                        height: root.notificationLeadingVisualSize" in source,
-    "messenger avatars are cropped consistently": "root.notificationIsMessenger(card.notification)\n                                ? Image.PreserveAspectCrop : Image.PreserveAspectFit" in source,
+    "messenger avatars are cropped consistently": "card.hasLeadingImage && root.notificationIsMessenger(card.notification)\n                                    ? Image.PreserveAspectCrop : Image.PreserveAspectFit" in source,
     "all leading visuals reserve the configured text column": "hasLeadingVisual ? root.notificationLeadingVisualSize + root.notificationCardPadding * 3 : root.notificationCardPadding * 2" in source and "card.textColumnLeftMargin" in source,
     "leading images are not also rendered as wide body previews": "&& !hasLeadingImage" in source and "visible: card.hasNotificationImage && status === Image.Ready" in source,
     "failed leading images fall back to the application icon": "if (card.hasLeadingImage && status === Image.Error)" in source and "card.appIconSource" in source,

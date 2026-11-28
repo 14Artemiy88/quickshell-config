@@ -117,7 +117,7 @@ settingsSearchSubTabIndex: 0
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 0
                 text: "Минуты кнопок таймера"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
 
@@ -167,7 +167,7 @@ settingsSearchSubTabIndex: 0
                             radius: 4
                             fillOnHover: false
                             borderOnHover: true
-                            backgroundColor: Config.settingsBackground
+                            backgroundColor: "transparent"
                             hoverBackgroundColor: Config.baseColor
                             textColor: Config.text
                             hoverTextColor: Config.text
@@ -184,7 +184,7 @@ settingsSearchSubTabIndex: 0
                     radius: 4
                     fillOnHover: false
                     borderOnHover: true
-                    backgroundColor: Config.settingsBackground
+                    backgroundColor: "transparent"
                     textColor: Config.text
                     onClicked: root.settings.addTimerPreset(5)
                 }
@@ -203,11 +203,11 @@ settingsSearchSubTabIndex: 0
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Правый клик по таймеру меняет его цвет. Этот же диапазон используется для новых таймеров."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
@@ -248,7 +248,7 @@ settingsSearchSubTabIndex: 0
             toGeometry: Qt.rect(0, 0, parent.width, timerRandomCustomColorsContent.implicitHeight)
             progress: Config.timerRandomColorMode === "custom" ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.timerRandomColorMode === "custom" ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.timerRandomColorMode === "custom" ? "enter" : "exit")
 
             Column {
                 id: timerRandomCustomColorsContent
@@ -309,7 +309,7 @@ settingsSearchSubTabIndex: 1
                 visible: root.host.currentPageId === "timers" && root.host.currentPageSubTabIndex === 1
                 text: "Оформление и показ"
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
 
@@ -345,10 +345,10 @@ settingsSearchSubTabIndex: 1
                     opacity: enabled ? 1 : 0.55
                     text: Config.timerFinishedImagePath
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(10)
                     activeFocusOnTab: true
-                    background: Rectangle { color: Config.settingsBackground; border.color: (timerFinishedImagePathField.activeFocus || timerFinishedImagePathField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (timerFinishedImagePathField.activeFocus || timerFinishedImagePathField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || timerFinishedImagePathField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.timerFinishedImagePath = text.trim(); root.settings.save() }
                     Connections { target: Config; function onTimerFinishedImagePathChanged() { timerFinishedImagePathField.text = Config.timerFinishedImagePath } }
                 }
@@ -364,7 +364,7 @@ settingsSearchSubTabIndex: 1
             toGeometry: Qt.rect(0, 0, parent.width, timerFinishedImageOptionsContent.implicitHeight)
             progress: Config.timerFinishedImageEnabled ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.timerFinishedImageEnabled ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.timerFinishedImageEnabled ? "enter" : "exit")
 
             Column {
                 id: timerFinishedImageOptionsContent
@@ -438,7 +438,7 @@ settingsSearchSubTabIndex: 1
                     width: 250; height: 30
                     model: ["Цвет таймера", "Свой цвет"]
                     currentIndex: Config.timerFinishedTitleUsesTimerColor ? 0 : 1
-                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
                     onItemChosen: function(index) { Config.timerFinishedTitleUsesTimerColor = index === 0; root.settings.save() }
                     Connections { target: Config; function onTimerFinishedTitleUsesTimerColorChanged() { timerFinishedTitleColorModeBox.currentIndex = Config.timerFinishedTitleUsesTimerColor ? 0 : 1 } }
                 }
@@ -454,7 +454,7 @@ settingsSearchSubTabIndex: 1
                 toGeometry: Qt.rect(0, 0, parent.width, 30)
                 progress: !Config.timerFinishedTitleUsesTimerColor ? 1 : 0
                 animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", !Config.timerFinishedTitleUsesTimerColor ? "enter" : "exit")
+                animationEasing: Config.animationEasingType("ease-out", !Config.timerFinishedTitleUsesTimerColor ? "enter" : "exit")
 
                 SettingsRow {
                 label: "Свой цвет заголовка"
@@ -535,7 +535,7 @@ settingsSearchSubTabIndex: 1
                     width: 250; height: 30
                     model: ["Слева", "По центру", "Справа"]
                     currentIndex: Config.timerFinishedTitleAlignment
-                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
                     onItemChosen: function(index) { Config.timerFinishedTitleAlignment = index; root.settings.save() }
                     Connections { target: Config; function onTimerFinishedTitleAlignmentChanged() { timerFinishedTitleAlignmentBox.currentIndex = Config.timerFinishedTitleAlignment } }
                 }
@@ -558,7 +558,7 @@ settingsSearchSubTabIndex: 1
                     height: 30
                     model: ["Цвет таймера", "Общие рамки"]
                     currentIndex: Config.timerFinishedBorderUsesTimerColor ? 0 : 1
-                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
                     onItemChosen: function(index) { Config.timerFinishedBorderUsesTimerColor = index === 0; root.settings.save() }
                     Connections { target: Config; function onTimerFinishedBorderUsesTimerColorChanged() { timerFinishedBorderColorBox.currentIndex = Config.timerFinishedBorderUsesTimerColor ? 0 : 1 } }
                 }
@@ -578,7 +578,7 @@ settingsSearchSubTabIndex: 1
                     height: 30
                     model: ["Свой цвет", "Цвет таймера"]
                     currentIndex: Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0
-                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                    contentItem: Text { text: parent.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
                     onItemChosen: function(index) { Config.timerFinishedBackgroundUsesTimerColor = index === 1; root.settings.save() }
                     Connections { target: Config; function onTimerFinishedBackgroundUsesTimerColorChanged() { timerFinishedBackgroundModeBox.currentIndex = Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0 } }
                 }
@@ -594,7 +594,7 @@ settingsSearchSubTabIndex: 1
                 toGeometry: Qt.rect(0, 0, parent.width, 30)
                 progress: !Config.timerFinishedBackgroundUsesTimerColor ? 1 : 0
                 animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", !Config.timerFinishedBackgroundUsesTimerColor ? "enter" : "exit")
+                animationEasing: Config.animationEasingType("ease-out", !Config.timerFinishedBackgroundUsesTimerColor ? "enter" : "exit")
 
                 SettingsRow {
                 label: "Свой цвет фона"
@@ -643,11 +643,11 @@ settingsSearchSubTabIndex: 2
                     height: 18
                     spacing: 6
                     Item { width: 110; height: 18 }
-                    Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
                 }
 
                 Repeater {
@@ -666,7 +666,7 @@ settingsSearchSubTabIndex: 2
                             height: 30
                             text: modelData === "alarm" ? "Будильник" : "Таймер"
                             color: Config.text
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
@@ -690,15 +690,15 @@ settingsSearchSubTabIndex: 2
                             height: 30
                             text: modelData === "timer" ? Config.timerIcon : Config.timerAlarmIcon
                             color: Config.text
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(12)
                             horizontalAlignment: Text.AlignHCenter
                             activeFocusOnTab: true
                             background: Rectangle {
-                                color: Config.settingsBackground
+                                color: "transparent"
                                 border.color: (timerIconValueField.activeFocus || timerIconValueField.pointerHovered) ? Config.accent : Config.baseColor
-                                border.width: 1
-                                radius: 4
+                                border.width: (Config.inputBordersEnabled || timerIconValueField.activeFocus) ? 1 : 0
+                                radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                             }
                             onEditingFinished: {
                                 if (modelData === "timer") Config.timerIcon = text
@@ -966,9 +966,9 @@ settingsSearchSubTabIndex: 3
                 height: 24
                 spacing: 8
                 Item { width: 210; height: 24 }
-                Text { width: 58; text: "Между"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                Text { width: 58; text: "Сверху"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                Text { width: 58; text: "Справа"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                Text { width: 58; text: "Между"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                Text { width: 58; text: "Сверху"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                Text { width: 58; text: "Справа"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
                     SettingsRow {
             label: "Таймеры"
@@ -1058,12 +1058,12 @@ settingsSearchSubTabIndex: 3
             root.settings.save()
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             wrapMode: Text.WordWrap
             text: "Профиль управляет появлением и удалением строк, морфингом иконок таймера/будильника и показом кнопок пресетов. Длительность выше относится к строкам; интервалы и стиль кнопок настраиваются ниже. Окно опций имеет отдельные параметры."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
         }
     }
@@ -1074,7 +1074,7 @@ settingsSearchSubTabIndex: 4
         width: parent.width
         showFrame: true
         heading: "Анимация кнопок таймера"
-        changeKeys: ({ keys: ["animationTimerVisibilityStyle", "timerButtonFadeDuration", "timerButtonIconFadeDuration", "timerButtonSlideDuration"] })
+        changeKeys: ({ keys: ["animationTimerVisibilityStyle", "animationTimerVisibilityProfile", "timerButtonFadeDuration", "timerButtonIconFadeDuration", "timerButtonSlideDuration"] })
         padding: 8
         contentSpacing: 6
 
@@ -1098,12 +1098,23 @@ settingsSearchSubTabIndex: 4
                     target: Config
                     function onAnimationTimerVisibilityStyleChanged() { timerWidgetVisibilityBox.currentIndex = Math.max(0, timerWidgetVisibilityBox.values.indexOf(Config.animationTimerVisibilityStyle)) }
                 }
-                background: Rectangle { color: Config.settingsBackground; border.color: (timerWidgetVisibilityBox.activeFocus || timerWidgetVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: timerWidgetVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                background: Rectangle { color: "transparent"; border.color: (timerWidgetVisibilityBox.activeFocus || timerWidgetVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || timerWidgetVisibilityBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: timerWidgetVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
             }
         }
 
-                    SettingsRow {
+                    SettingsAnimationCurveControl {
+            profile: Config.animationTimerVisibilityProfile
+            searchId: "timer-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления кнопок таймера"
+            searchKeywords: "таймер пресеты будильник кнопки появление закрытие bezier"
+            onProfileEdited: function(value) {
+                Config.animationTimerVisibilityProfile = value
+                root.settings.save()
+            }
+        }
+
+        SettingsRow {
             label: "Затухание кнопок (мс)"
             labelWidth: 210
             width: parent.width
@@ -1193,7 +1204,7 @@ settingsSearchSubTabIndex: 5
         width: parent.width
         showFrame: true
         heading: "Анимация окна опций"
-        changeKeys: ({ keys: ["animationTimerOptionsDuration", "animationTimerOptionsVisibilityStyle"] })
+        changeKeys: ({ keys: ["animationTimerOptionsDuration", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsVisibilityProfile"] })
         padding: 8
         contentSpacing: 6
 
@@ -1216,8 +1227,19 @@ settingsSearchSubTabIndex: 5
                     target: Config
                     function onAnimationTimerOptionsVisibilityStyleChanged() { animationTimerVisibilityBox.currentIndex = Math.max(0, animationTimerVisibilityBox.values.indexOf(Config.animationTimerOptionsVisibilityStyle)) }
                 }
-                background: Rectangle { color: Config.settingsBackground; border.color: (animationTimerVisibilityBox.activeFocus || animationTimerVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: animationTimerVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                background: Rectangle { color: "transparent"; border.color: (animationTimerVisibilityBox.activeFocus || animationTimerVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || animationTimerVisibilityBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: animationTimerVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+            }
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationTimerOptionsVisibilityProfile
+            searchId: "timer-options-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления окна опций таймера"
+            searchKeywords: "таймер опции всплывающее окно popup появление закрытие bezier"
+            onProfileEdited: function(value) {
+                Config.animationTimerOptionsVisibilityProfile = value
+                settings.save()
             }
         }
 
@@ -1258,9 +1280,9 @@ settingsSearchSubTabIndex: 5
             height: 18
             spacing: 6
             Item { width: 110; height: 18 }
-            Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Text { width: 30; text: "Вкл."; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
             Item { width: 44; height: 18 }
         }
 
@@ -1281,7 +1303,7 @@ settingsSearchSubTabIndex: 5
                     height: 30
                     text: root.timerOptionsActionIconLabel(modelData)
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
@@ -1304,15 +1326,15 @@ settingsSearchSubTabIndex: 5
                     height: 30
                     text: Config[timerOptionsActionIconRow.keyPrefix + "Icon"]
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(12)
                     horizontalAlignment: Text.AlignHCenter
                     activeFocusOnTab: true
                     background: Rectangle {
-                        color: Config.settingsBackground
+                        color: "transparent"
                         border.color: (timerOptionsActionIconField.activeFocus || timerOptionsActionIconField.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
+                        border.width: (Config.inputBordersEnabled || timerOptionsActionIconField.activeFocus) ? 1 : 0
+                        radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                     }
                     onEditingFinished: {
                         Config[timerOptionsActionIconRow.keyPrefix + "Icon"] = text

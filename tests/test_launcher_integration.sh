@@ -9,6 +9,8 @@ NETWORK="$ROOT/components/launcher/modules/common/Network.qml"
 # on sessions without Niri installed.
 grep -q 'source: "components/launcher/Launcher.qml"' "$ROOT/shell.qml"
 grep -q 'active: false' "$ROOT/shell.qml"
+grep -q 'asynchronous: true' "$ROOT/shell.qml"
+grep -q 'id: launcherWarmupTimer' "$ROOT/shell.qml"
 grep -q 'target: "launcher"' "$ROOT/shell.qml"
 grep -q 'function toggle(): void' "$ROOT/shell.qml"
 grep -q 'function openPackages(): void' "$ROOT/shell.qml"

@@ -42,7 +42,7 @@ Column {
                 height: 30
                 text: "Почасовой прогноз (мс)"
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 verticalAlignment: Text.AlignVCenter
             }
@@ -68,26 +68,26 @@ Column {
     }
 
     SettingsGroup {
-        visible: root.visible
+        visible: root.visible && Config.settingsShowDescriptions
         width: parent.width
         showFrame: true
         heading: "Что управляется"
         padding: 8
         contentSpacing: 4
-        Text {
+        SettingsDescription {
             width: parent.width
             wrapMode: Text.WordWrap
             text: "Переходы температуры комфорта, погодной иконки и блока ветра; появление температур в прогнозе; плавное изменение ширины и количества часов при прокрутке колёсиком; появление заглушки при отсутствии данных. Изображения погодных значков остаются на прежнем пути отрисовки."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
         }
-        Text {
+        SettingsDescription {
             width: parent.width
             wrapMode: Text.WordWrap
             text: "Профиль «Без анимации» отключает также плавность прокрутки. Анимация появления самого модуля Weather управляется отдельно."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
         }
     }

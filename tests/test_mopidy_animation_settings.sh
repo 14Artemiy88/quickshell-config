@@ -26,7 +26,7 @@ shell=read('shell.qml')
 for token in (
     'property bool animationMopidyMorphEnabled: true',
     'property int animationMopidyMorphDuration: 180',
-    'property string animationMopidyMorphProfile: "expressive"',
+    'property string animationMopidyMorphProfile: "ease-in-out"',
 ):
     assert token in config, f'missing Config default: {token}'
     assert token.replace('property bool ', '').replace('property int ', '').replace('property string ', '') in defaults, f'missing profile default: {token}'
@@ -46,7 +46,7 @@ assert 'var legacyMopidyMorphEnabled = o.animationMopidyMorphEnabled' in apply
 assert 'Config.animationMopidyMorphEnabled = true' in apply
 assert 'if (legacyMopidyMorphEnabled === false)' in apply and 'Config.animationMopidyMorphProfile = "none"' in apply
 assert 'Math.max(0, Math.min(5000, Math.round(mopidyMorphDuration)))' in apply
-assert 'var allowedMopidyMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply
+assert 'applyMorphProfile(Config, o, "animationMopidyMorphProfile")' in apply
 
 # The new UI is scoped only to Mopidy's fifth subtab and saves all controls.
 assert 'currentPageSubTabIndex === 4' in section

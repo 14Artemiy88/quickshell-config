@@ -273,13 +273,13 @@ Column {
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: Config.mopidyBrowseCoverMode === "selected"
                 ? "В режиме «Только выбранная» обложка показывается при наведении. Можно оставить её видимой после ухода курсора. «Все видимые» загружает только папки в текущей области прокрутки. Обложка уже открытой папки в заголовке не зависит от этого параметра."
                 : "«Все видимые» загружает только папки в текущей области прокрутки. Обложка уже открытой папки в заголовке не зависит от этого параметра."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(9)
             wrapMode: Text.WordWrap
         }

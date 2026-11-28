@@ -412,8 +412,8 @@ Item {
         anchors.fill: parent
         text: "⠿"
         color: dragHandler.active || hoverHandler.hovered || root.activeFocus ? Config.accent : Config.textMuted
-        font.family: Config.settingsFont
-        font.pixelSize: 18
+        font.family: Config.settingsFontFamily
+        font.pixelSize: Config.uiFontSize(18)
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
     }

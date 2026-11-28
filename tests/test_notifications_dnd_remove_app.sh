@@ -38,9 +38,10 @@ assert(removeFunction.includes('NotificationAppCatalog.removeSenderById'), 'DND 
 assert(removeFunction.includes('NotificationAppCatalog.removableRuleIds'), 'DND remove action resolves safe aliases');
 assert(removeFunction.includes('LauncherAppPreferences.setId(allowed, removableIds[i], false)'), 'DND remove action clears allow rules');
 assert(removeFunction.includes('LauncherAppPreferences.setId(blocked, removableIds[i], false)'), 'DND remove action clears block rules');
+assert(removeFunction.includes('LauncherAppPreferences.setId(historyIgnored, removableIds[i], false)'), 'DND remove action clears history-ignore rules');
 assert(removeFunction.includes('Config.notificationsSeenSenders = remainingSenders'), 'DND remove action updates the runtime-only catalog');
 assert(removeFunction.includes('if (settingsChanged) root.settings.save()'), 'DND remove action persists rule removal only when rules change');
-assert(section.includes('Удалить приложение из списка и снять оба его правила DND'), 'UI exposes an explicit remove action');
+assert(section.includes('Удалить приложение из списка и снять все его правила'), 'UI exposes an explicit remove action for all three rules');
 assert(section.includes('onClicked: root.removeDndApplication(modelData)'), 'row remove action is wired to the selected sender');
-console.log('DND sender removal, safe alias handling, both rule lists and UI action: OK');
+console.log('DND sender removal, safe alias handling, all three rule lists and UI action: OK');
 JS

@@ -129,8 +129,8 @@ const groups = host.settingsNavigationGroups;
 assert.deepStrictEqual(Array.from(groups, group => group.id),
   ['appearance', 'dashboard', 'modules', 'launcher', 'general', 'notifications']);
 const editorPages = groups.flatMap(group => group.items.map(item => ({ groupId: group.id, id: item.id })));
-assert.strictEqual(editorPages.length, 24);
-assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 24, 'each page occurs exactly once');
+assert.strictEqual(editorPages.length, 26);
+assert.strictEqual(new Set(editorPages.map(item => item.id)).size, 26, 'each page occurs exactly once');
 assert(editorPages.every(item => registry.navigationGroupIdForTabId(item.id) === item.groupId),
   'sidebar/editor never assigns a page to another frame');
 assert.strictEqual(groups.find(group => group.id === 'modules').items[4].id, 'weather',
@@ -180,7 +180,7 @@ assert(folderSource.includes('Accessible.name') && folderSource.includes('active
 assert(widgetSource.includes('function focusAdjacentSettingsNavigationItem(')
   && widgetSource.includes('function focusSettingsNavigationPage('),
   'sidebar maintains keyboard traversal and search-focus routing');
-assert(registry.tabDefinitions().length === 24 && registry.navigationGroupDefinitions().length === 6);
+assert(registry.tabDefinitions().length === 26 && registry.navigationGroupDefinitions().length === 6);
 
 // 7. Registration gate guards the integration and its constituent regression tests exactly once.
 const check = read('CHECK.sh');

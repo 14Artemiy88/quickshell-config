@@ -25,7 +25,7 @@ const persistence = read(persistPath);
 
 const pages = registry.tabDefinitions();
 const groups = registry.navigationGroupDefinitions();
-assert.strictEqual(pages.length, 24, 'audit baseline must include all 24 stable settings pages');
+assert.strictEqual(pages.length, 26, 'audit baseline must include all 26 stable settings pages');
 assert.strictEqual(groups.length, 6, 'audit baseline must include all 6 navigation groups');
 assert.strictEqual(new Set(pages.map(page => page.id)).size, pages.length, 'page IDs must remain unique');
 assert(pages.every(page => groups.some(group => group.id === page.groupId)), 'every page must have a canonical group');
@@ -33,9 +33,9 @@ assert(groups.some(group => group.id === 'dashboard') && groups.some(group => gr
   'Dashboard and General must remain explicit top-level groups');
 
 // v1351 implements a root-level active-page preference without folding it into profiles.
-assert(controller.includes('property string currentPageId: "general"'), 'first-run navigation fallback must be General');
-assert(config.includes('property string settingsLastActivePageId: "general"'), 'Config must own the standalone last-page preference');
-assert(persistence.includes('settingsLastActivePageId: String(config.settingsLastActivePageId || "general")'), 'last page must be persisted at settings.json root');
+assert(controller.includes('property string currentPageId: "interface"'), 'first-run navigation fallback must be General');
+assert(config.includes('property string settingsLastActivePageId: "interface"'), 'Config must own the standalone last-page preference');
+assert(persistence.includes('settingsLastActivePageId: String(config.settingsLastActivePageId || "interface")'), 'last page must be persisted at settings.json root');
 assert(persistence.includes('delete state.settingsLastActivePageId'), 'last-page UI state must be excluded from profile diff');
 assert(persistence.includes('managedKeys.push("settingsLastActivePageId")'), 'legacy root value must be managed');
 assert(widget.includes('function restoreSettingsLastActivePage()'), 'last active page must restore after initial settings load');
@@ -114,5 +114,5 @@ assert(pageMoveBody.includes('navigationGroupIdForTabId(pageId) !== targetGroupI
 const groupMoveBody = functionBody(controller, 'moveSettingsNavigationGroupTo');
 assert(groupMoveBody.includes('order.groupOrder = DragReorder.move(groupOrder, fromIndex, destination)'),
   'top-level groups must be independently reorderable');
-console.log('settings navigation audit: 24 pages, 6 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
+console.log('settings navigation audit: 26 pages, 6 groups, independent active-page/collapse behavior, canonical page membership and sortable singleton frames: OK');
 NODE

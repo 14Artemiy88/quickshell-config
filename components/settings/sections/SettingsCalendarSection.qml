@@ -63,10 +63,10 @@ settingsSearchSubTabIndex: 0
             height: 24
             spacing: 8
             Item { width: 210; height: parent.height }
-            Text { width: 80; height: parent.height; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; height: parent.height; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 80; height: parent.height; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         }
 
         SettingsRow {
@@ -78,7 +78,7 @@ settingsSearchSubTabIndex: 0
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             
-            SettingsTextField { id: calendarPrevIconField; width: 80; height: 30; text: Config.calendarPreviousIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarPreviousIcon = text; settings.save() } }
+            SettingsTextField { id: calendarPrevIconField; width: 80; height: 30; text: Config.calendarPreviousIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarPreviousIcon = text; settings.save() } }
             SettingsNumberField {
             id: calendarArrowSizeField
             width: 58
@@ -147,7 +147,7 @@ settingsSearchSubTabIndex: 0
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 30; spacing: 8
             
-            SettingsTextField { id: calendarNextIconField; width: 80; height: 30; text: Config.calendarNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarNextIcon = text; settings.save() } }
+            SettingsTextField { id: calendarNextIconField; width: 80; height: 30; text: Config.calendarNextIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; onEditingFinished: { Config.calendarNextIcon = text; settings.save() } }
             SettingsNumberField {
             id: calendarNextSizeField
             width: 58
@@ -186,7 +186,7 @@ settingsSearchSubTabIndex: 0
             settingsObject: root.settings
             saveOnEdit: true
         }
-            Text { width: 58; height: 30; text: ""; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            Text { width: 58; height: 30; text: ""; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         }
 
     }
@@ -204,9 +204,9 @@ settingsSearchSubTabIndex: 0
             visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 0
             width: parent.width; height: 24; spacing: 8
             Item { width: 210; height: parent.height }
-            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
-            Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 58; height: parent.height; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
+            Text { width: 130; height: parent.height; text: "Шрифт"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); verticalAlignment: Text.AlignVCenter; horizontalAlignment: Text.AlignHCenter }
         }
         SettingsRow {
 
@@ -449,11 +449,11 @@ settingsSearchSubTabIndex: 1
             }
         }
 
-        Text {
-            visible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
+        SettingsDescription {
+            descriptionConditionVisible: host.currentPageId === "calendar" && host.currentPageSubTabIndex === 1
             text: "Щёлкни правой кнопкой по дате и выбери «Отметить день», чтобы выделить отпуск или событие этим же цветом."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
             width: parent.width
@@ -505,7 +505,7 @@ settingsSearchSubTabIndex: 1
             toGeometry: Qt.rect(0, 0, parent.width, calendarPastDaysColorContent.implicitHeight)
             progress: Config.calendarPastDaysColorEnabled ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.calendarPastDaysColorEnabled ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.calendarPastDaysColorEnabled ? "enter" : "exit")
 
             Column {
                 id: calendarPastDaysColorContent
@@ -569,8 +569,8 @@ settingsSearchSubTabIndex: 2
                         calendarNoteMarkerStyleBox.currentIndex = Math.max(0, calendarNoteMarkerStyleBox.values.indexOf(Config.calendarNoteMarkerStyle))
                     }
                 }
-                background: Rectangle { color: Config.settingsBackground; border.color: (calendarNoteMarkerStyleBox.activeFocus || calendarNoteMarkerStyleBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: calendarNoteMarkerStyleBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                background: Rectangle { color: "transparent"; border.color: (calendarNoteMarkerStyleBox.activeFocus || calendarNoteMarkerStyleBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || calendarNoteMarkerStyleBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: calendarNoteMarkerStyleBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
             }
         }
 
@@ -624,8 +624,8 @@ settingsSearchSubTabIndex: 2
                         calendarNoteMarkerPositionBox.currentIndex = Math.max(0, calendarNoteMarkerPositionBox.values.indexOf(Config.calendarNoteMarkerPosition))
                     }
                 }
-                background: Rectangle { color: Config.settingsBackground; border.color: (calendarNoteMarkerPositionBox.activeFocus || calendarNoteMarkerPositionBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: calendarNoteMarkerPositionBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
+                background: Rectangle { color: "transparent"; border.color: (calendarNoteMarkerPositionBox.activeFocus || calendarNoteMarkerPositionBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || calendarNoteMarkerPositionBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: calendarNoteMarkerPositionBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8; elide: Text.ElideRight }
             }
         }
 
@@ -653,8 +653,8 @@ settingsSearchSubTabIndex: 2
             width: parent.width
             height: 30
             spacing: 8
-            Text { width: 210; height: 30; text: "Цвет обводки активной даты с событием"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
-            Text { height: 30; text: "Цвет событий"; color: Config.calendarWeekendColor; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            Text { width: 210; height: 30; text: "Цвет обводки активной даты с событием"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+            Text { height: 30; text: "Цвет событий"; color: Config.calendarWeekendColor; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
         }
     }
 
@@ -664,7 +664,7 @@ settingsSearchSubTabIndex: 3
         width: parent.width
         showFrame: true
         heading: "Появление модуля"
-        changeKeys: ({ keys: ["animationCalendarFadeDuration", "animationCalendarSlideDuration", "animationCalendarVisibilityStyle"] })
+        changeKeys: ({ keys: ["animationCalendarFadeDuration", "animationCalendarSlideDuration", "animationCalendarVisibilityStyle", "animationCalendarVisibilityProfile"] })
         padding: 8
         contentSpacing: 6
 
@@ -689,8 +689,19 @@ settingsSearchSubTabIndex: 3
                     target: Config
                     function onAnimationCalendarVisibilityStyleChanged() { animationCalendarVisibilityBox.currentIndex = Math.max(0, animationCalendarVisibilityBox.values.indexOf(Config.animationCalendarVisibilityStyle)) }
                 }
-                background: Rectangle { color: Config.settingsBackground; border.color: (animationCalendarVisibilityBox.activeFocus || animationCalendarVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: animationCalendarVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                background: Rectangle { color: "transparent"; border.color: (animationCalendarVisibilityBox.activeFocus || animationCalendarVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || animationCalendarVisibilityBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: animationCalendarVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+            }
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationCalendarVisibilityProfile
+            searchId: "calendar-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления календаря"
+            searchKeywords: "календарь модуль появление закрытие spring пружина bezier"
+            onProfileEdited: function(value) {
+                Config.animationCalendarVisibilityProfile = value
+                root.settings.save()
             }
         }
 
@@ -752,17 +763,18 @@ settingsSearchSubTabIndex: 3
         }
 
         SettingsGroup {
+            visible: Config.settingsShowDescriptions
             width: parent.width
             showFrame: true
             heading: "Что управляется"
             padding: 8
             contentSpacing: 4
-            Text {
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Профиль и длительность управляют открытием и закрытием встроенного просмотра и редактора заметки. Они не меняют перелистывание месяцев и анимацию появления самого календаря."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }

@@ -46,7 +46,7 @@ assert 'Layout.preferredHeight: Config.launcherNavigationHintsHeight' in launche
 assert 'Layout.minimumHeight: 0' in launcher, "footer must have no implicit minimum height"
 assert 'Layout.maximumHeight: Config.launcherNavigationHintsHeight' not in launcher, "footer must retain enough implicit height for larger hint text"
 footer = launcher.split('visible: Config.launcherShowNavigationHints', 1)[1].split('\n            }', 1)[0]
-assert footer.count('font.pixelSize: Config.launcherNavigationHintsFontSize') == 7, "all seven hint labels must use the configured text size"
+assert footer.count('font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)') == 7, "all seven hint labels must use the configured text size"
 assert 'profile.launcherNavigationHintsHeight === undefined' in resets and '? 24 :' in resets, "legacy profiles receive the default panel height"
 assert 'profile.launcherNavigationHintsFontSize === undefined' in resets and '? 11 :' in resets, "legacy profiles receive the default font size"
 assert 'profile.launcherNavigationHintsTextY === undefined' in resets and '? 0 :' in resets, "legacy profiles receive the default text offset"

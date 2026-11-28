@@ -23,7 +23,7 @@ registry=read('js/settings/SettingsPageRegistry.js')
 for token in (
     'property bool animationTimerMorphEnabled: true',
     'property int animationTimerMorphDuration: 220',
-    'property string animationTimerMorphProfile: "expressive"',
+    'property string animationTimerMorphProfile: "ease-in-out"',
 ):
     assert token in config, f'missing Config default: {token}'
     literal=token.replace('property bool ', '').replace('property int ', '').replace('property string ', '')
@@ -39,10 +39,10 @@ assert 'var legacyTimerMorphEnabled = o.animationTimerMorphEnabled' in apply
 assert 'Config.animationTimerMorphEnabled = true' in apply
 assert 'if (legacyTimerMorphEnabled === false)' in apply and 'Config.animationTimerMorphProfile = "none"' in apply
 assert 'Math.max(0, Math.min(5000, Math.round(timerMorphDuration)))' in apply
-assert 'var allowedTimerMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply
+assert 'applyMorphProfile(Config, o, "animationTimerMorphProfile")' in apply
 assert 'timer: ["timer"]' in profiles and 'timer: ["timer", "animationTimer"]' in profiles
 assert 'weatherDaily: ["weather", "animationWeather"], timer: ["timer"],' in settings
-assert 'timer: ["timer", "animationTimer"], player: ["player"]' in settings
+assert 'timer: ["timer", "animationTimer"]' in settings
 assert 'prefixes: ["animationTimer", "timerButton"]' in navigation
 
 # The existing Timer -> Animations subtab is extended rather than creating a new page.
@@ -62,8 +62,9 @@ assert 'currentPageSubTabIndex === 4' in section
 assert 'readonly property int timerRowMorphDuration: Config.animationDurationForProfile(' in timer
 assert timer.count('animationProfile: Config.animationTimerMorphProfile') >= 3
 assert timer.count('!Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)\n                ? 0 : Config.animationDuration(Config.timerButtonIconFadeDuration, \"appearance\")') == 2, 'icon morphs must depend on the internal profile, not preset-button style'
-assert timer.count('animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"') == 2
-assert timer.count('animationProfile: Config.animationTimerMorphProfile') >= 5
+assert timer.count('animationStyle: Config.animationTimerVisibilityStyle') == 2
+assert timer.count('animationProfile: Config.animationTimerVisibilityProfile') == 2
+assert timer.count('animationProfile: Config.animationTimerMorphProfile') >= 3
 assert 'Config.animationEasingType(Config.animationTimerMorphProfile, "enter")' in timer
 assert 'Config.animationEasingType(Config.animationTimerMorphProfile, "exit")' in timer
 assert 'Config.animationBezierCurve(Config.animationTimerMorphProfile, "enter")' in timer
@@ -72,5 +73,6 @@ assert 'Config.animationBezierCurve(Config.animationTimerMorphProfile, "exit")' 
 options=read('components/TimerOptions.qml')
 assert 'Config.animationTimerOptionsVisibilityStyle' in options
 assert 'Config.animationTimerOptionsDuration' in options
+assert options.count('Config.animationTimerOptionsVisibilityProfile') >= 4
 print('Timer animation settings: defaults, persistence, profile scopes, reset, UI, row/icon/button transitions and independent options popup: OK')
 PY

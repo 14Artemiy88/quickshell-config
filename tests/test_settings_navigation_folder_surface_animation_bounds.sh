@@ -14,7 +14,7 @@ const folder = fs.readFileSync(folderPath, 'utf8');
 const nav = fs.readFileSync(navPath, 'utf8');
 const base = fs.readFileSync(basePath, 'utf8');
 
-// Sidebar folder and header are visually unfilled; only the selected page keeps a fill.
+// Sidebar folder, header and page tabs are visually unfilled; selection uses text and outline.
 assert((folder.match(/color: Config\.transparent/g) || []).length >= 2,
   'folder card and folder header must be transparent');
 assert(!folder.includes('Qt.darker(Config.settingsBackground'),
@@ -23,8 +23,8 @@ assert(nav.includes('normalBackground: Config.transparent'),
   'ordinary sidebar tabs must not paint a normal background');
 assert(nav.includes('normalBorderColor: Config.transparent'),
   'ordinary sidebar tabs must not paint a normal border');
-assert(base.includes('color: root.selected ? root.selectedBackground : root.normalBackground'),
-  'selected tab must retain the shared selected background while normal state is transparent');
+assert(base.includes(': (root.selected ? root.selectedBackground : root.normalBackground)'),
+  'selected tab must use the shared transparent surface while normal state is transparent');
 
 // Expansion animates the content height and opacity; visibility persists until height reaches zero.
 assert(folder.includes('height: root.collapsed ? 0 : implicitHeight + 4'),
@@ -47,5 +47,5 @@ assert(nav.includes('width: parent.width - navigationGroupFolder.childContentIns
 assert(folder.includes('property int expandedCardInset: 4') && folder.includes('property int childContentInset: 6'),
   'compact card and nested tab insets must be explicit shared properties');
 
-console.log('Settings navigation folder surface/animation/bounds: transparent inactive surfaces, selected fill, smooth collapse and no right overflow: OK');
+console.log('Settings navigation folder surface/animation/bounds: transparent tab surfaces, text/outline selection, smooth collapse and no right overflow: OK');
 NODE

@@ -29,11 +29,11 @@ Item {
             padding: 8
             contentSpacing: 6
 
-            Text {
+            SettingsDescription {
                 width: parent.width
                 text: "Пустое поле шрифта использует общий LED-шрифт из раздела «Общие». Размеры времени и даты регулируются отдельно."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
                 wrapMode: Text.WordWrap
             }

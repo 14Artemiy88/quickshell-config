@@ -124,10 +124,10 @@
   "profileOverrides": {},
   "settingsSchemaVersion": 1,
   "settingsNavigationCollapsedGroups": {
-    "appearance": true,
+    "appearance": false,
     "modules": true,
     "launcher": true,
-    "notifications": false
+    "notifications": true
   },
-  "settingsLastActivePageId": "notificationsDnd"
+  "settingsLastActivePageId": "settingsWindow"
 }

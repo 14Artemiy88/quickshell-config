@@ -12,7 +12,7 @@ assert 'Настроить карточки' not in qml, 'the empty state must u
 assert 'id: settingsButton' in qml, 'Dashboard retains a dedicated Settings icon button'
 button = qml[qml.index('id: settingsButton'):qml.index('id: closeButton')]
 assert 'Layout.preferredWidth: 36' in button and 'Layout.preferredHeight: 36' in button, 'the Settings affordance is a compact square target'
-assert 'text: "󰒓"' in button and 'font.family: "Symbols Nerd Font Mono"' in button and 'font.pixelSize: 20' in button, 'the Settings action uses the requested Nerd Font cog glyph'
+assert 'text: "󰒓"' in button and 'font.family: "Symbols Nerd Font Mono"' in button and 'font.pixelSize: Config.uiFontSize(16)' in button, 'the Settings cog is smaller while keeping its full-size hit target'
 assert 'color: "#55000000"' not in qml, 'Dashboard must not dim the applications behind its overlay'
 dismiss_start = qml.index('id: dashboardDismissLayer')
 dismiss_end = qml.index('Rectangle {\n        id: drawer', dismiss_start)

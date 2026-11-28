@@ -16,7 +16,7 @@ for token in \
     'toGeometry: Qt.rect(0, 0, parent.width, calendarPastDaysColorContent.implicitHeight)' \
     'progress: Config.calendarPastDaysColorEnabled ? 1 : 0' \
     'animationDuration: Config.animationDuration(180, "appearance")' \
-    'animationEasing: Config.animationEasingType("standard", Config.calendarPastDaysColorEnabled ? "enter" : "exit")'; do
+    'animationEasing: Config.animationEasingType("ease-out", Config.calendarPastDaysColorEnabled ? "enter" : "exit")'; do
     grep -Fq "$token" "$QML" || fail "missing $token"
 done
 

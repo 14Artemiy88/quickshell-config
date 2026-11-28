@@ -8,7 +8,7 @@ Rectangle {
     property var controller
     property var itemData: null
     width: parent ? parent.width : 0
-    height: Config.mopidyTrackRowHeight
+    height: controller.effectiveTrackRowHeight
     radius: 4
     color: rowMouse.containsMouse ? controller.hoverBackgroundColor(true) : Config.transparent
     border.width: controller.hoverBorderWidth(rowMouse.containsMouse)
@@ -51,7 +51,7 @@ Rectangle {
                     text: Number(itemData.track.tlid) === controller.currentTlid ? "▶" : String(itemData.queueIndex + 1)
                     color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
                     font.family: Config.font
-                    font.pixelSize: Config.fontSize
+                    font.pixelSize: Config.uiFontSize(Config.fontSize)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -84,7 +84,7 @@ Rectangle {
                 textFormat: trackTextArea.oneLineModeSettled ? Text.StyledText : Text.PlainText
                 color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.text)
                 font.family: Config.mopidyTrackFont
-                font.pixelSize: Config.mopidyTrackFontSize
+                font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyTrackFontSize))
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
@@ -112,7 +112,7 @@ Rectangle {
                     text: itemData.track.artist || ""
                     color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
                     font.family: Config.mopidyArtistFont
-                    font.pixelSize: Config.mopidyArtistFontSize
+                    font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyArtistFontSize))
                     font.bold: Config.mopidyArtistBold
                     font.italic: Config.mopidyArtistItalic
                     elide: Text.ElideRight
@@ -137,7 +137,7 @@ Rectangle {
         text: controller.formatDuration(controller.trackDisplayDuration(itemData.track), controller.trackShowsRemainingTime(itemData.track))
         color: Number(itemData.track.tlid) === controller.currentTlid ? Config.accent : controller.hoverTextColor(rowMouse.containsMouse, Config.textMuted)
         font.family: Config.mopidyDurationFont
-        font.pixelSize: Config.mopidyDurationFontSize
+        font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyDurationFontSize))
         horizontalAlignment: Text.AlignRight
         verticalAlignment: Text.AlignVCenter
     }

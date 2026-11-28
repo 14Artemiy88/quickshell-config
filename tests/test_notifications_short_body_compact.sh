@@ -11,8 +11,8 @@ checks = {
     "short-body minimum follows configured leading visual size while remaining compact without one": "const minimumCardHeight = hasLeadingVisual\n            ? root.notificationLeadingVisualSize + root.notificationCardPadding * 2\n            : (measuredSummaryHeight > 0 ? summaryTopOffset + measuredSummaryHeight + root.notificationCardPadding : appNameBottomOffset + root.notificationCardPadding)",
     "measured body height determines the final card height": "return Math.max(minimumCardHeight, Math.ceil(contentBottomOffset + imageSpace + bottomSpace + progressSpace))",
     "text is measured independently of card geometry": "width: card.textColumnWidth",
-    "actions reserve bottom space when present": "const bottomSpace = root.notificationCardPadding + (hasActions ? 28 : 0)",
-    "empty bodies keep their separate compact layout": "const actionMinimum = hasActions ? 76 : 52",
+    "action buttons no longer reserve bottom space": "const bottomSpace = root.notificationCardPadding",
+    "empty bodies keep their compact layout without action rows": "return Math.max(leadingVisualMinimum, Math.round(52 * root.notificationUiScale), Math.ceil(summaryTopOffset + measuredSummaryHeight + summaryBottomSpace + progressSpace))",
 }
 for description, needle in checks.items():
     assert needle in source, f"{description}: missing expected source fragment {needle!r}"

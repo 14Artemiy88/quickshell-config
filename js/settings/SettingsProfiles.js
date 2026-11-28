@@ -1,6 +1,32 @@
 .pragma library
 
 
+
+function normalizeAnimationProfileValue(value) {
+    var name = String(value === undefined || value === null ? "" : value).trim().toLowerCase()
+    var legacy = {
+        standard: "ease-out", spatial: "ease-out", effects: "ease-in",
+        expressive: "ease-in-out", expressivespatial: "ease-out", expressiveeffects: "ease-in"
+    }
+    if (name === "none" || name === "linear" || name === "ease" || name === "ease-in"
+            || name === "ease-out" || name === "ease-in-out") return name
+    if (Object.prototype.hasOwnProperty.call(legacy, name)) return legacy[name]
+    var match = name.match(/^cubic-bezier\(\s*([^)]*)\s*\)$/i)
+    if (!match) return ""
+    var parts = match[1].split(",")
+    if (parts.length !== 4) return ""
+    var values = []
+    for (var i = 0; i < 4; ++i) {
+        var number = Number(String(parts[i]).trim())
+        if (!isFinite(number)) return ""
+        values.push(number)
+    }
+    if (values[0] < 0 || values[0] > 1 || values[2] < 0 || values[2] > 1) return ""
+    var formatted = []
+    for (var j = 0; j < 4; ++j) formatted.push(String(Math.round(values[j] * 1000) / 1000))
+    return "cubic-bezier(" + formatted.join(", ") + ")"
+}
+
 var SPARSE_FORMAT = "sparse-v1"
 var PROFILE_SETTINGS_SCHEMA_VERSION = 1
 var REPLACE_MARKER = "__profile_replace__"
@@ -122,7 +148,7 @@ var STORAGE_FORMAT = "profile-overrides-v1"
 function fallbackNavigationOrder(source) {
     var groupOrder = ["appearance", "modules", "dashboard", "launcher", "notifications", "general"]
     var defaults = {
-        appearance: ["themes", "settingsWindow"],
+        appearance: ["themes", "interface", "settingsWindow"],
         modules: ["modules", "time", "timers", "player", "mopidy", "weather", "cava", "cpuRam", "network", "volume", "calendar"],
         dashboard: ["dashboard"],
         launcher: ["launcher", "launcherSearch", "launcherTabs", "launcherProjects", "launcherActions", "launcherAnimation", "launcherApplications"],
@@ -319,6 +345,30 @@ function expandStoredSettings(owner, stored) {
         setOwn(normalizedAnimationProfiles, animationProfileName, sparseProfile(owner, animationProfile))
     }
     profiles = normalizedAnimationProfiles
+
+    // Migrate historical motion profiles to CSS timing functions. The profile
+    // keys remain unchanged, so scoped saves and older user files stay compatible.
+    var animationProfileKeys = [
+        "animationNotificationsDndOsdMorphProfile", "animationNotificationsMorphProfile",
+        "animationMopidyMorphProfile", "animationPlayerMorphProfile",
+        "animationWeatherMorphProfile", "animationTimerMorphProfile",
+        "animationNetworkMorphProfile", "animationCavaMorphProfile",
+        "animationCalendarMorphProfile", "animationCpuMorphProfile",
+        "animationLauncherMorphProfile", "animationVolumeMorphProfile",
+        "animationVolumeOsdMorphProfile", "animationPlayerOsdMorphProfile"
+    ]
+    var normalizedCurveProfiles = {}
+    for (var curveProfileName in profiles) {
+        if (!Object.prototype.hasOwnProperty.call(profiles, curveProfileName)) continue
+        var curveProfile = mergeValue(defaults, profiles[curveProfileName])
+        for (var curveIndex = 0; curveIndex < animationProfileKeys.length; ++curveIndex) {
+            var curveKey = animationProfileKeys[curveIndex]
+            var normalizedCurve = normalizeAnimationProfileValue(curveProfile[curveKey])
+            if (normalizedCurve !== "") curveProfile[curveKey] = normalizedCurve
+        }
+        setOwn(normalizedCurveProfiles, curveProfileName, sparseProfile(owner, curveProfile))
+    }
+    profiles = normalizedCurveProfiles
 
     var requested = String(stored.activeProfile || "").trim()
     var active = requested && Object.prototype.hasOwnProperty.call(profiles, requested) ? requested : ""
@@ -522,6 +572,9 @@ function modulePathMatches(path, moduleName) {
         mopidy: ["mopidy", "animationMopidy"], cava: ["cava", "animationCava"], launcher: ["launcher", "animationLauncher"], notifications: ["notifications", "animationNotifications"]
     }[String(moduleName)] || []
     if (String(moduleName) === "cpu" && root === "cpuGraphMode") return false
+    if (String(moduleName) === "volumes" && startsWithAny(root, ["volumeOsd", "animationVolumeOsd"])) return false
+    if (String(moduleName) === "player" && startsWithAny(root, ["playerOsd", "animationPlayerOsd"])) return false
+    if (String(moduleName) === "notifications" && startsWithAny(root, ["notificationsDndOsd", "animationNotificationsDndOsd"])) return false
     return startsWithAny(root, prefixes)
 }
 
@@ -546,14 +599,16 @@ function profileSavePathMatches(owner, scope, argument, path) {
     }
     if (scope === "module") return modulePathMatches(path, argument)
     if (scope === "clock") return startsWithAny(root, ["clock"])
-    if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes" || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityDuration"
+    if (scope === "osd") return root === "osdIntegrateWithNotifications"
+        || startsWithAny(root, ["volumeOsd", "animationVolumeOsd", "playerOsd", "animationPlayerOsd", "notificationsDndOsd", "animationNotificationsDndOsd"])
+    if (scope === "dashboard") return root === "dashboardVisibleCards" || root === "dashboardCardOrder" || root === "dashboardColumnsMode" || root === "dashboardCardSizes" || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityProfile" || root === "animationDashboardVisibilityDuration"
     if (scope === "dashboardModule") {
         if (root === "modules" || root === "moduleFrames" || root === "moduleBackgrounds"
                 || root === "moduleBlurEnabled" || root === "moduleMonitors" || root === "geometry")
             return path.length > 1 && child === "dashboard"
         return root === "dashboardVisibleCards" || root === "dashboardCardOrder"
             || root === "dashboardColumnsMode" || root === "dashboardCardSizes"
-            || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityDuration"
+            || root === "animationDashboardVisibilityStyle" || root === "animationDashboardVisibilityProfile" || root === "animationDashboardVisibilityDuration"
     }
     if (scope === "launcher") {
         if (["modules", "moduleFrames", "moduleBackgrounds", "moduleBlurEnabled", "moduleMonitors", "geometry"].indexOf(root) >= 0)
@@ -563,23 +618,31 @@ function profileSavePathMatches(owner, scope, argument, path) {
     if (scope === "settingsWindow") {
         if (root === "colors") return path.length < 2 || ["settingsBackground", "settingsBorder"].indexOf(child) >= 0
         if (root === "moduleBlurEnabled") return path.length < 2 || child === "settings"
-        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels", "animationSettings"])
+        return startsWithAny(root, ["settingsGeometry", "settingsMonitorName", "settingsFont", "settingsFontSize", "settingsFontScale", "settingsUiScale", "settingsPadding", "settingsSpacing", "settingsSearchHighlightColor", "settingsSearchHighlightBorderWidth", "settingsSearchMatchCountFontSize", "settingsSearchVisible", "settingsNavigationOrder", "settingsTabLabels", "animationSettings"])
     }
     if (scope === "general")
-        return ["font", "fontSize", "ledFont", "frameBorderWidth", "frameRadius", "backgroundBlurRadius"].indexOf(root) >= 0
+        return ["font", "fontSize", "fontScale", "uiScale", "ledFont", "frameBorderWidth", "frameRadius", "cornerRadiusScale", "buttonBordersEnabled", "inputBordersEnabled", "popupBordersEnabled", "cardBordersEnabled", "backgroundBlurRadius"].indexOf(root) >= 0
 
     if (scope === "cpu" && root === "colors")
         return ["topAppsCpuBarColor", "topAppsCpuBarTrackColor", "topAppsRamBarColor", "topAppsRamBarTrackColor"].indexOf(child) >= 0
 
+    if (scope === "player")
+        return startsWithAny(root, ["player", "animationPlayer"])
+            && !startsWithAny(root, ["playerOsd", "animationPlayerOsd"])
+    if (scope === "volume")
+        return startsWithAny(root, ["volume", "animationVolume"])
+            && !startsWithAny(root, ["volumeOsd", "animationVolumeOsd"])
+    if (scope === "notifications")
+        return root !== "notificationsCardWidth"
+            && startsWithAny(root, ["notifications", "animationNotifications"])
+            && !startsWithAny(root, ["notificationsDndOsd", "animationNotificationsDndOsd"])
     var prefixesByScope = {
-        timer: ["timer", "animationTimer"], player: ["player", "animationPlayer"], weather: ["weather", "animationWeather"],
+        timer: ["timer", "animationTimer"], weather: ["weather", "animationWeather"],
         cava: ["cava", "animationCava"], cpu: ["cpu", "cpuGraph", "topApps", "animationCpu"],
-        network: ["network", "systemMonitor", "animationNetwork"], volume: ["volume", "animationVolume"],
-        calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"],
-        notifications: ["notifications", "animationNotifications"]
+        network: ["network", "systemMonitor", "animationNetwork"],
+        calendar: ["calendar", "animationCalendar"], mopidy: ["mopidy", "animationMopidy"]
     }
     var prefixes = prefixesByScope[scope]
-    if (scope === "notifications" && root === "notificationsCardWidth") return false
     if (prefixes) return startsWithAny(root, prefixes)
     return false
 }

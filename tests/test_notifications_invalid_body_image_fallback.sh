@@ -18,7 +18,7 @@ checks = {
     "unknown theme image hints resolve empty rather than to a missing texture": 'Quickshell.iconPath(rawPath, true)' in source and 'return String(checkedIconSource || "")' in source,
     "embedded image-data keeps the native notification image source": 'return String(notification.image || "").trim()' in source,
     "body image is separate and preserves aspect ratio": 'id: bodyImage' in source and 'source: card.imageSource' in source and 'fillMode: Image.PreserveAspectFit' in source,
-    "preview is bounded and card height accounts for it": 'readonly property int notificationImageHeight: Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0))' in source and 'const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0' in source,
+    "preview is bounded and card height accounts for it": 'readonly property int notificationImageHeight: Math.round(Math.max(0, Math.min(320, Number(Config.notificationsImageHeight) || 0)) * notificationUiScale)' in source and 'const imageSpace = hasImage ? notificationImageGap + notificationImageHeight : 0' in source,
     "progress track remains below a successfully loaded image": 'anchors.top: card.hasNotificationImage\n                            ? bodyImage.bottom' in source[source.index('id: progressTrack'):],
 }
 

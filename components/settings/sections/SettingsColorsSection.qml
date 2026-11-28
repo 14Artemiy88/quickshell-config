@@ -62,7 +62,7 @@ Flickable {
                     Text {
                         text: "Тема" + (settings.currentThemeModified ? " (Changed)" : "")
                         color: settings.currentThemeModified ? Config.tempWarm : Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                     }
 
@@ -85,7 +85,7 @@ Flickable {
                         toRadius: Config.frameRadius
                         progress: root.themesExpanded ? 1 : 0
                         animationDuration: Config.animationDuration(180, "appearance")
-                        animationEasing: Config.animationEasingType("standard", root.themesExpanded ? "enter" : "exit")
+                        animationEasing: Config.animationEasingType("ease-out", root.themesExpanded ? "enter" : "exit")
 
                         Column {
                             id: expandedThemeContent
@@ -101,7 +101,7 @@ Flickable {
                                 width: expandedThemeList.width
                                 height: 42
                                 radius: 5
-                                color: Config.settingsBackground
+                                color: "transparent"
                                 border.color: themeName === settings.activeTheme ? Config.accent : Config.baseColor
                                 border.width: themeName === settings.activeTheme ? 2 : 1
                                 opacity: settings.currentThemeModified && root.editingColors ? 0.65 : 1
@@ -117,7 +117,7 @@ Flickable {
                                         height: parent.height
                                         text: themeCard.themeName + (themeCard.themeName === settings.activeTheme && settings.currentThemeModified ? " (Changed)" : "")
                                         color: themeCard.themeName === settings.activeTheme ? Config.accent : Config.text
-                                        font.family: Config.settingsFont
+                                        font.family: Config.settingsFontFamily
                                         font.pixelSize: Config.settingsUiSize(10)
                                         verticalAlignment: Text.AlignVCenter
                                         elide: Text.ElideRight
@@ -174,7 +174,7 @@ Flickable {
                             visible: themeSelectorSlot.showThemeCombo
                             model: settings.themeNames
                             currentIndex: Math.max(0, settings.themeNames.indexOf(settings.activeTheme))
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             onItemChosen: function(index) {
                                 var name = settings.themeNames[index]
@@ -182,9 +182,9 @@ Flickable {
                                     settings.applyTheme(name)
                             }
                             background: Rectangle {
-                                color: Config.settingsBackground
+                                color: "transparent"
                                 border.color: (themeCombo.activeFocus || themeCombo.pointerHovered) ? Config.accent : Config.baseColor
-                                border.width: 1
+                                border.width: (Config.inputBordersEnabled || themeCombo.activeFocus) ? 1 : 0
                                 radius: Config.frameRadius
                             }
                             contentItem: Text {
@@ -192,7 +192,7 @@ Flickable {
                                 rightPadding: 30
                                 text: themeCombo.currentText
                                 color: Config.text
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(11)
                                 verticalAlignment: Text.AlignVCenter
                                 elide: Text.ElideRight
@@ -216,13 +216,13 @@ Flickable {
                             color: Config.text
                             selectionColor: Config.accent
                             selectedTextColor: Config.black
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             activeFocusOnTab: true
                             background: Rectangle {
-                                color: Config.settingsBackground
+                                color: "transparent"
                                 border.color: (themeNameField.activeFocus || themeNameField.pointerHovered) ? Config.accent : Config.tempWarm
-                                border.width: 1
+                                border.width: (Config.inputBordersEnabled || themeNameField.activeFocus) ? 1 : 0
                                 radius: Config.frameRadius
                             }
                             function saveThemeFromField() {
@@ -247,7 +247,7 @@ Flickable {
                         visible: root.themeActionMessage.length > 0
                         text: root.themeActionMessage
                         color: root.themeActionMessageIsError ? Config.tempHot : Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(9)
                         wrapMode: Text.WordWrap
                     }
@@ -309,7 +309,7 @@ Flickable {
                         toGeometry: Qt.rect(0, 0, parent.width, customThemeRenameContent.implicitHeight)
                         progress: root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? 1 : 0
                         animationDuration: Config.animationDuration(180, "appearance")
-                        animationEasing: Config.animationEasingType("standard", root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? "enter" : "exit")
+                        animationEasing: Config.animationEasingType("ease-out", root.editingColors && settings.isCustomTheme(settings.activeTheme) && !settings.currentThemeModified ? "enter" : "exit")
 
                         Column {
                             id: customThemeRenameContent
@@ -329,13 +329,13 @@ Flickable {
                                     color: Config.text
                                     selectionColor: Config.accent
                                     selectedTextColor: Config.black
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     activeFocusOnTab: true
                                     background: Rectangle {
-                                        color: Config.settingsBackground
+                                        color: "transparent"
                                         border.color: (themeRenameField.activeFocus || themeRenameField.pointerHovered) ? Config.accent : Config.baseColor
-                                        border.width: 1
+                                        border.width: (Config.inputBordersEnabled || themeRenameField.activeFocus) ? 1 : 0
                                         radius: Config.frameRadius
                                     }
                                     function renameCurrentTheme() {
@@ -380,7 +380,7 @@ Flickable {
                                     width: parent.width
                                     text: "Удалить пользовательскую тему «" + root.pendingDeleteThemeName + "»?"
                                     color: Config.textMuted
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(10)
                                     wrapMode: Text.WordWrap
                                 }
@@ -446,7 +446,7 @@ Flickable {
                     toGeometry: Qt.rect(0, 0, parent.width, customThemeColorsContent.implicitHeight)
                     progress: root.editingColors ? 1 : 0
                     animationDuration: Config.animationDuration(180, "appearance")
-                    animationEasing: Config.animationEasingType("standard", root.editingColors ? "enter" : "exit")
+                    animationEasing: Config.animationEasingType("ease-out", root.editingColors ? "enter" : "exit")
 
                     Column {
                         id: customThemeColorsContent
@@ -489,39 +489,39 @@ Flickable {
                             delegate: SettingsGroup {
                                 width: parent.width
                                 contentSpacing: 5
-                                showFrame: false
-
-                                Row {
-                                    width: parent.width
-                                    height: 30
-                                    Text {
-                                        width: parent.width - (host && host.profileController.canSaveScope("colors", modelData.colors) ? 76 : 38)
-                                        text: modelData.title
-                                        color: Config.accent
-                                        font.family: Config.settingsFont
-                                        font.pixelSize: Config.settingsUiSize(14)
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                    SettingsSaveButton {
-                                        actionAvailable: host && host.profileController.canSaveScope("colors", modelData.colors)
-                                        tooltip: "Сохранить цвета: " + modelData.title
-                                        onClicked: host.profileController.saveScope("colors", modelData.colors)
-                                    }
-                                    SettingsResetButton {
-                                        width: 30
-                                        height: 30
-                                        enabled: host && host.profileController.hasActiveProfile
-                                        actionAvailable: host.profileController.canResetScope("colors", modelData.colors)
-                                        tooltip: "Сбросить цвета: " + modelData.title
-                                        onClicked: settings.resetColors(modelData.colors)
+                                showFrame: true
+                                heading: modelData.title
+                                padding: 8
+                                headingActions: Component {
+                                    Row {
+                                        spacing: 2
+                                        height: 20
+                                        SettingsSaveButton {
+                                            width: 18
+                                            height: 18
+                                            fontSize: 9
+                                            actionAvailable: host && host.profileController.canSaveScope("colors", modelData.colors)
+                                            tooltip: "Сохранить цвета: " + modelData.title
+                                            onClicked: host.profileController.saveScope("colors", modelData.colors)
+                                        }
+                                        SettingsResetButton {
+                                            width: 18
+                                            height: 18
+                                            fontSize: 10
+                                            enabled: host && host.profileController.hasActiveProfile
+                                            actionAvailable: host.profileController.canResetScope("colors", modelData.colors)
+                                            tooltip: "Сбросить цвета: " + modelData.title
+                                            onClicked: settings.resetColors(modelData.colors)
+                                        }
                                     }
                                 }
 
-                                Text {
-                                    visible: modelData.title === "Громкость"
+                                SettingsDescription {
+                                    descriptionConditionVisible: modelData.title === "Громкость"
+                                    height: visible ? implicitHeight : 0
                                     text: "Цвета полос громкости применяются ко всем слайдерам этого блока"
                                     color: Config.textMuted
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(9)
                                     elide: Text.ElideRight
                                 }
@@ -569,6 +569,8 @@ Flickable {
                                             allowAlpha: true
                                             allowTransparent: true
                                             fieldWidth: 120
+                                            fieldHeight: 26
+                                            swatchSize: 22
                                             compact: false
                                             onValueEdited: function(value) { settings.setThemeDraftColor(colorName, value) }
                                         }

@@ -6,7 +6,7 @@ fail() { echo "Player progress live MorphGeometry: FAIL: $*" >&2; exit 1; }
 
 grep -Fq 'import "primitives" as Primitives' "$QML" || fail "shared MorphGeometry import missing"
 for token in \
-    'readonly property real playerProgressHeight: Math.max(1, Config.playerProgressTrackHeight)' \
+    'readonly property real playerProgressHeight: root.effectivePlayerProgressTrackHeight' \
     'id: playerProgressMorph' \
     'progress: Config.playerShowProgress ? 1 : 0' \
     'visible: Config.playerShowProgress || normalizedProgress > 0.001' \
@@ -41,7 +41,7 @@ for i in range(opening,len(s)):
         if depth==0: end=i+1; break
 assert end is not None, "progress morph braces unbalanced"
 block=s[start:end]
-assert "fromGeometry: Qt.rect(0, root.height - Config.playerProgressY - root.playerProgressHeight, root.width, root.playerProgressHeight)" in block
+assert "fromGeometry: Qt.rect(0, root.height - root.effectivePlayerProgressY - root.playerProgressHeight, root.width, root.playerProgressHeight)" in block
 assert "toGeometry: fromGeometry" in block, "outer progress slot must keep fixed geometry"
 assert "Slider {\n                id: progress\n                anchors.fill: parent" in block
 slider_start=block.find("Slider {\n                id: progress")

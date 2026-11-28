@@ -9,7 +9,7 @@ window = (root / "components/settings/sections/SettingsWindowSection.qml").read_
 button = (root / "components/settings/primitives/SettingsButton.qml").read_text()
 reset = (root / "components/settings/primitives/SettingsResetButton.qml").read_text()
 weather = (root / "components/settings/sections/SettingsWeatherSection.qml").read_text()
-general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text()
+general = (root / "components/settings/sections/SettingsInterfaceSection.qml").read_text()
 
 profile_area = window[window.index('text: "Активный профиль"'):window.index('id: profileActionFeedback')]
 assert 'iconText: "\\uf019"' in profile_area, "Load profile button should use a Nerd Font download icon"

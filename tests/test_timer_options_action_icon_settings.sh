@@ -58,7 +58,7 @@ require(settings, 'function moveTimerOptionsActionIconOrderTo(iconId, destinatio
 require(settings, 'listRepeater: timerOptionsActionIconsRepeater', 'popup icon rows must be valid drop targets')
 require(settings, 'root.moveTimerOptionsActionIconOrderTo(modelData, toIndex)', 'drag drop must commit the selected destination')
 require(settings, 'keys: ["timerOptionsActionIconOrder"]', 'frame dirty tracking must include action order')
-require(widget, 'keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsDuration"]', 'timer options subtab dirty tracking must include icon order')
+require(widget, 'keys: ["timerOptionsActionIconOrder", "animationTimerOptionsVisibilityStyle", "animationTimerOptionsVisibilityProfile", "animationTimerOptionsDuration"]', 'timer options subtab dirty tracking must include icon order')
 
 # Verify all action IDs are included in timer-module profile and reset paths.
 for name in ids:

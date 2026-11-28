@@ -34,7 +34,7 @@ Row {
             - (root.canResetPage ? 38 : 0))
         text: root.host ? root.host.currentPageTitle : ""
         color: Config.accent
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(15)
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight

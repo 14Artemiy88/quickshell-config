@@ -8,6 +8,7 @@ import "components/settings"
 import "services"
 import "components/primitives" as Primitives
 import "components/notifications" as NotificationComponents
+import "components/osd"
 
 ShellRoot {
     id: shell
@@ -21,6 +22,7 @@ ShellRoot {
     Component.onCompleted: storageCleanupProcess.running = true
     Clock { id: clock; active: Settings.loaded && (Settings.time || shell.dashboardVisible || ((shell.calendarVisible || Config.calendarAlwaysVisible) && Settings.calendar)) }
     SystemMonitor { id: monitor }
+    SystemOsd { id: systemOsd }
     // Keep the NotificationServer QML bridge alive for the whole shell session.
     // Quickshell 0.3.1 backs it with a process-wide C++ singleton that keeps
     // org.freedesktop.Notifications registered even if this Loader is destroyed.
@@ -172,11 +174,24 @@ ShellRoot {
         }
     }
 
-    // Load the optional launcher on demand so normal widget startup does not
-    // depend on launcher-only QML components or Niri being installed.
+    // Keep the launcher out of the critical shell startup path, then warm its
+    // QML component asynchronously after the settings snapshot is ready. Its
+    // user data/process initialization remains deferred until the first open.
+    Timer {
+        id: launcherWarmupTimer
+        interval: 1800
+        repeat: false
+        running: Settings.loaded && Config.launcherEnabled && launcherLoader.status === Loader.Null
+        onTriggered: {
+            if (Settings.loaded && Config.launcherEnabled && launcherLoader.status === Loader.Null)
+                launcherLoader.active = true
+        }
+    }
+
     Loader {
         id: launcherLoader
         active: false
+        asynchronous: true
         source: "components/launcher/Launcher.qml"
         onLoaded: {
             item.layoutEditor = moduleLayoutEditorWindow
@@ -332,7 +347,7 @@ ShellRoot {
         visible: Settings.topAppsCpu
         offsetX: Settings.geometryForLayout("topAppsCpu")[0]
         offsetY: Settings.geometryForLayout("topAppsCpu")[1]
-        contentWidth: Math.max(Settings.geometry.topAppsCpu[2], topAppsCpuView.requiredContentWidth)
+        contentWidth: Settings.geometry.topAppsCpu[2]
         contentHeight: Settings.geometry.topAppsCpu[3]
         TopApps { id: topAppsCpuView; anchors.fill: parent; monitor: monitor; sectionType: "cpu" }
     }
@@ -343,7 +358,7 @@ ShellRoot {
         visible: Settings.topAppsRam
         offsetX: Settings.geometryForLayout("topAppsRam")[0]
         offsetY: Settings.geometryForLayout("topAppsRam")[1]
-        contentWidth: Math.max(Settings.geometry.topAppsRam[2], topAppsRamView.requiredContentWidth)
+        contentWidth: Settings.geometry.topAppsRam[2]
         contentHeight: Settings.geometry.topAppsRam[3]
         TopApps { id: topAppsRamView; anchors.fill: parent; monitor: monitor; sectionType: "ram" }
     }
@@ -485,25 +500,34 @@ ShellRoot {
                 timerOptionsPopup.closing = false
             }
 
-            TimerOptions {
-                id: timerOptionsPopup
+            // Keep persisted timerOptions geometry logical while scaling the
+            // complete popup surface and its hit targets with ordinary modules.
+            Item {
+                id: timerOptionsScaleHost
                 x: Settings.geometry.timerOptions[0]
                 y: Settings.geometry.timerOptions[1]
                 width: Math.max(110, Settings.geometry.timerOptions[2])
                 height: Settings.geometry.timerOptions[3]
+                scale: Config.moduleUiScale()
+                transformOrigin: Item.TopLeft
                 z: 1
-                timers: timerWidget.timers
-                selectedFile: timerWidget.selectedFile
-                onCloseRequested: timerOptionsOverlay.closeForOptions()
-                onCommentRequested: file => {
-                    timerOptionsPopup.commentFile = file
-                    timerOptionsPopup.commentText = timerWidget.commentForFile(file)
-                    timerOptionsPopup.commentMode = true
-                    timerOptionsPopup.focusCommentInput()
-                }
-                onCloseFinished: {
-                    timerWidget.selectedFile = ""
-                    timerOptionsOverlay.hideAfterClose()
+
+                TimerOptions {
+                    id: timerOptionsPopup
+                    anchors.fill: parent
+                    timers: timerWidget.timers
+                    selectedFile: timerWidget.selectedFile
+                    onCloseRequested: timerOptionsOverlay.closeForOptions()
+                    onCommentRequested: file => {
+                        timerOptionsPopup.commentFile = file
+                        timerOptionsPopup.commentText = timerWidget.commentForFile(file)
+                        timerOptionsPopup.commentMode = true
+                        timerOptionsPopup.focusCommentInput()
+                    }
+                    onCloseFinished: {
+                        timerWidget.selectedFile = ""
+                        timerOptionsOverlay.hideAfterClose()
+                    }
                 }
             }
         }
@@ -530,6 +554,8 @@ ShellRoot {
                     ? timerFinishedImageTitle.y + timerFinishedImageTitle.height + Config.timerFinishedImageMargin + timerFinishedImage.height + Config.timerFinishedImageMargin
                     : 102
                 color: Config.timerFinishedBackgroundUsesTimerColor ? shell.timerFinishedColor : Config.timerFinishedBackgroundColor
+                scale: Config.moduleUiScale()
+                transformOrigin: Item.Center
                 focus: true
 
                 Component.onCompleted: forceActiveFocus()
@@ -540,9 +566,9 @@ ShellRoot {
                         event.accepted = true
                     }
                 }
-                radius: Config.frameRadius
+                radius: Config.scaledCornerRadius(Config.frameRadius)
                 border.color: Config.timerFinishedBorderUsesTimerColor ? shell.timerFinishedColor : Config.baseColor
-                border.width: Config.frameBorderWidth
+                border.width: Config.popupBordersEnabled ? Config.frameBorderWidth : 0
                 antialiasing: true
 
                 Image {
@@ -567,7 +593,7 @@ ShellRoot {
                     text: shell.timerFinishedTitle || "Время вышло"
                     color: Config.timerFinishedTitleUsesTimerColor ? shell.timerFinishedColor : Config.timerFinishedTitleColor
                     font.family: Config.timerFinishedTitleFont
-                    font.pixelSize: Config.timerFinishedTitleFontSize
+                    font.pixelSize: Config.uiFontSize(Config.timerFinishedTitleFontSize)
                     horizontalAlignment: Config.timerFinishedTitleAlignment === 0
                         ? Text.AlignLeft
                         : (Config.timerFinishedTitleAlignment === 2 ? Text.AlignRight : Text.AlignHCenter)
@@ -584,7 +610,7 @@ ShellRoot {
                     text: "󰀠  Таймер завершён"
                     color: shell.timerFinishedColor
                     font.family: Config.ledFont
-                    font.pixelSize: 18
+                    font.pixelSize: Config.uiFontSize(18)
                 }
 
                 Text {
@@ -595,8 +621,8 @@ ShellRoot {
                     height: 20
                     text: shell.timerFinishedComment || "Время вышло"
                     color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: 13
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(13)
                     elide: Text.ElideRight
                 }
 
@@ -608,8 +634,8 @@ ShellRoot {
                     height: 18
                     text: "динь-динь"
                     color: Config.textDim
-                    font.family: Config.settingsFont
-                    font.pixelSize: 10
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(10)
                 }
 
                 MouseArea {
@@ -679,6 +705,8 @@ ShellRoot {
         id: calendarWindow
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "calendar"
+        visibilityAnimationStyle: Config.animationCalendarVisibilityStyle
+        visibilityAnimationProfile: Config.animationCalendarVisibilityProfile
         layoutEditMode: shell.layoutEditMode
         // Keep this transparent surface alive while the module is enabled.
         // Otherwise the compositor can animate the layer-shell window itself,
@@ -704,6 +732,7 @@ ShellRoot {
             anchors.fill: parent
             shown: shell.calendarVisible || Config.calendarAlwaysVisible
             animationStyle: Config.animationCalendarVisibilityStyle
+            animationProfile: Config.animationCalendarVisibilityProfile
             duration: Config.animationCalendarVisibilityStyle === "none" ? 0 : Config.animationDuration(Config.animationCalendarVisibilityStyle === "fade" ? Config.animationCalendarFadeDuration : Config.animationCalendarSlideDuration, "appearance")
             CalendarWidget { id: calendarNotesWidget; anchors.fill: parent; date: clock.now; open: true }
         }
@@ -733,6 +762,8 @@ ShellRoot {
             id: playerWidget
             anchors.fill: parent
             anchors.margins: 0
+            dashboardActive: Settings.dashboard && shell.dashboardVisible
+            onMediaTrackChanged: function(snapshot) { systemOsd.showMediaOsd(snapshot) }
             onMopidyToggleRequested: {
                 if (Settings.mopidy && Config.mopidyToggleWithPlayerRightClick) {
                     if (shell.mopidyVisible) {
@@ -748,6 +779,8 @@ ShellRoot {
         id: mopidyWindow
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "mopidy"
+        visibilityAnimationStyle: Config.animationMopidyVisibilityStyle
+        visibilityAnimationProfile: Config.animationMopidyVisibilityProfile
         layoutEditMode: shell.layoutEditMode
         // Keep the transparent surface alive while Mopidy is enabled; only
         // its input and blur regions follow the module's visible/animated item.
@@ -767,6 +800,7 @@ ShellRoot {
             anchors.fill: parent
             shown: !Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible
             animationStyle: Config.animationMopidyVisibilityStyle
+            animationProfile: Config.animationMopidyVisibilityProfile
             duration: Config.animationMopidyVisibilityStyle === "none" ? 0 : Config.animationDuration(280, "appearance")
             MopidyComponents.Mopidy {
                 id: mopidyWidget
@@ -782,8 +816,8 @@ ShellRoot {
         // is available; otherwise it would remain an input-blocking surface too.
         visible: Settings.mopidy && (!Config.mopidyToggleWithPlayerRightClick || shell.mopidyVisible) && Config.mopidyHideTopPanel && !shell.mopidyTopReveal
         screen: mopidyWindow.screen
-        implicitWidth: Settings.geometry.mopidy[2]
-        implicitHeight: Config.mopidyTopPanelHoverHeight
+        implicitWidth: Math.round(Settings.geometry.mopidy[2] * Config.moduleUiScale())
+        implicitHeight: Math.round(Config.mopidyTopPanelHoverHeight * Config.moduleUiScale())
         color: Config.transparent
         focusable: false
         exclusionMode: ExclusionMode.Ignore
@@ -832,6 +866,8 @@ ShellRoot {
     WidgetWindow {
         layoutEditor: moduleLayoutEditorWindow
         moduleName: "networks"
+        visibilityAnimationStyle: Config.animationNetworkVisibilityStyle
+        visibilityAnimationProfile: Config.animationNetworkVisibilityProfile
         layoutEditMode: shell.layoutEditMode
         visible: Settings.networks
         manageInputMask: true
@@ -850,6 +886,7 @@ ShellRoot {
             anchors.fill: parent
             shown: Config.networksAlwaysVisible || shell.networksVisible || shell.layoutEditMode
             animationStyle: Config.animationNetworkVisibilityStyle
+            animationProfile: Config.animationNetworkVisibilityProfile
             duration: Config.animationNetworkVisibilityDuration
             Networks {
                 id: networksContent
@@ -863,6 +900,8 @@ ShellRoot {
     WidgetWindow {
         id: settingsWindow
         moduleName: "settings"
+        visibilityAnimationStyle: Config.animationSettingsVisibilityStyle
+        visibilityAnimationProfile: Config.animationSettingsVisibilityProfile
         settingsDragMode: shell.settingsMoveMode
         layoutEditMode: shell.settingsMoveMode
         layoutEditor: layoutEditorWindow
@@ -889,6 +928,7 @@ ShellRoot {
             shown: shell.settingsVisible
             cacheContent: true
             animationStyle: Config.animationSettingsVisibilityStyle
+            animationProfile: Config.animationSettingsVisibilityProfile
             duration: Config.animationSettingsVisibilityStyle === "none" ? 0 : Config.animationDuration(300, "appearance")
             SettingsWidget {
                 id: settingsWidget
@@ -917,8 +957,8 @@ ShellRoot {
                         "settings",
                         Number(moveScreen.x || 0) + Number(geometry[0] || 0),
                         Number(moveScreen.y || 0) + Number(geometry[1] || 0),
-                        Number(geometry[2] || settingsWindow.width || 560),
-                        Number(geometry[3] || settingsWindow.height || 850),
+                        Number(geometry[2] || settingsWindow.visualContentWidth || 560),
+                        Number(geometry[3] || settingsWindow.visualContentHeight || 850),
                         settingsWindow.screenStorageName(moveScreen)
                     )
                 })

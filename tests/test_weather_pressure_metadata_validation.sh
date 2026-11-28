@@ -42,7 +42,7 @@ assert(weatherNow.includes('DashboardCards.normalizeWeatherPressure(pressure)'),
 assert(weatherNow.includes('text: root.normalizedPressure')
     && weatherNow.includes('visible: root.normalizedPressure !== ""'),
   'invalid pressure values are hidden');
-assert(weatherNow.includes('text: "MM.PT.CT"\n                    visible: root.normalizedPressure !== ""'),
+assert(weatherNow.includes('text: "MM.PT.CT"\n                        visible: root.normalizedPressure !== ""'),
   'pressure unit is hidden together with an invalid or absent measurement');
 assert(!weatherNow.includes('text: root.weather.pressure?.mm_hg_atm ?? ""'),
   'Weather Now no longer renders raw pressure metadata');

@@ -35,19 +35,19 @@ Column {
     }
 
     SettingsGroup {
-                visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 7
-settingsSearchSubTabIndex: 7
+        visible: root.host && root.host.currentPageId === "player" && root.host.currentPageSubTabIndex === 7 && Config.settingsShowDescriptions
+        settingsSearchSubTabIndex: 7
         width: parent.width
         showFrame: true
         heading: "Что управляется"
         padding: 8
         contentSpacing: 4
-        Text {
+        SettingsDescription {
             width: parent.width
             wrapMode: Text.WordWrap
             text: "Настройки влияют на раскрытие метаданных, появление кнопки следующего трека и показ шкалы прогресса. Они не меняют анимацию появления самого модуля плеера."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
         }
     }

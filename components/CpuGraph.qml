@@ -9,8 +9,27 @@ Primitives.ModuleFrame {
     id: root
     moduleName: "cpuGraph"
     width: 315
-    height: 82
+    height: compactPresentation ? 70 : widePresentation ? 94 : 82
     property var values: []
+    readonly property real effectiveGraphSlotWidth: {
+        var available = Math.max(51, widthBudget - 6)
+        var configured = Math.max(1, Number(Config.cpuGraphSegmentSlotWidth) || 1)
+        if (compactPresentation)
+            return Math.max(1, Math.min(configured, available / 51))
+        // Keep the legacy 315px baseline, but distribute all 51 slots across
+        // any wider regular or wide surface instead of leaving a trailing gap.
+        if (widthBudget > 315 || widePresentation)
+            return Math.max(1, available / 51)
+        return configured
+    }
+    readonly property real effectiveGraphBarWidth: {
+        var configuredSlot = Math.max(1, Number(Config.cpuGraphSegmentSlotWidth) || 1)
+        var configuredBar = Math.max(1, Number(Config.cpuGraphBarWidth) || 1)
+        // Keep the configured density at the 315px baseline, then grow each
+        // visible bar in proportion to its slot as the host gets wider.
+        var widthScale = Math.max(1, effectiveGraphSlotWidth / configuredSlot)
+        return Math.max(1, Math.min(effectiveGraphSlotWidth, configuredBar * widthScale))
+    }
 
     Process {
         id: proc
@@ -54,8 +73,8 @@ Primitives.ModuleFrame {
                     anchors.fill: parent
                     values: root.values
                     barCount: 51
-                    slotWidth: Config.cpuGraphSegmentSlotWidth
-                    barWidth: Config.cpuGraphBarWidth
+                    slotWidth: root.effectiveGraphSlotWidth
+                    barWidth: root.effectiveGraphBarWidth
                     barColor: Config.baseColor
                     barBorderColor: Config.baseColor
                     barBorderWidth: 1
@@ -70,8 +89,8 @@ Primitives.ModuleFrame {
                     anchors.fill: parent
                     values: root.values
                     barCount: 51
-                    slotWidth: Config.cpuGraphSegmentSlotWidth
-                    barWidth: Config.cpuGraphBarWidth
+                    slotWidth: root.effectiveGraphSlotWidth
+                    barWidth: root.effectiveGraphBarWidth
                     barColor: Config.baseColor
                     barBorderColor: Config.baseColor
                     barBorderWidth: 1
@@ -92,8 +111,8 @@ Primitives.ModuleFrame {
                 anchors.fill: parent
                 values: root.values
                 barCount: 51
-                slotWidth: Config.cpuGraphSegmentSlotWidth
-                barWidth: Config.cpuGraphBarWidth
+                slotWidth: root.effectiveGraphSlotWidth
+                barWidth: root.effectiveGraphBarWidth
                 barColor: Config.baseColor
                 barBorderColor: Config.baseColor
                 barBorderWidth: 1
@@ -113,8 +132,8 @@ Primitives.ModuleFrame {
                 anchors.fill: parent
                 values: root.values
                 barCount: 51
-                slotWidth: Config.cpuGraphSegmentSlotWidth
-                barWidth: Config.cpuGraphBarWidth
+                slotWidth: root.effectiveGraphSlotWidth
+                barWidth: root.effectiveGraphBarWidth
                 barColor: Config.baseColor
                 barBorderColor: Config.baseColor
                 barBorderWidth: 1

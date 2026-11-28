@@ -83,7 +83,7 @@ settingsSearchSubTabIndex: 0
             toGeometry: Qt.rect(0, 0, parent.width, cavaHideZeroBarsContent.implicitHeight)
             progress: Config.cavaHideWhenSilent ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.cavaHideWhenSilent ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.cavaHideWhenSilent ? "enter" : "exit")
 
             SettingsRow {
                 id: cavaHideZeroBarsContent
@@ -258,17 +258,18 @@ settingsSearchSubTabIndex: 1
         }
 
         SettingsGroup {
+            visible: Config.settingsShowDescriptions
             width: parent.width
             showFrame: true
             heading: "Что управляется"
             padding: 8
             contentSpacing: 4
-            Text {
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Профиль и длительность управляют плавным появлением и скрытием графика при обнаружении или потере звука. Эффект используется, когда включено «Скрывать полоски без звука». Анимация появления самого модуля остаётся независимой."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }

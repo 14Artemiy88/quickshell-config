@@ -23,7 +23,7 @@ player=read('components/Player.qml')
 for token in (
     'property bool animationPlayerMorphEnabled: true',
     'property int animationPlayerMorphDuration: 180',
-    'property string animationPlayerMorphProfile: "expressive"',
+    'property string animationPlayerMorphProfile: "ease-in-out"',
 ):
     assert token in config, f'missing Config default: {token}'
     literal=token.replace('property bool ', '').replace('property int ', '').replace('property string ', '')
@@ -39,7 +39,7 @@ assert 'var legacyPlayerMorphEnabled = o.animationPlayerMorphEnabled' in apply
 assert 'Config.animationPlayerMorphEnabled = true' in apply
 assert 'if (legacyPlayerMorphEnabled === false)' in apply and 'Config.animationPlayerMorphProfile = "none"' in apply
 assert 'Math.max(0, Math.min(5000, Math.round(playerMorphDuration)))' in apply
-assert 'var allowedPlayerMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply
+assert 'applyMorphProfile(Config, o, "animationPlayerMorphProfile")' in apply
 assert 'player: ["player", "animationPlayer"]' in profiles
 assert 'player: ["player", "animationPlayer"]' in profiles
 

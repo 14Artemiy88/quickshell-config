@@ -3,12 +3,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 need() { grep -Fq -- "$2" "$1" || { echo "missing '$2' in $1" >&2; exit 1; }; }
 need "$ROOT/Config.qml" 'property int animationNetworkMorphDuration: 220'
-need "$ROOT/Config.qml" 'property string animationNetworkMorphProfile: "expressive"'
+need "$ROOT/Config.qml" 'property string animationNetworkMorphProfile: "ease-in-out"'
 need "$ROOT/js/settings/SettingsDefaults.js" 'animationNetworkMorphDuration: 220'
-need "$ROOT/js/settings/SettingsDefaults.js" 'animationNetworkMorphProfile: "expressive"'
+need "$ROOT/js/settings/SettingsDefaults.js" 'animationNetworkMorphProfile: "ease-in-out"'
 need "$ROOT/js/settings/SettingsPersistence.js" 'animationNetworkMorphDuration: config.animationNetworkMorphDuration'
 need "$ROOT/js/settings/SettingsPersistence.js" 'animationNetworkMorphProfile: config.animationNetworkMorphProfile'
-need "$ROOT/js/settings/SettingsApplyBehaviour.js" 'allowedNetworkMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]'
+need "$ROOT/js/settings/SettingsApplyBehaviour.js" 'applyMorphProfile(Config, o, "animationNetworkMorphProfile")'
 need "$ROOT/js/settings/SettingsPageRegistry.js" 'subTabs: ["Обновления", "Сеть", "Анимация"]'
 need "$ROOT/components/settings/sections/SettingsNetworkSection.qml" 'SettingsAnimationGroup {'
 need "$ROOT/components/settings/sections/SettingsNetworkSection.qml" 'currentPageSubTabIndex === 2'

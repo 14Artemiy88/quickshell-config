@@ -25,7 +25,7 @@ const definitions = Array.from(registry.tabDefinitions());
 const otherPages = Array.from(registry.otherPageDefinitions());
 const ids = definitions.map(page => page.id);
 assert(widget.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes the controller-owned stable page ID');
-assert(navigation.includes('property string currentPageId: "general"'), 'navigation controller owns one stable primary page ID with General as the first-run fallback');
+assert(navigation.includes('property string currentPageId: "interface"'), 'navigation controller owns one stable primary page ID with General as the first-run fallback');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widget), 'numeric main/other page route state is removed');
 assert(!/currentPageId\s*===\s*\d+/.test(widget), 'page comparisons never use numeric indices');
 assert(searchController.includes('root.host.currentPageId = entry.pageId'), 'search navigation opens the result page by ID through the host');
@@ -60,14 +60,15 @@ assert.strictEqual(registry.pageForId('unknown'), null, 'unknown page ID does no
 assert.strictEqual(registry.hasOtherPageId('unknown'), false, 'unknown page ID is not routable');
 assert.deepStrictEqual(Array.from(registry.subtabsForPageId('unknown')), [], 'unknown page ID has no subtabs');
 assert.strictEqual(registry.saveScopeForPageId('unknown', 0), '', 'unknown page ID has no save scope');
-assert.strictEqual(registry.saveScopeForPageId('general', 1), '', 'General profile subtab has no unrelated scoped save');
+assert.strictEqual(registry.saveScopeForPageId('general', 0), '', 'General profile/storage page has no scoped save');
+assert.strictEqual(registry.saveScopeForPageId('interface', 0), 'general', 'moved Interface page retains the original general settings scope');
 
 const resetStart = navigation.indexOf('    function resetCurrentSettingsPage() {');
 const resetEnd = navigation.indexOf('\n    function setSettingsTabLabel', resetStart);
 assert(resetStart >= 0 && resetEnd > resetStart, 'stable-ID reset dispatcher exists');
 const resetSource = navigation.slice(resetStart, resetEnd).trim();
 const resetMethods = {
-  general: 'resetGeneralSettings', timers: 'resetTimerSettings', player: 'resetPlayerSettings',
+  interface: 'resetGeneralSettings', timers: 'resetTimerSettings', player: 'resetPlayerSettings',
   weather: 'resetWeatherSettings', cava: 'resetCavaSettings', cpuRam: 'resetCpuSettings',
   network: 'resetNetworkSettings', volume: 'resetVolumeSettings', calendar: 'resetCalendarSettings',
   settingsWindow: 'resetSettingsWindow', mopidy: 'resetMopidySettings', launcher: 'resetLauncherSettings',
@@ -93,7 +94,11 @@ const context = {};
 vm.createContext(context);
 vm.runInContext(navigation.slice(specStart, specEnd).trim() + '\nthis.spec = settingsSubTabChangeSpec;', context);
 for (const page of otherPages) {
-  if (page.subTabs.length > 0) {
+  if (page.id === 'general') {
+    assert.strictEqual(context.spec(page.id, 0), null, 'General profiles/storage subtabs have no page-level dirty scope');
+  } else if (page.id === 'interface') {
+    assert.strictEqual(registry.saveScopeForPageId(page.id, 0), 'general', 'Interface retains general-scope save/reset');
+  } else if (page.subTabs.length > 0) {
     assert(context.spec(page.id, 0) !== null, `${page.id} dirty-indicator scope resolves by ID`);
   } else if (page.id.startsWith('launcher')) {
     assert.strictEqual(registry.saveScopeForPageId(page.id, 0), 'launcher', `${page.id} still uses the shared Launcher save scope`);

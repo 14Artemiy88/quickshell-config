@@ -4,6 +4,7 @@ import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
 import ".."
+import "./primitives" as Primitives
 import "../js/dashboard/DashboardCards.js" as DashboardCards
 import "../js/dashboard/DashboardAnimation.js" as DashboardAnimation
 import "../js/notifications/NotificationHistory.js" as NotificationHistory
@@ -17,6 +18,7 @@ PanelWindow {
     property var notificationHistoryModel: []
     property string notificationHistorySearchText: ""
     property var notificationHistorySelectedApps: []
+    property var notificationHistoryExpandedApps: []
     readonly property var notificationHistoryAppOptions: NotificationHistory.applicationNames(root.notificationHistoryModel)
     readonly property var filteredNotificationHistoryModel: NotificationHistory.filterEntries(
         root.notificationHistoryModel, root.notificationHistorySearchText, root.notificationHistorySelectedApps
@@ -69,6 +71,19 @@ PanelWindow {
         root.notificationHistorySelectedApps = []
     }
 
+    function isNotificationHistoryGroupCollapsed(appGroup) {
+        return !NotificationHistory.isGroupExpanded(root.notificationHistoryExpandedApps, appGroup)
+    }
+
+    function toggleNotificationHistoryGroup(appGroup) {
+        root.notificationHistoryExpandedApps = NotificationHistory.toggleExpandedGroup(root.notificationHistoryExpandedApps, appGroup)
+        root.historyGroupDeleteConfirmationPending = ""
+    }
+
+    function forgetNotificationHistoryGroupCollapse(appGroup) {
+        root.notificationHistoryExpandedApps = NotificationHistory.removeExpandedGroup(root.notificationHistoryExpandedApps, appGroup)
+    }
+
     function resolveDashboardScreen() {
         var wanted = String(root.configuredMonitorName || "").trim().toLowerCase()
         for (var i = 0; i < Quickshell.screens.length; ++i) {
@@ -117,8 +132,8 @@ PanelWindow {
     function beginDashboardLayoutDrag(mouse) {
         if (!root.layoutEditMode || root.layoutDragging || !root.layoutEditor || !drawer)
             return
-        root.layoutDragPressX = Number(mouse.x)
-        root.layoutDragPressY = Number(mouse.y)
+        root.layoutDragPressX = Number(mouse.x) * root.drawerUiScale
+        root.layoutDragPressY = Number(mouse.y) * root.drawerUiScale
         root.layoutDragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(drawer.x || 0)
         root.layoutDragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(drawer.y || 0)
         root.layoutDragging = true
@@ -126,29 +141,29 @@ PanelWindow {
         Settings.beginGeometryDrag("dashboard")
         root.layoutEditor.beginProxyDrag(
             "dashboard", root.layoutDragBaseGlobalX, root.layoutDragBaseGlobalY,
-            drawer.width, drawer.height
+            drawer.width * root.drawerUiScale, drawer.height * root.drawerUiScale
         )
         drawer.grabToImage(function(result) {
             if (!root.layoutDragging) return
             root.layoutDragHidden = true
             if (root.layoutEditor) root.layoutEditor.setProxySource(result.url)
-        }, Qt.size(Math.max(1, Math.round(drawer.width)), Math.max(1, Math.round(drawer.height))))
+        }, Qt.size(Math.max(1, Math.round(drawer.width * root.drawerUiScale)), Math.max(1, Math.round(drawer.height * root.drawerUiScale))))
     }
 
     function updateDashboardLayoutDrag(mouse) {
         if (!root.layoutEditMode || !root.layoutDragging || !root.layoutEditor)
             return
-        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
-        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
-        root.layoutEditor.updateProxyDrag(globalX, globalY, drawer.width, drawer.height)
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) * root.drawerUiScale - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) * root.drawerUiScale - root.layoutDragPressY
+        root.layoutEditor.updateProxyDrag(globalX, globalY, drawer.width * root.drawerUiScale, drawer.height * root.drawerUiScale)
     }
 
     function finishDashboardLayoutDrag(mouseX, mouseY) {
         if (!root.layoutDragging) return
-        var globalX = root.layoutDragBaseGlobalX + Number(mouseX) - root.layoutDragPressX
-        var globalY = root.layoutDragBaseGlobalY + Number(mouseY) - root.layoutDragPressY
+        var globalX = root.layoutDragBaseGlobalX + Number(mouseX) * root.drawerUiScale - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouseY) * root.drawerUiScale - root.layoutDragPressY
         var targetScreen = root.findScreenForGlobalPoint(
-            globalX + drawer.width / 2, globalY + drawer.height / 2
+            globalX + drawer.width * root.drawerUiScale / 2, globalY + drawer.height * root.drawerUiScale / 2
         )
         var localX = globalX - Number(targetScreen && targetScreen.x || 0)
         var localY = globalY - Number(targetScreen && targetScreen.y || 0)
@@ -173,6 +188,7 @@ PanelWindow {
 
     screen: root.resolveDashboardScreen()
 
+    readonly property real drawerUiScale: Config.moduleUiScale()
     readonly property bool dashboardFrameVisible: !Settings.loaded || Settings.moduleFrames.dashboard !== false
     readonly property bool dashboardBackgroundVisible: !Settings.loaded || Settings.moduleBackgrounds.dashboard !== false
     readonly property bool dashboardBlurEnabled: Settings.loaded && Settings.moduleBlurEnabled.dashboard === true
@@ -185,6 +201,44 @@ PanelWindow {
     // briefly report a 1x1/partial size; animating against that transient size
     // makes a thin edge of the drawer travel across the monitor first.
     property bool visibilityAnimationReady: false
+    property var visibilityReadyScreen: null
+    property real visibilityReadyWidth: 0
+    property real visibilityReadyHeight: 0
+    property real visibilityReadyScreenWidth: 0
+    property real visibilityReadyScreenHeight: 0
+    property real visibilityReadyDrawerWidth: 0
+    property real visibilityReadyDrawerHeight: 0
+
+    function visibilityGeometryCacheIsCurrent() {
+        if (!root.visibilityAnimationReady || !root.screen)
+            return false
+        return root.visibilityReadyScreen === root.screen
+            && Math.abs(Number(root.width) - Number(root.visibilityReadyWidth)) <= 1
+            && Math.abs(Number(root.height) - Number(root.visibilityReadyHeight)) <= 1
+            && Math.abs(Number(root.screen.width) - Number(root.visibilityReadyScreenWidth)) <= 1
+            && Math.abs(Number(root.screen.height) - Number(root.visibilityReadyScreenHeight)) <= 1
+            && Math.abs(Number(drawer.width) - Number(root.visibilityReadyDrawerWidth)) <= 1
+            && Math.abs(Number(drawer.height) - Number(root.visibilityReadyDrawerHeight)) <= 1
+    }
+
+    function invalidateVisibilityGeometryCache() {
+        root.visibilityAnimationReady = false
+        root.visibilityReadyScreen = null
+        root.visibilityReadyWidth = 0
+        root.visibilityReadyHeight = 0
+        root.visibilityReadyScreenWidth = 0
+        root.visibilityReadyScreenHeight = 0
+        root.visibilityReadyDrawerWidth = 0
+        root.visibilityReadyDrawerHeight = 0
+        if (root.open)
+            visibilityAnimationReadyTimer.restart()
+    }
+
+    onDrawerUiScaleChanged: root.invalidateVisibilityGeometryCache()
+    onScreenChanged: root.invalidateVisibilityGeometryCache()
+    onWidthChanged: root.invalidateVisibilityGeometryCache()
+    onHeightChanged: root.invalidateVisibilityGeometryCache()
+
     property var clock: null
     property var cpuSource: null
     property var playerSource: null
@@ -204,6 +258,7 @@ PanelWindow {
     // The in-panel editor changes card order and presentation without opening
     // Settings. It is transient UI state; card choices remain profile-backed.
     property bool cardEditMode: false
+    property bool mediaSourcePickerExpanded: false
     property string draggingCardId: ""
     property string cardDropTargetId: ""
     property point dashboardDragScenePosition: Qt.point(0, 0)
@@ -228,8 +283,9 @@ PanelWindow {
     signal historyEntryDeleteRequested(string entryId)
     signal historyGroupDeleteRequested(string appGroup)
 
-    readonly property var playerData: root.playerSource && root.playerSource.player
-                                      ? root.playerSource.player : ({})
+    readonly property var playerData: root.playerSource && root.playerSource.dashboardPlayer
+                                      ? root.playerSource.dashboardPlayer
+                                      : (root.playerSource && root.playerSource.player ? root.playerSource.player : ({}))
     readonly property var weatherData: root.weatherSource && root.weatherSource.now
                                        ? root.weatherSource.now : ({})
     readonly property int cpuUsage: {
@@ -654,6 +710,115 @@ PanelWindow {
         if (status === "\uF04C") return "playing"
         if (status === "\uF04B") return "paused"
         return "unknown"
+    }
+    // Reuse the same player-control script and the backend IDs already
+    // supported by Player.qml. Keep the Dashboard control hidden for a source
+    // whose pause command is not implemented rather than presenting a dead
+    // button.
+    readonly property bool mediaPlaybackControlSupported: Settings.player
+        && ["deadbeef", "mopidy", "mpv", "org.telegram.desktop",
+            "plasma-browser-integration", "spotify"].indexOf(root.mediaBackendId) !== -1
+    readonly property string mediaPlaybackActionIcon: root.mediaPlaybackState === "playing"
+        ? Config.playerPlayingIcon : Config.playerPausedIcon
+    readonly property string mediaPlaybackActionName: root.mediaPlaybackState === "playing"
+        ? "Приостановить воспроизведение"
+        : (root.mediaPlaybackState === "paused"
+           ? "Продолжить воспроизведение" : "Переключить воспроизведение")
+    // Exclude the currently displayed backend from alternatives. With one
+    // alternative the header becomes a direct-switch button; with several it
+    // reveals a compact inline row of choices inside the Media card.
+    readonly property var mediaAlternativePlayers: {
+        var sources = root.playerSource && Array.isArray(root.playerSource.dashboardPlayers)
+            ? root.playerSource.dashboardPlayers : []
+        var activeBackend = root.mediaBackendId
+        var alternatives = []
+        for (var i = 0; i < sources.length; ++i) {
+            var source = sources[i]
+            var backend = String(source && source.player || "").trim().toLowerCase()
+            if (backend !== "" && backend !== activeBackend)
+                alternatives.push(source)
+        }
+        return alternatives
+    }
+    readonly property int mediaAlternativePlayerCount: root.mediaAlternativePlayers.length
+    readonly property bool mediaSourceSwitchSupported: Settings.player && root.playerSource
+        && root.mediaAlternativePlayerCount > 0
+        && typeof root.playerSource.selectDashboardPlayer === "function"
+    readonly property string mediaSourceSwitchActionName: root.mediaAlternativePlayerCount === 1
+        ? "Переключить на " + root.mediaBackendLabelFor(root.mediaAlternativePlayers[0].player)
+        : "Показать другие активные плееры"
+
+    function selectDashboardMediaSource(backendValue) {
+        var backend = String(backendValue || "").trim().toLowerCase()
+        if (!Settings.player || !root.playerSource || backend === "")
+            return false
+        if (typeof root.playerSource.selectDashboardPlayer !== "function")
+            return false
+        var sources = Array.isArray(root.playerSource.dashboardPlayers)
+            ? root.playerSource.dashboardPlayers : []
+        var available = false
+        for (var i = 0; i < sources.length; ++i) {
+            if (String(sources[i] && sources[i].player || "").trim().toLowerCase() === backend) {
+                available = true
+                break
+            }
+        }
+        if (!available || !root.playerSource.selectDashboardPlayer(backend))
+            return false
+        root.mediaSourcePickerExpanded = false
+        return true
+    }
+
+    function activateDashboardMediaSourceControl() {
+        if (!root.mediaSourceSwitchSupported)
+            return false
+        if (root.mediaAlternativePlayerCount === 1)
+            return root.selectDashboardMediaSource(root.mediaAlternativePlayers[0].player)
+        root.mediaSourcePickerExpanded = !root.mediaSourcePickerExpanded
+        return true
+    }
+
+    function toggleDashboardMediaPlayback() {
+        var backend = String(root.playerData.player || "").trim().toLowerCase()
+        if (!root.mediaPlaybackControlSupported || backend === "" || !root.playerSource)
+            return false
+        if (typeof root.playerSource.togglePlaybackForBackend === "function")
+            return root.playerSource.togglePlaybackForBackend(backend)
+        if (typeof root.playerSource.togglePlayback !== "function")
+            return false
+        return root.playerSource.togglePlayback()
+    }
+    // Seeking is exposed only for backends with an implemented absolute seek
+    // route and while the shared Player payload contains a valid time range.
+    readonly property bool mediaSeekSupported: Settings.player
+        && root.mediaProgressPercent >= 0
+        && Number(root.playerData.duration || 0) > 0
+        && ["deadbeef", "mopidy", "mpv", "org.telegram.desktop",
+            "plasma-browser-integration", "spotify"].indexOf(root.mediaBackendId) !== -1
+
+    function seekDashboardMediaToPercent(percent) {
+        var target = Number(percent)
+        var backend = String(root.playerData.player || "").trim().toLowerCase()
+        var duration = Number(root.playerData.duration || 0)
+        if (!root.mediaSeekSupported || !isFinite(target) || !root.playerSource || backend === "")
+            return false
+        target = Math.max(0, Math.min(100, target))
+        if (typeof root.playerSource.seekToPercentForBackend === "function")
+            return root.playerSource.seekToPercentForBackend(backend, target, duration)
+        if (typeof root.playerSource.seekToPercent !== "function")
+            return false
+        return root.playerSource.seekToPercent(target)
+    }
+    // MouseArea reports coordinates in its own local space. Convert the
+    // pointer position immediately on press so a parent drag/flick handler
+    // cannot cancel the seek while the button is being released.
+    function seekDashboardMediaAtPointer(mouseX, trackWidth) {
+        var x = Number(mouseX)
+        var width = Number(trackWidth)
+        if (!isFinite(x) || !isFinite(width) || width <= 0)
+            return false
+        var percent = Math.max(0, Math.min(100, (x / width) * 100))
+        return root.seekDashboardMediaToPercent(percent)
     }
     // The shared Player payload stores a clamped 0..100 progress percentage
     // only when the backend supplied both a valid position and a positive
@@ -1552,8 +1717,8 @@ PanelWindow {
         return String(root.weatherSource.nowStatusMessage || "Ожидание данных погоды")
     }
 
-    function mediaBackendLabel() {
-        var backend = String(root.playerData.player || "").trim()
+    function mediaBackendLabelFor(backendValue) {
+        var backend = String(backendValue || "").trim().toLowerCase()
         switch (backend) {
         case "deadbeef": return "DeaDBeeF"
         case "mopidy": return "Mopidy"
@@ -1561,8 +1726,12 @@ PanelWindow {
         case "spotify": return "Spotify"
         case "plasma-browser-integration": return "Браузер"
         case "org.telegram.desktop": return "Telegram"
-        default: return backend
+        default: return String(backendValue || "").trim()
         }
+    }
+
+    function mediaBackendLabel() {
+        return root.mediaBackendLabelFor(root.playerData.player)
     }
 
     function mediaCardFooterText() {
@@ -1598,11 +1767,14 @@ PanelWindow {
         if (root.open) {
             closeWindowTimer.stop()
             root.keepWindowDuringClose = true
-            if (!root.visibilityAnimationReady)
+            if (!root.visibilityGeometryCacheIsCurrent()) {
+                root.visibilityAnimationReady = false
                 visibilityAnimationReadyTimer.restart()
+            }
         } else {
             visibilityAnimationReadyTimer.stop()
             root.historyViewActive = false
+            root.mediaSourcePickerExpanded = false
             root.cardEditMode = false
             root.draggingCardId = ""
             root.cardDropTargetId = ""
@@ -1617,7 +1789,7 @@ PanelWindow {
         }
     }
     Component.onCompleted: {
-        if (root.open && !root.visibilityAnimationReady) {
+        if (root.open && !root.visibilityGeometryCacheIsCurrent()) {
             root.keepWindowDuringClose = true
             visibilityAnimationReadyTimer.restart()
         }
@@ -1647,6 +1819,13 @@ PanelWindow {
                         root.screen.width, root.screen.height))
                 return
             stop()
+            root.visibilityReadyScreen = root.screen
+            root.visibilityReadyWidth = root.width
+            root.visibilityReadyHeight = root.height
+            root.visibilityReadyScreenWidth = root.screen.width
+            root.visibilityReadyScreenHeight = root.screen.height
+            root.visibilityReadyDrawerWidth = drawer.width
+            root.visibilityReadyDrawerHeight = drawer.height
             root.visibilityAnimationReady = true
         }
     }
@@ -1656,8 +1835,9 @@ PanelWindow {
         interval: DashboardAnimation.transitionDuration(drawer.visibilityStyle, Config.animationDashboardVisibilityDuration) + 24
         repeat: false
         onTriggered: {
+            // Preserve the validated screen geometry across closed sessions.
+            // A screen/size change explicitly invalidates this cache above.
             root.keepWindowDuringClose = false
-            root.visibilityAnimationReady = false
         }
     }
 
@@ -1689,24 +1869,31 @@ PanelWindow {
     Rectangle {
         id: drawer
         readonly property var configuredGeometry: (Settings.geometry || {}).dashboard || [-999999, -999999, 560, 0]
-        readonly property real targetWidth: Math.max(1, Math.min(Math.max(1, parent.width - 32),
-            Number(configuredGeometry[2]) > 0 ? Number(configuredGeometry[2]) : DashboardCards.drawerWidthForScreenWidth(parent.width)))
+        readonly property real targetWidth: Math.max(1, Math.min(Math.max(1, parent.width / root.drawerUiScale - 32),
+            Number(configuredGeometry[2]) > 0 ? Number(configuredGeometry[2]) : DashboardCards.drawerWidthForScreenWidth(parent.width / root.drawerUiScale)))
         readonly property real targetHeight: Number(configuredGeometry[3]) > 0
-            ? Math.max(280, Math.min(parent.height - 32, Number(configuredGeometry[3])))
-            : Math.min(Math.max(1, parent.height - 32), Math.min(600, Math.max(420, cards.implicitHeight + 280)))
+            ? Math.max(280, Math.min(parent.height / root.drawerUiScale - 32, Number(configuredGeometry[3])))
+            : Math.min(Math.max(1, parent.height / root.drawerUiScale - 32), Math.min(600, Math.max(420, cards.implicitHeight + 280)))
+        readonly property real visualWidth: width * root.drawerUiScale
+        readonly property real visualHeight: height * root.drawerUiScale
         readonly property real targetX: Number(configuredGeometry[0]) > -10000
-            ? Math.max(0, Math.min(parent.width - width, Number(configuredGeometry[0])))
-            : Math.max(16, parent.width - width - 16)
+            ? Math.max(0, Math.min(parent.width - visualWidth, Number(configuredGeometry[0])))
+            : Math.max(16, parent.width - visualWidth - 16)
         readonly property real targetY: Number(configuredGeometry[1]) > -10000
-            ? Math.max(0, Math.min(parent.height - height, Number(configuredGeometry[1])))
-            : Math.max(16, (parent.height - height) / 2)
+            ? Math.max(0, Math.min(parent.height - visualHeight, Number(configuredGeometry[1])))
+            : Math.max(16, (parent.height - visualHeight) / 2)
         readonly property string visibilityStyle: DashboardAnimation.resolveVisibilityStyle(
-            Config.animationDashboardVisibilityStyle, targetX, width, parent.width)
+            Config.animationDashboardVisibilityStyle, targetX, visualWidth, parent.width)
+        readonly property string visibilityProfile: Config.animationDashboardVisibilityProfile
         readonly property int visibilityDuration: DashboardAnimation.transitionDuration(visibilityStyle, Config.animationDashboardVisibilityDuration)
-        readonly property real hiddenX: DashboardAnimation.hiddenX(visibilityStyle, targetX, width, parent.width, 16)
-        readonly property real hiddenY: DashboardAnimation.hiddenY(visibilityStyle, targetY, height, parent.height, 16)
+        readonly property real hiddenX: DashboardAnimation.hiddenX(visibilityStyle, targetX, visualWidth, parent.width, 16)
+        readonly property real hiddenY: DashboardAnimation.hiddenY(visibilityStyle, targetY, visualHeight, parent.height, 16)
         width: targetWidth
         height: targetHeight
+        scale: root.drawerUiScale
+        transformOrigin: Item.TopLeft
+        onWidthChanged: root.invalidateVisibilityGeometryCache()
+        onHeightChanged: root.invalidateVisibilityGeometryCache()
         y: (root.layoutEditMode || (root.open && root.visibilityAnimationReady)) ? targetY : hiddenY
         x: (root.layoutEditMode || (root.open && root.visibilityAnimationReady)) ? targetX : hiddenX
         opacity: root.layoutDragHidden ? 0
@@ -1714,10 +1901,10 @@ PanelWindow {
                 : (root.open
                     ? (root.visibilityAnimationReady ? 1 : (DashboardAnimation.usesFade(visibilityStyle) ? 0 : 1))
                     : (DashboardAnimation.usesFade(visibilityStyle) ? 0 : 1)))
-        radius: Config.frameRadius + 9
+        radius: Config.scaledCornerRadius(Config.frameRadius + 9)
         color: root.dashboardBackgroundVisible ? Config.settingsBackground : Config.transparent
         border.color: Config.settingsBorder
-        border.width: root.dashboardFrameVisible ? Math.max(1, Config.frameBorderWidth) : 0
+        border.width: root.dashboardFrameVisible && Config.cardBordersEnabled ? Config.frameBorderWidth : 0
         clip: true
         HoverHandler {
             enabled: root.open
@@ -1752,17 +1939,26 @@ PanelWindow {
         }
         Behavior on x {
             enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
-            NumberAnimation { duration: drawer.visibilityDuration; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: drawer.visibilityDuration
+                easing.type: Config.animationEasingType(drawer.visibilityProfile, "enter")
+                easing.bezierCurve: Config.animationBezierCurve(drawer.visibilityProfile, "enter")
+            }
         }
         Behavior on y {
             enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
-            NumberAnimation { duration: drawer.visibilityDuration; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: drawer.visibilityDuration
+                easing.type: Config.animationEasingType(drawer.visibilityProfile, "enter")
+                easing.bezierCurve: Config.animationBezierCurve(drawer.visibilityProfile, "enter")
+            }
         }
         Behavior on opacity {
             enabled: !root.layoutEditMode && root.visibilityAnimationReady && (root.open || root.keepWindowDuringClose)
             NumberAnimation {
                 duration: drawer.visibilityStyle === "fade" ? drawer.visibilityDuration : 0
-                easing.type: Easing.OutCubic
+                easing.type: Config.animationEasingType(drawer.visibilityProfile, "enter")
+                easing.bezierCurve: Config.animationBezierCurve(drawer.visibilityProfile, "enter")
             }
         }
 
@@ -1796,6 +1992,7 @@ PanelWindow {
 
             RowLayout {
                 Layout.fillWidth: true
+                Layout.rightMargin: dashboardHeaderActions.implicitWidth + 10
                 spacing: 10
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -1803,8 +2000,8 @@ PanelWindow {
                     Text {
                         text: "Обзор"
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: 23
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(23)
                         font.bold: true
                     }
                 }
@@ -1815,7 +2012,7 @@ PanelWindow {
                     Layout.preferredWidth: 64
                     Layout.preferredHeight: 32
                     Layout.alignment: Qt.AlignVCenter
-                    radius: 8
+                    radius: Config.scaledCornerRadius(8)
                     activeFocusOnTab: true
                     enabled: Settings.notifications
                     Accessible.role: Accessible.Button
@@ -1844,7 +2041,7 @@ PanelWindow {
                               : (dndMouse.containsMouse
                                  ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
                                  : "transparent")))
-                    border.width: activeFocus ? 2 : (dndVisualActive || dndMouse.containsMouse ? 1 : 0)
+                    border.width: activeFocus ? 2 : (Config.buttonBordersEnabled && (dndVisualActive || dndMouse.containsMouse) ? 1 : 0)
                     border.color: Config.accent
                     opacity: enabled ? 1 : 0.45
                     Text {
@@ -1852,8 +2049,8 @@ PanelWindow {
                         text: "DND"
                         color: notificationsDndButton.dndVisualActive
                             ? Config.black : (notificationsDndButton.activeFocus ? Config.accent : Config.textMuted)
-                        font.family: Config.settingsFont
-                        font.pixelSize: 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(10)
                         font.bold: notificationsDndButton.dndVisualActive
                     }
                     Connections {
@@ -1891,7 +2088,7 @@ PanelWindow {
                     Layout.preferredWidth: 92
                     Layout.preferredHeight: 32
                     Layout.alignment: Qt.AlignVCenter
-                    radius: 8
+                    radius: Config.scaledCornerRadius(8)
                     activeFocusOnTab: true
                     visible: Settings.notifications && root.notificationHistoryModel.length > 0
                     enabled: Settings.notifications && root.notificationHistoryModel.length > 0
@@ -1914,7 +2111,7 @@ PanelWindow {
                         : (activeFocus || historyButtonMouse.containsMouse
                             ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.12)
                             : "transparent")
-                    border.width: activeFocus || historyButtonMouse.containsMouse ? 1 : 0
+                    border.width: activeFocus || (Config.buttonBordersEnabled && historyButtonMouse.containsMouse) ? 1 : 0
                     border.color: Config.accent
                     opacity: enabled ? 1 : 0.45
                     Text {
@@ -1923,8 +2120,8 @@ PanelWindow {
                             ? root.notificationHistoryUnreadCount : root.notificationHistoryModel.length)
                         color: notificationsHistoryButton.activeFocus || historyButtonMouse.containsMouse
                             ? Config.accent : Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(10)
                         font.bold: notificationsHistoryButton.activeFocus
                     }
                     Keys.onPressed: function(event) {
@@ -1953,7 +2150,7 @@ PanelWindow {
                     Layout.preferredWidth: 82
                     Layout.preferredHeight: 32
                     Layout.alignment: Qt.AlignVCenter
-                    radius: 8
+                    radius: Config.scaledCornerRadius(8)
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
                     Accessible.name: root.cardEditMode ? "Завершить редактирование карточек" : "Редактировать карточки Dashboard"
@@ -1973,14 +2170,14 @@ PanelWindow {
                               : (cardEditMouse.containsMouse
                                  ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
                                  : "transparent"))
-                    border.width: root.cardEditMode || activeFocus || cardEditMouse.containsMouse ? 1 : 0
+                    border.width: activeFocus || (Config.buttonBordersEnabled && (root.cardEditMode || cardEditMouse.containsMouse)) ? 1 : 0
                     border.color: Config.accent
                     Text {
                         anchors.centerIn: parent
                         text: root.cardEditMode ? "Готово" : "Изменить"
                         color: root.cardEditMode || cardEditButton.activeFocus ? Config.accent : Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(10)
                         font.bold: root.cardEditMode || cardEditButton.activeFocus
                     }
                     Keys.onPressed: function(event) {
@@ -2002,141 +2199,7 @@ PanelWindow {
                     }
                 }
 
-                Rectangle {
-                    id: settingsButton
-                    readonly property bool navigationCard: false
-                    Layout.preferredWidth: 36
-                    Layout.preferredHeight: 36
-                    Layout.alignment: Qt.AlignVCenter
-                    radius: 9
-                    activeFocusOnTab: true
-                    Accessible.role: Accessible.Button
-                    Accessible.name: "Открыть настройки"
-                    Accessible.description: "Открывает общие настройки Quickshell Widgets"
-                    ToolTip.visible: settingsMouse.containsMouse
-                    ToolTip.text: "Настройки"
-                    ToolTip.delay: 400
-                    Component.onCompleted: root.registerNavigationTarget(settingsButton)
-                    Component.onDestruction: root.unregisterNavigationTarget(settingsButton)
-                    onActiveFocusChanged: {
-                        if (activeFocus)
-                            root.setNavigationTargetFocused(settingsButton)
-                        else
-                            root.releaseNavigationTargetFocus(settingsButton)
-                    }
-                    color: settingsMouse.pressed
-                           ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.22)
-                           : (activeFocus
-                              ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.18)
-                              : (settingsMouse.containsMouse
-                                 ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
-                                 : "transparent"))
-                    border.width: activeFocus ? 2 : (settingsMouse.containsMouse ? 1 : 0)
-                    border.color: activeFocus
-                                  ? Config.accent
-                                  : Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.48)
-                    Keys.onPressed: function(event) {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                            event.accepted = true
-                            root.closeRequested()
-                            root.settingsRequested()
-                        }
-                    }
-                    Behavior on color {
-                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-                    }
-                    Behavior on border.color {
-                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-                    }
-                    Behavior on border.width {
-                        NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        text: "󰒓"
-                        color: settingsButton.activeFocus || settingsMouse.containsMouse ? Config.accent : Config.textMuted
-                        font.family: "Symbols Nerd Font Mono"
-                        font.pixelSize: 20
-                    }
-                    MouseArea {
-                        id: settingsMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.keyboardNavigationActive = false
-                            root.closeRequested()
-                            root.settingsRequested()
-                        }
-                    }
-                }
 
-                Rectangle {
-                    id: closeButton
-                    // A real 36 px target keeps the visible control, mouse hit area
-                    // and spatial-navigation bounds aligned with one another.
-                    // Keep the close control in the same spatial navigation graph as the header and cards.
-                    readonly property bool navigationCard: false
-                    Layout.preferredWidth: 36
-                    Layout.preferredHeight: 36
-                    Layout.alignment: Qt.AlignVCenter
-                    radius: 9
-                    activeFocusOnTab: true
-                    Accessible.role: Accessible.Button
-                    Accessible.name: "Закрыть обзор"
-                    Accessible.description: "Закрывает панель Dashboard"
-                    Component.onCompleted: root.registerNavigationTarget(closeButton)
-                    Component.onDestruction: root.unregisterNavigationTarget(closeButton)
-                    onActiveFocusChanged: {
-                        if (activeFocus)
-                            root.setNavigationTargetFocused(closeButton)
-                        else
-                            root.releaseNavigationTargetFocus(closeButton)
-                    }
-                    color: closeMouse.pressed
-                           ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.22)
-                           : (activeFocus
-                              ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.18)
-                              : (closeMouse.containsMouse
-                                 ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
-                                 : "transparent"))
-                    border.width: activeFocus ? 2 : (closeMouse.containsMouse ? 1 : 0)
-                    border.color: activeFocus
-                                  ? Config.accent
-                                  : Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.48)
-                    Keys.onPressed: function(event) {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                            event.accepted = true
-                            root.closeRequested()
-                        }
-                    }
-                    Behavior on color {
-                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-                    }
-                    Behavior on border.color {
-                        ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
-                    }
-                    Behavior on border.width {
-                        NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        text: "×"
-                        color: closeButton.activeFocus || closeMouse.containsMouse ? Config.accent : Config.textMuted
-                        font.pixelSize: 26
-                        font.bold: closeButton.activeFocus
-                    }
-                    MouseArea {
-                        id: closeMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            closeButton.forceActiveFocus()
-                            root.closeRequested()
-                        }
-                    }
-                }
             }
 
             ColumnLayout {
@@ -2148,8 +2211,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: "Перетаскивай карточки за ⠿. Здесь же можно изменить размер или скрыть карточку."
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: 9
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(9)
                     wrapMode: Text.WordWrap
                 }
 
@@ -2176,8 +2239,8 @@ PanelWindow {
                     visible: DashboardCards.normalize(Config.dashboardVisibleCards).length === DashboardCards.DEFAULT_IDS.length
                     text: "Все карточки уже добавлены"
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: 9
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(9)
                 }
             }
 
@@ -2546,8 +2609,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: "Карточки не выбраны\nНажми «Изменить» в заголовке, чтобы добавить их в обзор"
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: 12
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(12)
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             wrapMode: Text.WordWrap
@@ -2585,8 +2648,8 @@ PanelWindow {
                         return navigationHint + actionHintText + " · Esc Закрыть"
                     }
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: drawer.width < 440 ? 8 : 9
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(drawer.width < 440 ? 8 : 9)
                     elide: Text.ElideRight
                     maximumLineCount: 1
                 }
@@ -2615,20 +2678,21 @@ PanelWindow {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.rightMargin: dashboardHeaderActions.implicitWidth + 10
             spacing: 10
             Text {
                 Layout.fillWidth: true
                 text: "История уведомлений"
                 color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: 20
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(20)
                 font.bold: true
             }
             Rectangle {
                 visible: root.notificationHistoryModel.length > 0
                 Layout.preferredWidth: root.historyClearConfirmationPending ? 112 : 76
                 Layout.preferredHeight: 30
-                radius: 7
+                radius: Config.scaledCornerRadius(7)
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Button
                 Accessible.name: root.historyClearConfirmationPending ? "Подтвердить очистку истории" : "Очистить историю уведомлений"
@@ -2647,13 +2711,13 @@ PanelWindow {
                 }
                 color: historyClearMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
                 border.color: root.historyClearConfirmationPending ? Config.accent : Config.settingsBorder
-                border.width: root.historyClearConfirmationPending ? 2 : 1
+                border.width: activeFocus ? 2 : (Config.buttonBordersEnabled ? (root.historyClearConfirmationPending ? 2 : 1) : 0)
                 Text {
                     anchors.centerIn: parent
                     text: root.historyClearConfirmationPending ? "Точно очистить?" : "Очистить"
                     color: historyClearMouse.containsMouse || activeFocus ? Config.black : Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: 9
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(9)
                     font.bold: root.historyClearConfirmationPending
                 }
                 MouseArea {
@@ -2672,33 +2736,6 @@ PanelWindow {
                     }
                 }
             }
-            Rectangle {
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 30
-                radius: 7
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Button
-                Accessible.name: "Назад к обзору Dashboard"
-                Keys.onPressed: function(event) {
-                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                        event.accepted = true
-                        root.historyViewActive = false
-                        root.historyClearConfirmationPending = false
-                        root.historyGroupDeleteConfirmationPending = ""
-                    }
-                }
-                color: historyBackMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
-                border.color: Config.settingsBorder
-                border.width: 1
-                Text { anchors.centerIn: parent; text: "‹"; color: Config.text; font.pixelSize: 22 }
-                MouseArea {
-                    id: historyBackMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { root.historyViewActive = false; root.historyClearConfirmationPending = false; root.historyGroupDeleteConfirmationPending = "" }
-                }
-            }
         }
         Text {
             Layout.fillWidth: true
@@ -2706,8 +2743,8 @@ PanelWindow {
                 ? root.filteredNotificationHistoryModel.length + " из " + root.notificationHistoryModel.length + " уведомлений найдено · " + root.notificationHistoryUnreadCount + " непрочитанных · фильтр приложений: " + root.notificationHistorySelectedApps.length + " · только в памяти"
                 : root.notificationHistoryModel.length + " уведомлений · " + root.notificationHistoryUnreadCount + " непрочитанных · лимит " + root.notificationHistoryLimit + " · срок " + (root.notificationHistoryRetentionDays > 0 ? root.notificationHistoryRetentionDays + " дн." : "без ограничения") + " · только в памяти"
             color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: 9
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(9)
         }
         RowLayout {
             Layout.fillWidth: true
@@ -2720,7 +2757,7 @@ PanelWindow {
                 placeholderText: "Поиск по приложению, заголовку или тексту уведомления…"
                 placeholderTextColor: Config.textMuted
                 color: Config.text
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 selectByMouse: true
                 activeFocusOnTab: true
@@ -2728,8 +2765,8 @@ PanelWindow {
                 background: Rectangle {
                     color: Config.settingsBackground
                     border.color: historySearchField.activeFocus ? Config.accent : Config.baseColor
-                    border.width: 1
-                    radius: 5
+                    border.width: historySearchField.activeFocus ? 1 : (Config.inputBordersEnabled ? 1 : 0)
+                    radius: Config.scaledCornerRadius(5)
                 }
                 onTextChanged: root.notificationHistorySearchText = text
             }
@@ -2737,7 +2774,7 @@ PanelWindow {
                 id: historyAppFilterButton
                 Layout.preferredWidth: root.notificationHistorySelectedApps.length > 0 ? 112 : 102
                 Layout.preferredHeight: 32
-                radius: 5
+                radius: Config.scaledCornerRadius(5)
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Button
                 Accessible.name: root.notificationHistorySelectedApps.length > 0
@@ -2749,7 +2786,7 @@ PanelWindow {
                     : Config.settingsBackground
                 border.color: historyAppFilterMouse.containsMouse || activeFocus || historyAppFilterPopup.visible
                     ? Config.accent : Config.settingsBorder
-                border.width: 1
+                border.width: activeFocus ? 1 : (Config.buttonBordersEnabled ? 1 : 0)
                 Text {
                     anchors.centerIn: parent
                     width: parent.width - 10
@@ -2757,8 +2794,8 @@ PanelWindow {
                         ? "Приложения · " + root.notificationHistorySelectedApps.length + " ▾"
                         : "Приложения ▾"
                     color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: 9
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(9)
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                 }
@@ -2785,6 +2822,7 @@ PanelWindow {
                 id: historyAppFilterPopup
                 parent: Overlay.overlay
                 x: {
+                    var popupScale = root.drawerUiScale
                     // Overlay.overlay is null briefly while Dashboard is being
                     // constructed or detached from its window. Popup geometry
                     // bindings must tolerate that initial lifecycle phase.
@@ -2793,45 +2831,46 @@ PanelWindow {
                     if (!overlayItem || !anchorItem) return 8
                     var point = anchorItem.mapToItem(overlayItem, 0, 0)
                     if (!point) return 8
-                    return Math.max(8, Math.min(point.x + anchorItem.width - width, overlayItem.width - width - 8))
+                    return Math.max(8 * popupScale, Math.min(point.x + anchorItem.width - width, overlayItem.width - width - 8 * popupScale))
                 }
                 y: {
+                    var popupScale = root.drawerUiScale
                     var overlayItem = Overlay.overlay
                     var anchorItem = historyAppFilterButton
                     if (!overlayItem || !anchorItem) return 8
                     var point = anchorItem.mapToItem(overlayItem, 0, anchorItem.height)
                     if (!point) return 8
-                    return Math.max(8, Math.min(point.y, overlayItem.height - height - 8))
+                    return Math.max(8 * popupScale, Math.min(point.y, overlayItem.height - height - 8 * popupScale))
                 }
-                width: Math.min(300, dashboardHistoryContent.width)
-                height: Math.min(330, Math.max(92, historyAppFilterList.contentHeight + 64))
-                padding: 8
+                width: Math.min(300 * root.drawerUiScale, dashboardHistoryContent.width * root.drawerUiScale)
+                height: Math.min(330 * root.drawerUiScale, Math.max(92 * root.drawerUiScale, historyAppFilterList.contentHeight + 64 * root.drawerUiScale))
+                padding: Math.round(8 * root.drawerUiScale)
                 modal: false
                 focus: true
                 closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
                 background: Rectangle {
                     color: Config.settingsBackground
                     border.color: Config.settingsBorder
-                    border.width: 1
-                    radius: 7
+                    border.width: Config.popupBordersEnabled ? Math.max(1, Math.round(root.drawerUiScale)) : 0
+                    radius: Math.round(Config.scaledCornerRadius(7) * root.drawerUiScale)
                 }
                 contentItem: ColumnLayout {
-                    spacing: 6
+                    spacing: Math.round(6 * root.drawerUiScale)
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
                             Layout.fillWidth: true
                             text: "Фильтр по приложениям"
                             color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: 11
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(11)
                             font.bold: true
                         }
                         Rectangle {
                             id: historyAppFilterResetButton
-                            Layout.preferredWidth: 56
-                            Layout.preferredHeight: 23
-                            radius: 4
+                            Layout.preferredWidth: Math.round(56 * root.drawerUiScale)
+                            Layout.preferredHeight: Math.round(23 * root.drawerUiScale)
+                            radius: Math.round(Config.scaledCornerRadius(4) * root.drawerUiScale)
                             activeFocusOnTab: true
                             Accessible.role: Accessible.Button
                             Accessible.name: "Сбросить фильтр приложений"
@@ -2840,8 +2879,8 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: "Сбросить"
                                 color: historyAppFilterResetMouse.containsMouse || historyAppFilterResetButton.activeFocus ? Config.black : Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: 9
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(9)
                             }
                             MouseArea {
                                 id: historyAppFilterResetMouse
@@ -2858,43 +2897,45 @@ PanelWindow {
                             }
                         }
                     }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Config.settingsBorder }
+                    Rectangle { Layout.fillWidth: true; height: Math.max(1, Math.round(root.drawerUiScale)); color: Config.settingsBorder }
                     ListView {
                         id: historyAppFilterList
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        spacing: 1
+                        spacing: Math.max(1, Math.round(root.drawerUiScale))
                         model: historyAppFilterPopup.visible ? root.notificationHistoryAppOptions : []
                         delegate: CheckBox {
                             id: historyAppFilterCheckBox
                             required property string modelData
                             width: historyAppFilterList.width
-                            height: 27
+                            height: Math.round(27 * root.drawerUiScale)
+                            spacing: Math.round(6 * root.drawerUiScale)
                             text: modelData
                             checked: root.isHistoryAppSelected(modelData)
                             onToggled: root.setHistoryAppSelected(modelData, checked)
                             indicator: Rectangle {
-                                implicitWidth: 15
-                                implicitHeight: 15
+                                implicitWidth: Math.round(15 * root.drawerUiScale)
+                                implicitHeight: Math.round(15 * root.drawerUiScale)
                                 x: historyAppFilterCheckBox.leftPadding
                                 y: historyAppFilterCheckBox.height / 2 - height / 2
-                                radius: 3
+                                radius: Math.round(Config.scaledCornerRadius(3) * root.drawerUiScale)
                                 color: historyAppFilterCheckBox.checked ? Config.accent : Config.baseColor
-                                border.color: historyAppFilterCheckBox.checked ? Config.accent : Config.settingsBorder
+                                border.color: historyAppFilterCheckBox.checked || historyAppFilterCheckBox.activeFocus ? Config.accent : Config.settingsBorder
+                                border.width: Config.inputBordersEnabled || historyAppFilterCheckBox.activeFocus ? 1 : 0
                                 Text {
                                     anchors.centerIn: parent
                                     text: historyAppFilterCheckBox.checked ? "✓" : ""
                                     color: Config.black
-                                    font.pixelSize: 10
+                                    font.pixelSize: Config.uiFontSize(10)
                                     font.bold: true
                                 }
                             }
                             contentItem: Text {
                                 text: historyAppFilterCheckBox.text
                                 color: historyAppFilterCheckBox.checked ? Config.text : Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: 10
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(10)
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: historyAppFilterCheckBox.indicator.width + historyAppFilterCheckBox.spacing
                                 elide: Text.ElideRight
@@ -2906,8 +2947,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "В истории пока нет приложений"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: 9
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(9)
                     }
                 }
             }
@@ -2919,21 +2960,87 @@ PanelWindow {
             clip: true
             focus: root.historyViewActive
             activeFocusOnTab: true
-            spacing: 7
+            spacing: 0
             model: root.filteredNotificationHistoryModel
             section.property: "appGroup"
             section.criteria: ViewSection.FullString
             section.delegate: Rectangle {
                 width: dashboardHistoryList.width
-                height: 30
+                height: 37
                 color: "transparent"
+                Rectangle {
+                    id: historyGroupToggleButton
+                    anchors.left: parent.left
+                    anchors.right: historyGroupDeleteButton.left
+                    anchors.rightMargin: 7
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: 28
+                    radius: Config.scaledCornerRadius(Config.radius)
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.isNotificationHistoryGroupCollapsed(String(section))
+                        ? "Развернуть уведомления приложения " + String(section)
+                        : "Свернуть уведомления приложения " + String(section)
+                    Accessible.onPressAction: root.toggleNotificationHistoryGroup(String(section))
+                    color: Config.transparent
+                    border.color: activeFocus ? Config.textMuted : Config.baseColor
+                    border.width: activeFocus || (Config.buttonBordersEnabled && historyGroupToggleMouse.containsMouse) ? 1 : 0
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        spacing: 6
+                        Text {
+                            width: Math.max(0, parent.width - historyGroupChevron.width - parent.spacing)
+                            height: parent.height
+                            text: section + "  ·  " + String((dashboardHistoryList.model || []).filter(function(entry) { return entry.appGroup === section }).length)
+                            color: root.isNotificationHistoryGroupCollapsed(String(section)) ? Config.textMuted : Config.accent
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(10)
+                            font.bold: true
+                            elide: Text.ElideRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Text {
+                            id: historyGroupChevron
+                            width: 18
+                            height: parent.height
+                            text: root.isNotificationHistoryGroupCollapsed(String(section)) ? "⌄" : "⌃"
+                            color: Config.textMuted
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(12)
+                            horizontalAlignment: Text.AlignRight
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+                    MouseArea {
+                        id: historyGroupToggleMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.toggleNotificationHistoryGroup(String(section))
+                    }
+                    Keys.onPressed: function(event) {
+                        var collapsed = root.isNotificationHistoryGroupCollapsed(String(section))
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.toggleNotificationHistoryGroup(String(section))
+                        } else if ((event.key === Qt.Key_Left && !collapsed)
+                                || (event.key === Qt.Key_Right && collapsed)) {
+                            event.accepted = true
+                            root.toggleNotificationHistoryGroup(String(section))
+                        }
+                    }
+                    ToolTip.visible: historyGroupToggleMouse.containsMouse || activeFocus
+                    ToolTip.text: root.isNotificationHistoryGroupCollapsed(String(section)) ? "Развернуть группу" : "Свернуть группу"
+                }
                 Rectangle {
                     id: historyGroupDeleteButton
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     width: root.historyGroupDeleteConfirmationPending === String(section) ? 58 : 26
                     height: 24
-                    radius: 6
+                    radius: Config.scaledCornerRadius(6)
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
                     Accessible.name: root.historyGroupDeleteConfirmationPending === String(section)
@@ -2941,13 +3048,13 @@ PanelWindow {
                         : "Удалить всю историю приложения " + String(section)
                     color: historyGroupDeleteMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBackground
                     border.color: root.historyGroupDeleteConfirmationPending === String(section) ? Config.accent : Config.settingsBorder
-                    border.width: root.historyGroupDeleteConfirmationPending === String(section) ? 2 : 1
+                    border.width: activeFocus ? 2 : (Config.buttonBordersEnabled ? (root.historyGroupDeleteConfirmationPending === String(section) ? 2 : 1) : 0)
                     Text {
                         anchors.centerIn: parent
                         text: root.historyGroupDeleteConfirmationPending === String(section) ? "Точно?" : "×"
                         color: historyGroupDeleteMouse.containsMouse || historyGroupDeleteButton.activeFocus ? Config.black : Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: root.historyGroupDeleteConfirmationPending === String(section) ? 9 : 17
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(root.historyGroupDeleteConfirmationPending === String(section) ? 9 : 17)
                         font.bold: root.historyGroupDeleteConfirmationPending === String(section)
                     }
                     MouseArea {
@@ -2957,6 +3064,7 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (root.historyGroupDeleteConfirmationPending === String(section)) {
+                                root.forgetNotificationHistoryGroupCollapse(String(section))
                                 root.historyGroupDeleteRequested(String(section))
                                 root.historyGroupDeleteConfirmationPending = ""
                             } else {
@@ -2969,6 +3077,7 @@ PanelWindow {
                         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                             event.accepted = true
                             if (root.historyGroupDeleteConfirmationPending === String(section)) {
+                                root.forgetNotificationHistoryGroupCollapse(String(section))
                                 root.historyGroupDeleteRequested(String(section))
                                 root.historyGroupDeleteConfirmationPending = ""
                             } else {
@@ -2984,18 +3093,6 @@ PanelWindow {
                         : (root.notificationHistorySearchText.trim().length > 0 || root.notificationHistorySelectedApps.length > 0
                             ? "Удалить всю историю приложения, включая записи вне текущих фильтров"
                             : "Удалить всю историю этого приложения")
-                }
-                Text {
-                    anchors.left: parent.left
-                    anchors.right: historyGroupDeleteButton.left
-                    anchors.rightMargin: 7
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: section + "  ·  " + String((dashboardHistoryList.model || []).filter(function(entry) { return entry.appGroup === section }).length)
-                    color: Config.accent
-                    font.family: Config.settingsFont
-                    font.pixelSize: 10
-                    font.bold: true
-                    elide: Text.ElideRight
                 }
             }
             WheelHandler {
@@ -3014,15 +3111,28 @@ PanelWindow {
                     event.accepted = true
                 }
             }
-            delegate: Rectangle {
+            delegate: Item {
                 required property var modelData
+                readonly property bool groupCollapsed: root.isNotificationHistoryGroupCollapsed(String(modelData.appGroup || ""))
                 width: dashboardHistoryList.width
-                height: historyEntryText.implicitHeight + 20
-                radius: 8
-                color: Config.settingsBackground
-                border.width: modelData.unread === true ? 2 : 1
-                border.color: modelData.unread === true ? Config.accent : Config.settingsBorder
-                Column {
+                height: groupCollapsed ? 0 : historyEntryCard.height + 7
+                clip: true
+                opacity: groupCollapsed ? 0 : 1
+                Behavior on height {
+                    NumberAnimation { duration: Config.animationDuration(160, "size"); easing.type: Easing.OutCubic }
+                }
+                Behavior on opacity {
+                    NumberAnimation { duration: Config.animationDuration(130, "appearance"); easing.type: Easing.OutCubic }
+                }
+                Rectangle {
+                    id: historyEntryCard
+                    width: parent.width
+                    height: historyEntryText.implicitHeight + 20
+                    radius: Config.scaledCornerRadius(8)
+                    color: Config.settingsBackground
+                    border.width: Config.cardBordersEnabled ? (modelData.unread === true ? 2 : 1) : 0
+                    border.color: modelData.unread === true ? Config.accent : Config.settingsBorder
+                    Column {
                     id: historyEntryText
                     anchors.fill: parent
                     anchors.margins: 10
@@ -3034,8 +3144,8 @@ PanelWindow {
                             width: Math.max(0, parent.width - historyEntryTime.implicitWidth - historyEntryDeleteButton.width - 12)
                             text: String(modelData.appName || modelData.desktopEntry || "Приложение") + (modelData.unread === true ? "  ·  новое" : "")
                             color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: 10
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(10)
                             font.bold: true
                             elide: Text.ElideRight
                         }
@@ -3043,26 +3153,26 @@ PanelWindow {
                             id: historyEntryTime
                             text: Qt.formatDateTime(new Date(Number(modelData.receivedAt) || 0), "dd.MM.yyyy HH:mm")
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: 9
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(9)
                         }
                         Rectangle {
                             id: historyEntryDeleteButton
                             width: 24
                             height: 24
-                            radius: 6
+                            radius: Config.scaledCornerRadius(6)
                             activeFocusOnTab: true
                             Accessible.role: Accessible.Button
                             Accessible.name: "Удалить уведомление: " + String(modelData.summary || "без заголовка")
                             color: historyEntryDeleteMouse.containsMouse || activeFocus ? Config.accent : "transparent"
                             border.color: historyEntryDeleteMouse.containsMouse || activeFocus ? Config.accent : Config.settingsBorder
-                            border.width: 1
+                            border.width: historyEntryDeleteButton.activeFocus ? 2 : (Config.buttonBordersEnabled ? 1 : 0)
                             Text {
                                 anchors.centerIn: parent
                                 text: "×"
                                 color: historyEntryDeleteMouse.containsMouse || historyEntryDeleteButton.activeFocus ? Config.black : Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: 17
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(17)
                             }
                             MouseArea {
                                 id: historyEntryDeleteMouse
@@ -3085,8 +3195,8 @@ PanelWindow {
                         width: parent.width
                         text: String(modelData.summary || "(без заголовка)")
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: 12
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(12)
                         font.bold: true
                         wrapMode: Text.Wrap
                     }
@@ -3095,11 +3205,12 @@ PanelWindow {
                         width: parent.width
                         text: String(modelData.body || "")
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(10)
                         wrapMode: Text.Wrap
                         maximumLineCount: 5
                         elide: Text.ElideRight
+                    }
                     }
                 }
             }
@@ -3112,16 +3223,237 @@ PanelWindow {
                         ? "Нет уведомлений для выбранных приложений"
                         : "История пока пуста")
                 color: Config.textMuted
-                font.family: Config.settingsFont
-                font.pixelSize: 12
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(12)
             }
         }
         Text {
             Layout.fillWidth: true
             text: "‹ Назад к обзору · Esc"
             color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: 9
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(9)
+        }
+    }
+
+
+    // One shared action cluster is anchored to the drawer itself, not either
+    // page's content RowLayout. This keeps the controls pinned to the same
+    // top-right corner even when the overview header is crowded or narrow.
+    RowLayout {
+        id: dashboardHeaderActions
+        z: 3
+        anchors.top: drawer.top
+        anchors.right: drawer.right
+        anchors.topMargin: 18
+        anchors.rightMargin: 18
+        width: implicitWidth
+        height: 36
+        spacing: 4
+        visible: root.open || root.keepWindowDuringClose
+        enabled: root.open
+
+        Rectangle {
+            id: settingsButton
+            readonly property bool navigationCard: false
+            Layout.preferredWidth: 36
+            Layout.preferredHeight: 36
+            Layout.alignment: Qt.AlignVCenter
+            radius: Config.scaledCornerRadius(9)
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Button
+            Accessible.name: "Открыть настройки"
+            Accessible.description: "Открывает общие настройки Quickshell Widgets"
+            ToolTip.visible: settingsMouse.containsMouse
+            ToolTip.text: "Настройки"
+            ToolTip.delay: 400
+            Component.onCompleted: root.registerNavigationTarget(settingsButton)
+            Component.onDestruction: root.unregisterNavigationTarget(settingsButton)
+            onActiveFocusChanged: {
+                if (activeFocus)
+                    root.setNavigationTargetFocused(settingsButton)
+                else
+                    root.releaseNavigationTargetFocus(settingsButton)
+            }
+            color: settingsMouse.pressed
+                   ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.16)
+                   : (activeFocus ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.12) : "transparent")
+            border.width: activeFocus ? 2 : 0
+            border.color: Config.accent
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                    event.accepted = true
+                    root.closeRequested()
+                    root.settingsRequested()
+                }
+            }
+            Behavior on color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.width {
+                NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
+            }
+            Text {
+                anchors.centerIn: parent
+                text: "󰒓"
+                color: settingsButton.activeFocus || settingsMouse.containsMouse ? Config.accent : Config.textMuted
+                font.family: "Symbols Nerd Font Mono"
+                font.pixelSize: Config.uiFontSize(16)
+            }
+            MouseArea {
+                id: settingsMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    root.keyboardNavigationActive = false
+                    root.closeRequested()
+                    root.settingsRequested()
+                }
+            }
+        }
+
+        Rectangle {
+            id: historyBackButton
+            // The Back action is inserted between Settings and the permanent
+            // Dashboard close action. Animate its layout slot so the X stays
+            // anchored at the same top-right position in both views.
+            property real animatedSlotWidth: root.historyViewActive ? 36 : 0
+            visible: root.historyViewActive || animatedSlotWidth > 0.5
+            enabled: root.historyViewActive
+            clip: true
+            readonly property bool navigationCard: false
+            Layout.preferredWidth: animatedSlotWidth
+            Layout.preferredHeight: 36
+            Layout.alignment: Qt.AlignVCenter
+            radius: Config.scaledCornerRadius(9)
+            activeFocusOnTab: root.historyViewActive
+            Accessible.role: Accessible.Button
+            Accessible.name: "Назад к обзору Dashboard"
+            Accessible.description: "Возвращает из истории уведомлений к обзору Dashboard"
+            ToolTip.visible: historyBackMouse.containsMouse
+            ToolTip.text: "Назад"
+            ToolTip.delay: 400
+            Component.onCompleted: root.registerNavigationTarget(historyBackButton)
+            Component.onDestruction: root.unregisterNavigationTarget(historyBackButton)
+            onActiveFocusChanged: {
+                if (activeFocus)
+                    root.setNavigationTargetFocused(historyBackButton)
+                else
+                    root.releaseNavigationTargetFocus(historyBackButton)
+            }
+            color: historyBackMouse.pressed
+                   ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.16)
+                   : (activeFocus ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.12) : "transparent")
+            border.width: activeFocus ? 2 : 0
+            border.color: Config.accent
+            Behavior on animatedSlotWidth {
+                NumberAnimation { duration: Config.animationDuration(180, "appearance"); easing.type: Easing.OutCubic }
+            }
+            Behavior on opacity {
+                NumberAnimation { duration: Config.animationDuration(150, "appearance"); easing.type: Easing.OutCubic }
+            }
+            opacity: root.historyViewActive ? 1 : 0
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                    event.accepted = true
+                    root.historyViewActive = false
+                    root.historyClearConfirmationPending = false
+                    root.historyGroupDeleteConfirmationPending = ""
+                }
+            }
+            Behavior on color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.width {
+                NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
+            }
+            Text {
+                anchors.centerIn: parent
+                anchors.verticalCenterOffset: -2
+                text: "‹"
+                color: historyBackButton.activeFocus || historyBackMouse.containsMouse ? Config.accent : Config.textMuted
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(24)
+            }
+            MouseArea {
+                id: historyBackMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    root.historyViewActive = false
+                    root.historyClearConfirmationPending = false
+                    root.historyGroupDeleteConfirmationPending = ""
+                }
+            }
+        }
+
+        Rectangle {
+            id: closeButton
+            // A real 36 px target keeps the visible control, mouse hit area
+            // and spatial-navigation bounds aligned with one another.
+            // Keep the close control in the same spatial navigation graph as the header and cards.
+            readonly property bool navigationCard: false
+            Layout.preferredWidth: 36
+            Layout.preferredHeight: 36
+            Layout.alignment: Qt.AlignVCenter
+            radius: Config.scaledCornerRadius(9)
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Button
+            Accessible.name: "Закрыть Dashboard"
+            Accessible.description: "Закрывает панель Dashboard"
+            Component.onCompleted: root.registerNavigationTarget(closeButton)
+            Component.onDestruction: root.unregisterNavigationTarget(closeButton)
+            onActiveFocusChanged: {
+                if (activeFocus)
+                    root.setNavigationTargetFocused(closeButton)
+                else
+                    root.releaseNavigationTargetFocus(closeButton)
+            }
+            color: closeMouse.pressed
+                   ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.16)
+                   : (activeFocus ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.12) : "transparent")
+            border.width: activeFocus ? 2 : 0
+            border.color: Config.accent
+            Keys.onPressed: function(event) {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                    event.accepted = true
+                    root.closeRequested()
+                }
+            }
+            Behavior on color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.color {
+                ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
+            }
+            Behavior on border.width {
+                NumberAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance"); easing.type: Easing.OutCubic }
+            }
+            Text {
+                anchors.centerIn: parent
+                text: "×"
+                color: closeButton.activeFocus || closeMouse.containsMouse ? Config.accent : Config.textMuted
+                font.pixelSize: Config.uiFontSize(26)
+                font.bold: closeButton.activeFocus
+            }
+            MouseArea {
+                id: closeMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    closeButton.forceActiveFocus()
+                    root.closeRequested()
+                }
+            }
         }
     }
 
@@ -3148,15 +3480,15 @@ PanelWindow {
             Text {
                 text: usageMeter.label
                 color: Config.textMuted
-                font.family: Config.settingsFont
-                font.pixelSize: usageMeter.dense ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(usageMeter.dense ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
             }
             Item { Layout.fillWidth: true }
             Text {
                 text: usageMeter.value >= 0 ? usageMeter.value + "%" : "—"
                 color: Config.text
-                font.family: Config.settingsFont
-                font.pixelSize: usageMeter.dense ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(usageMeter.dense ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                 font.bold: true
             }
         }
@@ -3187,13 +3519,13 @@ PanelWindow {
         signal activated()
         readonly property bool navigationCard: false
         visible: root.cardEditMode
-        radius: 6
+        radius: Config.scaledCornerRadius(6)
         color: editActionMouse.pressed
                ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.24)
                : (activeFocus || editActionMouse.containsMouse
                   ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.14)
                   : "transparent")
-        border.width: activeFocus || editActionMouse.containsMouse ? 1 : 0
+        border.width: activeFocus || (Config.buttonBordersEnabled && editActionMouse.containsMouse) ? 1 : 0
         border.color: Config.accent
         activeFocusOnTab: visible && enabled
         Accessible.role: Accessible.Button
@@ -3214,8 +3546,8 @@ PanelWindow {
             anchors.rightMargin: 4
             text: editAction.label
             color: activeFocus || editActionMouse.containsMouse ? Config.accent : Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: 9
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(9)
             font.bold: activeFocus || editActionMouse.containsMouse
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
@@ -3270,7 +3602,7 @@ PanelWindow {
             anchors.centerIn: parent
             text: "⠿"
             color: dragHandle.activeFocus || dragHandler.active || dragHandleHover.hovered ? Config.accent : Config.textMuted
-            font.pixelSize: 17
+            font.pixelSize: Config.uiFontSize(17)
         }
         HoverHandler { id: dragHandleHover; enabled: root.cardEditMode }
         DragHandler {
@@ -3359,7 +3691,7 @@ PanelWindow {
         readonly property bool hasTodayNote: todayNoteText.trim() !== ""
         readonly property bool hasTomorrowNote: tomorrowNoteText.trim() !== ""
         readonly property bool hasAnyCalendarNotes: hasTodayNote || hasTomorrowNote
-        radius: Config.frameRadius + 1
+        radius: Config.scaledCornerRadius(Config.frameRadius + 1)
         activeFocusOnTab: true
         Accessible.role: Accessible.Grouping
         Accessible.name: infoCard.title
@@ -3566,8 +3898,8 @@ PanelWindow {
                          ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, DashboardCards.CARD_HOVER_BORDER_ALPHA)
                          : Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.52))
         border.width: root.cardDropTargetId === infoCard.cardId ? 3
-                      : (root.keyboardNavigationActive && infoCard.activeFocus
-                         ? Math.max(DashboardCards.CARD_FOCUS_BORDER_WIDTH, Config.frameBorderWidth + 1) : 1)
+                       : (root.keyboardNavigationActive && infoCard.activeFocus
+                         ? Math.max(DashboardCards.CARD_FOCUS_BORDER_WIDTH, Config.frameBorderWidth + 1) : (Config.cardBordersEnabled ? 1 : 0))
         Behavior on color {
             ColorAnimation { duration: Config.animationDuration(DashboardCards.CARD_HOVER_DURATION, "appearance") }
         }
@@ -3594,7 +3926,7 @@ PanelWindow {
                 Rectangle {
                     Layout.preferredWidth: DashboardCards.CARD_BADGE_SIZE
                     Layout.preferredHeight: DashboardCards.CARD_BADGE_SIZE
-                    radius: 8
+                    radius: Config.scaledCornerRadius(8)
                     color: Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.13)
                     border.width: 1
                     border.color: Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.24)
@@ -3604,19 +3936,171 @@ PanelWindow {
                         text: infoCard.symbol
                         color: Config.accent
                         font.family: Config.font
-                        font.pixelSize: 13
+                        font.pixelSize: Config.uiFontSize(13)
                     }
                 }
 
                 Text {
                     text: infoCard.title
                     color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: 13
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(13)
                     font.bold: true
                 }
 
                 Item { Layout.fillWidth: true }
+
+                Primitives.HoverButtonSurface {
+                    id: mediaSourceButton
+                    readonly property bool navigationCard: false
+                    visible: infoCard.cardId === "media" && root.mediaSourceSwitchSupported
+                             && !root.cardEditMode
+                    enabled: visible && root.open && !root.layoutEditMode
+                    Layout.preferredWidth: root.mediaAlternativePlayerCount === 1
+                        ? Math.max(58, Math.min(132, mediaSourceButtonLabel.implicitWidth + 16)) : 28
+                    Layout.minimumWidth: root.mediaAlternativePlayerCount === 1 ? 58 : 28
+                    Layout.maximumWidth: root.mediaAlternativePlayerCount === 1 ? 132 : 28
+                    Layout.preferredHeight: 28
+                    Layout.minimumHeight: 28
+                    Layout.maximumHeight: 28
+                    Layout.alignment: Qt.AlignVCenter
+                    cornerRadius: 7
+                    activeFocusOnTab: visible && enabled
+                    interactionEnabled: enabled
+                    cursorShape: Qt.PointingHandCursor
+                    backgroundColor: activeFocus
+                        ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
+                        : "transparent"
+                    hoverBackgroundEnabled: true
+                    hoverBackgroundColor: Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
+                    borderWidth: 0
+                    hoverBorderEnabled: false
+                    toolTipText: root.mediaSourceSwitchActionName
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.mediaSourceSwitchActionName
+                    Accessible.description: root.mediaAlternativePlayerCount === 1
+                        ? "Переключает на единственный другой активный плеер"
+                        : "Показывает компактный список других активных плееров"
+                    ToolTip.delay: 400
+                    Component.onCompleted: root.registerNavigationTarget(mediaSourceButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(mediaSourceButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(mediaSourceButton)
+                        else
+                            root.releaseNavigationTargetFocus(mediaSourceButton)
+                    }
+                    onVisibleChanged: {
+                        if (!visible) {
+                            root.invalidateNavigationTarget(mediaSourceButton)
+                            root.mediaSourcePickerExpanded = false
+                        }
+                    }
+                    onEnabledChanged: {
+                        if (!enabled)
+                            root.invalidateNavigationTarget(mediaSourceButton)
+                    }
+                    Text {
+                        id: mediaSourceButtonLabel
+                        anchors.fill: parent
+                        anchors.leftMargin: 5
+                        anchors.rightMargin: 5
+                        text: root.mediaAlternativePlayerCount === 1
+                            ? root.mediaBackendLabelFor(root.mediaAlternativePlayers[0].player) : "⇄"
+                        color: mediaSourceButton.activeFocus || mediaSourceButton.hovered
+                            ? Config.accent : Config.textMuted
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(root.mediaAlternativePlayerCount === 1 ? 10 : 16)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                    }
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.activateDashboardMediaSourceControl()
+                        }
+                    }
+                    onClicked: {
+                        root.keyboardNavigationActive = false
+                        root.activateDashboardMediaSourceControl()
+                    }
+                }
+
+                Primitives.HoverButtonSurface {
+                    id: mediaPlaybackButton
+                    readonly property bool navigationCard: false
+                    visible: infoCard.cardId === "media" && root.mediaPlaybackControlSupported
+                             && !root.cardEditMode
+                    enabled: visible && root.open && !root.layoutEditMode
+                    Layout.preferredWidth: 28
+                    Layout.minimumWidth: 28
+                    Layout.maximumWidth: 28
+                    Layout.preferredHeight: 28
+                    Layout.minimumHeight: 28
+                    Layout.maximumHeight: 28
+                    Layout.alignment: Qt.AlignVCenter
+                    cornerRadius: 7
+                    activeFocusOnTab: visible && enabled
+                    interactionEnabled: enabled
+                    cursorShape: Qt.PointingHandCursor
+                    backgroundColor: activeFocus
+                        ? Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
+                        : "transparent"
+                    hoverBackgroundEnabled: true
+                    hoverBackgroundColor: Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.08)
+                    borderWidth: 0
+                    hoverBorderEnabled: false
+                    toolTipText: root.mediaPlaybackActionName
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.mediaPlaybackActionName
+                    Accessible.description: root.mediaPlaybackState === "unknown"
+                        ? "Источник не сообщает состояние воспроизведения; кнопка переключает паузу"
+                        : (root.mediaPlaybackState === "playing"
+                           ? "Приостанавливает текущий трек"
+                           : "Возобновляет текущий трек")
+                    ToolTip.delay: 400
+                    Component.onCompleted: root.registerNavigationTarget(mediaPlaybackButton)
+                    Component.onDestruction: root.unregisterNavigationTarget(mediaPlaybackButton)
+                    onActiveFocusChanged: {
+                        if (activeFocus)
+                            root.setNavigationTargetFocused(mediaPlaybackButton)
+                        else
+                            root.releaseNavigationTargetFocus(mediaPlaybackButton)
+                    }
+                    onVisibleChanged: {
+                        if (!visible)
+                            root.invalidateNavigationTarget(mediaPlaybackButton)
+                    }
+                    onEnabledChanged: {
+                        if (!enabled)
+                            root.invalidateNavigationTarget(mediaPlaybackButton)
+                    }
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.mediaPlaybackActionIcon
+                        color: mediaPlaybackButton.activeFocus || mediaPlaybackButton.hovered
+                            ? Config.accent : Config.textMuted
+                        font.family: Config.font
+                        font.pixelSize: Config.uiFontSize(15)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    Keys.onPressed: function(event) {
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                || event.key === Qt.Key_Space) {
+                            event.accepted = true
+                            root.toggleDashboardMediaPlayback()
+                        }
+                    }
+                    onClicked: {
+                        root.keyboardNavigationActive = false
+                        root.toggleDashboardMediaPlayback()
+                    }
+                }
 
                 RowLayout {
                     visible: root.cardEditMode
@@ -3642,6 +4126,116 @@ PanelWindow {
                         cardId: infoCard.cardId
                         cardLabel: infoCard.title
                     }
+                }
+            }
+
+            Item {
+                id: mediaSourceAlternativesClip
+                readonly property bool targetExpanded: infoCard.cardId === "media"
+                    && root.mediaSourcePickerExpanded
+                    && root.mediaAlternativePlayerCount > 1
+                    && !root.cardEditMode
+                readonly property real targetHeight: targetExpanded
+                    ? mediaSourceAlternativesFlow.implicitHeight : 0
+                property real animatedHeight: targetHeight
+                Layout.fillWidth: true
+                Layout.preferredHeight: animatedHeight
+                Layout.minimumHeight: 0
+                clip: true
+                visible: targetExpanded || animatedHeight > 0.5
+                enabled: targetExpanded
+                opacity: targetExpanded ? 1 : 0
+                Behavior on animatedHeight {
+                    NumberAnimation {
+                        duration: Config.animationDuration(180, "size")
+                        easing.type: Config.easingType()
+                    }
+                }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Config.animationDuration(130, "appearance")
+                        easing.type: Config.easingType()
+                    }
+                }
+
+                Flow {
+                    id: mediaSourceAlternativesFlow
+                    x: 0
+                    y: mediaSourceAlternativesClip.targetExpanded ? 0 : -3
+                    width: parent.width
+                    height: implicitHeight
+                    spacing: 5
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Config.animationDuration(180, "appearance")
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    // Keep the delegate count stable across metadata refreshes.
+                    // The previous JS-array model was replaced on every player poll,
+                    // destroying/recreating hover surfaces and causing the pointer
+                    // highlight to jump briefly between adjacent choices.
+                    Repeater {
+                        model: mediaSourceAlternativesClip.targetExpanded
+                            || mediaSourceAlternativesClip.animatedHeight > 0.5
+                            ? root.mediaAlternativePlayerCount : 0
+                        delegate: Primitives.HoverButtonSurface {
+                            id: mediaAlternativeButton
+                            required property int index
+                            readonly property var sourceData: root.mediaAlternativePlayers[index] || ({})
+                            property string backendId: String(sourceData.player || "").trim().toLowerCase()
+                            property string backendLabel: root.mediaBackendLabelFor(backendId)
+                            width: Math.max(58, Math.min(126, mediaAlternativeLabel.implicitWidth + 18))
+                            height: 23
+                            cornerRadius: 6
+                            backgroundColor: "transparent"
+                            hoverBackgroundEnabled: true
+                            hoverBackgroundColor: Qt.rgba(Config.accent.r, Config.accent.g, Config.accent.b, 0.10)
+                            borderWidth: 1
+                            borderColor: Qt.rgba(Config.settingsBorder.r, Config.settingsBorder.g, Config.settingsBorder.b, 0.65)
+                            hoverBorderEnabled: true
+                            hoverBorderColor: Config.accent
+                            interactionEnabled: root.open && !root.layoutEditMode && !root.cardEditMode
+                            activeFocusOnTab: true
+                            toolTipText: backendLabel
+                            Accessible.role: Accessible.Button
+                            Accessible.name: "Переключить на " + backendLabel
+                            Text {
+                                id: mediaAlternativeLabel
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                text: mediaAlternativeButton.backendLabel
+                                color: mediaAlternativeButton.hovered || mediaAlternativeButton.activeFocus
+                                    ? Config.accent : Config.textMuted
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(10)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
+                            Keys.onPressed: function(event) {
+                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
+                                        || event.key === Qt.Key_Space) {
+                                    event.accepted = true
+                                    root.selectDashboardMediaSource(mediaAlternativeButton.backendId)
+                                }
+                            }
+                            onClicked: {
+                                root.keyboardNavigationActive = false
+                                root.selectDashboardMediaSource(backendId)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Connections {
+                target: root.playerSource
+                function onDashboardPlayersChanged() {
+                    if (root.mediaAlternativePlayerCount <= 1)
+                        root.mediaSourcePickerExpanded = false
                 }
             }
 
@@ -3683,7 +4277,7 @@ PanelWindow {
                         text: infoCard.todayTimeText
                         color: Config.text
                         font.family: Config.ledFont
-                        font.pixelSize: infoCard.expanded ? 40 : 34
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 40 : 34)
                         font.bold: false
                         elide: Text.ElideRight
                         maximumLineCount: 1
@@ -3692,8 +4286,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.todayDateText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.expanded ? 12 : 11
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 12 : 11)
                         maximumLineCount: 2
                         elide: Text.ElideRight
                         wrapMode: Text.WordWrap
@@ -3714,7 +4308,7 @@ PanelWindow {
                     Layout.fillHeight: true
                     Layout.horizontalStretchFactor: 60
                     Layout.minimumWidth: 0
-                    radius: infoCard.expanded ? 10 : 8
+                    radius: Config.scaledCornerRadius(infoCard.expanded ? 10 : 8)
                     color: "transparent"
                     border.width: 0
 
@@ -3738,8 +4332,8 @@ PanelWindow {
                                 Layout.preferredWidth: infoCard.expanded ? 50 : 40
                                 color: Config.textMuted
                                 text: "СЕГОДНЯ"
-                                font.family: Config.settingsFont
-                                font.pixelSize: infoCard.expanded ? 9 : 9
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(infoCard.expanded ? 9 : 9)
                                 font.bold: true
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -3749,8 +4343,8 @@ PanelWindow {
                                 Layout.minimumWidth: 0
                                 text: infoCard.todayNoteText
                                 color: Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: infoCard.expanded ? 12 : 11
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(infoCard.expanded ? 12 : 11)
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: 2
                                 elide: Text.ElideRight
@@ -3777,8 +4371,8 @@ PanelWindow {
                                 Layout.preferredWidth: infoCard.expanded ? 50 : 40
                                 color: Config.textMuted
                                 text: "ЗАВТРА"
-                                font.family: Config.settingsFont
-                                font.pixelSize: infoCard.expanded ? 9 : 9
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(infoCard.expanded ? 9 : 9)
                                 font.bold: true
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -3788,8 +4382,8 @@ PanelWindow {
                                 Layout.minimumWidth: 0
                                 text: infoCard.tomorrowNoteText
                                 color: Config.text
-                                font.family: Config.settingsFont
-                                font.pixelSize: infoCard.expanded ? 12 : 11
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(infoCard.expanded ? 12 : 11)
                                 wrapMode: Text.WordWrap
                                 maximumLineCount: 2
                                 elide: Text.ElideRight
@@ -3811,7 +4405,7 @@ PanelWindow {
                     text: infoCard.todayTimeText
                     color: Config.text
                     font.family: Config.ledFont
-                    font.pixelSize: infoCard.expanded ? 29 : 25
+                    font.pixelSize: Config.uiFontSize(infoCard.expanded ? 29 : 25)
                     font.bold: false
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -3820,8 +4414,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.todayDateText
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: infoCard.expanded ? 12 : 11
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(infoCard.expanded ? 12 : 11)
                     maximumLineCount: 1
                     elide: Text.ElideRight
                 }
@@ -3832,16 +4426,16 @@ PanelWindow {
                     Text {
                         text: "Сегодня"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.expanded ? 10 : 9
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 10 : 9)
                         font.bold: true
                     }
                     Text {
                         Layout.fillWidth: true
                         text: infoCard.todayNoteText
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.expanded ? 11 : 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 11 : 10)
                         wrapMode: Text.WordWrap
                         maximumLineCount: infoCard.expanded ? 3 : 1
                         elide: Text.ElideRight
@@ -3854,16 +4448,16 @@ PanelWindow {
                     Text {
                         text: "Завтра"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.expanded ? 10 : 9
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 10 : 9)
                         font.bold: true
                     }
                     Text {
                         Layout.fillWidth: true
                         text: infoCard.tomorrowNoteText
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.expanded ? 11 : 10
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.expanded ? 11 : 10)
                         wrapMode: Text.WordWrap
                         maximumLineCount: infoCard.expanded ? 3 : 1
                         elide: Text.ElideRight
@@ -3883,8 +4477,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.primaryText
                     color: Config.text
-                    font.family: Config.settingsFont
-                    font.pixelSize: infoCard.narrow ? 16 : 18
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(infoCard.narrow ? 16 : 18)
                     font.bold: true
                     elide: Text.ElideRight
                     maximumLineCount: 1
@@ -3893,8 +4487,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.secondaryText
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: infoCard.narrow ? 11 : 12
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(infoCard.narrow ? 11 : 12)
                     elide: Text.ElideRight
                     maximumLineCount: 2
                     wrapMode: Text.WordWrap
@@ -3932,8 +4526,8 @@ PanelWindow {
                                    + (infoCard.cpuCorePeakId !== "" ? " · " + infoCard.cpuCorePeakId : "")
                                  : "")
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -3942,8 +4536,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.cpuLoadAverageText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -3966,8 +4560,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Память · " + infoCard.ramCapacityText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -3976,8 +4570,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Подкачка · " + infoCard.swapCapacityText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -3996,8 +4590,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppLabel + " ·"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4006,8 +4600,8 @@ PanelWindow {
                         Layout.minimumWidth: 0
                         text: infoCard.topResourceAppName
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -4019,8 +4613,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppProcessCount
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4031,8 +4625,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppValue
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4057,16 +4651,16 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "ЗАГРУЗКА ↓"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_MICRO_LABEL_SIZE)
                         font.bold: true
                     }
                     Text {
                         Layout.fillWidth: true
                         text: infoCard.primaryText.replace("↓", "").trim()
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: 17
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(17)
                         font.bold: true
                         maximumLineCount: 1
                         elide: Text.ElideRight
@@ -4075,8 +4669,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Всего · " + infoCard.detailPrimaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4090,16 +4684,16 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "ОТДАЧА ↑"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_MICRO_LABEL_SIZE)
                         font.bold: true
                     }
                     Text {
                         Layout.fillWidth: true
                         text: infoCard.secondaryText.replace("↑", "").trim()
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: 17
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(17)
                         font.bold: true
                         maximumLineCount: 1
                         elide: Text.ElideRight
@@ -4108,8 +4702,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Всего · " + infoCard.detailSecondaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4134,8 +4728,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.networkConnectionHeading.toUpperCase()
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_MICRO_LABEL_SIZE)
                         font.bold: true
                         font.letterSpacing: 0.7
                         maximumLineCount: 1
@@ -4146,8 +4740,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.networkConnectionDetails
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                         maximumLineCount: 2
                         elide: Text.ElideRight
@@ -4198,8 +4792,8 @@ PanelWindow {
                             visible: compactWeatherIconImage.status !== Image.Ready
                             text: "☁"
                             color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: 26
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(26)
                         }
                     }
                     ColumnLayout {
@@ -4210,8 +4804,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: infoCard.primaryText
                             color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: 21
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(21)
                             font.bold: true
                             maximumLineCount: 1
                             elide: Text.ElideRight
@@ -4220,8 +4814,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: infoCard.secondaryText
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                             maximumLineCount: 2
                             wrapMode: Text.WordWrap
                             elide: Text.ElideRight
@@ -4241,8 +4835,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Ощущается " + infoCard.comfortText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4255,8 +4849,8 @@ PanelWindow {
                                  ? (infoCard.windText !== "" ? "Ветер " + infoCard.windDirection + " · " + infoCard.windText : "Ветер " + infoCard.windDirection)
                                  : "Ветер " + infoCard.windText)
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4265,8 +4859,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Давление " + infoCard.pressureText + " мм рт. ст."
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4297,7 +4891,7 @@ PanelWindow {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 8
+                            radius: Config.scaledCornerRadius(8)
                             color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.42)
                             border.width: 1
                             border.color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.48)
@@ -4308,8 +4902,8 @@ PanelWindow {
                             visible: mediaArtwork.status !== Image.Ready
                             text: "♫"
                             color: Config.accent
-                            font.family: Config.settingsFont
-                            font.pixelSize: 25
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(25)
                             font.bold: true
                         }
 
@@ -4333,7 +4927,7 @@ PanelWindow {
                                      || infoCard.mediaPlaybackState === "paused"
                             width: 18
                             height: 18
-                            radius: 9
+                            radius: Config.scaledCornerRadius(9)
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
                             anchors.rightMargin: 3
@@ -4346,7 +4940,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: infoCard.mediaPlaybackState === "playing" ? "▶" : "Ⅱ"
                                 color: infoCard.mediaPlaybackState === "playing" ? Config.accent : Config.textMuted
-                                font.pixelSize: 8
+                                font.pixelSize: Config.uiFontSize(8)
                                 font.bold: true
                             }
                         }
@@ -4360,8 +4954,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: infoCard.primaryText
                             color: Config.text
-                            font.family: Config.settingsFont
-                            font.pixelSize: 15
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(15)
                             font.bold: true
                             maximumLineCount: 2
                             wrapMode: Text.WordWrap
@@ -4371,8 +4965,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: infoCard.secondaryText
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                             maximumLineCount: 2
                             wrapMode: Text.WordWrap
                             elide: Text.ElideRight
@@ -4393,8 +4987,8 @@ PanelWindow {
                               ? infoCard.tertiaryLabel + " · " + infoCard.tertiaryText
                               : infoCard.tertiaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE)
                         maximumLineCount: 2
                         wrapMode: Text.WordWrap
                         elide: Text.ElideRight
@@ -4402,27 +4996,45 @@ PanelWindow {
                     Item {
                         visible: infoCard.mediaProgressPercent >= 0
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 10
-                        Layout.minimumHeight: 10
-                        Layout.maximumHeight: 10
+                        Layout.preferredHeight: 14
+                        Layout.minimumHeight: 14
+                        Layout.maximumHeight: 14
                         RowLayout {
                             anchors.fill: parent
                             spacing: 6
                             Item {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 4
-                                Layout.minimumHeight: 4
-                                Layout.maximumHeight: 4
+                                Layout.preferredHeight: 14
+                                Layout.minimumHeight: 14
+                                Layout.maximumHeight: 14
                                 Rectangle {
-                                    anchors.fill: parent
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    height: 4
                                     radius: 2
                                     color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.52)
                                 }
                                 Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width * Math.max(0, Math.min(100, infoCard.mediaProgressPercent)) / 100
-                                    height: parent.height
+                                    height: 4
                                     radius: 2
                                     color: Config.accent
+                                }
+                                MouseArea {
+                                    id: compactMediaSeekMouseArea
+                                    anchors.fill: parent
+                                    enabled: root.mediaSeekSupported && root.open && !root.layoutEditMode && !root.cardEditMode
+                                    acceptedButtons: Qt.LeftButton
+                                    hoverEnabled: true
+                                    preventStealing: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onPressed: function(mouse) {
+                                        mouse.accepted = true
+                                        root.seekDashboardMediaAtPointer(mouse.x, compactMediaSeekMouseArea.width)
+                                    }
                                 }
                             }
                             Text {
@@ -4430,8 +5042,8 @@ PanelWindow {
                                       ? "−" + infoCard.mediaRemainingTime
                                       : infoCard.mediaProgressPercent + "%"
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: 8
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(8)
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -4472,8 +5084,8 @@ PanelWindow {
                             Layout.preferredWidth: implicitWidth
                             text: "Лог. CPU: " + infoCard.cpuCoreCount
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4484,8 +5096,8 @@ PanelWindow {
                             text: "Пик CPU" + (infoCard.cpuCorePeakId !== "" ? " " + infoCard.cpuCorePeakId : "")
                                   + ": " + infoCard.cpuCorePeak + "%"
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4496,8 +5108,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.cpuLoadAverageText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 2
                         wrapMode: Text.WordWrap
                         elide: Text.ElideRight
@@ -4520,8 +5132,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Память · " + infoCard.ramCapacityText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4531,8 +5143,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Подкачка · " + infoCard.swapCapacityText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 2
                         wrapMode: Text.WordWrap
                         elide: Text.ElideRight
@@ -4551,8 +5163,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppLabel + " ·"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4561,8 +5173,8 @@ PanelWindow {
                         Layout.minimumWidth: 0
                         text: infoCard.topResourceAppName
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -4574,8 +5186,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppProcessCount
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4585,8 +5197,8 @@ PanelWindow {
                         Layout.preferredWidth: implicitWidth
                         text: infoCard.topResourceAppValue
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         textFormat: Text.PlainText
                     }
@@ -4643,8 +5255,8 @@ PanelWindow {
                             Layout.preferredWidth: implicitWidth
                             text: "Лог. CPU: " + infoCard.cpuCoreCount
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4655,8 +5267,8 @@ PanelWindow {
                             text: "Пик CPU" + (infoCard.cpuCorePeakId !== "" ? " " + infoCard.cpuCorePeakId : "")
                                   + ": " + infoCard.cpuCorePeak + "%"
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4666,8 +5278,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Подкачка · " + infoCard.swapCapacityText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4676,8 +5288,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.cpuLoadAverageText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -4691,8 +5303,8 @@ PanelWindow {
                             Layout.preferredWidth: implicitWidth
                             text: infoCard.topResourceAppLabel + " ·"
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             textFormat: Text.PlainText
                         }
@@ -4701,8 +5313,8 @@ PanelWindow {
                             Layout.minimumWidth: 0
                             text: infoCard.topResourceAppName
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                             textFormat: Text.PlainText
@@ -4714,8 +5326,8 @@ PanelWindow {
                             Layout.preferredWidth: implicitWidth
                             text: infoCard.topResourceAppProcessCount
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             textFormat: Text.PlainText
                         }
@@ -4725,8 +5337,8 @@ PanelWindow {
                             Layout.preferredWidth: implicitWidth
                             text: infoCard.topResourceAppValue
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             textFormat: Text.PlainText
                         }
@@ -4746,8 +5358,8 @@ PanelWindow {
                     Text {
                         text: "ЗАГРУЗКА"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_MICRO_LABEL_NARROW_SIZE : DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_MICRO_LABEL_NARROW_SIZE : DashboardCards.CARD_MICRO_LABEL_SIZE)
                         font.bold: true
                         font.letterSpacing: 0.7
                     }
@@ -4755,8 +5367,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.primaryText.replace("↓", "").trim()
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_METRIC_VALUE_NARROW_SIZE : DashboardCards.CARD_METRIC_VALUE_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_METRIC_VALUE_NARROW_SIZE : DashboardCards.CARD_METRIC_VALUE_SIZE)
                         font.bold: true
                         elide: Text.ElideRight
                     }
@@ -4764,8 +5376,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.wideLead ? "Всего · " + infoCard.detailPrimaryText : infoCard.detailPrimaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         elide: Text.ElideRight
                     }
                 }
@@ -4782,8 +5394,8 @@ PanelWindow {
                     Text {
                         text: "ОТДАЧА"
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_MICRO_LABEL_NARROW_SIZE : DashboardCards.CARD_MICRO_LABEL_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_MICRO_LABEL_NARROW_SIZE : DashboardCards.CARD_MICRO_LABEL_SIZE)
                         font.bold: true
                         font.letterSpacing: 0.7
                     }
@@ -4791,8 +5403,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.secondaryText.replace("↑", "").trim()
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_METRIC_VALUE_NARROW_SIZE : DashboardCards.CARD_METRIC_VALUE_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_METRIC_VALUE_NARROW_SIZE : DashboardCards.CARD_METRIC_VALUE_SIZE)
                         font.bold: true
                         elide: Text.ElideRight
                     }
@@ -4800,8 +5412,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.wideLead ? "Всего · " + infoCard.detailSecondaryText : infoCard.detailSecondaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         elide: Text.ElideRight
                     }
                 }
@@ -4828,8 +5440,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.networkConnectionHeading.toUpperCase()
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: DashboardCards.CARD_MICRO_LABEL_SIZE
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(DashboardCards.CARD_MICRO_LABEL_SIZE)
                     font.bold: true
                     font.letterSpacing: 0.7
                     maximumLineCount: 1
@@ -4840,8 +5452,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.networkConnectionDetails
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: DashboardCards.CARD_DETAIL_TEXT_SIZE
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(DashboardCards.CARD_DETAIL_TEXT_SIZE)
                     // Break long profile/device names before the two-line limit
                     // is elided, matching the regular Network card behaviour.
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
@@ -4857,8 +5469,8 @@ PanelWindow {
                 Layout.fillWidth: true
                 text: infoCard.networkConnectionText
                 color: Config.textMuted
-                font.family: Config.settingsFont
-                font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                font.family: Config.settingsFontFamily
+                font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                 // Active profile and device names often exceed a narrow card's
                 // width. Wrap at spaces first, but also break unusually long
                 // unbroken names before the two-line limit is elided.
@@ -4908,8 +5520,8 @@ PanelWindow {
                                 visible: expandedWeatherIcon.status !== Image.Ready
                                 text: "☁"
                                 color: Config.accent
-                                font.family: Config.settingsFont
-                                font.pixelSize: infoCard.narrow ? 24 : 26
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(infoCard.narrow ? 24 : 26)
                             }
                         }
                         Text {
@@ -4917,7 +5529,7 @@ PanelWindow {
                             text: infoCard.primaryText
                             color: Config.text
                             font.family: Config.ledFont
-                            font.pixelSize: infoCard.narrow ? 24 : 27
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? 24 : 27)
                             font.bold: true
                             elide: Text.ElideRight
                         }
@@ -4927,8 +5539,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.secondaryText
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? 10 : 11
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? 10 : 11)
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
                         elide: Text.ElideRight
@@ -4951,8 +5563,8 @@ PanelWindow {
                             Layout.fillWidth: true
                             text: "Ощущается " + infoCard.comfortText
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4965,8 +5577,8 @@ PanelWindow {
                                      ? (infoCard.windText !== "" ? "Ветер " + infoCard.windDirection + " · " + infoCard.windText : "Ветер " + infoCard.windDirection)
                                      : "Ветер " + infoCard.windText)
                             color: Config.textMuted
-                            font.family: Config.settingsFont
-                            font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                             maximumLineCount: 1
                             elide: Text.ElideRight
                         }
@@ -4977,8 +5589,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: "Давление " + infoCard.pressureText + " мм рт. ст."
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         maximumLineCount: 1
                         elide: Text.ElideRight
                     }
@@ -5003,8 +5615,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.primaryText
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? 15 : 16
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? 15 : 16)
                         font.bold: true
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
@@ -5014,8 +5626,8 @@ PanelWindow {
                         Layout.fillWidth: true
                         text: infoCard.secondaryText
                         color: Config.text
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? 10 : 11
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? 10 : 11)
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
                         elide: Text.ElideRight
@@ -5036,8 +5648,8 @@ PanelWindow {
                               ? infoCard.tertiaryLabel + " · " + infoCard.tertiaryText
                               : infoCard.tertiaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
                         elide: Text.ElideRight
@@ -5045,9 +5657,9 @@ PanelWindow {
                     Item {
                         visible: infoCard.mediaProgressPercent >= 0
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 10
-                        Layout.minimumHeight: 10
-                        Layout.maximumHeight: 10
+                        Layout.preferredHeight: 14
+                        Layout.minimumHeight: 14
+                        Layout.maximumHeight: 14
 
                         RowLayout {
                             anchors.fill: parent
@@ -5055,18 +5667,23 @@ PanelWindow {
 
                             Item {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 4
-                                Layout.minimumHeight: 4
-                                Layout.maximumHeight: 4
+                                Layout.preferredHeight: 14
+                                Layout.minimumHeight: 14
+                                Layout.maximumHeight: 14
 
                                 Rectangle {
-                                    anchors.fill: parent
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    height: 4
                                     radius: 2
                                     color: Qt.rgba(Config.baseColor.r, Config.baseColor.g, Config.baseColor.b, 0.52)
                                 }
                                 Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width * Math.max(0, Math.min(100, infoCard.mediaProgressPercent)) / 100
-                                    height: parent.height
+                                    height: 4
                                     radius: 2
                                     color: Config.accent
                                     Behavior on width {
@@ -5076,14 +5693,27 @@ PanelWindow {
                                         }
                                     }
                                 }
+                                MouseArea {
+                                    id: wideMediaSeekMouseArea
+                                    anchors.fill: parent
+                                    enabled: root.mediaSeekSupported && root.open && !root.layoutEditMode && !root.cardEditMode
+                                    acceptedButtons: Qt.LeftButton
+                                    hoverEnabled: true
+                                    preventStealing: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onPressed: function(mouse) {
+                                        mouse.accepted = true
+                                        root.seekDashboardMediaAtPointer(mouse.x, wideMediaSeekMouseArea.width)
+                                    }
+                                }
                             }
                             Text {
                                 text: infoCard.mediaRemainingTime !== ""
                                       ? "−" + infoCard.mediaRemainingTime
                                       : infoCard.mediaProgressPercent + "%"
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
-                                font.pixelSize: 8
+                                font.family: Config.settingsFontFamily
+                                font.pixelSize: Config.uiFontSize(8)
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -5096,8 +5726,8 @@ PanelWindow {
                               ? infoCard.tertiaryLabel + " · " + infoCard.tertiaryText
                               : infoCard.tertiaryText
                         color: Config.textMuted
-                        font.family: Config.settingsFont
-                        font.pixelSize: infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE
+                        font.family: Config.settingsFontFamily
+                        font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_DETAIL_TEXT_NARROW_SIZE : DashboardCards.CARD_DETAIL_TEXT_SIZE)
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
                         elide: Text.ElideRight
@@ -5125,8 +5755,8 @@ PanelWindow {
                     Layout.fillWidth: true
                     text: infoCard.footerText
                     color: Config.textMuted
-                    font.family: Config.settingsFont
-                    font.pixelSize: infoCard.narrow ? DashboardCards.CARD_FOOTER_TEXT_NARROW_SIZE : DashboardCards.CARD_FOOTER_TEXT_SIZE
+                    font.family: Config.settingsFontFamily
+                    font.pixelSize: Config.uiFontSize(infoCard.narrow ? DashboardCards.CARD_FOOTER_TEXT_NARROW_SIZE : DashboardCards.CARD_FOOTER_TEXT_SIZE)
                     elide: Text.ElideRight
                 }
 
@@ -5150,16 +5780,16 @@ PanelWindow {
         id: dashboardEditInputRegion
         x: drawer.x
         y: drawer.y
-        width: drawer.width
-        height: drawer.height
+        width: drawer.width * root.drawerUiScale
+        height: drawer.height * root.drawerUiScale
     }
 
     Item {
         id: dashboardLayoutEditOverlay
         x: drawer.x
         y: drawer.y
-        width: drawer.width
-        height: drawer.height
+        width: drawer.width * root.drawerUiScale
+        height: drawer.height * root.drawerUiScale
         z: 10000
         visible: root.layoutEditMode
 
@@ -5168,19 +5798,19 @@ PanelWindow {
             visible: !root.layoutDragHidden
             color: "transparent"
             border.color: Config.accent
-            border.width: Math.max(2, Config.frameBorderWidth + 1)
-            radius: Config.frameRadius + 9
+            border.width: Math.max(2, Math.round((Config.frameBorderWidth + 1) * root.drawerUiScale))
+            radius: Math.round((Config.frameRadius + 9) * root.drawerUiScale)
             antialiasing: true
         }
 
         Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.margins: 7
+            anchors.margins: Math.round(7 * root.drawerUiScale)
             visible: !root.layoutDragHidden
-            width: dashboardEditLabel.implicitWidth + 16
-            height: dashboardEditLabel.implicitHeight + 10
-            radius: 5
+            width: dashboardEditLabel.implicitWidth + Math.round(16 * root.drawerUiScale)
+            height: dashboardEditLabel.implicitHeight + Math.round(10 * root.drawerUiScale)
+            radius: Math.round(5 * root.drawerUiScale)
             color: Config.accent
 
             Text {
@@ -5188,7 +5818,7 @@ PanelWindow {
                 anchors.centerIn: parent
                 text: "Dashboard · перетащите для перемещения"
                 color: Config.black
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(11)
                 font.bold: true
             }

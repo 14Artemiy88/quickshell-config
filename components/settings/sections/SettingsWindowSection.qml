@@ -46,7 +46,7 @@ Column {
 settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["settingsFont", "settingsFontSize", "settingsPadding", "settingsSpacing"] })
+        changeKeys: ({ keys: ["settingsFont", "settingsFontSize", "settingsFontScale", "settingsUiScale", "settingsShowDescriptions", "settingsPadding", "settingsSpacing"] })
         padding: 8
         contentSpacing: 6
 
@@ -54,7 +54,7 @@ settingsSearchSubTabIndex: 0
                                 visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
                                 text: "Интерфейс настроек"
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(10)
                                 wrapMode: Text.WordWrap
                                 width: parent.width
@@ -89,7 +89,7 @@ settingsSearchSubTabIndex: 0
                                 height: 34
                                 labelWidth: 210
                                 labelFontSize: 11
-                                label: "Размер шрифта настроек"
+                                label: "Базовый размер шрифта настроек"
                                 spacing: 8
                                 
                                 SettingsNumberField {
@@ -111,6 +111,67 @@ settingsSearchSubTabIndex: 0
             settingsObject: settingsWindowColumn.settings
             saveOnEdit: true
         }
+                            }
+
+                            SettingsRow {
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                                width: parent.width
+                                height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Масштаб окна настроек (%)"
+                                spacing: 8
+                                SettingsNumberField {
+                                    width: 100; height: 30
+                                    value: Config.settingsUiScale
+                                    minimum: 75; maximum: 150; step: 5; wheelStep: 5; decimals: 0
+                                    compact: true; fieldWidth: 100; fieldFontSize: 11
+                                    inputMethodHints: Qt.ImhDigitsOnly
+                                    targetObject: Config; targetProperty: "settingsUiScale"
+                                    settingsObject: settingsWindowColumn.settings; saveOnEdit: true
+                                }
+                            }
+
+                            SettingsRow {
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                                width: parent.width
+                                height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Масштаб шрифтов настроек (%)"
+                                spacing: 8
+                                SettingsNumberField {
+                                    width: 100; height: 30
+                                    value: Config.settingsFontScale
+                                    minimum: 75; maximum: 150; step: 5; wheelStep: 5; decimals: 0
+                                    compact: true; fieldWidth: 100; fieldFontSize: 11
+                                    inputMethodHints: Qt.ImhDigitsOnly
+                                    targetObject: Config; targetProperty: "settingsFontScale"
+                                    settingsObject: settingsWindowColumn.settings; saveOnEdit: true
+                                }
+                            }
+
+                            SettingsRow {
+                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 0
+                                width: parent.width
+                                height: 34
+                                labelWidth: 210
+                                labelFontSize: 11
+                                label: "Пояснения к настройкам"
+                                spacing: 8
+
+                                SettingsCheckBox {
+                                    width: parent.width
+                                    height: 30
+                                    text: "Показывать поясняющие описания"
+                                    checked: Config.settingsShowDescriptions
+                                    onToggled: {
+                                        Config.settingsShowDescriptions = checked
+                                        settingsWindowColumn.settings.save()
+                                    }
+                                    settingsSearchLabel: "Показывать пояснения к настройкам"
+                                    settingsSearchKeywords: "описания пояснения помощь подсказки дополнительные тексты справка скрыть показать интерфейс настроек"
+                                }
                             }
 
                             SettingsRow {
@@ -340,7 +401,7 @@ settingsSearchSubTabIndex: 1
                                         height: 18
                                         text: modelData
                                         color: Config.textMuted
-                                        font.family: Config.settingsFont
+                                        font.family: Config.settingsFontFamily
                                         font.pixelSize: Config.settingsUiSize(10)
                                         horizontalAlignment: Text.AlignHCenter
                                         verticalAlignment: Text.AlignVCenter
@@ -383,11 +444,11 @@ settingsSearchSubTabIndex: 1
                                 }
                             }
 
-                            Text {
-                                visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
+                            SettingsDescription {
+                                descriptionConditionVisible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
                                 text: "Изменения применяются и сохраняются сразу. Для X/Y/Width/Height можно использовать колесо мыши с шагом 1."
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(9)
                                 wrapMode: Text.WordWrap
                                 width: parent.width
@@ -413,12 +474,12 @@ settingsSearchSubTabIndex: 1
                                     onClicked: host.settingsMoveRequested()
                                 }
 
-                                Text {
+                                SettingsDescription {
                                     width: parent.width - 280
                                     height: 46
                                     text: "Скрывает окно настроек и позволяет перемещать его мышью.\nEsc — завершить перемещение и вернуться сюда."
                                     color: Config.textMuted
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(10)
                                     wrapMode: Text.WordWrap
                                     verticalAlignment: Text.AlignVCenter
@@ -487,11 +548,11 @@ settingsSearchSubTabIndex: 1
         padding: 8
         contentSpacing: 6
 
-        Text {
+        SettingsDescription {
             width: parent.width
             text: "Перетаскивайте целые разделы панели настроек за маркер ⠿. Dashboard и Общие тоже можно переставлять. Порядок страниц внутри разделов не меняется. С клавиатуры: Alt + ↑/↓."
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             wrapMode: Text.WordWrap
         }
@@ -528,7 +589,7 @@ settingsSearchSubTabIndex: 1
                         height: 30
                         text: String(settingsGroupOrderRow.index + 1)
                         color: Config.textMuted
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(10)
                         horizontalAlignment: Text.AlignRight
                         verticalAlignment: Text.AlignVCenter
@@ -541,7 +602,7 @@ settingsSearchSubTabIndex: 1
                         text: settingsGroupOrderRow.modelData.items.length === 1
                             ? settingsGroupOrderRow.modelData.items[0].label : settingsGroupOrderRow.modelData.label
                         color: Config.text
-                        font.family: Config.settingsFont
+                        font.family: Config.settingsFontFamily
                         font.pixelSize: Config.settingsUiSize(11)
                         verticalAlignment: Text.AlignVCenter
                         elide: Text.ElideRight
@@ -581,7 +642,7 @@ settingsSearchSubTabIndex: 1
             height: parent.height
             text: "Вкладки панели настроек"
             color: Config.settingsSubheading
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(11)
             verticalAlignment: Text.AlignVCenter
         }
@@ -597,12 +658,12 @@ settingsSearchSubTabIndex: 1
         }
     }
 
-    Text {
-        visible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
+    SettingsDescription {
+        descriptionConditionVisible: host && host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 2
         width: parent.width
         text: "Каждый раздел показан отдельной рамкой. Переименовывайте страницы и перетаскивайте их за маркер ⠿, меняя порядок только внутри своей рамки. Порядок самих рамок настраивается отдельно выше. С клавиатуры: Alt + ↑/↓."
         color: Config.textMuted
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(10)
         wrapMode: Text.WordWrap
     }
@@ -655,7 +716,7 @@ settingsSearchSubTabIndex: 1
                             height: 30
                             text: String(index + 1)
                             color: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(10)
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
@@ -671,7 +732,7 @@ settingsSearchSubTabIndex: 1
                             color: Config.text
                             selectionColor: Config.accent
                             selectedTextColor: Config.black
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(10)
                             placeholderText: host.defaultSettingsTabLabel(modelData.id)
                             Accessible.name: "Название вкладки «" + host.defaultSettingsTabLabel(modelData.id) + "»"
@@ -702,25 +763,25 @@ settingsSearchSubTabIndex: 1
     }
 
     SettingsGroup {
-                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 1
-settingsSearchSubTabIndex: 1
+                visible: host && host.currentPageId === "general" && host.currentPageSubTabIndex === 0
+settingsSearchSubTabIndex: 0
         width: parent.width
         showFrame: true
         padding: 8
         contentSpacing: 6
 
         Text {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
                                 text: settings.activeProfile ? "Активный профиль: " + settings.activeProfile : "Активный профиль: по умолчанию"
                                 color: Config.textMuted
-                                font.family: Config.settingsFont
+                                font.family: Config.settingsFontFamily
                                 font.pixelSize: Config.settingsUiSize(10)
                                 wrapMode: Text.WordWrap
                                 width: parent.width
                             }
 
                             Row {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -730,7 +791,7 @@ settingsSearchSubTabIndex: 1
                                     height: 30
                                     text: "Имя профиля"
                                     color: Config.text
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -744,16 +805,16 @@ settingsSearchSubTabIndex: 1
                                     color: Config.text
                                     selectionColor: Config.accent
                                     selectedTextColor: Config.black
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     activeFocusOnTab: true
                                     background: Rectangle {
-                                        color: Config.settingsBackground
+                                        color: "transparent"
                                         border.color: profileNameSavedFeedback.running || profileNameSavedFeedback.paused
                                             ? Config.accent
                                             : ((profileNameField.activeFocus || profileNameField.pointerHovered) ? Config.accent : Config.baseColor)
-                                        border.width: 1
-                                        radius: 4
+                                        border.width: (Config.inputBordersEnabled || profileNameField.activeFocus) ? 1 : 0
+                                        radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                                     }
 
                                     SequentialAnimation {
@@ -795,7 +856,7 @@ settingsSearchSubTabIndex: 1
                                     text: "✓ сохранено"
                                     color: Config.accent
                                     opacity: 0
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(9)
                                     verticalAlignment: Text.AlignVCenter
                                     horizontalAlignment: Text.AlignLeft
@@ -803,7 +864,7 @@ settingsSearchSubTabIndex: 1
                             }
 
                             Row {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -813,7 +874,7 @@ settingsSearchSubTabIndex: 1
                                     height: 30
                                     text: "Активный профиль"
                                     color: Config.text
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -829,20 +890,20 @@ settingsSearchSubTabIndex: 1
                                     contentItem: Text {
                                         text: profileCombo.displayText
                                         color: Config.text
-                                        font.family: Config.settingsFont
+                                        font.family: Config.settingsFontFamily
                                         font.pixelSize: Config.settingsUiSize(11)
                                         verticalAlignment: Text.AlignVCenter
                                         leftPadding: 10
                                         elide: Text.ElideRight
                                     }
                                     background: Rectangle {
-                                        color: Config.settingsBackground
+                                        color: "transparent"
                                         border.color: (profileCombo.activeFocus || profileCombo.pointerHovered) ? Config.accent : Config.baseColor
-                                        border.width: 1
+                                        border.width: (Config.inputBordersEnabled || profileCombo.activeFocus) ? 1 : 0
                                         radius: Config.frameRadius
                                     }
                                     currentIndex: -1
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(11)
                                     onItemChosen: settingsWindowColumn.pendingDeleteProfileName = ""
                                     onActivated: settingsWindowColumn.pendingDeleteProfileName = ""
@@ -879,7 +940,7 @@ settingsSearchSubTabIndex: 1
                             }
 
                             Column {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
                                     && settingsWindowColumn.pendingDeleteProfileName.length > 0
                                 width: parent.width
                                 spacing: 4
@@ -888,7 +949,7 @@ settingsSearchSubTabIndex: 1
                                     width: parent.width
                                     text: "Удалить профиль «" + settingsWindowColumn.pendingDeleteProfileName + "»?"
                                     color: Config.textMuted
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(10)
                                     wrapMode: Text.WordWrap
                                 }
@@ -934,7 +995,7 @@ settingsSearchSubTabIndex: 1
 
                             Item {
                                 id: profileActionFeedback
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0
                                 width: parent.width
                                 height: 22
 
@@ -953,7 +1014,7 @@ settingsSearchSubTabIndex: 1
                                     text: parent.message
                                     color: parent.isError ? "#ff9999" : Config.accent
                                     opacity: parent.message.length > 0 ? 1 : 0
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(9)
                                 }
 
@@ -966,7 +1027,7 @@ settingsSearchSubTabIndex: 1
 
 
                             Row {
-                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 1 && host.profileController.canResetScope("all")
+                                visible: host.currentPageId === "general" && host.currentPageSubTabIndex === 0 && host.profileController.canResetScope("all")
                                 width: parent.width
                                 height: 30
                                 spacing: 8
@@ -974,7 +1035,7 @@ settingsSearchSubTabIndex: 1
                                     width: parent.width - 38
                                     text: "Сбросить все настройки"
                                     color: Config.textMuted
-                                    font.family: Config.settingsFont
+                                    font.family: Config.settingsFontFamily
                                     font.pixelSize: Config.settingsUiSize(10)
                                     verticalAlignment: Text.AlignVCenter
                                 }
@@ -992,7 +1053,7 @@ settingsSearchSubTabIndex: 1
 settingsSearchSubTabIndex: 1
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["animationSettingsVisibilityStyle"] })
+        changeKeys: ({ keys: ["animationSettingsVisibilityStyle", "animationSettingsVisibilityProfile"] })
         padding: 8
         contentSpacing: 6
 
@@ -1000,7 +1061,7 @@ settingsSearchSubTabIndex: 1
             visible: host.currentPageId === "settingsWindow" && host.currentPageSubTabIndex === 1
             text: "Анимация"
             color: Config.accent
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(13)
         }
 
@@ -1021,8 +1082,19 @@ settingsSearchSubTabIndex: 1
                 currentIndex: Math.max(0, values.indexOf(Config.animationSettingsVisibilityStyle))
                 onItemChosen: function(index) { Config.animationSettingsVisibilityStyle = values[index]; settings.save() }
                 Connections { target: Config; function onAnimationSettingsVisibilityStyleChanged() { settingsWindowAnimationVisibilityBox.currentIndex = Math.max(0, settingsWindowAnimationVisibilityBox.values.indexOf(Config.animationSettingsVisibilityStyle)) } }
-                background: Rectangle { color: Config.settingsBackground; border.color: (settingsWindowAnimationVisibilityBox.activeFocus || settingsWindowAnimationVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
-                contentItem: Text { text: settingsWindowAnimationVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+                background: Rectangle { color: "transparent"; border.color: (settingsWindowAnimationVisibilityBox.activeFocus || settingsWindowAnimationVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || settingsWindowAnimationVisibilityBox.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
+                contentItem: Text { text: settingsWindowAnimationVisibilityBox.currentText; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; leftPadding: 8 }
+            }
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationSettingsVisibilityProfile
+            searchId: "settings-window-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления окна настроек"
+            searchKeywords: "окно настроек settings появление закрытие bezier"
+            onProfileEdited: function(value) {
+                Config.animationSettingsVisibilityProfile = value
+                settings.save()
             }
         }
     }

@@ -25,8 +25,9 @@ for morph_id in ('timerIconMorph', 'alarmIconMorph'):
     assert 'Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)' in block
     assert 'Config.timerButtonIconFadeDuration' in block
     assert 'Config.animationTimerVisibilityStyle' not in block, f'{morph_id} incorrectly depends on preset-button style'
-assert timer.count('animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"') == 2
-assert timer.count('Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(') == 2
+assert timer.count('animationStyle: Config.animationTimerVisibilityStyle') == 2
+assert timer.count('animationProfile: Config.animationTimerVisibilityProfile') == 2
+assert timer.count('Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(') == 2
 assert 'Config.timerButtonFadeDuration : Config.timerButtonSlideDuration' in timer
 
 # The popup continues to use its independent animation settings.

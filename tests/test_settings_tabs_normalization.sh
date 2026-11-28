@@ -17,7 +17,7 @@ function loadLibrary(relativePath, appended = '') {
 }
 const apply = loadLibrary('js/settings/SettingsApplyCore.js',
   'this.api = { normalizeSettingsTabLabels, SETTINGS_TAB_IDS, DEFAULT_SETTINGS_TAB_LABELS };');
-const ids = ['modules','time','dashboard','themes','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','settingsWindow'];
+const ids = ['modules','time','dashboard','themes','interface','general','timers','player','mopidy','weather','cava','cpuRam','network','volume','osd','calendar','launcher','launcherSearch','launcherTabs','launcherProjects','launcherActions','launcherAnimation','launcherApplications','notifications','notificationsDnd','settingsWindow'];
 assert.deepStrictEqual(Array.from(apply.api.SETTINGS_TAB_IDS), ids);
 
 // Keep all duplicated registries aligned so a future tab cannot accidentally
@@ -36,7 +36,7 @@ assert(navigationSource.includes('SettingsPageRegistry.subtabsForPageId('), 'sub
 assert(widgetSource.includes('SettingsPageRegistry.saveScopeForPageId('), 'save scopes must be resolved by stable page ID');
 assert(registrySource.api.normalizeNavigationOrder({ groupOrder: ['modules', {}, 'general'], pagesByGroup: { modules: ['weather', {}, 'modules'], general: ['general'] } }).pagesByGroup.modules.indexOf('[object Object]') < 0, 'hierarchical navigation rejects malformed page IDs before coercion');
 assert(widgetSource.includes('property alias currentPageId: settingsNavigationController.currentPageId'), 'SettingsWidget exposes stable page state');
-assert(navigationSource.includes('property string currentPageId: "general"'), 'navigation controller owns primary page state with General as the first-run fallback');
+assert(navigationSource.includes('property string currentPageId: "interface"'), 'navigation controller uses Interface as the first-run fallback');
 assert(!/\bcurrentTab\b|\bcurrentOtherTab\b/.test(widgetSource), 'numeric primary page state is fully removed');
 assert(!/currentOtherTab/.test(fs.readFileSync(path.join(root, 'components/settings/sections/SettingsCalendarSection.qml'), 'utf8')), 'content components no longer route by numeric page index');
 assert(registrySource.api.hasOtherPageId('notifications'), 'known page IDs resolve');
@@ -48,7 +48,7 @@ assert.deepStrictEqual(widgetIds, ids, 'sidebar definitions match normalized tab
 const otherIds = otherPages.map(page => page.id);
 assert.deepStrictEqual(otherIds.slice().sort(), ids.filter(id => id !== 'modules' && id !== 'themes').slice().sort(), 'every non-core tab has exactly one content route');
 assert.deepStrictEqual(otherPages.map(page => page.id), otherIds, 'page metadata order matches route order');
-assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['clock','dashboard','general','timer','player','weather','cava','cpu','network','volume','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications','notifications'], 'page save scopes remain aligned with their stable IDs');
+assert.deepStrictEqual(otherPages.map(page => page.saveScope), ['clock','dashboard','','general','timer','player','weather','cava','cpu','network','volume','osd','calendar','settingsWindow','mopidy','launcher','launcher','launcher','launcher','launcher','launcher','launcher','notifications','notifications'], 'page save scopes remain aligned with their stable IDs');
 for (let i = 0; i < otherPages.length; i++)
   assert.strictEqual(registrySource.api.saveScopeForPageId(otherPages[i].id, 0), otherPages[i].saveScope, `page ${otherPages[i].id} resolves its own save scope`);
 assert(otherPages.every(page => Array.isArray(page.subTabs)), 'each registered page declares its subtab list');
@@ -58,8 +58,9 @@ assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('launcherA
 for (const id of ['launcherTabs', 'launcherProjects', 'launcherAnimation', 'launcherApplications']) assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId(id)), [], `${id} is a direct page without extra subtabs`);
 assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('notifications')), ['Поведение', 'Внешний вид', 'Размещение', 'Анимация'], 'notification animation subtab stays registered');
 assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('unknown')), [], 'invalid routes return no subtabs');
-assert.strictEqual(registrySource.api.saveScopeForPageId('general', 0), 'general', 'general interface keeps its scoped save');
-assert.strictEqual(registrySource.api.saveScopeForPageId('general', 1), '', 'profile subtab has no unrelated scoped save');
+assert.strictEqual(registrySource.api.saveScopeForPageId('interface', 0), 'general', 'moved Interface page keeps the original general profile scope');
+assert.strictEqual(registrySource.api.saveScopeForPageId('general', 0), '', 'General profile/storage page has no unrelated scoped save');
+assert.deepStrictEqual(Array.from(registrySource.api.subtabsForPageId('general')), ['Профили', 'Хранилища'], 'General now contains only profile and storage subtabs');
 for (const id of ids.filter(id => id.startsWith('launcher'))) assert.strictEqual(registrySource.api.saveScopeForPageId(id, 0), 'launcher', `${id} shares the Launcher save scope`);
 assert.strictEqual(registrySource.api.saveScopeForPageId('unknown', 0), '', 'unknown routes have no save scope');
 assert(configSource.includes('property var settingsNavigationOrder:'), 'Config must expose the canonical hierarchical navigation order');
@@ -96,11 +97,11 @@ const profiles = loadLibrary('js/settings/SettingsProfiles.js', 'this.api = { sa
 const defaultHierarchy = registrySource.api.defaultNavigationOrder();
 const cloneHierarchy = value => JSON.parse(JSON.stringify(value));
 const customHierarchy = cloneHierarchy(defaultHierarchy);
-customHierarchy.pagesByGroup.modules = ['weather','modules','calendar','timers','player','mopidy','cava','cpuRam','network','volume','time'];
+customHierarchy.pagesByGroup.modules = ['weather','modules','calendar','timers','player','mopidy','cava','cpuRam','network','volume','time','osd'];
 customHierarchy.pagesByGroup.notifications = ['notificationsDnd','notifications'];
-customHierarchy.pagesByGroup.appearance = ['settingsWindow','themes'];
+customHierarchy.pagesByGroup.appearance = ['settingsWindow','themes','interface'];
 const alternateHierarchy = cloneHierarchy(defaultHierarchy);
-alternateHierarchy.pagesByGroup.modules = ['player','modules','timers','mopidy','weather','cava','cpuRam','network','volume','calendar'];
+alternateHierarchy.pagesByGroup.modules = ['player','modules','timers','mopidy','weather','cava','cpuRam','network','volume','osd','calendar'];
 alternateHierarchy.pagesByGroup.notifications = ['notificationsDnd','notifications'];
 const defaultLabels = JSON.parse(JSON.stringify(defaults));
 const owner = {
@@ -123,7 +124,7 @@ owner.currentOrder = cloneHierarchy(alternateHierarchy);
 owner.currentLabels.general = 'Temporary';
 assert.strictEqual(profiles.api.loadProfile(owner, 'Custom'), true);
 assert.deepStrictEqual(Array.from(owner.currentOrder.pagesByGroup.modules), customHierarchy.pagesByGroup.modules);
-assert.deepStrictEqual(Array.from(owner.currentOrder.pagesByGroup.appearance), ['settingsWindow','themes']);
+assert.deepStrictEqual(Array.from(owner.currentOrder.pagesByGroup.appearance), ['settingsWindow','themes','interface']);
 assert.strictEqual(owner.currentLabels.general, 'Workspace');
 assert.strictEqual(owner.currentLabels.launcher, 'Tools');
 assert.strictEqual(profiles.api.loadProfile(owner, 'Default'), true);

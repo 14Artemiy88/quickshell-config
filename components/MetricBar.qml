@@ -10,29 +10,35 @@ Item {
     property color trackColor: Config.metricTrack
     property bool verticalGauge: false
     property int valueAnimationDuration: 0
-    property string valueAnimationProfile: "standard"
+    property string valueAnimationProfile: "ease-out"
     property string direction: Config.cpuBarDirection
+    property int rowHeight: Config.cpuRowHeight
+    property int labelFontSize: 12
+    property int barOffset: Config.cpuBarLeftOffset
+    property int barWidth: Config.cpuBarWidth
+    property int labelPadding: Config.cpuLabelLeftPadding
+    property bool fillAvailableWidth: false
     readonly property bool verticalDirection: direction === "topToBottom" || direction === "bottomToTop"
-    height: verticalGauge ? (parent ? parent.height : 200) : Config.cpuRowHeight
-    width: verticalGauge ? (parent ? parent.width : 32) : 303
+    height: verticalGauge ? (parent ? parent.height : 200) : root.rowHeight
+    width: verticalGauge ? (parent ? parent.width : 32) : (fillAvailableWidth && parent ? parent.width : 303)
 
     Text {
         visible: !root.verticalGauge
-        x: Config.cpuLabelLeftPadding
+        x: root.labelPadding
         anchors.verticalCenter: parent.verticalCenter
         text: root.label
         color: Config.text
         font.family: Config.font
-        font.pixelSize: Config.uiFontSize(12)
+        font.pixelSize: Config.uiFontSize(root.labelFontSize)
     }
 
     // Horizontal modes retain the existing track layout while sharing the
     // track/fill renderer with Top Apps.
     Primitives.ProgressTrack {
         visible: !root.verticalGauge
-        x: Config.cpuBarLeftOffset
+        x: root.barOffset
         y: (parent.height - Config.cpuBarThickness) / 2
-        width: Config.cpuBarWidth
+        width: root.barWidth
         height: Config.cpuBarThickness
         radius: Config.cpuBarRadius
         value: root.value

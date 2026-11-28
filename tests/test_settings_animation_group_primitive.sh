@@ -17,10 +17,11 @@ assert 'import "../../primitives"' in primitive
 assert 'height: implicitHeight' in primitive
 assert 'property bool animationsEnabled' not in primitive
 assert 'property real duration: 180' in primitive
-assert 'property string profile: "expressive"' in primitive
+assert 'property string profile: "ease-in-out"' in primitive
 assert primitive.count('SettingsCheckBox {') == 0
-assert primitive.count('SettingsRow {') == 2, 'profile and duration controls must use the shared row primitive'
-assert primitive.count('SettingsNumberField {') == 1
+assert primitive.count('SettingsRow {') == 3, 'profile, custom curve and duration controls must use the shared row primitive'
+assert primitive.count('SettingsNumberField {') == 2, 'duration and cubic-bezier fields must use the common number-field primitive'
+assert 'model: ["X1", "Y1", "X2", "Y2"]' in primitive
 assert primitive.count('SettingsComboBox {') == 1
 assert 'label: root.profileLabel' in primitive
 assert 'label: root.durationLabel' in primitive
@@ -29,8 +30,8 @@ assert 'signal animationEnabledEdited(bool value)' not in primitive
 assert 'signal durationEdited(real value)' in primitive
 assert 'signal profileEdited(string value)' in primitive
 assert 'root.durationEdited(value)' in primitive
-assert 'root.profileEdited(values[index])' in primitive
-assert 'root.profileEdited(values[index])' in primitive
+assert 'root.profileEdited(selected)' in primitive and 'root.updateBezierComponent(index, value)' in primitive
+assert 'root.profileEdited(selected)' in primitive and 'root.updateBezierComponent(index, value)' in primitive
 assert 'function onAnimationsEnabledChanged()' not in primitive
 assert 'function onProfileChanged()' in primitive
 assert 'visible: root.profile !== "none" || normalizedProgress > 0.001' in primitive
@@ -39,13 +40,13 @@ assert 'property real detailsTopInset: Math.ceil(Config.settingsUiSize(11) / 2) 
 assert 'toGeometry: Qt.rect(0, 0, parent.width, root.detailsTopInset + detailsGroup.implicitHeight)' in primitive
 assert 'y: root.detailsTopInset' in primitive
 assert 'progress: root.profile !== "none" ? 1 : 0' in primitive
-assert 'animationDuration: Config.animationDuration(180, "appearance")' in primitive
-assert 'animationEasing: Config.animationEasingType("standard", root.profile !== "none" ? "enter" : "exit")' in primitive
+assert 'animationDuration: root.profile === "none" ? 0 : Config.animationDuration(180, "appearance")' in primitive
+assert 'animationEasing: Config.animationEasingType("ease-out", root.profile !== "none" ? "enter" : "exit")' in primitive
 assert primitive.index('SettingsGroup {') < primitive.index('MorphGeometry {'), 'profile group must precede the animated details group'
 assert primitive.index('SettingsComboBox {') < primitive.index('MorphGeometry {'), 'profile selector must stay visible above animated details'
 assert 'heading: root.detailsHeading' in primitive
-assert 'Сохранённые длительности не меняются' in primitive
-assert 'Внутренние переходы выполняются мгновенно' in primitive
+assert 'Длительность перехода задаётся отдельно' in primitive
+assert 'Анимация внутренних переходов отключена' in primitive
 assert 'SettingsGroup {' in primitive[primitive.index('MorphGeometry {'):], 'duration and module-specific controls must be inside the animated details group'
 assert 'settings: root.settings' in primitive and 'changeKeys: root.changeKeys' in primitive
 
@@ -70,7 +71,9 @@ assert 'Профиль управляет появлением и удалени
 # The shared animation control does not take over module visibility settings.
 assert 'heading: "Появление модуля"' in sections['mopidy']
 assert 'heading: "Что управляется"' in sections['player']
+assert 'Config.settingsShowDescriptions' in sections['player']
 assert 'heading: "Что управляется"' in sections['weather']
+assert 'Config.settingsShowDescriptions' in sections['weather']
 # The Timer module entrance/exit style and options popup remain in their own groups.
 assert 'heading: "Внутренние переходы таймера"' in sections['timer']
 assert 'heading: "Иконки окна опций"' in sections['timer']

@@ -3,12 +3,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SURFACE="$ROOT/components/primitives/HoverButtonSurface.qml"
 PRIMITIVE="$ROOT/components/primitives/HoverIconButton.qml"
-MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
 MOPIDY="$ROOT/components/mopidy/MopidyHoverIcon.qml"
 NETWORKS="$ROOT/components/Networks.qml"
 NETWORK_BUTTON="$ROOT/components/NetworkConnectionButton.qml"
 
-for file in "$SURFACE" "$PRIMITIVE" "$MOVE" "$MOPIDY" "$NETWORKS" "$NETWORK_BUTTON"; do
+for file in "$SURFACE" "$PRIMITIVE" "$MOPIDY" "$NETWORKS" "$NETWORK_BUTTON"; do
     test -f "$file"
 done
 
@@ -27,11 +26,6 @@ grep -Fq 'Primitives.HoverButtonSurface {' "$PRIMITIVE"
 grep -Fq 'root.hoverMode === "background"' "$PRIMITIVE"
 grep -Fq 'root.hoverMode === "frame"' "$PRIMITIVE"
 grep -Fq 'root.hoverMode === "text"' "$PRIMITIVE"
-grep -Fq 'Primitives.HoverIconButton {' "$MOVE"
-grep -Fq 'visible: root.morphVisibility || root.requestedVisible' "$MOVE"
-grep -Fq 'opacity: (!root.hideWhenDisabled || root.interactionEnabled) ? 1 : 0' "$MOVE"
-grep -Fq 'enabled: root.requestedVisible && (!root.hideWhenDisabled || root.interactionEnabled)' "$MOVE"
-grep -Fq 'property bool hideWhenDisabled: true' "$MOVE"
 grep -Fq 'Primitives.HoverIconButton {' "$MOPIDY"
 grep -Fq 'hoverMode: Config.mopidyHoverMode' "$MOPIDY"
 grep -Fq 'hoverColor: Config.mopidyHoverColor' "$MOPIDY"
@@ -67,12 +61,12 @@ if grep -Eq 'MouseArea|ToolTip|Rectangle[[:space:]]*\{' "$PRIMITIVE" "$NETWORK_B
     echo 'HoverIconButton or Networks connection row duplicates the shared surface primitive' >&2
     exit 1
 fi
-if grep -Eq 'MouseArea|ToolTip|Rectangle[[:space:]]*\{' "$MOVE" "$MOPIDY"; then
+if grep -Eq 'MouseArea|ToolTip|Rectangle[[:space:]]*\{' "$MOPIDY"; then
     echo 'HoverIconButton adapter duplicates primitive rendering/interaction' >&2
     exit 1
 fi
 
-python3 - "$SURFACE" "$PRIMITIVE" "$MOVE" "$MOPIDY" "$NETWORKS" "$NETWORK_BUTTON" <<'PYCODE'
+python3 - "$SURFACE" "$PRIMITIVE" "$MOPIDY" "$NETWORKS" "$NETWORK_BUTTON" <<'PYCODE'
 from pathlib import Path
 import sys
 pairs={')':'(',']':'[','}':'{'}
@@ -105,4 +99,4 @@ for name in sys.argv[1:]:
 print('Shared hover surface, icon buttons and Networks QML delimiters: OK')
 PYCODE
 
-echo 'Shared hover surface used by Mopidy, move-arrow and Networks controls: OK'
+echo 'Shared hover surface used by icon and Networks controls: OK'

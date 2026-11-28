@@ -6,17 +6,20 @@
 // DND's searchable catalog is populated only by actual NotificationServer
 // senders, plus identities referenced by already-saved DND rules. Search and
 // ranking still use the exact Launcher application-search primitive.
-function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, favoriteIds, showAll) {
+function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, favoriteIds, showAll, historyIgnoredIds) {
     var allowed = NotificationAppCatalog.normalizeDndRuleIds(allowedIds).map(function(id) {
         return String(id === undefined || id === null ? "" : id).trim()
     })
     var blocked = NotificationAppCatalog.normalizeDndRuleIds(blockedIds).map(function(id) {
         return String(id === undefined || id === null ? "" : id).trim()
     })
+    var historyIgnored = NotificationAppCatalog.normalizeDndRuleIds(historyIgnoredIds).map(function(id) {
+        return String(id === undefined || id === null ? "" : id).trim()
+    })
     var favorites = LauncherAppSearch.valuesOf(favoriteIds).map(function(id) {
         return String(id === undefined || id === null ? "" : id).trim()
     })
-    var source = NotificationAppCatalog.mergeConfiguredEntries(entries, allowed, blocked)
+    var source = NotificationAppCatalog.mergeConfiguredEntries(entries, allowed, blocked, historyIgnored)
     var needle = String(query === undefined || query === null ? "" : query).trim()
     var rows = []
 
@@ -34,6 +37,7 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
                 count: category.count,
                 allowed: false,
                 blocked: false,
+                historyIgnored: false,
                 ruleIds: [],
                 score: 0
             })
@@ -51,6 +55,7 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
 
             var isAllowed = NotificationAppCatalog.matchesAnyRule(configuredEntry, allowed, source)
             var isBlocked = NotificationAppCatalog.matchesAnyRule(configuredEntry, blocked, source)
+            var isHistoryIgnored = NotificationAppCatalog.matchesAnyRule(configuredEntry, historyIgnored, source)
             var legacyAliases = NotificationAppCatalog.uniqueLegacyRuleIds(configuredEntry, source)
             var ambiguousName = NotificationAppCatalog.isAmbiguousAppName(configuredEntry.appName, source)
             var canonicalIds = NotificationAppCatalog.canonicalRuleIds(configuredEntry)
@@ -58,8 +63,9 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
                 var key = String(id).trim().toLowerCase()
                 return allowed.some(function(value) { return String(value).trim().toLowerCase() === key })
                     || blocked.some(function(value) { return String(value).trim().toLowerCase() === key })
+                    || historyIgnored.some(function(value) { return String(value).trim().toLowerCase() === key })
             })
-            if (showAll !== true && !isAllowed && !isBlocked && !ambiguousSavedRule)
+            if (showAll !== true && !isAllowed && !isBlocked && !isHistoryIgnored && !ambiguousSavedRule)
                 continue
 
             rows.push({
@@ -73,6 +79,7 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
                     : String(configuredEntry.comment || configuredEntry.genericName || configuredEntry.id),
                 allowed: isAllowed,
                 blocked: isBlocked,
+                historyIgnored: isHistoryIgnored,
                 ruleIds: NotificationAppCatalog.canonicalRuleIds(configuredEntry),
                 legacyRuleIds: legacyAliases,
                 ambiguousAppName: ambiguousName,
@@ -113,6 +120,7 @@ function buildRows(entries, allowedIds, blockedIds, query, limit, fuzzyEnabled, 
                 : String(entry.comment || entry.genericName || entry.appName || id),
             allowed: NotificationAppCatalog.matchesAnyRule(entry, allowed, source),
             blocked: NotificationAppCatalog.matchesAnyRule(entry, blocked, source),
+            historyIgnored: NotificationAppCatalog.matchesAnyRule(entry, historyIgnored, source),
             ruleIds: NotificationAppCatalog.canonicalRuleIds(entry),
             legacyRuleIds: NotificationAppCatalog.uniqueLegacyRuleIds(entry, source),
             ambiguousAppName: NotificationAppCatalog.isAmbiguousAppName(entry.appName, source),

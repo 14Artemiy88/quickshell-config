@@ -18,7 +18,7 @@ for block in (show, hide):
     assert 'duration: root.activeTransitionDuration' in block
 assert 'to: 0' in show and 'easing.type: Config.animationEasingType(root.activeAnimationProfile, "enter")' in show
 assert 'to: 1' in hide and 'easing.type: Config.animationEasingType(root.activeAnimationProfile, "exit")' in hide
-assert 'opacity: root.usesOpacity() ? 1 - root.transitionProgress : 1' in qml
+assert 'opacity: root.usesOpacity() ? Math.max(0, Math.min(1, 1 - root.transitionProgress)) : 1' in qml
 for marker, expected in (
     ('id: calendarWindow', 'visible: Settings.calendar'),
     ('id: mopidyWindow', 'visible: Settings.mopidy'),

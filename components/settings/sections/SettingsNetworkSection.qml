@@ -24,7 +24,7 @@ settingsSearchSubTabIndex: 0
         Text {
             text: "Обновление данных"
             color: Config.textMuted
-            font.family: Config.settingsFont
+            font.family: Config.settingsFontFamily
             font.pixelSize: Config.settingsUiSize(10)
             width: parent.width
         }
@@ -356,17 +356,18 @@ settingsSearchSubTabIndex: 1
         }
 
         SettingsGroup {
+            visible: Config.settingsShowDescriptions
             width: parent.width
             showFrame: true
             heading: "Что управляется"
             padding: 8
             contentSpacing: 4
-            Text {
+            SettingsDescription {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: "Настройки влияют на появление и удаление строк подключений, перестройку списка и изменение высоты панели Networks. Анимация появления самого модуля остаётся независимой."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
             }
         }
@@ -378,7 +379,7 @@ settingsSearchSubTabIndex: 1
         width: root.width
         showFrame: true
         heading: "Появление модуля"
-        changeKeys: ({ keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityDuration"] })
+        changeKeys: ({ keys: ["animationNetworkVisibilityStyle", "animationNetworkVisibilityProfile", "animationNetworkVisibilityDuration"] })
         padding: 8
         contentSpacing: 6
 
@@ -408,19 +409,30 @@ settingsSearchSubTabIndex: 1
                     }
                 }
                 background: Rectangle {
-                    color: Config.settingsBackground
+                    color: "transparent"
                     border.color: (networkVisibilityStyleBox.activeFocus || networkVisibilityStyleBox.pointerHovered) ? Config.accent : Config.baseColor
-                    border.width: 1
-                    radius: 4
+                    border.width: (Config.inputBordersEnabled || networkVisibilityStyleBox.activeFocus) ? 1 : 0
+                    radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                 }
                 contentItem: Text {
                     text: networkVisibilityStyleBox.currentText
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 8
                 }
+            }
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationNetworkVisibilityProfile
+            searchId: "network-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления Networks"
+            searchKeywords: "сеть networks модуль появление закрытие bezier"
+            onProfileEdited: function(value) {
+                Config.animationNetworkVisibilityProfile = value
+                root.settings.save()
             }
         }
 

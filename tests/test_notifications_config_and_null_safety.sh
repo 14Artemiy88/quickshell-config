@@ -17,13 +17,14 @@ assert 'property string formattedBody: notification ? root.formatNotificationBod
 assert 'text: card.formattedBody' in source
 assert 'interval: Config.notificationsShowTimeoutIndicator ? 16 : 100' in source, 'visible-time timeout uses display-cadence ticks only when the indicator is enabled'
 assert '* 1000)) : 1000' not in source, 'timeout must not be multiplied by 1000 again'
-assert 'property var buttonActions: root.notificationButtonActions(notification)' in source
-assert 'model: card.buttonActions' in source
+assert 'property var buttonActions:' not in source
+assert 'id: actionRow' not in source
 assert 'if (card.notification && !card.removalPending) card.notification.dismiss()' in source
 assert 'running: card.notification !== null && !card.removalPending && !card.timeoutExpirationRequested && card.inViewport && !card.pointerHovered && card.effectiveTimeout > 0' in source, 'off-screen notification expiry timer must remain paused'
 assert 'card.visibleTimeoutElapsed += tickElapsed' in source, 'visible timeout progress must use measured elapsed time and pause when off-screen'
 assert 'card.mapToItem(notificationList, 0, 0)' in source, 'viewport visibility must use mapped viewport coordinates'
 assert 'card.notification.expire()' in source
-assert 'if (!card.removalPending && modelData && typeof modelData.invoke === "function") modelData.invoke()' in source
+assert 'focusable: root.notificationTextFocusCard !== null' in source
+assert 'notificationTextContextMenu' not in source
 print("notifications Config import and null safety: OK")
 PYCODE

@@ -36,7 +36,7 @@ Column {
             // The first-row fallback mirrors the 4px inline header gutter
             // below. Delegate spacing applies between rows, not between the
             // ListView header and its first delegate.
-            var rowHeight = Config.mopidyTrackRowHeight
+            var rowHeight = controller.effectiveTrackRowHeight
             var stride = rowHeight + playlistItemsView.spacing
             return {
                 x: 0,
@@ -60,7 +60,7 @@ Column {
                 : (controller.playlistContentMoveBusy ? "Сохранение порядка…" : controller.playlistTitle)
             color: Config.accent
             font.family: Config.mopidyAlbumFont
-            font.pixelSize: Config.mopidyAlbumFontSize
+            font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyAlbumFontSize))
             font.bold: Config.mopidyAlbumBold
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
@@ -108,7 +108,7 @@ Column {
         width: parent.width
         height: Math.max(0, parent.height - 26)
         clip: true
-        spacing: 2
+        spacing: controller.effectiveQueueRowSpacing
         // A long edge-scroll drag must not destroy its source delegate when
         // it leaves the viewport. Keep delegates alive only for the duration
         // of the reorder gesture; normal virtualization resumes afterwards.
@@ -127,7 +127,7 @@ Column {
 
         delegate: Rectangle {
             width: parent ? parent.width : 0
-            height: Config.mopidyTrackRowHeight
+            height: controller.effectiveTrackRowHeight
             radius: 4
             color: controller.hoverBackgroundColor(playlistItemMouse.containsMouse)
             border.width: controller.hoverBorderWidth(playlistItemMouse.containsMouse)
@@ -143,7 +143,7 @@ Column {
                 text: modelData.name || "Без названия"
                 color: controller.hoverTextColor(playlistItemMouse.containsMouse, Config.text)
                 font.family: Config.mopidyTrackFont
-                font.pixelSize: Config.mopidyTrackFontSize
+                font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyTrackFontSize))
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter
             }
@@ -157,7 +157,7 @@ Column {
                 text: controller.formatDuration(modelData.duration)
                 color: controller.hoverTextColor(playlistItemMouse.containsMouse, Config.textMuted)
                 font.family: Config.mopidyDurationFont
-                font.pixelSize: Config.mopidyDurationFontSize
+                font.pixelSize: Config.uiFontSize(controller.mopidyFontSize(Config.mopidyDurationFontSize))
                 horizontalAlignment: Text.AlignRight
             }
 
@@ -224,7 +224,7 @@ Column {
                     text: Config.mopidyPlaylistDeleteIcon
                     color: controller.playlistDeleteIconColor(playlistContentDeleteButton.hovered)
                     font.family: Config.font
-                    font.pixelSize: Config.mopidyPlaylistDeleteIconSize
+                    font.pixelSize: Config.uiFontSize(Config.mopidyPlaylistDeleteIconSize)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }

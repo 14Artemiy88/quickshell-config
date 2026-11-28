@@ -57,9 +57,9 @@ PanelWindow {
 
             z: 2
             color: "transparent"
-            radius: Config.launcherItemRadius
+            radius: Config.scaledCornerRadius(Config.launcherItemRadius)
             border.color: theme.borderAccent
-            border.width: 1
+            border.width: Config.buttonBordersEnabled ? 1 : 0
             antialiasing: true
 
             Behavior on x {
@@ -161,17 +161,25 @@ PanelWindow {
     property real layoutDragBaseGlobalY: 0
     property real layoutDragPressX: 0
     property real layoutDragPressY: 0
+    property real layoutDragScale: 1
 
+    readonly property real launcherUiScale: Config.moduleUiScale()
     readonly property var launcherGeometry: Settings.geometryForLayout("launcher")
     readonly property real launcherPositionX: {
         var position = Number(root.launcherGeometry && root.launcherGeometry[0])
+        var visualWidth = Config.launcherWidth * root.launcherUiScale
+        var transformInset = (visualWidth - Config.launcherWidth) / 2
         return isFinite(position) && position >= -10000
-            ? position : Math.max(0, Math.round((root.width - Config.launcherWidth) / 2))
+            ? position + transformInset
+            : Math.max(0, Math.round((root.width - visualWidth) / 2 + transformInset))
     }
     readonly property real launcherPositionY: {
         var position = Number(root.launcherGeometry && root.launcherGeometry[1])
+        var visualHeight = Config.launcherHeight * root.launcherUiScale
+        var transformInset = (visualHeight - Config.launcherHeight) / 2
         return isFinite(position) && position >= -10000
-            ? position : Math.max(0, Math.round((root.height - Config.launcherHeight) / 2))
+            ? position + transformInset
+            : Math.max(0, Math.round((root.height - visualHeight) / 2 + transformInset))
     }
 
     function resolveLauncherScreen() {
@@ -219,8 +227,26 @@ PanelWindow {
         return nearest || root.screen || Quickshell.screens[0] || null
     }
 
+    property bool launcherInitialized: false
+
+    // Component warm-up only parses/creates the hidden QML tree. Disk reads,
+    // history restoration and usage tracking are deliberately postponed until
+    // a real user entry point so preloading cannot trigger wallpaper restores.
+    function initializeLauncher() {
+        if (root.launcherInitialized) return false
+        root.launcherInitialized = true
+        root.loadRunHistoryFromDisk()
+        root.loadCalculatorHistoryFromDisk()
+        root.loadEmojiPickerDataFromDisk()
+        root.loadWallpaperPickerDataFromDisk()
+        appModel.refreshUsageHistory()
+        root.resetSelection()
+        return true
+    }
+
     function beginLayoutEdit() {
         if (!Config.launcherEnabled || root.layoutEditMode) return
+        root.initializeLauncher()
         root.launcherInteractionGeneration += 1
         root.invalidateAllAsyncRequests()
         root.layoutEditWasVisible = root.visible
@@ -252,35 +278,36 @@ PanelWindow {
     function beginLauncherDrag(mouse) {
         if (!root.layoutEditMode || root.layoutDragging || !root.layoutEditor) return
         root.layoutDragging = true
-        root.layoutDragPressX = Number(mouse.x)
-        root.layoutDragPressY = Number(mouse.y)
-        root.layoutDragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(launcherBox.x)
-        root.layoutDragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(launcherBox.y)
+        root.layoutDragScale = Number(launcherBox.scale) > 0 ? Number(launcherBox.scale) : root.launcherUiScale
+        root.layoutDragPressX = Number(mouse.x) * root.layoutDragScale
+        root.layoutDragPressY = Number(mouse.y) * root.layoutDragScale
+        root.layoutDragBaseGlobalX = Number(root.screen && root.screen.x || 0) + Number(launcherBox.x) - (launcherBox.width * root.layoutDragScale - launcherBox.width) / 2
+        root.layoutDragBaseGlobalY = Number(root.screen && root.screen.y || 0) + Number(launcherBox.y) - (launcherBox.height * root.layoutDragScale - launcherBox.height) / 2
         Settings.beginGeometryDrag("launcher")
         root.layoutEditor.beginProxyDrag(
             "launcher", root.layoutDragBaseGlobalX, root.layoutDragBaseGlobalY,
-            Config.launcherWidth, Config.launcherHeight
+            Config.launcherWidth * root.layoutDragScale, Config.launcherHeight * root.layoutDragScale
         )
         launcherBox.grabToImage(function(result) {
             if (!root.layoutDragging) return
             root.layoutDragHidden = true
             if (root.layoutEditor) root.layoutEditor.setProxySource(result.url)
-        }, Qt.size(Math.max(1, Math.round(Config.launcherWidth)), Math.max(1, Math.round(Config.launcherHeight))))
+        }, Qt.size(Math.max(1, Math.round(Config.launcherWidth * root.layoutDragScale)), Math.max(1, Math.round(Config.launcherHeight * root.layoutDragScale))))
     }
 
     function updateLauncherDrag(mouse) {
         if (!root.layoutEditMode || !root.layoutDragging || !root.layoutEditor) return
-        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
-        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
-        root.layoutEditor.updateProxyDrag(globalX, globalY, Config.launcherWidth, Config.launcherHeight)
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) * root.layoutDragScale - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) * root.layoutDragScale - root.layoutDragPressY
+        root.layoutEditor.updateProxyDrag(globalX, globalY, Config.launcherWidth * root.layoutDragScale, Config.launcherHeight * root.layoutDragScale)
     }
 
     function finishLauncherDrag(mouse) {
         if (!root.layoutDragging) return
-        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) - root.layoutDragPressX
-        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) - root.layoutDragPressY
+        var globalX = root.layoutDragBaseGlobalX + Number(mouse.x) * root.layoutDragScale - root.layoutDragPressX
+        var globalY = root.layoutDragBaseGlobalY + Number(mouse.y) * root.layoutDragScale - root.layoutDragPressY
         var targetScreen = root.findScreenForGlobalPoint(
-            globalX + Config.launcherWidth / 2, globalY + Config.launcherHeight / 2
+            globalX + Config.launcherWidth * root.layoutDragScale / 2, globalY + Config.launcherHeight * root.layoutDragScale / 2
         )
         var localX = globalX - Number(targetScreen && targetScreen.x || 0)
         var localY = globalY - Number(targetScreen && targetScreen.y || 0)
@@ -435,6 +462,7 @@ PanelWindow {
     }
 
     function showLauncher() {
+        root.initializeLauncher()
         root.visible = true
         root.setMode(root.configuredDefaultMode())
         Qt.callLater(root.restoreLauncherKeyboardFocus)
@@ -517,6 +545,7 @@ PanelWindow {
     // Quickshell process and lets Niri bind a separate key to every mode.
     function openMode(modeName) {
         const requestedMode = root.modeFromName(modeName)
+        root.initializeLauncher()
         root.visible = true
         root.setMode(requestedMode)
         Qt.callLater(root.restoreLauncherKeyboardFocus)
@@ -3170,10 +3199,10 @@ PanelWindow {
         width: Config.launcherWidth
         height: Config.launcherHeight
 
-        radius: Config.launcherRadius
+        radius: Config.scaledCornerRadius(Config.launcherRadius)
 
         property bool entranceReady: false
-        scale: entranceReady ? 1.0 : 0.97
+        scale: (entranceReady ? 1.0 : 0.97) * root.launcherUiScale
         opacity: root.layoutDragHidden ? 0.0 : (entranceReady ? 1.0 : 0.0)
 
         Translate {
@@ -3211,7 +3240,7 @@ PanelWindow {
             ? theme.launcherBackground : theme.transparent
 
         border.color: theme.border
-        border.width: (!Settings.loaded || Settings.moduleFrames.launcher !== false)
+        border.width: (!Settings.loaded || Settings.moduleFrames.launcher !== false) && Config.popupBordersEnabled
             ? Config.frameBorderWidth : 0
         focus: root.mode === root.modePower
         onActiveFocusChanged: root.handleLauncherKeyboardFocusChanged()
@@ -3330,7 +3359,7 @@ PanelWindow {
             color: "transparent"
             border.color: Config.accent
             border.width: Math.max(2, Config.frameBorderWidth + 1)
-            radius: Config.frameRadius
+            radius: Config.scaledCornerRadius(Config.frameRadius)
             antialiasing: true
 
             Rectangle {
@@ -3347,7 +3376,7 @@ PanelWindow {
                     anchors.centerIn: parent
                     text: "launcher"
                     color: Config.black
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     font.bold: true
                 }
@@ -3385,8 +3414,8 @@ PanelWindow {
                 Text {
                     text: Config.launcherTitleText
                     color: Config.launcherTitleColor
-                    font.family: Config.launcherTitleFont.trim() === "" ? "" : Config.launcherTitleFont
-                    font.pixelSize: Config.launcherTitleFontSize
+                    font.family: Config.resolveFontFamily(Config.launcherTitleFont)
+                    font.pixelSize: Config.uiFontSize(Config.launcherTitleFontSize)
                     font.bold: Config.launcherTitleBold
                     font.letterSpacing: Config.launcherTitleLetterSpacing
                     transform: Translate { y: Config.launcherTitleY }
@@ -3397,7 +3426,7 @@ PanelWindow {
                 Text {
                     text: root.currentModeName.toUpperCase()
                     color: theme.accent
-                    font.pixelSize: 11
+                    font.pixelSize: Config.uiFontSize(11)
                     font.bold: true
                     font.letterSpacing: 1
                 }
@@ -3406,7 +3435,7 @@ PanelWindow {
                     visible: Config.launcherShowResultCount
                     text: root.currentResultCount + " RESULTS"
                     color: theme.textVeryDim
-                    font.pixelSize: 10
+                    font.pixelSize: Config.uiFontSize(10)
                     font.bold: true
                     font.letterSpacing: 0.8
                 }
@@ -3436,10 +3465,10 @@ PanelWindow {
                         y: 0
                         width: 38
                         height: 32
-                        radius: 8
+                        radius: Config.scaledCornerRadius(8)
                         color: theme.transparent
                         border.color: theme.borderAccent
-                        border.width: root.selectedModeTabIndex >= 0 ? 1 : 0
+                        border.width: Config.buttonBordersEnabled && root.selectedModeTabIndex >= 0 ? 1 : 0
                         visible: root.selectedModeTabIndex >= 0
                         z: 0
 
@@ -3477,7 +3506,7 @@ PanelWindow {
                                     ? theme.textWhite
                                     : theme.modeNormalText
                                 font.family: theme.iconFontFamily
-                                font.pixelSize: 17
+                                font.pixelSize: Config.uiFontSize(17)
                             }
 
                             MouseArea {
@@ -3503,14 +3532,14 @@ PanelWindow {
                 Layout.minimumHeight: Config.launcherSearchHeight
                 Layout.maximumHeight: Config.launcherSearchHeight
 
-                radius: Config.launcherSearchRadius
                 color: Config.launcherSearchBackground
 
                 border.color: searchField.activeFocus
                     ? theme.borderAccent
                     : theme.border
 
-                border.width: 1
+                border.width: searchField.activeFocus ? 1 : (Config.inputBordersEnabled ? 1 : 0)
+                radius: Config.scaledCornerRadius(Config.launcherSearchRadius)
 
                 Behavior on border.color {
                     ColorAnimation { duration: root.interactionAnimationDuration; easing.type: root.interactionAnimationEasing; easing.bezierCurve: root.interactionAnimationBezierCurve }
@@ -3530,8 +3559,8 @@ PanelWindow {
 
                     color: theme.textWhite
 
-                    font.family: Config.launcherSearchFont.trim() === "" ? "" : Config.launcherSearchFont
-                    font.pixelSize: Config.launcherSearchFontSize
+                    font.family: Config.resolveFontFamily(Config.launcherSearchFont)
+                    font.pixelSize: Config.uiFontSize(Config.launcherSearchFontSize)
 
                     placeholderText: {
                         if (Config.launcherSearchPlaceholder.trim() !== "")
@@ -3996,7 +4025,7 @@ PanelWindow {
                     Text {
                         text: (root.dynamicSchemePickerActive || root.schemeVariantPickerActive) ? "Источник:" : "Монитор:"
                         color: theme.textDim
-                        font.pixelSize: 11
+                        font.pixelSize: Config.uiFontSize(11)
                     }
 
                     Repeater {
@@ -4007,17 +4036,17 @@ PanelWindow {
                             property string outputName: LauncherWallpaperPicker.screenName(modelData, index)
                             implicitWidth: outputLabel.implicitWidth + 22
                             implicitHeight: 29
-                            radius: 7
+                            radius: Config.scaledCornerRadius(7)
                             color: root.wallpaperSelectedScreenName === outputName ? theme.accent : theme.surfaceAlt
                             border.color: root.wallpaperSelectedScreenName === outputName ? theme.borderAccent : theme.borderSubtle
-                            border.width: 1
+                            border.width: Config.buttonBordersEnabled ? 1 : 0
 
                             Text {
                                 id: outputLabel
                                 anchors.centerIn: parent
                                 text: parent.outputName
                                 color: root.wallpaperSelectedScreenName === parent.outputName ? theme.selectedText : theme.text
-                                font.pixelSize: 11
+                                font.pixelSize: Config.uiFontSize(11)
                             }
 
                             MouseArea {
@@ -4035,7 +4064,7 @@ PanelWindow {
                         radius: 7
                         color: root.activeWallpaperQuery.scope === "all" ? theme.accent : theme.surfaceAlt
                         border.color: root.activeWallpaperQuery.scope === "all" ? theme.borderAccent : theme.borderSubtle
-                        Text { id: scopeAllLabel; anchors.centerIn: parent; text: "Все"; color: root.activeWallpaperQuery.scope === "all" ? theme.selectedText : theme.text; font.pixelSize: 10 }
+                        Text { id: scopeAllLabel; anchors.centerIn: parent; text: "Все"; color: root.activeWallpaperQuery.scope === "all" ? theme.selectedText : theme.text; font.pixelSize: Config.uiFontSize(10)}
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("all") }
                     }
                     Rectangle {
@@ -4045,7 +4074,7 @@ PanelWindow {
                         radius: 7
                         color: root.activeWallpaperQuery.scope === "favorites" ? theme.accent : theme.surfaceAlt
                         border.color: root.activeWallpaperQuery.scope === "favorites" ? theme.borderAccent : theme.borderSubtle
-                        Text { id: scopeFavoritesLabel; anchors.centerIn: parent; text: "★ Избранное"; color: root.activeWallpaperQuery.scope === "favorites" ? theme.selectedText : theme.accent; font.pixelSize: 12 }
+                        Text { id: scopeFavoritesLabel; anchors.centerIn: parent; text: "★ Избранное"; color: root.activeWallpaperQuery.scope === "favorites" ? theme.selectedText : theme.accent; font.pixelSize: Config.uiFontSize(12)}
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("favorites") }
                     }
                     Rectangle {
@@ -4055,14 +4084,14 @@ PanelWindow {
                         radius: 7
                         color: root.activeWallpaperQuery.scope === "recent" ? theme.accent : theme.surfaceAlt
                         border.color: root.activeWallpaperQuery.scope === "recent" ? theme.borderAccent : theme.borderSubtle
-                        Text { id: scopeRecentLabel; anchors.centerIn: parent; text: "Недавние"; color: root.activeWallpaperQuery.scope === "recent" ? theme.selectedText : theme.text; font.pixelSize: 10 }
+                        Text { id: scopeRecentLabel; anchors.centerIn: parent; text: "Недавние"; color: root.activeWallpaperQuery.scope === "recent" ? theme.selectedText : theme.text; font.pixelSize: Config.uiFontSize(10)}
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setWallpaperScope("recent") }
                     }
 
                     Text {
                         text: (root.dynamicSchemePickerActive ? "Палитра из " : (root.schemeVariantPickerActive ? "Обои для " : (root.wallpaperRandomMode ? "Случайные обои для " : "Для "))) + root.wallpaperSelectedScreenName
                         color: theme.textVeryDim
-                        font.pixelSize: 10
+                        font.pixelSize: Config.uiFontSize(10)
                     }
 
                     Item { Layout.fillWidth: true }
@@ -4072,7 +4101,7 @@ PanelWindow {
                         visible: root.wallpaperApplyError !== ""
                         text: root.wallpaperApplyError
                         color: "#ff9999"
-                        font.pixelSize: 10
+                        font.pixelSize: Config.uiFontSize(10)
                         wrapMode: Text.WordWrap
                         elide: Text.ElideRight
                     }
@@ -4126,7 +4155,7 @@ PanelWindow {
                         width: root.wallpaperPickerActive && !root.wallpaperRandomMode ? appList.wallpaperTileWidth : appList.width
                         height: root.wallpaperPickerActive && !root.wallpaperRandomMode ? 218 : Config.launcherItemHeight
 
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: GridView.isCurrentItem
                             ? theme.itemSelected
@@ -4253,7 +4282,7 @@ PanelWindow {
                                     text: String(appDelegate.itemData && appDelegate.itemData.project && appDelegate.itemData.project.icon || "")
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
 
                                 // Draw the terminal marker with ordinary characters so it
@@ -4281,7 +4310,7 @@ PanelWindow {
                                         text: ">_"
                                         color: runCommandFallback.glyphColor
                                         font.family: "monospace"
-                                        font.pixelSize: 12
+                                        font.pixelSize: Config.uiFontSize(12)
                                         font.bold: true
                                     }
                                 }
@@ -4293,7 +4322,7 @@ PanelWindow {
                                         && appDelegate.itemData.kind === "emojiPickerAction"
                                     text: "😀"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
-                                    font.pixelSize: 25
+                                    font.pixelSize: Config.uiFontSize(25)
                                 }
 
                                 Text {
@@ -4313,7 +4342,7 @@ PanelWindow {
                                     text: appDelegate.itemData.kind === "wallpaperRandomAction" ? "" : "󰏘"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.accent
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 23
+                                    font.pixelSize: Config.uiFontSize(23)
                                 }
 
                                 Text {
@@ -4323,7 +4352,7 @@ PanelWindow {
                                         && appDelegate.itemData.kind === "emoji"
                                     text: String(appDelegate.itemData.emoji || "")
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
-                                    font.pixelSize: 25
+                                    font.pixelSize: Config.uiFontSize(25)
                                 }
 
                                 Text {
@@ -4333,7 +4362,7 @@ PanelWindow {
                                         && appDelegate.itemData.kind === "appCategory"
                                     text: "▦"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.accent
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
 
                                 Text {
@@ -4344,7 +4373,7 @@ PanelWindow {
                                     text: "󰀻"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
 
                                 Text {
@@ -4355,7 +4384,7 @@ PanelWindow {
                                     text: "󰃬"
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.accent
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
 
                                 Text {
@@ -4369,7 +4398,7 @@ PanelWindow {
                                     text: String(appDelegate.itemData.icon || "󰌌")
                                     color: GridView.isCurrentItem ? theme.selectedText : theme.textMuted
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
                             }
 
@@ -4405,7 +4434,7 @@ PanelWindow {
                                             ? theme.selectedText
                                             : theme.textWhite
 
-                                        font.pixelSize: 16
+                                        font.pixelSize: Config.uiFontSize(16)
 
                                         elide: Text.ElideRight
                                     }
@@ -4431,7 +4460,7 @@ PanelWindow {
                                                 radius: 6
                                                 color: String(modelData || "transparent")
                                                 border.color: theme.borderSubtle
-                                                border.width: 0.5
+                                                border.width: Config.inputBordersEnabled ? 0.5 : 0
                                             }
                                         }
                                     }
@@ -4446,7 +4475,7 @@ PanelWindow {
                                         ? theme.selectedSubtext
                                         : theme.textDim
 
-                                    font.pixelSize: 12
+                                    font.pixelSize: Config.uiFontSize(12)
 
                                     elide: Text.ElideRight
                                 }
@@ -4464,7 +4493,7 @@ PanelWindow {
                                     color: GridView.isCurrentItem
                                         ? theme.selectedText
                                         : (appDelegate.itemData && appDelegate.itemData.isFavorite ? theme.accent : theme.textVeryDim)
-                                    font.pixelSize: 20
+                                    font.pixelSize: Config.uiFontSize(20)
                                 }
                             }
                         }
@@ -4495,7 +4524,7 @@ PanelWindow {
                                 Layout.fillWidth: true
                                 text: appDelegate.displayName
                                 color: GridView.isCurrentItem ? theme.selectedText : theme.textWhite
-                                font.pixelSize: 13
+                                font.pixelSize: Config.uiFontSize(13)
                                 font.bold: true
                                 elide: Text.ElideRight
                             }
@@ -4511,7 +4540,7 @@ PanelWindow {
                                     return parts.join(" · ")
                                 }
                                 color: GridView.isCurrentItem ? theme.selectedText : theme.accent
-                                font.pixelSize: 9
+                                font.pixelSize: Config.uiFontSize(9)
                                 elide: Text.ElideRight
                             }
 
@@ -4519,7 +4548,7 @@ PanelWindow {
                                 Layout.fillWidth: true
                                 text: String(appDelegate.itemData && appDelegate.itemData.path || "")
                                 color: GridView.isCurrentItem ? theme.selectedSubtext : theme.textDim
-                                font.pixelSize: 9
+                                font.pixelSize: Config.uiFontSize(9)
                                 elide: Text.ElideMiddle
                             }
                         }
@@ -4539,7 +4568,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: appDelegate.itemData && appDelegate.itemData.isFavorite ? "★" : "☆"
                                 color: appDelegate.itemData && appDelegate.itemData.isFavorite ? theme.accent : theme.text
-                                font.pixelSize: 20
+                                font.pixelSize: Config.uiFontSize(20)
                             }
                         }
 
@@ -4605,7 +4634,7 @@ PanelWindow {
                         && root.normalizeRunText(searchField.text).startsWith("@")
                     text: "@i ID\n@c category\n@d description\n@e command\n@w WM_CLASS\n@g generic name\n@k keywords\n@t apps inside terminal"
                     color: theme.textVeryDim
-                    font.pixelSize: 12
+                    font.pixelSize: Config.uiFontSize(12)
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
@@ -4637,7 +4666,7 @@ PanelWindow {
                                 ? "Нет доступных приложений. Проверьте избранное и скрытые приложения."
                                 : "Приложения не найдены."))))
                     color: theme.textVeryDim
-                    font.pixelSize: 12
+                    font.pixelSize: Config.uiFontSize(12)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
@@ -4670,12 +4699,12 @@ PanelWindow {
                                 Layout.fillWidth: true
                                 text: "Recent calculations"
                                 color: theme.textDim
-                                font.pixelSize: 12
+                                font.pixelSize: Config.uiFontSize(12)
                             }
                             Text {
                                 text: "Clear history"
                                 color: theme.textVeryDim
-                                font.pixelSize: 11
+                                font.pixelSize: Config.uiFontSize(11)
                                 MouseArea {
                                     anchors.fill: parent
                                     anchors.margins: -6
@@ -4697,10 +4726,10 @@ PanelWindow {
                         property bool hovered: root.pointerHoveredMode === root.modeCalculator && root.pointerHoveredIndex === index
                         width: calculatorList.width
                         height: Config.launcherItemHeight
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
                         color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
-                        border.width: ListView.isCurrentItem ? 0 : 0.7
+                        border.width: Config.buttonBordersEnabled && !ListView.isCurrentItem ? 0.7 : 0
 
                         RowLayout {
                             anchors.fill: parent
@@ -4718,7 +4747,7 @@ PanelWindow {
                                     text: "󰃬"
                                     color: ListView.isCurrentItem ? theme.selectedText : theme.accent
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
                             }
 
@@ -4729,7 +4758,7 @@ PanelWindow {
                                     Layout.fillWidth: true
                                     text: calculatorDelegate.modelData.expression + " = " + calculatorDelegate.modelData.result
                                     color: ListView.isCurrentItem ? theme.selectedText : theme.textWhite
-                                    font.pixelSize: 16
+                                    font.pixelSize: Config.uiFontSize(16)
                                     elide: Text.ElideRight
                                 }
                                 Text {
@@ -4738,7 +4767,7 @@ PanelWindow {
                                         ? "Recent calculation · Enter or click to reuse"
                                         : "Calculator · Enter or click to copy result"
                                     color: ListView.isCurrentItem ? theme.selectedSubtext : theme.textDim
-                                    font.pixelSize: 12
+                                    font.pixelSize: Config.uiFontSize(12)
                                     elide: Text.ElideRight
                                 }
                             }
@@ -4758,7 +4787,7 @@ PanelWindow {
                             ? "Enter an arithmetic expression"
                             : "No valid calculation"
                         color: theme.textVeryDim
-                        font.pixelSize: 13
+                        font.pixelSize: Config.uiFontSize(13)
                     }
                 }
 
@@ -4800,7 +4829,7 @@ PanelWindow {
 
                         width: runList.width
                         height: Config.launcherItemHeight
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -4841,7 +4870,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.background
                                         : theme.textMuted
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     font.bold: true
                                 }
                             }
@@ -4854,7 +4883,7 @@ PanelWindow {
                                 )
                                 textFormat: Text.StyledText
                                 color: theme.text
-                                font.pixelSize: 15
+                                font.pixelSize: Config.uiFontSize(15)
                                 elide: Text.ElideRight
                             }
 
@@ -4865,7 +4894,7 @@ PanelWindow {
                                 color: ListView.isCurrentItem
                                     ? theme.selectedSubtext
                                     : theme.textVeryDim
-                                font.pixelSize: 10
+                                font.pixelSize: Config.uiFontSize(10)
                             }
                         }
 
@@ -4892,7 +4921,7 @@ PanelWindow {
                             : "No matching commands"
 
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -4956,7 +4985,7 @@ PanelWindow {
                         width: windowList.width
                         height: Config.launcherItemHeight
 
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -5013,7 +5042,7 @@ PanelWindow {
                                     text: "󰖯"
                                     color: theme.textMuted
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 22
+                                    font.pixelSize: Config.uiFontSize(22)
                                 }
                             }
 
@@ -5033,7 +5062,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedText
                                         : theme.textWhite
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     elide: Text.ElideRight
                                 }
 
@@ -5049,7 +5078,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedSubtext
                                         : theme.textDim
-                                    font.pixelSize: 12
+                                    font.pixelSize: Config.uiFontSize(12)
                                     elide: Text.ElideRight
                                 }
 
@@ -5074,7 +5103,7 @@ PanelWindow {
                                     }
 
                                     color: theme.textVeryDim
-                                    font.pixelSize: 10
+                                    font.pixelSize: Config.uiFontSize(10)
                                     elide: Text.ElideRight
                                 }
                             }
@@ -5095,7 +5124,7 @@ PanelWindow {
                                     anchors.centerIn: parent
                                     text: modelData.isFocused ? "FOCUSED" : "RECENT"
                                     color: modelData.isFocused ? theme.background : theme.textSecondary
-                                    font.pixelSize: 9
+                                    font.pixelSize: Config.uiFontSize(9)
                                     font.bold: true
                                 }
                             }
@@ -5124,7 +5153,7 @@ PanelWindow {
                                 : "No matching windows")
 
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5189,7 +5218,7 @@ PanelWindow {
                         width: clipboardList.width
                         height: Math.max(Config.launcherItemHeight, modelData.isImage ? 72 : 86)
 
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -5240,7 +5269,7 @@ PanelWindow {
                                         ? theme.textClipboard
                                         : theme.textMuted
 
-                                    font.pixelSize: 17
+                                    font.pixelSize: Config.uiFontSize(17)
                                 }
                             }
 
@@ -5262,7 +5291,7 @@ PanelWindow {
 
                                         color: theme.textMuted
 
-                                        font.pixelSize: 11
+                                        font.pixelSize: Config.uiFontSize(11)
                                         font.bold: true
                                     }
 
@@ -5274,7 +5303,7 @@ PanelWindow {
 
                                         color: theme.textVeryDim
 
-                                        font.pixelSize: 10
+                                        font.pixelSize: Config.uiFontSize(10)
 
                                         elide: Text.ElideRight
                                     }
@@ -5295,7 +5324,7 @@ PanelWindow {
                                         ? theme.selectedText
                                         : theme.text
 
-                                    font.pixelSize: 14
+                                    font.pixelSize: Config.uiFontSize(14)
 
                                     wrapMode: Text.Wrap
                                     maximumLineCount: 3
@@ -5331,7 +5360,7 @@ PanelWindow {
 
                         color: theme.textDisabled
 
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5383,7 +5412,7 @@ PanelWindow {
 
                         width: networkList.width
                         height: Config.launcherItemHeight
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -5414,7 +5443,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.background
                                         : theme.textMuted
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     font.family: modelData.inUse ? "sans" : theme.fontFamily
                                 }
                             }
@@ -5428,7 +5457,7 @@ PanelWindow {
                                     text: root.highlightNetwork(modelData.ssid, searchField.text)
                                     textFormat: Text.StyledText
                                     color: theme.text
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     elide: Text.ElideRight
                                 }
 
@@ -5439,7 +5468,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedSubtext
                                         : theme.textVeryDim
-                                    font.pixelSize: 10
+                                    font.pixelSize: Config.uiFontSize(10)
                                 }
                             }
 
@@ -5453,14 +5482,14 @@ PanelWindow {
                                         ? "CONNECTED"
                                         : (modelData.security !== "" ? "LOCK" : "OPEN")
                                     color: modelData.inUse ? theme.accent : theme.textVeryDim
-                                    font.pixelSize: 9
+                                    font.pixelSize: Config.uiFontSize(9)
                                 }
 
                                 Text {
                                     Layout.alignment: Qt.AlignRight
                                     text: modelData.bars || ""
                                     color: ListView.isCurrentItem ? theme.selectedSubtext : theme.textVeryDim
-                                    font.pixelSize: 10
+                                    font.pixelSize: Config.uiFontSize(10)
                                 }
                             }
                         }
@@ -5482,7 +5511,7 @@ PanelWindow {
                                 ? "No networks found"
                                 : "No matching networks")
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5534,7 +5563,7 @@ PanelWindow {
 
                         width: nixList.width
                         height: Math.max(Config.launcherItemHeight, modelData.description !== "" ? 72 : 58)
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -5568,7 +5597,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.background
                                         : theme.textMuted
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     font.bold: true
                                 }
                             }
@@ -5591,7 +5620,7 @@ PanelWindow {
                                         color: ListView.isCurrentItem
                                             ? theme.selectedText
                                             : theme.textWhite
-                                        font.pixelSize: 15
+                                        font.pixelSize: Config.uiFontSize(15)
                                         font.bold: true
                                         elide: Text.ElideRight
                                     }
@@ -5601,7 +5630,7 @@ PanelWindow {
                                         color: ListView.isCurrentItem
                                             ? theme.selectedSubtext
                                             : theme.textDim
-                                        font.pixelSize: 11
+                                        font.pixelSize: Config.uiFontSize(11)
                                     }
                                 }
 
@@ -5612,7 +5641,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedSubtext
                                         : theme.textDim
-                                    font.pixelSize: 11
+                                    font.pixelSize: Config.uiFontSize(11)
                                     maximumLineCount: 2
                                     wrapMode: Text.Wrap
                                     elide: Text.ElideRight
@@ -5639,7 +5668,7 @@ PanelWindow {
                                     ? "Type a package name"
                                     : "No matching packages"))
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5691,7 +5720,7 @@ PanelWindow {
 
                         width: passList.width
                         height: Config.launcherItemHeight
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color: ListView.isCurrentItem
                             ? theme.itemSelected
@@ -5723,7 +5752,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.background
                                         : theme.textMuted
-                                    font.pixelSize: 16
+                                    font.pixelSize: Config.uiFontSize(16)
                                     font.family: theme.fontFamily
                                 }
                             }
@@ -5742,7 +5771,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedText
                                         : theme.textWhite
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     font.bold: true
                                     elide: Text.ElideRight
                                 }
@@ -5752,7 +5781,7 @@ PanelWindow {
                                     color: ListView.isCurrentItem
                                         ? theme.selectedSubtext
                                         : theme.textVeryDim
-                                    font.pixelSize: 10
+                                    font.pixelSize: Config.uiFontSize(10)
                                 }
                             }
 
@@ -5762,7 +5791,7 @@ PanelWindow {
                                 color: ListView.isCurrentItem
                                     ? theme.accent
                                     : theme.textVeryDim
-                                font.pixelSize: 9
+                                font.pixelSize: Config.uiFontSize(9)
                                 font.bold: true
                             }
                         }
@@ -5786,7 +5815,7 @@ PanelWindow {
                                     ? "No password entries"
                                     : "No matching passwords"))
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5835,7 +5864,7 @@ PanelWindow {
 
                         width: projectList.width
                         height: Config.launcherItemHeight
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
                         color: ListView.isCurrentItem ? theme.itemSelected : (hovered ? theme.itemHover : theme.item)
                         border.color: ListView.isCurrentItem ? theme.borderAccent : theme.borderSubtle
                         border.width: 0
@@ -5861,7 +5890,7 @@ PanelWindow {
                                     text: String(projectDelegate.modelData.icon || "")
                                     color: ListView.isCurrentItem ? theme.background : theme.textMuted
                                     font.family: theme.iconFontFamily
-                                    font.pixelSize: 18
+                                    font.pixelSize: Config.uiFontSize(18)
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                     elide: Text.ElideRight
@@ -5880,7 +5909,7 @@ PanelWindow {
                                     )
                                     textFormat: Text.StyledText
                                     color: ListView.isCurrentItem ? theme.selectedText : theme.textWhite
-                                    font.pixelSize: 15
+                                    font.pixelSize: Config.uiFontSize(15)
                                     font.bold: true
                                     elide: Text.ElideRight
                                 }
@@ -5893,7 +5922,7 @@ PanelWindow {
                                     )
                                     textFormat: Text.StyledText
                                     color: ListView.isCurrentItem ? theme.selectedSubtext : theme.textDim
-                                    font.pixelSize: 11
+                                    font.pixelSize: Config.uiFontSize(11)
                                     elide: Text.ElideMiddle
                                 }
                             }
@@ -5906,7 +5935,7 @@ PanelWindow {
                                 )
                                 textFormat: Text.StyledText
                                 color: ListView.isCurrentItem ? theme.accent : theme.textVeryDim
-                                font.pixelSize: 10
+                                font.pixelSize: Config.uiFontSize(10)
                                 font.bold: true
                                 elide: Text.ElideMiddle
                             }
@@ -5924,7 +5953,7 @@ PanelWindow {
                         visible: projectList.count === 0
                         text: searchField.text.trim() === "" ? "Нет настроенных проектов" : "Проекты не найдены"
                         color: theme.textDisabled
-                        font.pixelSize: 15
+                        font.pixelSize: Config.uiFontSize(15)
                     }
 
                     ScrollBar.vertical: ScrollBar {
@@ -5998,7 +6027,7 @@ PanelWindow {
 
                         height: Config.launcherItemHeight
 
-                        radius: Config.launcherItemRadius
+                        radius: Config.scaledCornerRadius(Config.launcherItemRadius)
 
                         color:
                             ListView.isCurrentItem
@@ -6048,7 +6077,7 @@ PanelWindow {
                                     ? theme.background
                                     : theme.textMuted
 
-                                font.pixelSize: 15
+                                font.pixelSize: Config.uiFontSize(15)
                                 font.bold: true
                             }
                         }
@@ -6064,7 +6093,7 @@ PanelWindow {
                                 ? theme.selectedText
                                 : theme.textWhite
 
-                            font.pixelSize: 16
+                            font.pixelSize: Config.uiFontSize(16)
                         }
 
                         MouseArea {
@@ -6102,7 +6131,7 @@ PanelWindow {
                     text: "↑ ↓  navigate"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6110,7 +6139,7 @@ PanelWindow {
                     text: "Enter  select"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6118,7 +6147,7 @@ PanelWindow {
                     text: "Alt+1..9, 0  tabs"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6127,7 +6156,7 @@ PanelWindow {
                     text: "Ctrl+J/N ↓  Ctrl+K/P ↑"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6136,7 +6165,7 @@ PanelWindow {
                     text: "Del  remove history"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6147,7 +6176,7 @@ PanelWindow {
                     text: "Enter  copy   click  actions"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
 
@@ -6155,7 +6184,7 @@ PanelWindow {
                     text: "Esc  close"
                     color: theme.textVeryDim
                     Layout.alignment: Qt.AlignVCenter
-                    font.pixelSize: Config.launcherNavigationHintsFontSize
+                    font.pixelSize: Config.uiFontSize(Config.launcherNavigationHintsFontSize)
                     transform: Translate { y: Config.launcherNavigationHintsTextY }
                 }
             }
@@ -8076,14 +8105,6 @@ PanelWindow {
         }
     }
 
-    Component.onCompleted: {
-        loadRunHistoryFromDisk()
-        loadCalculatorHistoryFromDisk()
-        loadEmojiPickerDataFromDisk()
-        loadWallpaperPickerDataFromDisk()
-        appModel.refreshUsageHistory()
-        resetSelection()
-    }
 
     // Blur only behind the launcher card, never across the dimming backdrop.
     BackgroundEffect.blurRegion: Region {

@@ -14,7 +14,7 @@ grep -Fq 'fromGeometry: Qt.rect(0, 0, parent.width, 0)' "$QML"
 grep -Fq 'toGeometry: Qt.rect(0, 0, parent.width, windDirectionRowsContent.implicitHeight)' "$QML"
 grep -Fq 'progress: weatherSection.windDirectionSettingsExpanded ? 1 : 0' "$QML"
 grep -Fq 'animationDuration: Config.animationDuration(180, "appearance")' "$QML"
-grep -Fq 'animationEasing: Config.animationEasingType("standard", weatherSection.windDirectionSettingsExpanded ? "enter" : "exit")' "$QML"
+grep -Fq 'animationEasing: Config.animationEasingType("ease-out", weatherSection.windDirectionSettingsExpanded ? "enter" : "exit")' "$QML"
 
 # All nine direction rows remain present and are no longer independently
 # toggled with visible, so their parent height can animate as one unit.

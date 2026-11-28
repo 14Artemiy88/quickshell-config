@@ -3,9 +3,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SECTIONS="$ROOT/components/settings/sections"
 
-# Settings pages use the shared framed group primitive, including Modules and Themes.
+# Settings pages use the shared framed group primitive; Modules is intentionally frameless.
 for file in \
     SettingsGeneralSection.qml \
+    SettingsInterfaceSection.qml \
     SettingsTimersSection.qml \
     SettingsPlayerSection.qml \
     SettingsPlayerAnimationSection.qml \
@@ -17,7 +18,6 @@ for file in \
     SettingsVolumeSection.qml \
     SettingsWindowSection.qml \
     SettingsLauncherSection.qml \
-    SettingsModulesSection.qml \
     SettingsColorsSection.qml
 do
     path="$SECTIONS/$file"

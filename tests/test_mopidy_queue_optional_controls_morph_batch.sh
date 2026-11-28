@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MOVE="$ROOT/components/primitives/MoveArrowButton.qml"
 QUEUE="$ROOT/components/mopidy/MopidyQueueTrackRow.qml"
 PLAYLIST="$ROOT/components/mopidy/MopidyPlaylistContents.qml"
-for file in "$MOVE" "$QUEUE" "$PLAYLIST"; do test -f "$file"; done
+for file in "$QUEUE" "$PLAYLIST"; do test -f "$file"; done
 
 # Mopidy runtime queue and playlist order now share the same drag-reorder primitive.
 [[ $(grep -Fc 'Primitives.DragReorderHandle {' "$QUEUE") -eq 1 ]]
 [[ $(grep -Fc 'Primitives.DragReorderHandle {' "$PLAYLIST") -eq 1 ]]
 ! grep -Fq 'Primitives.MoveArrowButton {' "$QUEUE"
 ! grep -Fq 'Primitives.MoveArrowButton {' "$PLAYLIST"
-grep -Fq 'property bool morphVisibility: false' "$MOVE"
-grep -Fq 'visible: root.morphVisibility || root.requestedVisible' "$MOVE"
-grep -Fq 'Primitives.MorphGeometry {' "$MOVE"
 
 # The queue track-number slot changes width on the shared progress value, so its text area reflows smoothly.
 grep -Fq 'readonly property real numberWidth: trackNumberSlot.width' "$QUEUE"
@@ -30,7 +26,7 @@ if sed -n '/id: trackNumberMorph/,/^            }/p' "$QUEUE" | grep -Fq 'clip: 
     exit 1
 fi
 
-python3 - "$MOVE" "$QUEUE" "$PLAYLIST" <<'PYCODE'
+python3 - "$QUEUE" "$PLAYLIST" <<'PYCODE'
 from pathlib import Path
 import sys
 pairs={')':'(',']':'[','}':'{'}

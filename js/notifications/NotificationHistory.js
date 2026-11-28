@@ -56,6 +56,45 @@ function applicationNames(history) {
     return names
 }
 
+// Expanded app groups are kept as a small case-insensitive list of labels.
+// Groups absent from this list start collapsed, so newly appearing applications
+// are compact by default. Returning new arrays keeps QML bindings deterministic.
+function isGroupExpanded(expandedGroups, groupLabel) {
+    var target = String(groupLabel === undefined || groupLabel === null ? "" : groupLabel).trim().toLowerCase()
+    if (target === "") return false
+    var source = Array.isArray(expandedGroups) ? expandedGroups : []
+    for (var i = 0; i < source.length; ++i)
+        if (String(source[i] === undefined || source[i] === null ? "" : source[i]).trim().toLowerCase() === target) return true
+    return false
+}
+
+function toggleExpandedGroup(expandedGroups, groupLabel) {
+    var target = String(groupLabel === undefined || groupLabel === null ? "" : groupLabel).trim()
+    if (target === "") return Array.isArray(expandedGroups) ? expandedGroups.slice() : []
+    var source = Array.isArray(expandedGroups) ? expandedGroups : []
+    var result = []
+    var found = false
+    for (var i = 0; i < source.length; ++i) {
+        var current = String(source[i] === undefined || source[i] === null ? "" : source[i]).trim()
+        if (current.toLowerCase() === target.toLowerCase()) {
+            found = true
+            continue
+        }
+        if (current !== "") result.push(current)
+    }
+    if (!found) result.push(target)
+    return result
+}
+
+function removeExpandedGroup(expandedGroups, groupLabel) {
+    var target = String(groupLabel === undefined || groupLabel === null ? "" : groupLabel).trim().toLowerCase()
+    var source = Array.isArray(expandedGroups) ? expandedGroups : []
+    if (target === "") return source.slice()
+    return source.filter(function(label) {
+        return String(label === undefined || label === null ? "" : label).trim().toLowerCase() !== target
+    })
+}
+
 // Text search and an optional multi-application filter are combined with AND
 // semantics. The filter uses the same appGroup label as the visible sections.
 function filterEntries(entries, query, selectedApps) {

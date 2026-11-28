@@ -68,9 +68,9 @@ assert.match(dashboard, /Layout\.preferredHeight: infoCard\.expanded \? 34 : 30[
   'compact wide note rows have enough height for two lines at the slightly larger type scale');
 assert.match(dashboard, /Layout\.fillHeight: !\(infoCard\.cardId === "today" && infoCard\.wideLead\)/g,
   'all wide Today cards avoid flexible empty space above and below their content');
-assert.match(dashboard, /font\.pixelSize: infoCard\.expanded \? 40 : 34/,
+assert.match(dashboard, /font\.pixelSize: Config\.uiFontSize\(infoCard\.expanded \? 40 : 34\)/,
   'compact wide Today increases the clock size to make better use of the compact content track');
-assert.match(dashboard, /font\.pixelSize: infoCard\.expanded \? 12 : 11/,
+assert.match(dashboard, /font\.pixelSize: Config\.uiFontSize\(infoCard\.expanded \? 12 : 11\)/,
   'compact wide Today increases date and note text size to reduce the oversized visual gaps');
 assert.match(dashboard, /maximumLineCount: 2[\s\S]*?verticalAlignment: Text\.AlignVCenter[\s\S]*?visible: infoCard\.hasTomorrowNote/,
   'wide Today note text is allowed two lines in compact as well as expanded mode');

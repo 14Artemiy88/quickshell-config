@@ -5,7 +5,7 @@
 // Sidebar groups are presentation-only. Page IDs remain stable and keep their
 // existing routes, profiles, reset scopes and user-customized labels.
 var NAVIGATION_GROUPS = [
-    { id: "appearance", label: "Внешний вид", symbol: "◈", description: "Темы, цвета и оформление окна настроек." },
+    { id: "appearance", label: "Внешний вид", symbol: "◈", description: "Темы, цвета, типографика и оформление окна настроек." },
     { id: "modules", label: "Модули", symbol: "▦", description: "Настройки и поведение встроенных модулей." },
     { id: "dashboard", label: "Dashboard", symbol: "▣", description: "Состав, порядок и размеры карточек панели." },
     { id: "launcher", label: "Лаунчер", symbol: "⌕", description: "Поиск, вкладки, действия и оформление лаунчера." },
@@ -18,15 +18,17 @@ var TAB_DEFINITIONS = [
     { id: "time", defaultLabel: "Часы", groupId: "modules", description: "Шрифт и размеры времени, даты и дня недели.", keywords: ["часы", "цифровые часы", "время на рабочем столе", "циферблат", "шрифт часов", "размер времени", "дата", "день недели", "clock"] },
     { id: "dashboard", defaultLabel: "Dashboard", groupId: "dashboard", description: "Состав, порядок, видимость, размеры и анимация панели Dashboard.", keywords: ["панель обзора", "главный экран", "карточки панели", "виджеты панели", "обзор системы", "анимация dashboard", "появление панели", "исчезновение панели"] },
     { id: "themes", defaultLabel: "Темы и цвета", groupId: "appearance", description: "Цветовые схемы, палитры, акцентные и пользовательские цвета.", keywords: ["палитра", "цветовая схема", "тема оформления", "акцентный цвет", "цвета интерфейса", "theme", "color scheme"] },
-    { id: "general", defaultLabel: "Общие", groupId: "general", description: "Общие параметры интерфейса, профили и пути хранения данных.", keywords: ["общие параметры", "настройки оболочки", "профили", "пресеты", "хранилище", "пути файлов", "каталог данных"] },
+    { id: "interface", defaultLabel: "Интерфейс", groupId: "appearance", description: "Шрифты, масштаб модулей, размытие фона, рамки и скругления.", keywords: ["масштаб интерфейса", "масштаб шрифта", "шрифты модулей", "рамки", "скругления", "блюр", "размытие фона", "типографика", "внешний вид интерфейса"] },
+    { id: "general", defaultLabel: "Общие", groupId: "general", description: "Профили настроек и пути хранения данных.", keywords: ["общие параметры", "настройки оболочки", "профили", "пресеты", "хранилище", "пути файлов", "каталог данных"] },
     { id: "timers", defaultLabel: "Таймеры", groupId: "modules", description: "Поведение таймеров, оформление, кнопки, подписи и анимации.", keywords: ["обратный отсчет", "отсчет времени", "секундомер", "таймер обратного отсчета", "завершение таймера"] },
-    { id: "player", defaultLabel: "Плеер", groupId: "modules", description: "Подключение плеера, метаданные, прогресс, обложка и анимации.", keywords: ["медиаплеер", "музыкальный плеер", "воспроизведение", "трек", "композиция", "музыка", "media player"] },
+    { id: "player", defaultLabel: "Плеер", groupId: "modules", description: "Подключение плеера, метаданные, прогресс, обложка и анимации.", keywords: ["медиаплеер", "музыкальный плеер", "воспроизведение", "трек", "композиция", "музыка", "media player", "обложка трека"] },
     { id: "mopidy", defaultLabel: "Mopidy", groupId: "modules", description: "Настройки Mopidy, отображение состояния, времени и иконок.", keywords: ["музыкальный сервер", "сервер музыки", "управление музыкой", "mopidy server"] },
     { id: "weather", defaultLabel: "Погода", groupId: "modules", description: "Источник погоды, текущие условия, прогноз и оформление.", keywords: ["прогноз погоды", "погодные условия", "метео", "температура воздуха", "forecast", "weather forecast"] },
     { id: "cava", defaultLabel: "CAVA", groupId: "modules", description: "Режим CAVA, количество полос, размеры и анимация.", keywords: ["визуализатор", "аудиовизуализатор", "спектр", "аудиоспектр", "эквалайзер", "музыкальные полосы"] },
     { id: "cpuRam", defaultLabel: "CPU/RAM", groupId: "modules", description: "Мониторинг процессора и памяти, график CPU и Top Apps.", keywords: ["процессор", "загрузка процессора", "оперативная память", "оперативка", "озу", "оперативное запоминающее устройство", "монитор ресурсов", "процессы", "top apps"] },
     { id: "network", defaultLabel: "Сеть", groupId: "modules", description: "Обновление сетевой статистики, подключения и оформление.", keywords: ["интернет", "wifi", "wi fi", "wi-fi", "ethernet", "подключение", "сетевой трафик", "скорость сети", "загрузка и отдача"] },
-    { id: "volume", defaultLabel: "Громкость", groupId: "modules", description: "Громкость, потоки, индикаторы, иконки и адаптивность.", keywords: ["звук", "аудио", "микшер", "громкость динамиков", "выходное устройство", "аудиопотоки", "системная громкость"] },
+    { id: "volume", defaultLabel: "Громкость", groupId: "modules", description: "Громкость, аудиопотоки, индикаторы уровня, иконки и адаптивность.", keywords: ["звук", "аудио", "микшер", "громкость динамиков", "выходное устройство", "аудиопотоки", "системная громкость"] },
+    { id: "osd", defaultLabel: "OSD", groupId: "modules", description: "Экранные индикаторы громкости, плеера и режима Не беспокоить.", keywords: ["osd", "экранный индикатор", "всплывающий индикатор", "громкость", "mute", "медиа", "плеер", "dnd", "не беспокоить"] },
     { id: "calendar", defaultLabel: "Календарь", groupId: "modules", description: "Разметка календаря, цвета, заметки и метки событий.", keywords: ["даты", "события", "календарные заметки", "расписание", "планировщик", "напоминания"] },
     { id: "launcher", defaultLabel: "Общее", groupId: "launcher", description: "Общее поведение лаунчера, навигация, оформление и поиск.", keywords: ["запуск приложений", "меню приложений", "панель запуска", "запускалка", "поиск приложений"] },
     { id: "launcherSearch", defaultLabel: "Поиск", groupId: "launcher", description: "Источники поиска лаунчера, приложения, действия и схемы.", keywords: ["поиск приложений", "поиск команд", "поиск файлов", "поиск в интернете", "калькулятор", "веб поиск", "nix search"] },
@@ -44,7 +46,8 @@ var TAB_DEFINITIONS = [
 var OTHER_PAGE_DEFINITIONS = [
     { id: "time", saveScope: "clock", subTabs: [] },
     { id: "dashboard", saveScope: "dashboard", subTabs: [] },
-    { id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] },
+    { id: "general", saveScope: "", subTabs: ["Профили", "Хранилища"] },
+    { id: "interface", saveScope: "general", subTabs: [] },
     { id: "timers", saveScope: "timer", subTabs: ["Основные", "Окно окончания", "Иконки", "Разметка", "Анимации", "Опции таймера"] },
     { id: "player", saveScope: "player", subTabs: ["Общее", "Тишина", "Оставшееся время", "Метаданные", "Иконки", "Прогресс", "Обложка и фон", "Анимация"] },
     { id: "weather", saveScope: "weather", subTabs: ["Общие", "Сейчас", "По часам", "По дням", "Анимация"] },
@@ -52,6 +55,7 @@ var OTHER_PAGE_DEFINITIONS = [
     { id: "cpuRam", saveScope: "cpu", subTabs: ["Общие", "График CPU", "Top Apps", "Анимация CPU"] },
     { id: "network", saveScope: "network", subTabs: ["Обновления", "Сеть", "Анимация"] },
     { id: "volume", saveScope: "volume", subTabs: ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"] },
+    { id: "osd", saveScope: "osd", subTabs: ["Громкость", "Плеер", "Не беспокоить"] },
     { id: "calendar", saveScope: "calendar", subTabs: ["Разметка", "Цвета", "Метки заметок", "Анимации"] },
     { id: "settingsWindow", saveScope: "settingsWindow", subTabs: ["Интерфейс", "Окно настроек", "Вкладки"] },
     { id: "mopidy", saveScope: "mopidy", subTabs: ["Общее", "Время", "Иконки", "Пусто и недоступен", "Анимация"] },
@@ -300,7 +304,6 @@ function hasOtherPageId(id) {
 // unrelated controls match generic words such as "время" or "цвет".
 var SUBTAB_KEYWORDS = {
     general: [
-        ["интерфейс пользователя", "ui", "внешний вид окна"],
         ["наборы настроек", "предустановки", "переключить профиль", "presets"],
         ["файлы настроек", "каталог конфигурации", "пути хранения", "директории данных"]
     ],
@@ -398,6 +401,11 @@ var SUBTAB_KEYWORDS = {
         ["включить выключить режим не беспокоить", "подавление всплывающих уведомлений"],
         ["исключения приложений", "разрешить уведомления", "блокировать приложения", "поиск установленных приложений"],
         ["история уведомлений", "срок хранения", "лимит записей", "очистка истории"]
+    ],
+    osd: [
+        ["экранный индикатор громкости", "osd звука", "mute и процент громкости"],
+        ["экранный индикатор плеера", "смена трека", "обложка и исполнитель"],
+        ["osd не беспокоить", "индикатор dnd", "состояние режима тишины"]
     ]
 }
 
@@ -475,10 +483,6 @@ function pageMetadataCatalog() {
 function saveScopeForPageId(id, subIndex) {
     var metadata = pageMetadataForId(id)
     if (!metadata || !metadata.hasSharedPageRoute)
-        return ""
-    // General settings has shared UI/profile/storage subtabs. Only its
-    // interface subtab has the scoped save/reset action.
-    if (metadata.id === "general" && Number(subIndex) !== 0)
         return ""
     return metadata.saveScope || ""
 }

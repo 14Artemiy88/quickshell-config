@@ -15,7 +15,7 @@ assert "root.activeAnimationStyle" in qml and "root.activeDuration" in qml
 assert 'property: "transitionProgress"' in qml
 assert 'x: root.transitionProgress * root.activeHiddenX' in qml
 assert 'y: root.transitionProgress * root.activeHiddenY' in qml
-assert 'opacity: root.usesOpacity() ? 1 - root.transitionProgress : 1' in qml
+assert 'opacity: root.usesOpacity() ? Math.max(0, Math.min(1, 1 - root.transitionProgress)) : 1' in qml
 assert qml.count('property: "transitionProgress"') == 2
 duration_handler = qml.split("function handleDurationChange()", 1)[1].split("function startTransition()", 1)[0]
 assert "if (root.running)" in duration_handler and "root.duration <= 0" in duration_handler

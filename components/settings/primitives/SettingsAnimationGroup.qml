@@ -29,10 +29,26 @@ Column {
     property real durationStep: 10
     property real durationWheelStep: durationStep
 
-    property string profile: "expressive"
-    property string profileLabel: "Профиль кривой"
-    property var profileValues: ["none", "standard", "spatial", "effects", "expressive"]
-    property var profileLabels: ["Без анимации", "Стандартный", "Пространственный", "Эффекты", "Выразительный"]
+    property string profile: "ease-in-out"
+    property string profileLabel: "Функция сглаживания"
+    property var profileValues: ["none", "linear", "ease", "ease-in", "ease-out", "ease-in-out", "cubic-bezier"]
+    property var profileLabels: ["Без анимации", "linear", "ease", "ease-in", "ease-out", "ease-in-out", "cubic-bezier()"]
+    readonly property string normalizedProfile: Config.normalizeAnimationProfile(root.profile)
+    readonly property string selectedProfileOption: root.normalizedProfile.indexOf("cubic-bezier(") === 0 ? "cubic-bezier" : root.normalizedProfile
+    readonly property bool customBezierVisible: root.selectedProfileOption === "cubic-bezier"
+    readonly property var currentBezierValues: Config.animationBezierValues(root.profile)
+
+    function updateBezierComponent(index, value) {
+        var values = Config.animationBezierValues(root.profile)
+        if (!values || index < 0 || index > 3) return
+        var number = Number(value)
+        if (!isFinite(number)) return
+        if (index % 2 === 0) number = Math.max(0, Math.min(1, number))
+        values[index] = Math.round(number * 100) / 100
+        var parts = []
+        for (var i = 0; i < 4; ++i) parts.push(Number(values[i]).toFixed(2))
+        root.profileEdited("cubic-bezier(" + parts.join(", ") + ")")
+    }
 
     signal durationEdited(real value)
     signal profileEdited(string value)
@@ -68,32 +84,83 @@ Column {
                 height: 30
                 property var values: root.profileValues
                 model: root.profileLabels
-                currentIndex: Math.max(0, values.indexOf(root.profile))
+                currentIndex: Math.max(0, values.indexOf(root.selectedProfileOption))
                 settingsSearchId: root.profileSearchId
                 settingsSearchLabel: root.profileSearchLabel
                 settingsSearchKeywords: root.profileSearchKeywords
                 onItemChosen: function(index) {
-                    if (index >= 0 && index < values.length)
-                        root.profileEdited(values[index])
+                    if (index < 0 || index >= values.length) return
+                    var selected = values[index]
+                    if (selected === "cubic-bezier") {
+                        if (!root.customBezierVisible)
+                            root.profileEdited("cubic-bezier(0.25, 0.10, 0.25, 1.00)")
+                    } else {
+                        root.profileEdited(selected)
+                    }
                 }
 
                 Connections {
                     target: root
                     function onProfileChanged() {
-                        profileComboBox.currentIndex = Math.max(0, profileComboBox.values.indexOf(root.profile))
+                        profileComboBox.currentIndex = Math.max(0, profileComboBox.values.indexOf(root.selectedProfileOption))
                     }
                 }
             }
         }
 
-        Text {
+        SettingsDescription {
             width: parent.width
-            visible: root.profile === "none"
             wrapMode: Text.WordWrap
-            text: "Внутренние переходы выполняются мгновенно. Сохранённые длительности не меняются, анимация появления самого модуля остаётся независимой."
-            color: Config.textMuted
-            font.family: Config.settingsFont
-            font.pixelSize: Config.settingsUiSize(10)
+            text: root.normalizedProfile === "none"
+                ? "Анимация внутренних переходов отключена. Анимация появления самого модуля управляется отдельно."
+                : (root.customBezierVisible
+                    ? "Используется собственная CSS-функция cubic-bezier(x1, y1, x2, y2). Для X1 и X2 должны находиться в диапазоне от 0 до 1; Y1 и Y2 могут принимать любые конечные числовые значения."
+                    : "Используется CSS-функция сглаживания «" + root.selectedProfileOption + "». Длительность перехода задаётся отдельно.")
+        }
+
+        SettingsRow {
+            visible: root.customBezierVisible
+            width: parent.width
+            height: visible ? 46 : 0
+            label: "Параметры кривой"
+            labelWidth: 170
+            labelFontSize: 10
+            controlSpacing: 4
+
+            Row {
+                height: parent.height
+                spacing: 4
+                Repeater {
+                    model: ["X1", "Y1", "X2", "Y2"]
+                    delegate: Column {
+                        width: 54
+                        spacing: 1
+                        Text {
+                            width: parent.width
+                            height: 12
+                            text: modelData
+                            color: Config.textMuted
+                            font.family: Config.settingsFontFamily
+                            font.pixelSize: Config.settingsUiSize(8)
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        SettingsNumberField {
+                            width: 54
+                            height: 30
+                            fieldWidth: 54
+                            compact: true
+                            value: root.currentBezierValues[index]
+                            minimum: index % 2 === 0 ? 0 : -Infinity
+                            maximum: index % 2 === 0 ? 1 : Infinity
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            step: 0.05
+                            wheelStep: 0.05
+                            decimals: 2
+                            valueWriter: function(value) { root.updateBezierComponent(index, value) }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -105,8 +172,8 @@ Column {
         fromGeometry: Qt.rect(0, 0, parent.width, 0)
         toGeometry: Qt.rect(0, 0, parent.width, root.detailsTopInset + detailsGroup.implicitHeight)
         progress: root.profile !== "none" ? 1 : 0
-        animationDuration: Config.animationDuration(180, "appearance")
-        animationEasing: Config.animationEasingType("standard", root.profile !== "none" ? "enter" : "exit")
+        animationDuration: root.profile === "none" ? 0 : Config.animationDuration(180, "appearance")
+        animationEasing: Config.animationEasingType("ease-out", root.profile !== "none" ? "enter" : "exit")
 
         SettingsGroup {
             id: detailsGroup

@@ -114,15 +114,15 @@ Column {
             Text {
                 text: "Порядок верхней панели"
                 color: Config.settingsSubheading
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
                 topPadding: 4
             }
 
-            Text {
+            SettingsDescription {
                 text: "Порядок применяется слева направо. Перетаскивай маркер, чтобы изменить положение иконок; их настройки и действия не меняются."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 wrapMode: Text.WordWrap
                 width: parent.width
@@ -168,7 +168,7 @@ Column {
                             height: 28
                             text: root.topIconLabel(modelData)
                             color: Config.text
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -193,7 +193,7 @@ Column {
                     text: "По умолчанию"
                     fontSize: 10
                     fillOnHover: false
-                    backgroundColor: Config.settingsBackground
+                    backgroundColor: "transparent"
                     hoverBackgroundColor: Config.baseColor
                     textColor: Config.text
                     hoverTextColor: Config.text
@@ -213,7 +213,7 @@ Column {
             Text {
                 text: "Иконки"
                 color: Config.settingsSubheading
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(10)
                 topPadding: 4
             }
@@ -237,22 +237,22 @@ Column {
                 width: parent.width
                 height: 22
                 spacing: 6
-                Text { width: 82; text: ""; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                Text { width: 58; text: "Показывать"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+                Text { width: 82; text: ""; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                Text { width: 58; text: "X"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                Text { width: 58; text: "Показывать"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
             }
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Стоп"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Стоп"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: stopIconField; width: 58; height: 30; text: Config.mopidyStopIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: stopIconField; width: 58; height: 30; text: Config.mopidyStopIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Стоп"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (stopIconField.activeFocus || stopIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (stopIconField.activeFocus || stopIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || stopIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyStopIcon = text; text = Config.mopidyStopIcon; settings.save() }
                     Connections { target: Config; function onMopidyStopIconChanged() { stopIconField.text = Config.mopidyStopIcon } }
                 }
@@ -268,12 +268,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Обновить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Обновить"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: refreshIconField; width: 58; height: 30; text: Config.mopidyRefreshIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: refreshIconField; width: 58; height: 30; text: Config.mopidyRefreshIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Обновить"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (refreshIconField.activeFocus || refreshIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (refreshIconField.activeFocus || refreshIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || refreshIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyRefreshIcon = text; text = Config.mopidyRefreshIcon; settings.save() }
                     Connections { target: Config; function onMopidyRefreshIconChanged() { refreshIconField.text = Config.mopidyRefreshIcon } }
                 }
@@ -290,12 +290,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Открыть добавление"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Открыть добавление"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: openAddIconField; width: 58; height: 30; text: Config.mopidyOpenAddIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: openAddIconField; width: 58; height: 30; text: Config.mopidyOpenAddIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Открыть добавление"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (openAddIconField.activeFocus || openAddIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (openAddIconField.activeFocus || openAddIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || openAddIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyOpenAddIcon = text; text = Config.mopidyOpenAddIcon; settings.save() }
                     Connections { target: Config; function onMopidyOpenAddIconChanged() { openAddIconField.text = Config.mopidyOpenAddIcon } }
                 }
@@ -311,12 +311,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Добавить элемент"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Добавить элемент"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: addIconField; width: 58; height: 30; text: Config.mopidyAddIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: addIconField; width: 58; height: 30; text: Config.mopidyAddIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Добавить элемент"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (addIconField.activeFocus || addIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (addIconField.activeFocus || addIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || addIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyAddIcon = text; text = Config.mopidyAddIcon; settings.save() }
                     Connections { target: Config; function onMopidyAddIconChanged() { addIconField.text = Config.mopidyAddIcon } }
                 }
@@ -332,12 +332,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Shuffle"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Shuffle"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: shuffleIconField; width: 58; height: 30; text: Config.mopidyShuffleIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: shuffleIconField; width: 58; height: 30; text: Config.mopidyShuffleIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Перемешать"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (shuffleIconField.activeFocus || shuffleIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (shuffleIconField.activeFocus || shuffleIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || shuffleIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyShuffleIcon = text; text = Config.mopidyShuffleIcon; settings.save() }
                     Connections { target: Config; function onMopidyShuffleIconChanged() { shuffleIconField.text = Config.mopidyShuffleIcon } }
                 }
@@ -353,12 +353,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Repeat"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Repeat"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: repeatIconField; width: 58; height: 30; text: Config.mopidyRepeatIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: repeatIconField; width: 58; height: 30; text: Config.mopidyRepeatIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Повтор"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (repeatIconField.activeFocus || repeatIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (repeatIconField.activeFocus || repeatIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || repeatIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyRepeatIcon = text; text = Config.mopidyRepeatIcon; settings.save() }
                     Connections { target: Config; function onMopidyRepeatIconChanged() { repeatIconField.text = Config.mopidyRepeatIcon } }
                 }
@@ -374,12 +374,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Переключить плейлист"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
+                Text { width: 82; height: 30; text: "Переключить плейлист"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
                 SettingsTextField {
-                    id: switchPlaylistIconField; width: 58; height: 30; text: Config.mopidySwitchPlaylistIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: switchPlaylistIconField; width: 58; height: 30; text: Config.mopidySwitchPlaylistIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Переключить плейлист"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (switchPlaylistIconField.activeFocus || switchPlaylistIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (switchPlaylistIconField.activeFocus || switchPlaylistIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || switchPlaylistIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidySwitchPlaylistIcon = text; text = Config.mopidySwitchPlaylistIcon; settings.save() }
                     Connections { target: Config; function onMopidySwitchPlaylistIconChanged() { switchPlaylistIconField.text = Config.mopidySwitchPlaylistIcon } }
                 }
@@ -395,12 +395,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Удаление плейлистов/треков"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
+                Text { width: 82; height: 30; text: "Удаление плейлистов/треков"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
                 SettingsTextField {
-                    id: playlistDeleteIconField; width: 58; height: 30; text: Config.mopidyPlaylistDeleteIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: playlistDeleteIconField; width: 58; height: 30; text: Config.mopidyPlaylistDeleteIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Удалить плейлист или трек"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (playlistDeleteIconField.activeFocus || playlistDeleteIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (playlistDeleteIconField.activeFocus || playlistDeleteIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || playlistDeleteIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyPlaylistDeleteIcon = text; text = Config.mopidyPlaylistDeleteIcon; settings.save() }
                     Connections { target: Config; function onMopidyPlaylistDeleteIconChanged() { playlistDeleteIconField.text = Config.mopidyPlaylistDeleteIcon } }
                 }
@@ -414,23 +414,23 @@ Column {
                 }
             }
 
-            Text {
+            SettingsDescription {
                 width: parent.width
                 text: "Порядок треков очереди и записей плейлистов меняется перетаскиванием за маркер ⠿."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 wrapMode: Text.WordWrap
             }
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Громкость"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Громкость"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: volumeIconField; width: 58; height: 30; text: Config.mopidyVolumeIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: volumeIconField; width: 58; height: 30; text: Config.mopidyVolumeIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Громкость"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (volumeIconField.activeFocus || volumeIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || volumeIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyVolumeIcon = text; text = Config.mopidyVolumeIcon; settings.save() }
                     Connections { target: Config; function onMopidyVolumeIconChanged() { volumeIconField.text = Config.mopidyVolumeIcon } }
                 }
@@ -446,12 +446,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Mute"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Mute"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: mutedIconField; width: 58; height: 30; text: Config.mopidyMutedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: mutedIconField; width: 58; height: 30; text: Config.mopidyMutedIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Без звука"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (mutedIconField.activeFocus || mutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (mutedIconField.activeFocus || mutedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || mutedIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyMutedIcon = text; text = Config.mopidyMutedIcon; settings.save() }
                     Connections { target: Config; function onMopidyMutedIconChanged() { mutedIconField.text = Config.mopidyMutedIcon } }
                 }
@@ -463,12 +463,12 @@ Column {
 
             Row {
                 width: parent.width; height: 30; spacing: 6
-                Text { width: 82; height: 30; text: "Очистить"; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
+                Text { width: 82; height: 30; text: "Очистить"; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(11); verticalAlignment: Text.AlignVCenter }
                 SettingsTextField {
-                    id: clearIconField; width: 58; height: 30; text: Config.mopidyClearIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
+                    id: clearIconField; width: 58; height: 30; text: Config.mopidyClearIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true
                     settingsSearchLabel: "Иконка: Очистить"
                     settingsSearchKeywords: "иконка иконки значок symbol glyph mopidy"
-                    background: Rectangle { color: Config.settingsBackground; border.color: (clearIconField.activeFocus || clearIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 }
+                    background: Rectangle { color: "transparent"; border.color: (clearIconField.activeFocus || clearIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || clearIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) }
                     onEditingFinished: { Config.mopidyClearIcon = text; text = Config.mopidyClearIcon; settings.save() }
                     Connections { target: Config; function onMopidyClearIconChanged() { clearIconField.text = Config.mopidyClearIcon } }
                 }

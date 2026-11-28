@@ -20,10 +20,12 @@ const senders = [
 
 let summary = C.summarizeSenders(senders,
   ['org.mozilla.firefox', 'Mail'],
-  ['org.telegram.desktop', 'Mail']);
+  ['org.telegram.desktop', 'Mail'],
+  ['org.example.mail-a']);
 assert.strictEqual(summary.senderCount, 4, 'all observed sender identities are counted independently');
-assert.strictEqual(summary.senderWithRulesCount, 2, 'only unambiguous canonical app rules count as configured senders');
-assert.strictEqual(summary.senderWithoutRulesCount, 2, 'senders without applicable rules are counted');
+assert.strictEqual(summary.senderWithRulesCount, 3, 'all three independent canonical app rules count as configured senders');
+assert.strictEqual(summary.historyIgnoredCount, 1, 'history ignore count follows canonical identity matching');
+assert.strictEqual(summary.senderWithoutRulesCount, 1, 'senders without applicable rules are counted');
 assert.strictEqual(summary.ignoreDndCount, 1, 'allow-while-DND count follows canonical identity matching');
 assert.strictEqual(summary.disabledOutsideDndCount, 1, 'suppress-while-DND-off count follows canonical identity matching');
 assert.strictEqual(summary.savedOnlyCount, 1, 'ambiguous legacy name rule is counted as a saved-only entry');
@@ -38,7 +40,7 @@ assert.strictEqual(summary.senderWithoutRulesCount, 1);
 
 const settings = fs.readFileSync(root + '/components/settings/sections/SettingsNotificationsSection.qml', 'utf8');
 assert(settings.includes('NotificationAppCatalog.summarizeSenders('), 'DND page binds catalog-wide summary to source data');
-assert(settings.includes('Отправителей: ') && settings.includes('Игнор DND: ') && settings.includes('Отключить: '),
+assert(settings.includes('Отправителей: ') && settings.includes('Игнор DND: ') && settings.includes('Отключить: ') && settings.includes('Игнор истории: '),
   'summary exposes sender and both rule-direction counts');
 assert(settings.includes('Ранее настроено: ') && settings.includes('Неоднозначные: '),
   'summary distinguishes configured-only rules and unresolved identities');

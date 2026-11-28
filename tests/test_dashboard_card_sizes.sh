@@ -485,7 +485,7 @@ const defaults = read('js/settings/SettingsDefaults.js');
 const page = read('components/settings/sections/SettingsDashboardSection.qml');
 const dashboard = read('components/Dashboard.qml');
 const settings = read('Settings.qml');
-assert.match(dashboard, /readonly property real targetWidth: Math\.max\(1, Math\.min\(Math\.max\(1, parent\.width - 32\),\s*Number\(configuredGeometry\[2\]\) > 0 \? Number\(configuredGeometry\[2\]\) : DashboardCards\.drawerWidthForScreenWidth\(parent\.width\)\)\)/,
+assert.match(dashboard, /readonly property real targetWidth: Math\.max\(1, Math\.min\(Math\.max\(1, parent\.width \/ root\.drawerUiScale - 32\),\s*Number\(configuredGeometry\[2\]\) > 0 \? Number\(configuredGeometry\[2\]\) : DashboardCards\.drawerWidthForScreenWidth\(parent\.width \/ root\.drawerUiScale\)\)\)/,
   'Dashboard drawer width honors configured module width and otherwise uses the established screen-based width');
 assert.match(dashboard, /readonly property real targetHeight: Number\(configuredGeometry\[3\]\) > 0/,
   'Dashboard drawer height honors the configured module height while retaining automatic height at zero');

@@ -36,11 +36,11 @@ for (const control of ['dashboardGeometryValue(index)', 'writeDashboardGeometry(
   'settings.moduleBlurEnabled[moduleRow.moduleName] === true'])
   assert(modules.includes(control), `Modules editor exposes ${control}`);
 assert(modules.includes('settings.resetDashboardModule()'));
-assert(modules.includes('"dashboardModule" : "module"'));
+assert(modules.includes('moduleRow.moduleName === "dashboard" ? "dashboardModule" : "module"'));
 
 assert(dashboard.includes('Settings.moduleMonitors || {}).dashboard'));
 assert(dashboard.includes('Settings.geometry || {}).dashboard'));
-assert(dashboard.includes('root.dashboardFrameVisible ? Math.max(1, Config.frameBorderWidth) : 0'));
+assert(dashboard.includes('root.dashboardFrameVisible && Config.cardBordersEnabled ? Config.frameBorderWidth : 0'));
 assert(dashboard.includes('root.dashboardBackgroundVisible ? Config.settingsBackground : Config.transparent'));
 assert(dashboard.includes('item: root.dashboardBlurEnabled ? drawer : null'));
 assert(dashboard.includes('x: (root.layoutEditMode || (root.open && root.visibilityAnimationReady)) ? targetX : hiddenX'));

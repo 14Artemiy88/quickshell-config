@@ -33,7 +33,7 @@ expected=(
     'property bool animationWeatherMorphEnabled: true',
     'property int animationWeatherMorphDuration: 180',
     'property int animationWeatherHourlyDuration: 220',
-    'property string animationWeatherMorphProfile: "expressive"',
+    'property string animationWeatherMorphProfile: "ease-in-out"',
 )
 for token,key in zip(expected,keys):
     assert token in config, f'missing Config property: {token}'
@@ -49,7 +49,7 @@ assert 'Config.animationWeatherMorphEnabled = true' in apply
 assert 'if (legacyWeatherMorphEnabled === false)' in apply and 'Config.animationWeatherMorphProfile = "none"' in apply
 assert 'Math.max(0, Math.min(5000, Math.round(weatherMorphDuration)))' in apply
 assert 'Math.max(0, Math.min(5000, Math.round(weatherHourlyDuration)))' in apply
-assert 'var allowedWeatherMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply
+assert 'applyMorphProfile(Config, o, "animationWeatherMorphProfile")' in apply
 assert 'weather: ["weather", "animationWeather"]' in profiles
 assert 'weatherNow: ["weather", "animationWeather"]' in profiles
 assert 'weather: ["weather", "animationWeather"]' in settings

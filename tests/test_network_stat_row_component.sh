@@ -17,14 +17,20 @@ grep -Fq 'progress: Config.networkShowDownload ? 1 : 0' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_up ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.up ?? "0 B")' "$PARENT"
 grep -Fq 'valueText: (root.monitor?.data?.net_stat?.speed_down ?? "0 B/s") + " / " + (root.monitor?.data?.net_stat?.down ?? "0 B")' "$PARENT"
 grep -Fq 'readonly property real networkStatRowGap:' "$PARENT"
-grep -Fq 'Config.networkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' "$PARENT"
+grep -Fq 'root.effectiveNetworkSpacing * uploadRowMorph.geometryHeight / networkStatRowHeight' "$PARENT"
+grep -Fq 'presentationMode: root.presentationMode' "$PARENT"
+grep -Fq 'readonly property int effectiveNetworkSpacing:' "$PARENT"
+grep -Fq 'root.widePresentation ? 1.05 : 1' "$PARENT"
 ! grep -Fq 'networkHorizontalPadding' "$PARENT"
 grep -Fq 'Config.networkIconLeftPadding' "$ROW"
 grep -Fq 'Config.networkRightPadding' "$ROW"
-grep -Fq 'Config.networkSpacing * 2' "$ROW"
+grep -Fq 'root.effectiveNetworkSpacing * 2' "$ROW"
+grep -Fq 'root.presentationMode === "compact"' "$ROW"
+grep -Fq 'root.presentationMode === "wide"' "$ROW"
 grep -Fq 'Config.networkValueFontSize' "$ROW"
 grep -Fq 'Config.networkFont' "$ROW"
-grep -Fq 'Qt.application.font.family' "$ROW"
+grep -Fq 'Config.resolveFontFamily(Config.networkFont)' "$ROW"
+! grep -Fq 'Qt.application.font.family' "$ROW"
 grep -Fq 'horizontalAlignment: Text.AlignRight' "$ROW"
 ! grep -Fq 'networkIconColumnWidth' "$ROW"
 
@@ -66,10 +72,13 @@ if parent.count('Primitives.MorphGeometry {') != 2 or parent.count('NetworkStatR
 import re
 if re.search(r'(?m)^\s*(?:Text|Row) \{', parent):
     raise SystemExit('NetworkStat duplicates row layout instead of using NetworkStatRow')
-if row.count('Text {') != 2:
-    raise SystemExit('NetworkStatRow must keep one icon and one value text item')
-if 'height: Math.max(iconPixelSize, valuePixelSize) + Config.networkSpacing * 2' not in row:
-    raise SystemExit('Network spacing must control row height and internal padding')
+if row.count('Text {') != 5:
+    raise SystemExit('NetworkStatRow must keep one icon plus compact, regular, wide-speed and wide-total text nodes')
+for node in ['compactSpeedText', 'regularValueText', 'wideSpeedText', 'wideTotalText']:
+    if f'id: {node}' not in row:
+        raise SystemExit(f'NetworkStatRow missing presentation text node {node}')
+if 'height: Math.max(iconPixelSize, valuePixelSize) + root.effectiveNetworkSpacing * 2' not in row:
+    raise SystemExit('Adaptive network spacing must control row height and internal padding')
 print('Network stat row keeps derived icon column, shared spacing, and configurable value typography: OK')
 PYCODE
 

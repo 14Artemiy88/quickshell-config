@@ -31,6 +31,6 @@ for (const [name, block, dimension] of [['x', x, 'width'], ['y', y, 'height']]) 
   assert(block.indexOf('if (!overlayItem || !anchorItem) return 8') < block.indexOf(`overlayItem.${dimension}`), `${name} null guard precedes ${dimension} access`);
   assert(!block.includes(`Overlay.overlay.${dimension}`), `${name} binding does not dereference attached overlay directly`);
 }
-assert(y.includes('Math.max(8,'), 'popup vertical placement stays inside top margin');
+assert(y.includes('Math.max(8 * popupScale,'), 'popup vertical placement keeps the scaled top margin');
 console.log('Dashboard history filter popup null-overlay geometry guards: OK');
 JS

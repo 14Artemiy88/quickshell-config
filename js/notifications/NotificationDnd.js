@@ -29,22 +29,22 @@ function allowedAppTokens(value) {
 // Exact, case-insensitive identity matching. desktopEntry is authoritative;
 // appName is used only when it uniquely resolves to one observed sender. Legacy
 // appName rules remain compatible while their alias is unambiguous.
-function isAllowed(notification, configuredApps, senderEntries) {
+function matchesApplicationRule(notification, configuredApps, senderEntries) {
     if (!notification) return false
-    var allowed = allowedAppTokens(configuredApps)
-    if (allowed.length === 0) return false
+    var configured = allowedAppTokens(configuredApps)
+    if (configured.length === 0) return false
 
     var desktopEntry = String(notification.desktopEntry || "").trim().toLowerCase()
     var appName = String(notification.appName || "").trim().toLowerCase()
     if (desktopEntry) {
         // A desktop-entry ID is authoritative. App-name tokens are accepted
         // only as legacy aliases while that name uniquely identifies one sender.
-        if (allowed.indexOf(desktopEntry) >= 0) return true
+        if (configured.indexOf(desktopEntry) >= 0) return true
         if (!appName) return false
         var legacyAliases = NotificationAppCatalog.legacyRuleIdsForDesktopEntry(desktopEntry, senderEntries)
         for (var i = 0; i < legacyAliases.length; ++i)
-            if (allowed.indexOf(String(legacyAliases[i]).trim().toLowerCase()) >= 0) return true
-        return allowed.indexOf(appName) >= 0
+            if (configured.indexOf(String(legacyAliases[i]).trim().toLowerCase()) >= 0) return true
+        return configured.indexOf(appName) >= 0
             && NotificationAppCatalog.isUniqueAppNameForDesktopEntry(appName, desktopEntry, senderEntries)
     }
 
@@ -52,11 +52,21 @@ function isAllowed(notification, configuredApps, senderEntries) {
     // observed catalog proves that this name belongs to multiple senders, it
     // cannot safely select one of them.
     if (!appName || NotificationAppCatalog.isAmbiguousAppName(appName, senderEntries)) return false
-    if (allowed.indexOf(appName) >= 0) return true
+    if (configured.indexOf(appName) >= 0) return true
     var nameAliases = NotificationAppCatalog.legacyRuleIdsForAppName(appName, senderEntries)
     for (var j = 0; j < nameAliases.length; ++j)
-        if (allowed.indexOf(String(nameAliases[j]).trim().toLowerCase()) >= 0) return true
+        if (configured.indexOf(String(nameAliases[j]).trim().toLowerCase()) >= 0) return true
     return false
+}
+
+function isAllowed(notification, configuredApps, senderEntries) {
+    return matchesApplicationRule(notification, configuredApps, senderEntries)
+}
+
+// History exclusion is intentionally independent of DND popup suppression.
+// It is evaluated only by the history-recording path.
+function isHistoryIgnored(notification, configuredApps, senderEntries) {
+    return matchesApplicationRule(notification, configuredApps, senderEntries)
 }
 
 // DND has two complementary rule sets: allow-list while enabled, block-list while disabled.

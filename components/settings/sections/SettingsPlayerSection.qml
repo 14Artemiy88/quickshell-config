@@ -128,14 +128,14 @@ settingsSearchSubTabIndex: 1
                     color: Config.text
                     selectionColor: Config.accent
                     selectedTextColor: Config.black
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     activeFocusOnTab: true
                     background: Rectangle {
-                        color: Config.settingsBackground
+                        color: "transparent"
                         border.color: (playerSilenceField.activeFocus || playerSilenceField.pointerHovered) ? Config.accent : Config.baseColor
-                        border.width: 1
-                        radius: 4
+                        border.width: (Config.inputBordersEnabled || playerSilenceField.activeFocus) ? 1 : 0
+                        radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                     }
                     onEditingFinished: {
                         Config.playerSilenceText = text
@@ -266,14 +266,14 @@ settingsSearchSubTabIndex: 0
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
                 text: "Приоритет проигрывателей"
                 color: Config.settingsSubheading
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(12)
             }
-            Text {
-                visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
+            SettingsDescription {
+                descriptionConditionVisible: host.currentPageId === "player" && host.currentPageSubTabIndex === 0
                 text: "Первый включённый backend в списке, который сейчас доступен, используется плеером. Отключённые backend пропускаются."
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(9)
                 wrapMode: Text.WordWrap
                 width: parent.width
@@ -300,7 +300,7 @@ settingsSearchSubTabIndex: 0
                             height: 30
                             text: "#" + (index + 1)
                             color: Config.textMuted
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(10)
                             horizontalAlignment: Text.AlignRight
                             verticalAlignment: Text.AlignVCenter
@@ -319,7 +319,7 @@ settingsSearchSubTabIndex: 0
                             height: 30
                             text: model.label
                             color: model.enabled ? Config.text : Config.textDisabled
-                            font.family: Config.settingsFont
+                            font.family: Config.settingsFontFamily
                             font.pixelSize: Config.settingsUiSize(11)
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
@@ -473,7 +473,7 @@ settingsSearchSubTabIndex: 3
                     height: 30
                     text: "Шрифт метаданных плеера"
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -648,7 +648,7 @@ settingsSearchSubTabIndex: 3
                 toGeometry: Qt.rect(0, 0, parent.width, playerTextOutlineColorContent.implicitHeight)
                 progress: Config.playerTextOutlineEnabled ? 1 : 0
                 animationDuration: Config.animationDuration(180, "appearance")
-                animationEasing: Config.animationEasingType("standard", Config.playerTextOutlineEnabled ? "enter" : "exit")
+                animationEasing: Config.animationEasingType("ease-out", Config.playerTextOutlineEnabled ? "enter" : "exit")
 
                 Column {
                     id: playerTextOutlineColorContent
@@ -689,7 +689,7 @@ settingsSearchSubTabIndex: 4
         padding: 8
         contentSpacing: 6
 
-            Text { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 4; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10) }
+            Text { visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 4; text: "Иконки и управление"; color: Config.settingsSubheading; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10) }
             Column {
                 visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 4
                 width: parent.width
@@ -698,15 +698,15 @@ settingsSearchSubTabIndex: 4
                     width: parent.width
                     height: 18
                     spacing: 8
-                    Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
-                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Иконка"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Размер"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
+                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter }
                 }
                 Row {
                     width: parent.width
                     height: 30
                     spacing: 8
-                    SettingsTextField { id: playerPlayingIconField; width: 58; height: 30; text: Config.playerPlayingIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (playerPlayingIconField.activeFocus || playerPlayingIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPlayingIcon=text; settings.save() } Connections { target: Config; function onPlayerPlayingIconChanged(){playerPlayingIconField.text=Config.playerPlayingIcon} } }
+                    SettingsTextField { id: playerPlayingIconField; width: 58; height: 30; text: Config.playerPlayingIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: "transparent"; border.color: (playerPlayingIconField.activeFocus || playerPlayingIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || playerPlayingIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) } onEditingFinished: { Config.playerPlayingIcon=text; settings.save() } Connections { target: Config; function onPlayerPlayingIconChanged(){playerPlayingIconField.text=Config.playerPlayingIcon} } }
                     SettingsNumberField {
             id: playerPlayingIconSizeField
             width: 58
@@ -750,7 +750,7 @@ settingsSearchSubTabIndex: 4
                     width: parent.width
                     height: 30
                     spacing: 8
-                    SettingsTextField { id: playerPausedIconField; width: 58; height: 30; text: Config.playerPausedIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (playerPausedIconField.activeFocus || playerPausedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerPausedIcon=text; settings.save() } Connections { target: Config; function onPlayerPausedIconChanged(){playerPausedIconField.text=Config.playerPausedIcon} } }
+                    SettingsTextField { id: playerPausedIconField; width: 58; height: 30; text: Config.playerPausedIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: "transparent"; border.color: (playerPausedIconField.activeFocus || playerPausedIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || playerPausedIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) } onEditingFinished: { Config.playerPausedIcon=text; settings.save() } Connections { target: Config; function onPlayerPausedIconChanged(){playerPausedIconField.text=Config.playerPausedIcon} } }
                     SettingsNumberField {
             id: playerPausedIconSizeField
             width: 58
@@ -794,7 +794,7 @@ settingsSearchSubTabIndex: 4
                     width: parent.width
                     height: 30
                     spacing: 8
-                    SettingsTextField { id: playerNextIconField; width: 58; height: 30; text: Config.playerNextIcon; color: Config.text; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: Config.settingsBackground; border.color: (playerNextIconField.activeFocus || playerNextIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: 1; radius: 4 } onEditingFinished: { Config.playerNextIcon=text; settings.save() } Connections { target: Config; function onPlayerNextIconChanged(){playerNextIconField.text=Config.playerNextIcon} } }
+                    SettingsTextField { id: playerNextIconField; width: 58; height: 30; text: Config.playerNextIcon; color: Config.text; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(12); horizontalAlignment: Text.AlignHCenter; activeFocusOnTab: true; background: Rectangle { color: "transparent"; border.color: (playerNextIconField.activeFocus || playerNextIconField.pointerHovered) ? Config.accent : Config.baseColor; border.width: (Config.inputBordersEnabled || playerNextIconField.activeFocus) ? 1 : 0; radius: Config.scaledCornerRadius(Config.settingsUiSize(4)) } onEditingFinished: { Config.playerNextIcon=text; settings.save() } Connections { target: Config; function onPlayerNextIconChanged(){playerNextIconField.text=Config.playerNextIcon} } }
                     SettingsNumberField {
             id: playerNextIconSizeField
             width: 58
@@ -859,7 +859,7 @@ settingsSearchSubTabIndex: 5
             toGeometry: Qt.rect(0, 0, parent.width, playerProgressOptionsContent.implicitHeight)
             progress: Config.playerShowProgress ? 1 : 0
             animationDuration: Config.animationDuration(180, "appearance")
-            animationEasing: Config.animationEasingType("standard", Config.playerShowProgress ? "enter" : "exit")
+            animationEasing: Config.animationEasingType("ease-out", Config.playerShowProgress ? "enter" : "exit")
 
             Column {
                 id: playerProgressOptionsContent
@@ -872,9 +872,9 @@ settingsSearchSubTabIndex: 5
                     height: 24
                     spacing: 8
                     Item { width: 210; height: 24 }
-                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    Text { width: 58; text: "Высота"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
-                    Text { width: 58; text: "Смещение"; color: Config.textMuted; font.family: Config.settingsFont; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; text: "Y"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; text: "Высота"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    Text { width: 58; text: "Смещение"; color: Config.textMuted; font.family: Config.settingsFontFamily; font.pixelSize: Config.settingsUiSize(10); horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
                 Row {
                     visible: host.currentPageId === "player" && host.currentPageSubTabIndex === 5

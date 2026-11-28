@@ -16,28 +16,30 @@ shell = read("shell.qml")
 timer_options = read("components/TimerOptions.qml")
 
 # The common animation settings primitive exposes the explicit no-motion option.
-assert 'property var profileValues: ["none", "standard", "spatial", "effects", "expressive"]' in primitive
+assert 'property var profileValues: ["none", "linear", "ease", "ease-in", "ease-out", "ease-in-out", "cubic-bezier"]' in primitive
+assert 'property string profileLabel: "Функция сглаживания"' in primitive
+assert 'root.profileEdited("cubic-bezier(0.25, 0.10, 0.25, 1.00)")' in primitive
 assert '"Без анимации"' in primitive
-assert 'visible: root.profile === "none"' in primitive
+assert 'text: root.normalizedProfile === "none"' in primitive
 assert 'visible: root.profile !== "none" || normalizedProgress > 0.001' in primitive
 assert 'progress: root.profile !== "none" ? 1 : 0' in primitive
-assert 'animationDuration: Config.animationDuration(180, "appearance")' in primitive
-assert 'animationEasing: Config.animationEasingType("standard", root.profile !== "none" ? "enter" : "exit")' in primitive
+assert 'animationDuration: root.profile === "none" ? 0 : Config.animationDuration(180, "appearance")' in primitive
+assert 'animationEasing: Config.animationEasingType("ease-out", root.profile !== "none" ? "enter" : "exit")' in primitive
 assert primitive.index('SettingsGroup {') < primitive.index('MorphGeometry {')
 assert 'SettingsCheckBox {' not in primitive
 assert 'animationEnabledEdited' not in primitive
-assert "выполняются мгновенно" in primitive
+assert "Анимация внутренних переходов отключена" in primitive
 
 # All four module profile loaders accept the option; legacy defaults remain unchanged.
-for module in ("Mopidy", "Player", "Weather", "Timer"):
-    assert f'var allowed{module}MorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]' in apply
 for key in ("animationMopidyMorphProfile", "animationPlayerMorphProfile", "animationWeatherMorphProfile", "animationTimerMorphProfile"):
-    assert f'{key}: "expressive"' in defaults, f"legacy default changed unexpectedly: {key}"
+    assert f'{key}: "ease-in-out"' in defaults
+    assert f'applyMorphProfile(Config, o, "{key}")' in apply
 
 # No-animation has a central effective-duration gate and a neutral easing fallback.
 # Legacy master flags are migration-only and are absent from future snapshots.
 assert 'function animationProfileIsEnabled(enabled, profile)' in config
-assert 'String(profile || "standard").toLowerCase() !== "none"' in config
+assert 'AnimationCurves.normalizeProfile(profile) !== "none"' in config
+assert 'function normalizeAnimationProfile(profile)' in config
 assert 'function animationDurationForProfile(enabled, profile, baseMs, category)' in config
 assert 'return animationProfileIsEnabled(enabled, profile) ? animationDuration(baseMs, category) : 0' in config
 persistence = read("js/settings/SettingsPersistence.js")
@@ -53,8 +55,9 @@ for module in ("Mopidy", "Player", "Weather", "Timer"):
     assert f'Config.{profile_key} = "none"' in apply
 resets = read("js/settings/SettingsResets.js")
 assert 'if (profile[enabledKey] === false)' in resets and 'config[profileKey] = "none"' in resets
-assert 'if (name === "none") return Easing.Linear' in config
-assert 'if (name === "none")' in curves and 'return []' in curves
+assert 'name === "none" || name === "linear" || name === ""' in config
+assert 'if (name === "none" || name === "linear") return []' in curves
+assert 'function normalizeProfile(profile)' in curves
 
 # All internal transitions in the four modules use the no-animation gate.
 mopidy_files = [
@@ -81,8 +84,9 @@ assert "animationDuration: root.hourly ? root.hourlyMorphDuration : 0" in weathe
 
 timer = read("components/TimerWidget.qml")
 assert "readonly property int timerRowMorphDuration: Config.animationDurationForProfile(" in timer
-assert timer.count("Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)") >= 4
-assert "animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : \"none\"" in timer
+assert timer.count("Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile)") >= 2
+assert "animationStyle: Config.animationTimerVisibilityStyle" in timer
+assert "animationProfile: Config.animationTimerVisibilityProfile" in timer
 
 # The module-level appearance transitions and Timer Options popup remain separately controlled.
 assert "animationStyle: Config.animationMopidyVisibilityStyle" in shell
@@ -117,10 +121,13 @@ function extractFunction(source, name) {
   throw new Error(`unclosed ${name}`);
 }
 const easing = { Linear: 0, BezierSpline: 1, InCubic: 2, OutCubic: 3, InQuad: 4, OutQuad: 5 };
+const curveLibrary = {};
+vm.createContext(curveLibrary);
+vm.runInContext(curvesSource, curveLibrary);
 const extracted = [
   'animationDuration', 'animationProfileIsEnabled', 'animationDurationForProfile', 'animationEasingType'
 ].map(name => extractFunction(config, name)).join('\n');
-const context = { Easing: easing };
+const context = { Easing: easing, AnimationCurves: curveLibrary };
 vm.createContext(context);
 vm.runInContext(extracted, context);
 if (context.animationDurationForProfile(true, 'none', 450, 'appearance') !== 0) throw new Error('none must force zero duration');
@@ -160,10 +167,14 @@ function extractFunction(source, name) {
 }
 const applySource = fs.readFileSync(root + '/js/settings/SettingsApplyBehaviour.js', 'utf8');
 const applyBody = extractFunction(applySource, 'apply');
+const applyMorphHelper = extractFunction(applySource, 'applyMorphProfile');
 const applyContext = {};
 vm.createContext(applyContext);
-vm.runInContext(applyBody, applyContext);
-const legacyConfig = {};
+vm.runInContext(applyMorphHelper + '\n' + applyBody, applyContext);
+const legacyConfig = { normalizeAnimationProfile: value => {
+  const aliases = {standard:'ease-out', spatial:'ease-out', effects:'ease-in', expressive:'ease-in-out'};
+  return aliases[String(value)] || String(value);
+} };
 applyContext.apply(legacyConfig, {
   animationMopidyMorphEnabled: false, animationMopidyMorphProfile: 'standard',
   animationPlayerMorphEnabled: false, animationPlayerMorphProfile: 'effects',
@@ -191,8 +202,12 @@ vm.runInContext('applyConfigKeysFromProfile({}, config, profile, ["animationTime
 if (resetContext.config.animationTimerMorphProfile !== 'none' || resetContext.config.animationTimerMorphEnabled !== true)
   throw new Error('Timer reset did not migrate legacy false to none');
 
-const profilesSource = fs.readFileSync(root + '/js/settings/SettingsProfiles.js', 'utf8').replace(/^\.pragma library\s*/m, '');
-const profilesContext = {};
+const curvesSourceForProfiles = fs.readFileSync(root + '/js/AnimationCurves.js', 'utf8').replace(/^\.pragma library\s*/m, '');
+const curveLibrary = {};
+vm.createContext(curveLibrary);
+vm.runInContext(curvesSourceForProfiles, curveLibrary);
+const profilesSource = fs.readFileSync(root + '/js/settings/SettingsProfiles.js', 'utf8').replace(/^\.pragma library\s*/m, '').replace(/^\.import .*$/m, '');
+const profilesContext = { AnimationCurves: curveLibrary };
 vm.createContext(profilesContext);
 vm.runInContext(profilesSource, profilesContext);
 const owner = {

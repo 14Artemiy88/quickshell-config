@@ -68,7 +68,7 @@ for morph_id, content_id, toggle, contents in specs:
         f"toGeometry: Qt.rect(0, 0, parent.width, {content_id}.implicitHeight)",
         f"progress: Config.{toggle} ? 1 : 0",
         'animationDuration: Config.animationDuration(180, "appearance")',
-        f'animationEasing: Config.animationEasingType("standard", Config.{toggle} ? "enter" : "exit")',
+        f'animationEasing: Config.animationEasingType("ease-out", Config.{toggle} ? "enter" : "exit")',
         "normalizedProgress > 0.001",
     ):
         assert token in b, f"{morph_id}: missing {token}"

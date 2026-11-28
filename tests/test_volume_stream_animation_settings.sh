@@ -22,32 +22,36 @@ check = (root / "CHECK.sh").read_text(encoding="utf-8")
 
 assert 'property string animationVolumeStreamsVisibilityStyle: "fade"' in config
 assert 'property int volumeStreamsAnimationDuration: 250' in config
-assert 'property string animationVolumeMorphProfile: "expressive"' in config
+assert 'property string animationVolumeMorphProfile: "ease-in-out"' in config
 assert 'animationVolumeStreamsVisibilityStyle: "fade"' in defaults
 assert 'volumeStreamsAnimationDuration: 250' in defaults
-assert 'animationVolumeMorphProfile: "expressive"' in defaults
+assert 'animationVolumeMorphProfile: "ease-in-out"' in defaults
 assert '"animationVolumeStreamsVisibilityStyle"' in apply
 assert '["volumeStreamsAnimationDuration", 0, 5000]' in apply
 assert 'animationVolumeStreamsVisibilityStyle: config.animationVolumeStreamsVisibilityStyle' in persist
 assert 'animationVolumeMorphProfile: config.animationVolumeMorphProfile' in persist
+assert 'animationVolumeStreamsVisibilityProfile: config.animationVolumeStreamsVisibilityProfile' in persist
 assert 'volumeStreamsAnimationDuration: config.volumeStreamsAnimationDuration' in persist
 
 volume_reset = resets.split('function resetVolumeSettings', 1)[1].split('function resetTimerSettings', 1)[0]
 assert '"animationVolumeStreamsVisibilityStyle"' in volume_reset
 assert '"animationVolumeMorphProfile"' in volume_reset
+assert '"animationVolumeStreamsVisibilityProfile"' in volume_reset
 assert '"volumeStreamsAnimationDuration"' in volume_reset
 volume_profile = resets.split('} else if (moduleName === "volumes") {', 1)[1].split('} else if (moduleName === "player") {', 1)[0]
 assert '"animationVolumeStreamsVisibilityStyle"' in volume_profile
 assert '"animationVolumeMorphProfile"' in volume_profile
+assert '"animationVolumeStreamsVisibilityProfile"' in volume_profile
 assert '"volumeStreamsAnimationDuration"' in volume_profile
 
 assert '{ id: "volume", saveScope: "volume", subTabs: ["Иконки", "Общие", "Полосы", "Потоки", "Адаптивность", "Анимация"] }' in registry
-assert '{ keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] }' in navigation
+assert '{ keys: ["animationVolumeStreamsVisibilityStyle", "animationVolumeStreamsVisibilityProfile", "animationVolumeMorphProfile", "volumeStreamsAnimationDuration"] }' in navigation
 assert 'visible: host && host.currentPageId === "volume" && host.currentPageSubTabIndex === 5' in section
 assert 'SettingsAnimationGroup {' in section
 assert 'profile: Config.animationVolumeMorphProfile' in section
 assert 'property var values: ["fade", "slideLeft", "slideRight", "slideUp", "slideDown"]' in section
 assert 'Config.animationVolumeStreamsVisibilityStyle' in section
+assert 'Config.animationVolumeStreamsVisibilityProfile' in section
 assert 'Config.volumeStreamsAnimationDuration' in section
 
 assert 'readonly property int streamAnimationDuration:' in volumes
@@ -60,7 +64,9 @@ assert 'Config.animationVolumeStreamsVisibilityStyle === "slideRight"' in volume
 assert 'Config.animationVolumeStreamsVisibilityStyle === "slideUp"' in volumes
 assert 'Config.animationVolumeStreamsVisibilityStyle === "slideDown"' in volumes
 assert 'Config.animationDurationForProfile(' in volumes
+assert 'Config.animationEasingType(Config.animationVolumeStreamsVisibilityProfile' in volumes
 assert 'Config.animationEasingType(Config.animationVolumeMorphProfile' in volumes
+assert 'Config.animationBezierCurve(Config.animationVolumeStreamsVisibilityProfile' in volumes
 assert 'Config.animationBezierCurve(Config.animationVolumeMorphProfile' in volumes
 assert 'contentHeight: Math.min(Config.volumeMaxHeight, volumesWidget.animatedAdaptiveHeight)' in shell
 

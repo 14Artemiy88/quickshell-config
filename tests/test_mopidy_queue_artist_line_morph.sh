@@ -10,7 +10,7 @@ grep -Fq 'fromGeometry: Qt.rect(0, parent.height, parent.width, 0)' "$FILE"
 grep -Fq 'progress: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist ? 1 : 0' "$FILE"
 grep -Fq 'height: Math.max(1, artistLineMorph.geometryY' "$FILE"
 grep -Fq 'artistLineMorph.normalizedProgress <= 0.001' "$FILE"
-grep -Fq 'height: Config.mopidyTrackRowHeight' "$FILE"
+grep -Fq 'height: controller.effectiveTrackRowHeight' "$FILE"
 if grep -Fq 'visible: Config.mopidyTrackArtistDisplayMode === "two-lines" && !!itemData.track.artist' "$FILE"; then
     echo 'Old immediate artist-line visibility is still present' >&2
     exit 1

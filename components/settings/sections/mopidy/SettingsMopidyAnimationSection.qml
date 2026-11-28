@@ -39,7 +39,7 @@ Column {
 settingsSearchSubTabIndex: 4
         width: parent.width
         showFrame: true
-        changeKeys: ({ keys: ["animationMopidyVisibilityStyle"] })
+        changeKeys: ({ keys: ["animationMopidyVisibilityStyle", "animationMopidyVisibilityProfile"] })
         heading: "Появление модуля"
         padding: 8
         contentSpacing: 6
@@ -69,19 +69,30 @@ settingsSearchSubTabIndex: 4
                     }
                 }
                 background: Rectangle {
-                    color: Config.settingsBackground
+                    color: "transparent"
                     border.color: (animationMopidyVisibilityBox.activeFocus || animationMopidyVisibilityBox.pointerHovered) ? Config.accent : Config.baseColor
-                    border.width: 1
-                    radius: 4
+                    border.width: (Config.inputBordersEnabled || animationMopidyVisibilityBox.activeFocus) ? 1 : 0
+                    radius: Config.scaledCornerRadius(Config.settingsUiSize(4))
                 }
                 contentItem: Text {
                     text: animationMopidyVisibilityBox.currentText
                     color: Config.text
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(11)
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 8
                 }
+            }
+        }
+
+        SettingsAnimationCurveControl {
+            profile: Config.animationMopidyVisibilityProfile
+            searchId: "mopidy-visibility-animation-curve"
+            searchLabel: "CSS-кривая появления Mopidy"
+            searchKeywords: "mopidy модуль появление закрытие bezier"
+            onProfileEdited: function(value) {
+                Config.animationMopidyVisibilityProfile = value
+                root.settings.save()
             }
         }
     }

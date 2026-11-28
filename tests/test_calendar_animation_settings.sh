@@ -3,12 +3,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 need() { grep -Fq -- "$2" "$1" || { echo "missing '$2' in $1" >&2; exit 1; }; }
 need "$ROOT/Config.qml" 'property int animationCalendarMorphDuration: 180'
-need "$ROOT/Config.qml" 'property string animationCalendarMorphProfile: "expressive"'
+need "$ROOT/Config.qml" 'property string animationCalendarMorphProfile: "ease-in-out"'
 need "$ROOT/js/settings/SettingsDefaults.js" 'animationCalendarMorphDuration: 180'
-need "$ROOT/js/settings/SettingsDefaults.js" 'animationCalendarMorphProfile: "expressive"'
+need "$ROOT/js/settings/SettingsDefaults.js" 'animationCalendarMorphProfile: "ease-in-out"'
 need "$ROOT/js/settings/SettingsPersistence.js" 'animationCalendarMorphDuration: config.animationCalendarMorphDuration'
 need "$ROOT/js/settings/SettingsPersistence.js" 'animationCalendarMorphProfile: config.animationCalendarMorphProfile'
-need "$ROOT/js/settings/SettingsApplyBehaviour.js" 'allowedCalendarMorphProfiles = ["none", "standard", "spatial", "effects", "expressive"]'
+need "$ROOT/js/settings/SettingsApplyBehaviour.js" 'applyMorphProfile(Config, o, "animationCalendarMorphProfile")'
 need "$ROOT/js/settings/SettingsApplyBehaviour.js" 'Config.animationCalendarMorphDuration = Math.max(0, Math.min(5000, Math.round(calendarMorphDuration)))'
 need "$ROOT/components/settings/sections/SettingsCalendarSection.qml" 'SettingsAnimationGroup {'
 need "$ROOT/components/settings/sections/SettingsCalendarSection.qml" 'heading: "Внутренние переходы календаря"'

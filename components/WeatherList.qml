@@ -79,8 +79,8 @@ Primitives.ModuleFrame {
         anchors.fill: parent
         color: root.moduleBackgroundVisible ? Config.background : Config.transparent
         border.color: root.moduleFrameVisible ? Config.baseColor : Config.transparent
-        border.width: root.moduleFrameVisible ? Config.frameBorderWidth : 0
-        radius: Config.frameRadius
+        border.width: root.moduleFrameVisible && Config.cardBordersEnabled ? Config.frameBorderWidth : 0
+        radius: Config.scaledCornerRadius(Config.frameRadius)
         antialiasing: true
         z: 0
     }
@@ -144,6 +144,7 @@ Primitives.ModuleFrame {
                         entry: (root.hourly ? root.availableEntries[index] : root.displayEntries[index]) || ({})
                         hourly: root.hourly
                         days: root.days
+                        presentationMode: root.presentationMode
                         visible: !root.hourly || forecastSlotMorph.normalizedProgress > 0.001
                     }
                 }

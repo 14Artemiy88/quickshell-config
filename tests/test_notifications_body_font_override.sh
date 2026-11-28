@@ -34,9 +34,10 @@ assert.match(defaultsSource, /notificationsBodyFont: ""/,
 assert.ok(persistenceSource.includes('notificationsBodyFont: config.notificationsBodyFont'),
   'body font must survive profile save/load');
 
-const bodyFamilyBindings = notificationsSource.match(/font\.family: Config\.notificationsBodyFont/g) || [];
+const bodyFamilyBindings = notificationsSource.match(/font\.family: Config\.resolveFontFamily\(Config\.notificationsBodyFont\)/g) || [];
 assert.strictEqual(bodyFamilyBindings.length, 2,
-  'visible body text and hidden height-measure text must use the same font family');
+  'visible body text and hidden height-measure text must both resolve empty overrides to the generic system family');
+assert.ok(configSource.includes('function resolveFontFamily(overrideFamily)'), 'Config exposes a shared generic system font resolver');
 assert.ok(settingsSource.includes('targetProperty: "notificationsBodyFont"'),
   'notification settings must expose the body font override');
 assert.ok(settingsSource.includes('settingsSearchId: "notifications-body-font"'),

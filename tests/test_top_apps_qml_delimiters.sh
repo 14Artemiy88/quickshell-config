@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-python3 - "$ROOT/components/TopApps.qml" "$ROOT/components/Volumes.qml" "$ROOT/components/settings/sections/SettingsCpuRamSection.qml" <<'PYCODE'
+python3 - "$ROOT/components/TopApps.qml" "$ROOT/components/Volumes.qml" "$ROOT/components/settings/sections/SettingsCpuRamSection.qml" "$ROOT/components/TimeWidget.qml" "$ROOT/components/CpuWidget.qml" "$ROOT/components/CpuGraph.qml" "$ROOT/components/WeatherForecastItem.qml" "$ROOT/shell.qml" <<'PYCODE'
 from pathlib import Path
 import sys
 

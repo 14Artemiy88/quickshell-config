@@ -13,7 +13,7 @@ shell = (root / "shell.qml").read_text(encoding="utf-8")
 launcher = (root / "components/launcher/Launcher.qml").read_text(encoding="utf-8")
 widget = (root / "components/settings/SettingsWidget.qml").read_text(encoding="utf-8")
 registry = (root / "js/settings/SettingsPageRegistry.js").read_text(encoding="utf-8")
-general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text(encoding="utf-8")
+general = (root / "components/settings/sections/SettingsInterfaceSection.qml").read_text(encoding="utf-8")
 apply = (root / "js/settings/SettingsApplyBehaviour.js").read_text(encoding="utf-8")
 persist = (root / "js/settings/SettingsPersistence.js").read_text(encoding="utf-8")
 allowed = qml.split("function animationAllowed()", 1)[1].split("function applyImmediate()", 1)[0]
@@ -31,8 +31,9 @@ assert 'animationStyle: Config.animationMopidyVisibilityStyle' in shell
 assert 'duration: Config.animationMopidyVisibilityStyle === \"none\" ? 0 :' in shell
 assert 'animationStyle: Config.animationSettingsVisibilityStyle' in shell
 assert 'duration: Config.animationSettingsVisibilityStyle === \"none\" ? 0 :' in shell
-assert 'animationStyle: Config.animationProfileIsEnabled(Config.animationTimerMorphEnabled, Config.animationTimerMorphProfile) ? Config.animationTimerVisibilityStyle : "none"' in timer
-assert timer.count('duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDurationForProfile(') >= 2, "preset button visibility style must still support immediate mode"
+assert timer.count('animationStyle: Config.animationTimerVisibilityStyle') == 2, 'timer preset and alarm button overlays must use their independent visibility style'
+assert timer.count('animationProfile: Config.animationTimerVisibilityProfile') == 2, 'timer preset and alarm button overlays must use their independent visibility easing curve'
+assert timer.count('duration: Config.animationTimerVisibilityStyle === "none" ? 0 : Config.animationDuration(') >= 2, "preset button visibility style must still support immediate mode"
 for morph_id in ("timerIconMorph", "alarmIconMorph"):
     block = timer.split(f"id: {morph_id}", 1)[1].split("\n        }", 1)[0]
     assert 'Config.animationTimerVisibilityStyle' not in block, f"{morph_id} must not inherit the preset-button style"
@@ -45,7 +46,7 @@ assert "Config.animationsEnabled" not in options
 assert "Config.animationsEnabled" not in launcher
 assert "Config.animationDuration(180, \"movement\")" in launcher
 assert "Config.animationDuration(180, \"size\")" in launcher
-assert '{ id: "general", saveScope: "general", subTabs: ["Интерфейс", "Профили", "Хранилища"] }' in registry
+assert '{ id: "general", saveScope: "", subTabs: ["Профили", "Хранилища"] }' in registry
 assert '["Интерфейс", "Анимации", "Профили"]' not in registry
 assert 'text: "Анимации"' not in general
 assert "animationsEnabled" not in apply and "animationAppearanceEnabled" not in apply

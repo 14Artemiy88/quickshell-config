@@ -11,13 +11,20 @@ Item {
     property int settingsSearchSubTabIndex: -1
     property real padding: showFrame ? 10 : 0
     property real contentSpacing: 5
+    // Additional content offset below a frame legend; can be tightened for compact groups.
+    property real headingContentGap: 8
     // Explicit frame legend; avoids relying on child order or visibility.
     property string heading: ""
+    // Optional compact actions aligned with the frame legend. They are
+    // overlaid in the heading lane and do not reserve a full content row.
+    property Component headingActions: null
     readonly property string renderedHeading: root.heading.trim().length > 0
         ? root.heading
         : (root.headingSource ? String(root.headingSource.text || "") : "")
     // Section frames are outlines only; avoid repeating a filled surface behind every group.
     property color backgroundColor: Config.transparent
+    property color headingBackgroundColor: root.backgroundColor.a > 0
+        ? root.backgroundColor : Config.settingsBackground
     property color borderColor: Config.baseColor
     property int borderWidth: 1
     property real radius: Config.frameRadius
@@ -40,7 +47,7 @@ Item {
         && (root.heading.trim().length > 0
             || (root.headingSource !== null && root.headingSource.visible))
 
-    implicitHeight: contentColumn.implicitHeight + root.padding * 2 + (root.hasHeading ? 8 : 0)
+    implicitHeight: contentColumn.implicitHeight + root.padding * 2 + (root.hasHeading ? root.headingContentGap : 0)
     height: implicitHeight
 
     function adoptHeading() {
@@ -81,11 +88,12 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+        anchors.topMargin: root.hasHeading ? 8 : 0
         visible: root.showFrame
         color: root.backgroundColor
         border.color: root.borderColor
-        border.width: root.borderWidth
-        radius: root.radius
+        border.width: Config.cardBordersEnabled ? root.borderWidth : 0
+        radius: Config.scaledCornerRadius(root.radius)
         z: -1
     }
 
@@ -93,29 +101,51 @@ Item {
         anchors.fill: parent
         overlayZ: 4
         highlighted: root.settingsSearchHighlighted
-        cornerRadius: root.radius
+        cornerRadius: Config.scaledCornerRadius(root.radius)
+    }
+
+    Loader {
+        id: headingActionsLoader
+        y: 0
+        z: 5
+        sourceComponent: root.headingActions
+        anchors.right: parent.right
+        anchors.rightMargin: root.padding
     }
 
     TextMetrics {
         id: headingMetrics
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(11)
         font.bold: false
         text: root.renderedHeading
+    }
+
+    Rectangle {
+        id: headingBorderCutout
+        visible: root.hasHeading && Config.cardBordersEnabled
+        x: headingLabel.x - 5
+        y: 8 - root.borderWidth
+        width: headingLabel.width + 10 + (root.modified ? 10 : 0)
+        height: Math.max(3, root.borderWidth * 2 + 1)
+        color: root.headingBackgroundColor
+        border.width: 0
+        z: 1
     }
 
     Text {
         id: headingLabel
         visible: root.hasHeading
         x: root.padding + 8
-        // Keep the caption inside the frame instead of masking its border with a backdrop.
+        // Center the caption on the top edge of the frame, like a fieldset legend.
         y: 2
         width: Math.max(0, Math.min(headingMetrics.advanceWidth,
-                                    root.width - root.padding * 2 - 16 - (root.modified ? 10 : 0)))
+                                    root.width - root.padding * 2 - 16 - (root.modified ? 10 : 0)
+                                    - (headingActionsLoader.item ? headingActionsLoader.width + 8 : 0)))
         height: Config.settingsUiSize(14)
         text: root.renderedHeading
         color: Config.settingsSubheading
-        font.family: Config.settingsFont
+        font.family: Config.settingsFontFamily
         font.pixelSize: Config.settingsUiSize(11)
         font.bold: false
         wrapMode: Text.NoWrap
@@ -165,7 +195,7 @@ Item {
     Column {
         id: contentColumn
         x: root.padding
-        y: root.padding + (root.hasHeading ? 8 : 0)
+        y: root.padding + (root.hasHeading ? root.headingContentGap : 0)
         width: Math.max(0, root.width - root.padding * 2)
         spacing: root.contentSpacing
         onChildrenChanged: Qt.callLater(root.adoptHeading)

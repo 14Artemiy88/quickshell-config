@@ -35,9 +35,9 @@ Item {
         anchors.fill: parent
         visible: !root.collapsed || navigationItems.height > 0.5
         z: -1
-        radius: Config.frameRadius
+        radius: Config.scaledCornerRadius(Config.frameRadius)
         color: Config.transparent
-        border.width: 1
+        border.width: Config.cardBordersEnabled ? 1 : 0
         border.color: Config.baseColor
         antialiasing: true
     }
@@ -66,11 +66,11 @@ Item {
             id: folderHeader
             anchors.fill: parent
             anchors.topMargin: root.collapsed ? 0 : 4
-            radius: Config.radius
+            radius: Config.scaledCornerRadius(Config.radius)
             color: Config.transparent
             border.width: root.searchMatchCount > 0
                 ? Config.settingsSearchHighlightBorderWidth
-                : ((folderHeader.activeFocus || folderHover.hovered) ? 1 : 0)
+                : (folderHeader.activeFocus || (Config.cardBordersEnabled && folderHover.hovered) ? 1 : 0)
             border.color: root.searchMatchCount > 0
                 ? Config.settingsSearchHighlightColor
                 : (folderHeader.activeFocus ? Config.textMuted : Config.baseColor)
@@ -100,7 +100,7 @@ Item {
                     height: parent.height
                     text: root.groupSymbol
                     color: Config.accent
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 10 : 12)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -117,7 +117,7 @@ Item {
                     height: parent.height
                     text: root.groupLabel
                     color: root.collapsed ? Config.textMuted : Config.accent
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 9 : 10)
                     font.bold: true
                     verticalAlignment: Text.AlignVCenter
@@ -130,7 +130,7 @@ Item {
                     height: parent.height
                     text: root.searchMatchCount > 99 ? "99+" : String(root.searchMatchCount)
                     color: Config.settingsSearchHighlightColor
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(root.compactNavigation
                         ? Math.max(7, Config.settingsSearchMatchCountFontSize - 1)
                         : Config.settingsSearchMatchCountFontSize)
@@ -144,7 +144,7 @@ Item {
                     height: parent.height
                     text: root.collapsed ? "⌄" : "⌃"
                     color: Config.textMuted
-                    font.family: Config.settingsFont
+                    font.family: Config.settingsFontFamily
                     font.pixelSize: Config.settingsUiSize(root.compactNavigation ? 10 : 12)
                     horizontalAlignment: Text.AlignRight
                     verticalAlignment: Text.AlignVCenter
@@ -163,7 +163,7 @@ Item {
                 height: 12
                 text: "Страница: " + root.currentPageLabel
                 color: Config.textMuted
-                font.family: Config.settingsFont
+                font.family: Config.settingsFontFamily
                 font.pixelSize: Config.settingsUiSize(8)
                 elide: Text.ElideRight
                 verticalAlignment: Text.AlignVCenter

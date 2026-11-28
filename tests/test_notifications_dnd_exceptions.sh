@@ -19,24 +19,34 @@ helper = read('js/notifications/NotificationDnd.js')
 check = read('CHECK.sh')
 assert 'property string notificationsDndAllowedApps: ""' in config
 assert 'property string notificationsDndBlockedApps: ""' in config
+assert 'property string notificationsHistoryIgnoredApps: ""' in config
 assert 'notificationsDndAllowedApps: ""' in defaults
 assert 'notificationsDndBlockedApps: ""' in defaults
+assert 'notificationsHistoryIgnoredApps: ""' in defaults
 assert 'notificationsDndAllowedApps: String(config.notificationsDndAllowedApps || "")' in persistence
 assert 'notificationsDndBlockedApps: String(config.notificationsDndBlockedApps || "")' in persistence
+assert 'notificationsHistoryIgnoredApps: String(config.notificationsHistoryIgnoredApps || "")' in persistence
 assert 'o.notificationsDndAllowedApps !== undefined' in apply_core
 assert 'o.notificationsDndBlockedApps !== undefined' in apply_core
+assert 'o.notificationsHistoryIgnoredApps !== undefined' in apply_core
 assert 'p.notificationsDndAllowedApps' in schema and 'slice(0, 4096)' in schema
 assert 'p.notificationsDndBlockedApps' in schema
+assert 'p.notificationsHistoryIgnoredApps' in schema
 assert resets.count('"notificationsDndAllowedApps"') >= 2
 assert resets.count('"notificationsDndBlockedApps"') >= 2, 'module and page reset scopes include app exceptions'
+assert resets.count('"notificationsHistoryIgnoredApps"') >= 2, 'module and page reset scopes include history-ignore rules'
 assert 'profile.notificationsDndAllowedApps === undefined' in resets
 assert 'profile.notificationsDndBlockedApps === undefined' in resets
-assert 'notificationsDndBlockedApps' in nav
+assert 'profile.notificationsHistoryIgnoredApps === undefined' in resets
+assert 'notificationsDndBlockedApps' in nav and 'notificationsHistoryIgnoredApps' in nav
 assert 'dndApplicationRows' in section and 'setDndApplicationRule' in section
-assert 'Игнор DND' in section and 'Отключить' in section and 'root.settings.save()' in section
+assert 'Игнор DND' in section and 'Отключить' in section and 'Игнор истории' in section and 'root.settings.save()' in section
 rule_function = section[section.index('function setDndApplicationRule'):section.index('    // DND\'s catalog')]
 assert 'Config.notificationsDndAllowedApps = nextAllowed' in rule_function
 assert 'Config.notificationsDndBlockedApps = nextBlocked' in rule_function
+assert 'Config.notificationsHistoryIgnoredApps = nextHistoryIgnored' in rule_function
+remove_function = section[section.index('function removeDndApplication'):section.index('    // DND\'s catalog')]
+assert 'historyIgnored = LauncherAppPreferences.setId(historyIgnored, removableIds[i], false)' in remove_function, 'sender deletion clears the third rule too'
 assert 'Config.notificationsDndBlockedApps =' not in rule_function.split('if (kind === "allowed")')[1].split('} else if (kind === "blocked")')[0], 'allow-rule toggle never writes blocked-rule setting'
 assert 'Config.notificationsDndAllowedApps =' not in rule_function.split('} else if (kind === "blocked")')[1].split('} else {')[0], 'block-rule toggle never writes allow-rule setting'
 assert 'NotificationDnd.shouldSuppress(' in qml
@@ -44,6 +54,9 @@ assert 'Config.notificationsSeenSenders))' in qml, 'runtime DND matching receive
 assert 'function reconcileDndNotifications()' in qml
 assert 'function onNotificationsDndAllowedAppsChanged()' in qml
 assert 'function onNotificationsDndBlockedAppsChanged()' in qml
+assert 'NotificationDnd.isHistoryIgnored(' in qml
+record_function = qml[qml.index('function recordNotificationHistory'):qml.index('function findTrackedNotification')]
+assert record_function.index('NotificationDnd.isHistoryIgnored(') < record_function.index('NotificationDnd.snapshot('), 'history ignore is checked before creating a snapshot'
 assert 'tests/test_notifications_dnd_exceptions.sh' in check
 assert 'notificationsDndAllowedApps' not in read('js/settings/SettingsPersistence.js').split('dndMemoryHistory')[0] or 'dndMemoryHistory' not in read('js/settings/SettingsPersistence.js'), 'no DND history persistence'
 print('DND app exceptions settings, profile persistence/reset, live reconciliation and UI wiring: OK')

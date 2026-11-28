@@ -27,6 +27,7 @@ assert 'root.width - root.labelWidth - root.spacing' in source, "control slot do
 sections = [
     "SettingsNetworkSection.qml",
     "SettingsVolumeSection.qml",
+    "SettingsOsdSection.qml",
     "SettingsCpuRamSection.qml",
     "SettingsCavaSection.qml",
     "SettingsNotificationsSection.qml",
@@ -35,7 +36,7 @@ sections = [
     "SettingsPlayerSection.qml",
     "SettingsCalendarSection.qml",
     "SettingsLauncherSection.qml",
-    "SettingsGeneralSection.qml",
+    "SettingsInterfaceSection.qml",
     "SettingsWindowSection.qml",
 ]
 sections += [
@@ -56,21 +57,21 @@ for filename in sections:
     assert old_labels == 0, f"{filename} still contains inline SettingsLabel nodes"
     row_total += rows
 
-assert row_total == 239, f"expected 239 shared settings rows after the recent Dashboard and Notifications controls, got {row_total}"
+assert row_total == 248, f"expected 248 shared settings rows including the new OSD page and global scaling controls, got {row_total}"
 network = (root / "components/settings/sections/SettingsNetworkSection.qml").read_text()
 assert len(re.findall(r"\bSettingsRow\s*\{", network)) == 9, "expected nine shared Network rows, including the two conditional module-animation controls"
-general = (root / "components/settings/sections/SettingsGeneralSection.qml").read_text()
+general = (root / "components/settings/sections/SettingsInterfaceSection.qml").read_text()
 for label_text in [
-    "Основной шрифт интерфейса", "Размер шрифта интерфейса", "LED-шрифт",
-    "Радиус области блюра (0–40)", "Толщина рамки (0 = выкл.)", "Радиус скругления рамки",
+    "Основной шрифт интерфейса", "Базовый размер шрифта", "LED-шрифт",
+    "Радиус области блюра (0–40)", "Толщина рамки карточек (0 = выкл.)", "Радиус внешних рамок",
 ]:
-    assert f'label: "{label_text}"' in general, f"General SettingsRow label is missing: {label_text}"
+    assert f'label: "{label_text}"' in general, f"Interface SettingsRow label is missing: {label_text}"
 for control_id in ["generalFontSizeField", "backgroundBlurRadiusField", "frameBorderWidthField", "frameRadiusField"]:
-    assert control_id in general, f"General SettingsRow lost control {control_id}"
-assert len(re.findall(r"\bSettingsRow\s*\{", general)) == 6, "expected six migrated General rows"
+    assert control_id in general, f"Interface SettingsRow lost control {control_id}"
+assert len(re.findall(r"\bSettingsRow\s*\{", general)) == 9, "expected nine Interface rows including global font, module scales, blur and border controls"
 window = (root / "components/settings/sections/SettingsWindowSection.qml").read_text()
 for label_text in [
-    "Шрифт настроек", "Размер шрифта настроек", "Внутренний отступ",
+    "Шрифт настроек", "Базовый размер шрифта настроек", "Внутренний отступ",
     "Расстояние между элементами", "Цвет рамки совпадений поиска",
     "Толщина рамки совпадений", "Размер шрифта счётчиков", "Стиль",
 ]:
@@ -80,7 +81,7 @@ for control_id in [
     "settingsWindowAnimationVisibilityBox",
 ]:
     assert control_id in window, f"Settings Window SettingsRow lost control {control_id}"
-assert len(re.findall(r"\bSettingsRow\s*\{", window)) == 8, "expected eight migrated Settings Window rows"
+assert len(re.findall(r"\bSettingsRow\s*\{", window)) == 11, "expected eleven Settings Window rows including the new independent scale controls"
 calendar = (root / "components/settings/sections/SettingsCalendarSection.qml").read_text()
 for label_text in [
     "Предыдущий месяц", "Следующий месяц", "Месяц", "Дни недели", "Дни",
@@ -221,7 +222,7 @@ for control_id in [
 ]:
     assert control_id in launcher, f"Launcher SettingsRow lost control {control_id}"
 assert 'fieldWidth: Math.max(80, Math.min(222, parent.width - 38))' in launcher, "Launcher font fields no longer account for the SettingsRow control slot"
-assert row_total == 239, f"expected 239 shared settings rows across standard, Mopidy, Launcher, General and Settings Window sections, got {row_total}"
+assert row_total == 248, f"expected 248 shared settings rows including the new Interface and OSD pages, got {row_total}"
 print(f"SettingsRow primitive: {row_total} shared rows across {len(sections)} sections: OK")
 PY
 

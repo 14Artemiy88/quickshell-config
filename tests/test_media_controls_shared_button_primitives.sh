@@ -11,7 +11,7 @@ for file in "$PLAYER" "$VOLUMES" "$ICON_BUTTON" "$SURFACE"; do test -f "$file"; 
 
 grep -Fq 'Primitives.HoverIconButton {' "$PLAYER"
 grep -Fq 'iconText: Config.playerNextIcon' "$PLAYER"
-grep -Fq 'iconSize: Config.playerNextIconSize' "$PLAYER"
+grep -Fq 'iconSize: root.effectivePlayerNextIconSize' "$PLAYER"
 grep -Fq 'hoverMode: "none"' "$PLAYER"
 grep -Fq 'cursorShape: Qt.PointingHandCursor' "$PLAYER"
 grep -Fq 'readonly property bool playerNextSupported:' "$PLAYER"

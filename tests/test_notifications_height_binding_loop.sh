@@ -10,7 +10,7 @@ checks = {
     "card body has a shared formatted-text value": 'property string formattedBody: notification ? root.formatNotificationBody(notification.body) : ""',
     "body measurement is separate from the displayed Text item": "id: bodyMeasure",
     "measurement width is independent of delegate geometry": "width: card.textColumnWidth",
-    "card height uses the independent measurement": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, card.buttonActions.length > 0, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
+    "card height uses the independent measurement": "root.notificationCardHeight(card.measuredSummaryHeight, bodyMeasure.implicitHeight, root.notificationHasBody(notification), Config.notificationsShowProgress && card.progressValue >= 0, card.hasNotificationImage, card.hasLeadingVisual)",
     "visible body uses the same formatted value": "text: card.formattedBody",
     "measurement and display both support rich text": "textFormat: Text.RichText",
 }

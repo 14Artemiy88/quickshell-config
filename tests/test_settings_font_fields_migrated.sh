@@ -10,8 +10,8 @@ assert_direct() {
 
 # Every editable font-family setting uses the shared primitive, including the
 # settings UI font itself. Font-size settings are intentionally not included.
-assert_direct "$ROOT/components/settings/sections/SettingsGeneralSection.qml" font
-assert_direct "$ROOT/components/settings/sections/SettingsGeneralSection.qml" ledFont
+assert_direct "$ROOT/components/settings/sections/SettingsInterfaceSection.qml" font
+assert_direct "$ROOT/components/settings/sections/SettingsInterfaceSection.qml" ledFont
 assert_direct "$ROOT/components/settings/sections/SettingsWindowSection.qml" settingsFont
 assert_direct "$ROOT/components/settings/sections/SettingsPlayerSection.qml" playerFont
 assert_direct "$ROOT/components/settings/sections/SettingsPlayerSection.qml" playerTimeFont

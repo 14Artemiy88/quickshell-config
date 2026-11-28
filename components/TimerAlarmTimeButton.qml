@@ -33,8 +33,8 @@ Item {
             anchors.centerIn: parent
             text: root.displayText
             color: Config.textDim
-            font.family: Config.settingsFont
-            font.pixelSize: 11
+            font.family: Config.settingsFontFamily
+            font.pixelSize: Config.uiFontSize(11)
         }
     }
 }
