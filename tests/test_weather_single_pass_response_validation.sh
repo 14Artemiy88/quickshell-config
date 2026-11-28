@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# This test measures jq calls made by a nested application process. Bash
+# automatically sources BASH_ENV for every non-interactive child shell; a
+# developer/CI startup hook can therefore invoke the PATH-injected jq spy and
+# be mistaken for application work. Keep the current test environment intact,
+# but prevent that unrelated startup hook from contaminating child-process
+# measurements.
+unset BASH_ENV
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"
